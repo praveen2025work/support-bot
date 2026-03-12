@@ -381,6 +381,36 @@ function RichContentRenderer({
         </div>
       );
     }
+    case 'document_summary': {
+      const docSummary = richContent.data as {
+        title: string;
+        sections: { heading: string; preview: string }[];
+        stats: { label: string; value: string }[];
+        keywords: string[];
+      };
+      return (
+        <div className="mt-1 text-xs space-y-2">
+          <div className="flex flex-wrap gap-1.5">
+            {docSummary.stats.map((stat) => (
+              <div key={stat.label} className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 px-2 py-0.5 rounded text-[11px]">
+                <span className="font-medium">{stat.value}</span>
+                <span className="text-purple-400">{stat.label}</span>
+              </div>
+            ))}
+          </div>
+          {docSummary.sections.length > 0 && (
+            <div className="space-y-1">
+              {docSummary.sections.map((sec, i) => (
+                <div key={i} className="border border-gray-200 rounded p-1.5">
+                  <p className="font-semibold text-gray-700 text-[11px]">{sec.heading}</p>
+                  {sec.preview && <p className="text-gray-400 text-[10px] mt-0.5 line-clamp-1">{sec.preview}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
     case 'csv_summary': {
       const summary = richContent.data as {
         rowCount: number;

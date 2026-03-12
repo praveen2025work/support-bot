@@ -286,6 +286,8 @@ export class ResponseGenerator {
         if (csvData.headers) {
           context.lastQueryColumns = csvData.headers;
         }
+      } else if (result.type === 'document' && result.documentResult) {
+        context.lastApiResult = result.documentResult;
       }
 
       switch (result.type) {
@@ -884,19 +886,39 @@ export class ResponseGenerator {
     if (!SUMMARY_PATTERN.test(userText)) return null;
 
     const csvData = this.extractCsvDataFromContext(context);
-    if (!csvData) return null;
+    if (csvData) {
+      const summary = computeSummary(csvData);
+      logger.info({ query: context.lastQueryName, rowCount: summary.rowCount, cols: summary.columns.length }, 'Summary follow-up');
 
-    const summary = computeSummary(csvData);
-    logger.info({ query: context.lastQueryName, rowCount: summary.rowCount, cols: summary.columns.length }, 'Summary follow-up');
+      return {
+        text: `Summary of "${context.lastQueryName}" (${summary.rowCount} rows):`,
+        richContent: { type: 'csv_summary', data: summary },
+        suggestions: csvData.headers.slice(0, 3).map((h) => `group by ${h}`),
+        sessionId: context.sessionId,
+        intent: 'followup.summary',
+        confidence: 1,
+      };
+    }
 
-    return {
-      text: `Summary of "${context.lastQueryName}" (${summary.rowCount} rows):`,
-      richContent: { type: 'csv_summary', data: summary },
-      suggestions: csvData.headers.slice(0, 3).map((h) => `group by ${h}`),
-      sessionId: context.sessionId,
-      intent: 'followup.summary',
-      confidence: 1,
-    };
+    // Document summary: extract key info from document content
+    const docData = this.extractDocumentFromContext(context);
+    if (docData) {
+      const docSummary = this.summarizeDocument(docData.content);
+      logger.info({ query: context.lastQueryName, sections: docSummary.sections.length }, 'Document summary follow-up');
+
+      return {
+        text: docSummary.text,
+        richContent: { type: 'document_summary', data: docSummary },
+        suggestions: docSummary.keywords.length > 0
+          ? docSummary.keywords.slice(0, 4).map((k) => `search ${context.lastQueryName} for ${k}`)
+          : [`run ${context.lastQueryName}`],
+        sessionId: context.sessionId,
+        intent: 'followup.summary',
+        confidence: 1,
+      };
+    }
+
+    return null;
   }
 
   /**
@@ -969,6 +991,92 @@ export class ResponseGenerator {
     const rows = raw.rows as Record<string, string | number>[] | undefined;
     if (!headers || !rows) return null;
     return { headers, rows };
+  }
+
+  /**
+   * Extract document content from context.lastApiResult.
+   */
+  private extractDocumentFromContext(context: ConversationContext): { content: string; filePath: string; format: string } | null {
+    const raw = context.lastApiResult as Record<string, unknown>;
+    if (!raw) return null;
+    const content = raw.content as string | undefined;
+    if (!content) return null;
+    return {
+      content,
+      filePath: (raw.filePath as string) ?? '',
+      format: (raw.format as string) ?? 'txt',
+    };
+  }
+
+  /**
+   * Generate a structured summary of document content.
+   * Extracts headings, key stats (tables, endpoints, etc.), and keywords.
+   */
+  private summarizeDocument(content: string): {
+    text: string;
+    title: string;
+    sections: { heading: string; preview: string }[];
+    stats: { label: string; value: string }[];
+    keywords: string[];
+  } {
+    const lines = content.split('\n');
+
+    // Extract title (first heading)
+    const titleLine = lines.find((l) => /^#+\s+/.test(l.trim()));
+    const title = titleLine ? titleLine.replace(/^#+\s+/, '').trim() : 'Document';
+
+    // Extract section headings with previews
+    const sections: { heading: string; preview: string }[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (/^#{2,3}\s+/.test(line)) {
+        const heading = line.replace(/^#+\s+/, '').trim();
+        // Grab next non-empty line as preview
+        let preview = '';
+        for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+          const next = lines[j].trim();
+          if (next && !next.startsWith('#') && !next.startsWith('|') && !next.startsWith('-')) {
+            preview = next.length > 120 ? next.substring(0, 120) + '...' : next;
+            break;
+          }
+        }
+        sections.push({ heading, preview });
+      }
+    }
+
+    // Extract stats: tables, lists, code blocks, etc.
+    const stats: { label: string; value: string }[] = [];
+    const tableRows = lines.filter((l) => l.trim().startsWith('|') && !l.trim().startsWith('|--')).length;
+    if (tableRows > 0) stats.push({ label: 'Table rows', value: String(tableRows) });
+
+    const bulletPoints = lines.filter((l) => /^\s*[-*]\s/.test(l)).length;
+    if (bulletPoints > 0) stats.push({ label: 'Bullet points', value: String(bulletPoints) });
+
+    const codeBlocks = (content.match(/```/g) || []).length / 2;
+    if (codeBlocks > 0) stats.push({ label: 'Code blocks', value: String(Math.floor(codeBlocks)) });
+
+    // Word count
+    const wordCount = content.split(/\s+/).filter(Boolean).length;
+    stats.push({ label: 'Word count', value: wordCount.toLocaleString() });
+    stats.push({ label: 'Sections', value: String(sections.length) });
+
+    // Extract keywords from headings
+    const keywords = sections
+      .map((s) => s.heading)
+      .flatMap((h) => h.split(/\s+/))
+      .filter((w) => w.length > 3 && !STOP_WORDS.has(w.toLowerCase()))
+      .map((w) => w.replace(/[^a-zA-Z0-9]/g, ''))
+      .filter(Boolean);
+    // Deduplicate
+    const uniqueKeywords = [...new Set(keywords.map((k) => k.toLowerCase()))];
+
+    return {
+      text: `Summary of "${title}" — ${sections.length} sections, ${wordCount.toLocaleString()} words:`,
+      title,
+      sections,
+      stats,
+      keywords: uniqueKeywords,
+    };
   }
 
   /**

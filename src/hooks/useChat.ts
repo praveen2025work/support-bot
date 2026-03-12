@@ -8,7 +8,7 @@ export interface Message {
   role: 'user' | 'bot';
   text: string;
   richContent?: {
-    type: 'url_list' | 'query_result' | 'multi_query_result' | 'estimation' | 'error' | 'query_filter_form' | 'file_content' | 'document_search' | 'csv_table' | 'csv_aggregation' | 'csv_group_by' | 'csv_summary' | 'query_list';
+    type: 'url_list' | 'query_result' | 'multi_query_result' | 'estimation' | 'error' | 'query_filter_form' | 'file_content' | 'document_search' | 'csv_table' | 'csv_aggregation' | 'csv_group_by' | 'csv_summary' | 'document_summary' | 'query_list';
     data: unknown;
   };
   suggestions?: string[];
