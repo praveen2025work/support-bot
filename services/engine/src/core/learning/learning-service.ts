@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, appendFileSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { generateId } from '@/lib/generate-id';
 import { SignalProcessor } from './signal-processor';
 import { invalidateEngine } from '@/lib/singleton';
 import {
@@ -47,7 +47,7 @@ export class LearningService {
     message: { text: string; sessionId: string; feedbackType?: FeedbackType; previousMessageText?: string }
   ): void {
     const entry: InteractionLog = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       timestamp: new Date().toISOString(),
       sessionId: message.sessionId,
       groupId: this.groupId,
@@ -79,7 +79,7 @@ export class LearningService {
 
   private addToReviewQueue(entry: InteractionLog): void {
     const item: ReviewItem = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       timestamp: entry.timestamp,
       userMessage: entry.userMessage,
       detectedIntent: entry.intent,
@@ -137,7 +137,7 @@ export class LearningService {
 
     if (added) {
       const learned: AutoLearnedItem = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         timestamp: new Date().toISOString(),
         utterance: item.userMessage,
         intent: correctIntent,
@@ -221,7 +221,7 @@ export class LearningService {
           const added = this.processor.addToCorpus(utterance, signals.intent, corpusPath);
           if (added) {
             const learned: AutoLearnedItem = {
-              id: crypto.randomUUID(),
+              id: generateId(),
               timestamp: new Date().toISOString(),
               utterance,
               intent: signals.intent,

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { config } from '@/lib/config';
 import { logger } from '@/lib/logger';
+import { timeoutSignal } from '@/lib/generate-id';
 
 export const userRouter = Router();
 
@@ -26,7 +27,7 @@ userRouter.get('/userinfo', async (req: Request, res: Response) => {
         method: 'GET',
         headers,
         credentials: 'include' as RequestCredentials,
-        signal: AbortSignal.timeout(10_000),
+        signal: timeoutSignal(10_000),
       });
 
       if (!response.ok) {
@@ -47,7 +48,7 @@ userRouter.get('/userinfo', async (req: Request, res: Response) => {
     const mockUrl = `${config.apiBaseUrl.replace(/\/?$/, '/')}userinfo`;
     const response = await fetch(mockUrl, {
       method: 'GET',
-      signal: AbortSignal.timeout(5_000),
+      signal: timeoutSignal(5_000),
     });
 
     if (!response.ok) {

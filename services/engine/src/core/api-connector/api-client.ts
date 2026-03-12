@@ -3,6 +3,7 @@ import { config } from '@/lib/config';
 import { logger } from '@/lib/logger';
 import { ApiConnectionError } from '@/lib/errors';
 import { API_CACHE_TTL_MS } from '../constants';
+import { timeoutSignal } from '@/lib/generate-id';
 
 export class ApiClient {
   private baseUrl: string;
@@ -38,7 +39,7 @@ export class ApiClient {
       const response = await fetch(url, {
         method: 'GET',
         headers: { ...this.buildHeaders(), ...options?.authHeaders },
-        signal: AbortSignal.timeout(30_000),
+        signal: timeoutSignal(30_000),
       });
 
       logger.debug({ url, status: response.status }, 'API response');
@@ -73,7 +74,7 @@ export class ApiClient {
         method: 'POST',
         headers: { ...this.buildHeaders(), ...authHeaders },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(30_000),
+        signal: timeoutSignal(30_000),
       });
 
       logger.debug({ url, status: response.status }, 'API response');
@@ -104,7 +105,7 @@ export class ApiClient {
         method,
         headers: { 'Content-Type': 'application/json', ...options?.headers },
         body: options?.body ? JSON.stringify(options.body) : undefined,
-        signal: AbortSignal.timeout(30_000),
+        signal: timeoutSignal(30_000),
       });
 
       logger.debug({ url: absoluteUrl, status: response.status }, 'API response (absolute)');

@@ -1,6 +1,7 @@
 import { LRUCache } from 'lru-cache';
 import { logger } from '@/lib/logger';
 import { ApiConnectionError } from '@/lib/errors';
+import { timeoutSignal } from '@/lib/generate-id';
 
 /**
  * BAM (Business Application Module) Authentication
@@ -55,7 +56,7 @@ export async function fetchBamToken(
         ...forwardHeaders,
       },
       body: JSON.stringify({}),
-      signal: AbortSignal.timeout(15_000), // 15s timeout for token fetch
+      signal: timeoutSignal(15_000), // 15s timeout for token fetch
     });
 
     if (!response.ok) {

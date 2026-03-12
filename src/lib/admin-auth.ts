@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
+import { timeoutSignal } from '@/lib/generate-id';
 
 const USERS_JSON_PATH = path.join(process.cwd(), 'src/config/users.json');
 
@@ -94,7 +95,7 @@ export async function isRequestAdmin(
     const res = await fetch(userInfoUrl, {
       method: 'GET',
       headers,
-      signal: AbortSignal.timeout(5_000),
+      signal: timeoutSignal(5_000),
     });
 
     if (!res.ok) {

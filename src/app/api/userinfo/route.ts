@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { timeoutSignal } from '@/lib/generate-id';
 
 // GET /api/userinfo — monolith mode fallback (when ENGINE_URL is not set)
 export async function GET() {
@@ -9,7 +10,7 @@ export async function GET() {
       const response = await fetch(userInfoUrl, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(10_000),
+        signal: timeoutSignal(10_000),
       });
 
       if (!response.ok) {

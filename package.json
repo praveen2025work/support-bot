@@ -2,6 +2,9 @@
   "name": "chatbot",
   "version": "1.0.0",
   "description": "",
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "scripts": {
     "build": "next build",
     "start": "next start",
