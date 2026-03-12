@@ -33,6 +33,10 @@ function Badge({ color, children }: { color: string; children: React.ReactNode }
   return <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${colors[color] || colors.blue}`}>{children}</span>;
 }
 
+function Code({ children }: { children: React.ReactNode }) {
+  return <code className="px-1.5 py-0.5 bg-gray-100 text-gray-800 rounded text-xs font-mono">{children}</code>;
+}
+
 export default function WindowsSetupGuidePage() {
   return (
     <div className="max-w-3xl">
@@ -99,25 +103,130 @@ npm run build
 cd ..\\..`}</CmdBlock>
         </Section>
 
-        <Section title="4. Configure Environment Variables">
-          <CmdBlock label="PowerShell — Set system-wide env vars">{`# For Engine
-[System.Environment]::SetEnvironmentVariable("NODE_ENV", "production", "Machine")
+        <Section title="4. Configure Environment">
+          <p className="text-sm text-gray-600 mb-3">
+            Choose the appropriate environment file based on your deployment mode.
+            Copy from <Code>.env.example</Code> and fill in your values.
+          </p>
+
+          <div className="space-y-3">
+            <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge color="green">Demo Mode</Badge>
+                <span className="text-xs text-gray-500">Uses mock data, no real APIs needed</span>
+              </div>
+              <CmdBlock label="PowerShell">{`# Copy environment template
+copy .env.example .env.mock
+
+# Defaults work out of the box:
+# API_BASE_URL=http://localhost:8080/api
+# USER_INFO_URL= (empty → mock user)
+# ENGINE_URL= (set below in PM2)`}</CmdBlock>
+            </div>
+
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge color="blue">Dev Mode</Badge>
+                <span className="text-xs text-gray-500">Real APIs and AD/SSO auth</span>
+              </div>
+              <CmdBlock label="PowerShell — Edit .env.dev with your values">{`copy .env.example .env.dev
+
+# Edit .env.dev and set:
+# NODE_ENV=development
+# ENGINE_URL=http://localhost:4000
+# USER_INFO_URL=https://your-org-sso.company.com/api/userinfo
+# API_BASE_URL=https://api-dev.your-company.com/api
+# API_TOKEN=your-dev-api-token`}</CmdBlock>
+            </div>
+
+            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge color="red">Production Mode</Badge>
+                <span className="text-xs text-gray-500">All real endpoints, secured</span>
+              </div>
+              <CmdBlock label="PowerShell — Edit .env.prod with your values">{`copy .env.example .env.prod
+
+# Edit .env.prod and set:
+# NODE_ENV=production
+# ENGINE_URL=http://localhost:4000
+# USER_INFO_URL=https://sso.your-company.com/api/userinfo
+# API_BASE_URL=https://api.your-company.com/api
+# API_TOKEN=your-prod-api-token
+# ENGINE_API_KEY=your-secure-engine-key
+# UI_ORIGIN=https://chatbot.your-company.com`}</CmdBlock>
+            </div>
+          </div>
+
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700 mt-3">
+            <span className="font-medium">Alternative:</span> You can also set system-wide environment variables via PowerShell:
+          </div>
+          <CmdBlock label="PowerShell (Administrator) — System-wide env vars">{`[System.Environment]::SetEnvironmentVariable("NODE_ENV", "production", "Machine")
 [System.Environment]::SetEnvironmentVariable("ENGINE_PORT", "4000", "Machine")
 [System.Environment]::SetEnvironmentVariable("API_BASE_URL", "https://your-api.corp.com/api", "Machine")
 [System.Environment]::SetEnvironmentVariable("API_TOKEN", "your-token", "Machine")
-[System.Environment]::SetEnvironmentVariable("UI_ORIGIN", "http://localhost:3000", "Machine")
-
-# For UI
-[System.Environment]::SetEnvironmentVariable("ENGINE_URL", "http://localhost:4000", "Machine")`}</CmdBlock>
-          <p className="text-xs text-gray-500">For demo, set <code className="bg-gray-100 px-1 rounded">API_BASE_URL=http://localhost:8080/api</code></p>
+[System.Environment]::SetEnvironmentVariable("USER_INFO_URL", "https://sso.corp.com/api/userinfo", "Machine")
+[System.Environment]::SetEnvironmentVariable("ENGINE_URL", "http://localhost:4000", "Machine")
+[System.Environment]::SetEnvironmentVariable("ENGINE_API_KEY", "your-secure-key", "Machine")
+[System.Environment]::SetEnvironmentVariable("UI_ORIGIN", "https://chatbot.corp.com", "Machine")`}</CmdBlock>
         </Section>
 
-        <Section title="5. Start Services with PM2">
+        <Section title="5. Per-Query Authentication">
+          <p className="text-sm text-gray-600 mb-3">
+            Each query can use a different authentication method. Configure per query in Admin &rarr; Groups &rarr; Queries.
+          </p>
+          <div className="overflow-x-auto mb-3">
+            <table className="w-full text-xs border border-gray-200 rounded">
+              <thead><tr className="bg-gray-50">
+                <th className="px-3 py-2 text-left font-medium text-gray-600 border-b">Auth Type</th>
+                <th className="px-3 py-2 text-left font-medium text-gray-600 border-b">How It Works</th>
+                <th className="px-3 py-2 text-left font-medium text-gray-600 border-b">Windows Setup Notes</th>
+              </tr></thead>
+              <tbody className="text-gray-700">
+                <tr>
+                  <td className="px-3 py-2 border-b"><Badge color="green">none</Badge></td>
+                  <td className="px-3 py-2 border-b">No auth headers — open API</td>
+                  <td className="px-3 py-2 border-b">No setup needed</td>
+                </tr>
+                <tr className="bg-gray-50">
+                  <td className="px-3 py-2 border-b"><Badge color="blue">bearer</Badge></td>
+                  <td className="px-3 py-2 border-b">Global <Code>API_TOKEN</Code> sent as Bearer header</td>
+                  <td className="px-3 py-2 border-b">Set <Code>API_TOKEN</Code> in env file</td>
+                </tr>
+                <tr>
+                  <td className="px-3 py-2 border-b"><Badge color="purple">windows</Badge></td>
+                  <td className="px-3 py-2 border-b">Forwards logged-in user&apos;s AD credentials</td>
+                  <td className="px-3 py-2 border-b">IIS must have Windows Auth enabled. Engine forwards cookies/auth headers from the user&apos;s browser session.</td>
+                </tr>
+                <tr className="bg-gray-50">
+                  <td className="px-3 py-2 border-b"><Badge color="red">bam</Badge></td>
+                  <td className="px-3 py-2 border-b">Calls BAM URL &rarr; gets token &rarr; sends X-BAM-Token</td>
+                  <td className="px-3 py-2 border-b">Set <Code>bamTokenUrl</Code> per query in Admin UI</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600">
+            <div className="font-medium text-gray-700 mb-1">Windows Auth Flow:</div>
+            <pre className="font-mono text-[10px] text-gray-500">{`User (AD login) → Browser → IIS (Windows Auth) → UI (:3000) → Engine (:4000)
+  → Engine forwards user's cookies/Authorization header → Tenant API (Windows Auth)`}</pre>
+            <p className="mt-2">The user authenticates once via IIS Windows Auth. The Engine transparently forwards their credentials to any query with <Code>authType: &quot;windows&quot;</Code>.</p>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600 mt-3">
+            <div className="font-medium text-gray-700 mb-1">BAM Auth Flow:</div>
+            <pre className="font-mono text-[10px] text-gray-500">{`Engine → POST bamTokenUrl → { code, message, bamToken, redirectURL }
+Engine → GET/POST actual API endpoint with X-BAM-Token: <bamToken> header → data`}</pre>
+            <p className="mt-2">BAM tokens are cached for ~5 minutes to avoid repeated token calls.</p>
+          </div>
+        </Section>
+
+        <Section title="6. Start Services with PM2">
           <div className="space-y-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Badge color="green">Demo</Badge>
-                <span className="text-sm font-medium text-gray-700">All 3 services</span>
+                <span className="text-sm font-medium text-gray-700">All 3 services (mock data)</span>
               </div>
               <CmdBlock>{`# Start Mock API (demo only)
 pm2 start services\\mock-api\\server.js --name mock-api
@@ -135,7 +244,7 @@ pm2 save`}</CmdBlock>
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Badge color="red">Production</Badge>
-                <span className="text-sm font-medium text-gray-700">UI + Engine only</span>
+                <span className="text-sm font-medium text-gray-700">UI + Engine only (real APIs)</span>
               </div>
               <CmdBlock>{`# Start Engine (connects to real tenant APIs)
 pm2 start services\\engine\\dist\\server.js --name chatbot-engine
@@ -150,7 +259,7 @@ pm2-startup install`}</CmdBlock>
           </div>
         </Section>
 
-        <Section title="6. Configure IIS Reverse Proxy">
+        <Section title="7. Configure IIS Reverse Proxy">
           <p className="text-sm text-gray-600 mb-3">Use IIS as a reverse proxy to route HTTP/HTTPS traffic to the Node.js services.</p>
 
           <div className="space-y-3">
@@ -166,12 +275,25 @@ Enable-WindowsOptionalFeature -Online -FeatureName IIS-RequestFiltering
             </div>
 
             <div>
-              <div className="text-xs font-semibold text-gray-700 mb-1">Step B: Enable ARR Proxy</div>
+              <div className="text-xs font-semibold text-gray-700 mb-1">Step B: Enable Windows Authentication in IIS</div>
+              <p className="text-xs text-gray-600 mb-2">Required for Windows Auth per-query authentication:</p>
+              <CmdBlock label="PowerShell (Administrator)">{`# Enable Windows Auth feature
+Enable-WindowsOptionalFeature -Online -FeatureName IIS-WindowsAuthentication
+
+# In IIS Manager:
+# 1. Select your site → Authentication
+# 2. Enable "Windows Authentication"
+# 3. Disable "Anonymous Authentication" (if you want all users authenticated)
+# 4. Or keep both enabled (Anonymous for public, Windows for API calls)`}</CmdBlock>
+            </div>
+
+            <div>
+              <div className="text-xs font-semibold text-gray-700 mb-1">Step C: Enable ARR Proxy</div>
               <p className="text-xs text-gray-600 mb-2">In IIS Manager: Server &rarr; Application Request Routing &rarr; Server Proxy Settings &rarr; Enable proxy</p>
             </div>
 
             <div>
-              <div className="text-xs font-semibold text-gray-700 mb-1">Step C: Add URL Rewrite rules</div>
+              <div className="text-xs font-semibold text-gray-700 mb-1">Step D: Add URL Rewrite rules</div>
               <p className="text-xs text-gray-600 mb-2">Create a <code className="bg-gray-100 px-1 rounded">web.config</code> in your IIS site root:</p>
               <CmdBlock>{`<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
@@ -190,7 +312,7 @@ Enable-WindowsOptionalFeature -Online -FeatureName IIS-RequestFiltering
           </div>
         </Section>
 
-        <Section title="7. SSL Certificate">
+        <Section title="8. SSL Certificate">
           <p className="text-sm text-gray-600 mb-3">Bind an SSL certificate to the IIS site for HTTPS access.</p>
           <CmdBlock label="PowerShell">{`# Import a PFX certificate
 Import-PfxCertificate -FilePath C:\\certs\\chatbot.pfx \\
@@ -202,7 +324,7 @@ New-SelfSignedCertificate -DnsName "chatbot.corp.com" \\
   -CertStoreLocation Cert:\\LocalMachine\\My`}</CmdBlock>
         </Section>
 
-        <Section title="8. Windows Firewall">
+        <Section title="9. Windows Firewall">
           <CmdBlock label="PowerShell (Administrator)">{`# Allow inbound on port 80 (HTTP) and 443 (HTTPS)
 New-NetFirewallRule -DisplayName "Chatbot HTTP" \\
   -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow
@@ -216,7 +338,7 @@ New-NetFirewallRule -DisplayName "Chatbot Engine Direct" \\
   -Direction Inbound -Protocol TCP -LocalPort 4000 -Action Allow`}</CmdBlock>
         </Section>
 
-        <Section title="9. Monitoring and Management">
+        <Section title="10. Monitoring and Management">
           <CmdBlock>{`# Check running services
 pm2 list
 
@@ -251,8 +373,27 @@ pm2 stop chatbot-engine`}</CmdBlock>
               <div className="text-xs text-gray-600 mt-1">Run <code className="bg-gray-100 px-1 rounded">pm2-startup install</code> as Administrator, then <code className="bg-gray-100 px-1 rounded">pm2 save</code></div>
             </div>
             <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-              <div className="text-xs font-semibold text-red-700">Windows Auth not working</div>
-              <div className="text-xs text-gray-600 mt-1">Ensure the Engine service account has access to the tenant API. For NTLM, install <code className="bg-gray-100 px-1 rounded">httpntlm</code> package in the Engine.</div>
+              <div className="text-xs font-semibold text-red-700">Windows Auth not working for queries</div>
+              <div className="text-xs text-gray-600 mt-1">
+                Ensure IIS has Windows Authentication enabled (Step 7B). Verify the query has <code className="bg-gray-100 px-1 rounded">authType: &quot;windows&quot;</code>.
+                Check that the user&apos;s browser is sending NTLM/Kerberos headers (use browser dev tools &rarr; Network tab).
+                The Engine forwards these headers to the tenant API.
+              </div>
+            </div>
+            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+              <div className="text-xs font-semibold text-red-700">BAM token fetch failing</div>
+              <div className="text-xs text-gray-600 mt-1">
+                Check the <code className="bg-gray-100 px-1 rounded">bamTokenUrl</code> is reachable from the Engine host.
+                Verify the BAM endpoint returns <code className="bg-gray-100 px-1 rounded">{`{ code, message, bamToken, redirectURL }`}</code>.
+                Check Engine logs: <code className="bg-gray-100 px-1 rounded">pm2 logs chatbot-engine</code>
+              </div>
+            </div>
+            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+              <div className="text-xs font-semibold text-red-700">Environment variables not loading</div>
+              <div className="text-xs text-gray-600 mt-1">
+                If using <Code>.env.prod</Code> file, ensure PM2 is started from the project root directory.
+                If using system env vars, restart the PowerShell session after setting them.
+              </div>
             </div>
           </div>
         </Section>
