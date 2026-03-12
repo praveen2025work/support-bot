@@ -85,6 +85,8 @@ export class ResponseGenerator {
         return this.handleStaticIntent(classification, context);
       case INTENTS.FAREWELL:
         return this.handleFarewell(classification, context);
+      case INTENTS.KNOWLEDGE_SEARCH:
+        return this.handleKnowledgeSearch(classification, context);
       default: {
         // Data operation follow-ups (must come before filter to prevent misclassification)
         const groupByResult = this.handleGroupByFollowUp(classification, context);
@@ -101,6 +103,9 @@ export class ResponseGenerator {
         // Try to answer follow-up questions about the last query result
         const followUp = this.handleFollowUp(classification, context);
         if (followUp) return followUp;
+        // Last-resort: try knowledge search before giving up
+        const knowledgeFallback = await this.handleKnowledgeSearch(classification, context);
+        if (knowledgeFallback.richContent || knowledgeFallback.intent === 'knowledge.search') return knowledgeFallback;
         return this.handleUnknown(classification, context);
       }
     }
@@ -1246,6 +1251,79 @@ export class ResponseGenerator {
     }
 
     return null;
+  }
+
+  // ── Knowledge Search (cross-document Q&A) ─────────────────────────
+
+  private async handleKnowledgeSearch(
+    classification: ClassificationResult,
+    context: ConversationContext
+  ): Promise<BotResponse> {
+    const userText = this.getLastUserText(context);
+
+    // Extract keywords from user text
+    const words = userText
+      .toLowerCase()
+      .replace(/[?!.,;:'"()[\]{}]/g, '')
+      .split(/\s+/)
+      .filter((w) => w.length >= 3 && !STOP_WORDS.has(w));
+
+    if (words.length === 0) {
+      return {
+        text: 'Could you be more specific? Try asking a question like "what is the auth flow?" or "how do I deploy?"',
+        suggestions: ['list queries', 'help'],
+        sessionId: context.sessionId,
+        intent: 'knowledge.search',
+        confidence: classification.confidence,
+      };
+    }
+
+    try {
+      const results = await this.queryService.searchAllDocuments(words);
+
+      if (results.length === 0) {
+        return {
+          text: `I couldn't find relevant information for "${userText}" in the knowledge base. Try rephrasing your question or type \`list queries\` to see available documents.`,
+          suggestions: ['list queries', 'help'],
+          sessionId: context.sessionId,
+          intent: 'knowledge.search',
+          confidence: classification.confidence,
+        };
+      }
+
+      const totalSections = results.reduce((sum, r) => sum + r.sections.length, 0);
+      logger.info(
+        { keywords: words, docs: results.length, sections: totalSections },
+        'Knowledge search results'
+      );
+
+      // Generate suggestions: search specific docs for more details
+      const suggestions = results
+        .slice(0, 3)
+        .map((r) => `search ${r.queryName} for more details`);
+      if (suggestions.length < 4) suggestions.push('list queries');
+
+      return {
+        text: `Found ${totalSections} matching section${totalSections !== 1 ? 's' : ''} across ${results.length} document${results.length !== 1 ? 's' : ''}:`,
+        richContent: {
+          type: 'knowledge_search',
+          data: { results, keywords: words },
+        },
+        suggestions,
+        sessionId: context.sessionId,
+        intent: 'knowledge.search',
+        confidence: classification.confidence,
+      };
+    } catch (error) {
+      logger.error({ error }, 'Knowledge search failed');
+      return {
+        text: 'Sorry, I had trouble searching the knowledge base. Please try again.',
+        suggestions: ['list queries', 'help'],
+        sessionId: context.sessionId,
+        intent: 'knowledge.search',
+        confidence: classification.confidence,
+      };
+    }
   }
 
   private handleUnknown(

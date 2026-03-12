@@ -381,6 +381,45 @@ function RichContentRenderer({
         </div>
       );
     }
+    case 'knowledge_search': {
+      const ksData = richContent.data as {
+        results: Array<{
+          queryName: string;
+          queryDescription: string;
+          filePath: string;
+          referenceUrl?: string;
+          sections: Array<{ heading: string | null; content: string; score: number }>;
+        }>;
+        keywords: string[];
+      };
+      return (
+        <div className="mt-1 text-xs space-y-3">
+          {ksData.results.map((doc) => (
+            <div key={doc.queryName} className="border border-purple-200 rounded-lg overflow-hidden">
+              <div className="bg-purple-50 px-3 py-1.5 flex items-center gap-2">
+                <span className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-[10px] font-medium">{doc.queryName}</span>
+                <span className="text-gray-500 text-[10px] truncate flex-1">{doc.queryDescription}</span>
+                {doc.referenceUrl && (
+                  <a href={doc.referenceUrl} target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:text-purple-700 text-[10px] shrink-0">
+                    Docs ↗
+                  </a>
+                )}
+              </div>
+              <div className="divide-y divide-gray-100">
+                {doc.sections.map((sec, i) => (
+                  <div key={i} className="px-3 py-1.5">
+                    {sec.heading && (
+                      <p className="font-semibold text-gray-700 text-[11px] mb-0.5">{sec.heading.replace(/^#+\s*/, '')}</p>
+                    )}
+                    <pre className="text-[10px] text-gray-600 whitespace-pre-wrap font-sans max-h-[120px] overflow-y-auto leading-relaxed">{sec.content.length > 500 ? sec.content.substring(0, 500) + '...' : sec.content}</pre>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
     case 'document_summary': {
       const docSummary = richContent.data as {
         title: string;

@@ -8,7 +8,7 @@ export const responseTemplates: Record<string, string[]> = {
     'See you later! Let me know if you need anything else.',
   ],
   help: [
-    'I can help you with:\n- Running queries against our data (with filters)\n- Running multiple queries in a single request\n- Finding relevant URLs and documentation\n- Providing query time estimations\n- Listing available queries\n\nExamples:\n- "run monthly revenue for this month"\n- "show me active users in US"\n- "run revenue and active users together"\n- "list queries"\n\nJust tell me what you need!',
+    'I can help you with:\n- **Ask any question** — I\'ll search the knowledge base automatically!\n- Running queries against our data (with filters)\n- Data operations: group by, sort, summarize, top-N\n- Running multiple queries in a single request\n- Finding relevant URLs and documentation\n- Listing available queries\n\nExamples:\n- "what is the auth flow?" (searches all docs)\n- "how do I deploy?" (finds deployment guide)\n- "run monthly revenue for this month"\n- "show me active users in US"\n- "list queries"\n\nJust tell me what you need!',
   ],
   unknown: [
     "I'm not sure I understand. Could you rephrase that? You can type \"help\" to see what I can do.",

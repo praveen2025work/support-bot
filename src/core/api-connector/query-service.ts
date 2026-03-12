@@ -472,4 +472,72 @@ export class QueryService {
       )
       .map((q) => ({ title: q.name, url: q.url! }));
   }
+
+  // ── Knowledge Search (cross-document) ──────────────────────────────
+
+  async searchAllDocuments(
+    keywords: string[],
+    maxResultsPerDoc: number = 3,
+    maxTotalSections: number = 8
+  ): Promise<KnowledgeSearchResult[]> {
+    const queries = await this.getQueries();
+    const docQueries = queries.filter((q) => (q.type ?? 'api') === 'document');
+
+    if (docQueries.length === 0) return [];
+
+    // Read all documents in parallel
+    const readResults = await Promise.allSettled(
+      docQueries.map(async (q) => {
+        const { content } = await this.readFile(q);
+        return { query: q, content };
+      })
+    );
+
+    const results: KnowledgeSearchResult[] = [];
+
+    for (const r of readResults) {
+      if (r.status !== 'fulfilled') continue;
+      const { query, content } = r.value;
+
+      const sections = searchDocument(content, keywords, maxResultsPerDoc);
+      if (sections.length === 0) continue;
+
+      results.push({
+        queryName: query.name,
+        queryDescription: query.description ?? '',
+        filePath: query.filePath ?? '',
+        referenceUrl: query.url,
+        sections,
+      });
+    }
+
+    // Sort documents by their best section score (descending)
+    results.sort((a, b) => {
+      const maxA = Math.max(...a.sections.map((s) => s.score));
+      const maxB = Math.max(...b.sections.map((s) => s.score));
+      return maxB - maxA;
+    });
+
+    // Trim total sections to maxTotalSections
+    let total = 0;
+    for (const res of results) {
+      const remaining = maxTotalSections - total;
+      if (remaining <= 0) {
+        res.sections = [];
+      } else if (res.sections.length > remaining) {
+        res.sections = res.sections.slice(0, remaining);
+      }
+      total += res.sections.length;
+    }
+
+    return results.filter((r) => r.sections.length > 0);
+  }
+}
+
+export interface KnowledgeSearchResult {
+  queryName: string;
+  queryDescription: string;
+  filePath: string;
+  referenceUrl?: string;
+  sections: DocumentSection[];
 }

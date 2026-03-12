@@ -203,8 +203,34 @@
         "what commands are available"
       ],
       "answers": [
-        "I can help you with:\n- Running queries against our data (with filters)\n- Running multiple queries in a single request\n- Finding relevant URLs and documentation\n- Providing query time estimations\n- Listing available queries\n\nExamples:\n- \"run monthly revenue for this month\"\n- \"show me active users in US\"\n- \"run revenue and active users together\"\n- \"list queries\"\n\nJust tell me what you need!"
+        "I can help you with:\n- **Ask any question** — I'll search the knowledge base automatically!\n- Running queries against our data (with filters)\n- Running multiple queries in a single request\n- Finding relevant URLs and documentation\n- Providing query time estimations\n- Listing available queries\n\nExamples:\n- \"what is the auth flow?\" (searches all docs)\n- \"how do I deploy?\" (finds deployment guide)\n- \"run monthly revenue for this month\"\n- \"show me active users in US\"\n- \"list queries\"\n\nJust tell me what you need!"
       ]
+    },
+    {
+      "intent": "knowledge.search",
+      "utterances": [
+        "what is the auth flow",
+        "how do I deploy to production",
+        "what are the payment requirements",
+        "tell me about authentication",
+        "how does the deployment process work",
+        "what happened in the last incident",
+        "explain the authorization module",
+        "what are the API changes",
+        "how to roll back a deployment",
+        "what is the incident response process",
+        "tell me about the payment gateway",
+        "how does SSO work",
+        "what are the release notes",
+        "explain the deployment steps",
+        "what caused the outage",
+        "what is MFA",
+        "how does token refresh work",
+        "what are the security requirements",
+        "explain the database schema",
+        "what roles are available"
+      ],
+      "answers": []
     },
     {
       "intent": "farewell",
