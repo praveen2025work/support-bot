@@ -349,6 +349,19 @@ server.get('/api/stats', (req, res) => {
   res.json({ stats, aggregated, totalRecords: stats.length });
 });
 
+// === BAM Token Mock Endpoint ===
+// Simulates a BAM (Business Application Module) authentication service.
+// Returns a mock BAM token for testing per-query BAM auth flow.
+server.post('/api/bam/token', (req, res) => {
+  console.log('[BAM Auth] Token request received');
+  res.json({
+    code: 'success',
+    message: 'success',
+    bamToken: 'mock-bam-token-' + Date.now(),
+    redirectURL: 'http://localhost:8080/api',
+  });
+});
+
 // Serve queries under /api/queries
 server.use('/api', router);
 

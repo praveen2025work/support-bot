@@ -10,12 +10,16 @@ dist/
 build/
 *.tsbuildinfo
 
-# env files
+# env files (actual configs with secrets — never commit)
 .env
 .env.local
+.env.mock
+.env.dev
+.env.prod
 .env.development.local
 .env.test.local
 .env.production.local
+# .env.example is tracked (template only, no secrets)
 
 # debug
 npm-debug.log*

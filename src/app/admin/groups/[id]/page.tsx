@@ -42,6 +42,8 @@ interface QueryRecord {
   type: 'api' | 'url' | 'document' | 'csv';
   filePath?: string;
   endpoint?: string;
+  authType?: 'none' | 'bearer' | 'windows' | 'bam';
+  bamTokenUrl?: string;
 }
 
 export default function GroupDetailPage() {
@@ -81,6 +83,8 @@ export default function GroupDetailPage() {
   const [qType, setQType] = useState<'api' | 'url' | 'document' | 'csv'>('api');
   const [qFilePath, setQFilePath] = useState('');
   const [qEndpoint, setQEndpoint] = useState('');
+  const [qAuthType, setQAuthType] = useState<'none' | 'bearer' | 'windows' | 'bam'>('none');
+  const [qBamTokenUrl, setQBamTokenUrl] = useState('');
   const [customFilterKey, setCustomFilterKey] = useState('');
   const [customFilterBinding, setCustomFilterBinding] = useState<'body' | 'query_param' | 'path'>('body');
 
@@ -193,6 +197,8 @@ export default function GroupDetailPage() {
     setQType('api');
     setQFilePath('');
     setQEndpoint('');
+    setQAuthType('none');
+    setQBamTokenUrl('');
     setQFilterBindings([]);
     setCustomFilterKey('');
     setCustomFilterBinding('body');
@@ -210,6 +216,8 @@ export default function GroupDetailPage() {
     setQType(q.type || 'api');
     setQFilePath(q.filePath || '');
     setQEndpoint(q.endpoint || '');
+    setQAuthType(q.authType || 'none');
+    setQBamTokenUrl(q.bamTokenUrl || '');
     setQFilterBindings(q.filters.map((f) => ({ ...f })));
     setEditingQueryId(q.id);
     setSelectedQueryId(q.id);
@@ -225,6 +233,8 @@ export default function GroupDetailPage() {
     setQType('api');
     setQFilePath('');
     setQEndpoint('');
+    setQAuthType('none');
+    setQBamTokenUrl('');
     setQFilterBindings([]);
     setCustomFilterKey('');
     setCustomFilterBinding('body');
@@ -277,6 +287,10 @@ export default function GroupDetailPage() {
       setQError('API Endpoint is required for API-type queries.');
       return;
     }
+    if (qAuthType === 'bam' && !qBamTokenUrl.trim()) {
+      setQError('BAM Token URL is required when Auth Type is BAM.');
+      return;
+    }
     setQSaving(true);
     setQError('');
     try {
@@ -289,6 +303,8 @@ export default function GroupDetailPage() {
         type: qType,
         filePath: (qType === 'document' || qType === 'csv') ? qFilePath.trim() : '',
         endpoint: qType === 'api' ? qEndpoint.trim() : '',
+        authType: qType === 'api' ? qAuthType : 'none',
+        bamTokenUrl: qAuthType === 'bam' ? qBamTokenUrl.trim() : '',
       };
 
       if (editingQueryId) {
@@ -632,6 +648,48 @@ export default function GroupDetailPage() {
                         />
                         <p className="text-xs text-gray-400 mt-1">
                           REST path for this query. Use &#123;filter_key&#125; for path variables.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Auth Type — only for API type */}
+                    {qType === 'api' && (
+                      <div className="mb-3">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Auth Type
+                        </label>
+                        <select
+                          value={qAuthType}
+                          onChange={(e) => setQAuthType(e.target.value as 'none' | 'bearer' | 'windows' | 'bam')}
+                          className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        >
+                          <option value="none">None (default — uses global API_TOKEN)</option>
+                          <option value="bearer">Bearer (global API_TOKEN from env)</option>
+                          <option value="windows">Windows Auth (forwards user AD credentials)</option>
+                          <option value="bam">BAM Token (fetches token from BAM URL)</option>
+                        </select>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {qAuthType === 'windows' && 'User\'s AD cookies & auth headers are forwarded to the API.'}
+                          {qAuthType === 'bam' && 'Engine calls BAM Token URL first, then uses the token for the data API call.'}
+                          {(qAuthType === 'none' || qAuthType === 'bearer') && 'Uses the global API_TOKEN from environment variables.'}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* BAM Token URL — only when authType is bam */}
+                    {qType === 'api' && qAuthType === 'bam' && (
+                      <div className="mb-3">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          BAM Token URL <span className="text-red-400 font-normal">*</span>
+                        </label>
+                        <input
+                          value={qBamTokenUrl}
+                          onChange={(e) => setQBamTokenUrl(e.target.value)}
+                          placeholder="e.g. https://auth.your-company.com/bam/token"
+                          className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">
+                          POST endpoint that returns &#123; code, message, bamToken, redirectURL &#125;
                         </p>
                       </div>
                     )}

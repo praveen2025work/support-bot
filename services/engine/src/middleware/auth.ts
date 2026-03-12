@@ -5,20 +5,21 @@ import { logger } from '@/lib/logger';
  * Authentication types supported per-query or per-group:
  *
  * "none"          — No authentication (demo/development)
- * "bearer"        — Authorization: Bearer <token>
- * "windows"       — Windows Authentication (NTLM/Kerberos) — requires IIS or node-sspi
- * "bam_token"     — Custom BAM token in header (X-BAM-Token)
+ * "bearer"        — Authorization: Bearer <token> (uses global API_TOKEN)
+ * "windows"       — Windows Authentication — forwards user's AD cookies/headers
+ * "bam"           — BAM token: fetches token from bamTokenUrl, sends as X-BAM-Token
+ * "bam_token"     — (legacy alias for "bam")
  * "ip_whitelist"  — IP-based access control
  *
- * In production, each tenant configures their API auth in groups.json:
+ * Per-query auth is configured in each query's config:
  * {
- *   "apiBaseUrl": "https://tenant-api.corp.com",
- *   "authType": "windows",
- *   "authConfig": { "domain": "CORP", "username": "svc_bot", "password": "..." }
+ *   "name": "my_query",
+ *   "authType": "bam",
+ *   "bamTokenUrl": "https://auth.company.com/bam/token"
  * }
  */
 
-export type AuthType = 'none' | 'bearer' | 'windows' | 'bam_token' | 'ip_whitelist';
+export type AuthType = 'none' | 'bearer' | 'windows' | 'bam' | 'bam_token' | 'ip_whitelist';
 
 export interface AuthConfig {
   authType: AuthType;
@@ -70,6 +71,7 @@ export function buildTenantAuthHeaders(config?: AuthConfig): Record<string, stri
     case 'bearer':
       return config.token ? { Authorization: `Bearer ${config.token}` } : {};
 
+    case 'bam':
     case 'bam_token':
       return config.bamToken ? { 'X-BAM-Token': config.bamToken } : {};
 

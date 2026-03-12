@@ -24,6 +24,7 @@ const FiltersField = z
   });
 
 export type QueryType = 'api' | 'url' | 'document' | 'csv';
+export type QueryAuthType = 'none' | 'bearer' | 'windows' | 'bam';
 
 export const QuerySchema = z.object({
   id: z.string(),
@@ -39,6 +40,9 @@ export const QuerySchema = z.object({
     .transform((val) => (val === 'file' ? 'document' : val) as QueryType),
   filePath: z.string().optional(),
   endpoint: z.string().optional(),
+  // Per-query authentication
+  authType: z.enum(['none', 'bearer', 'windows', 'bam']).default('none'),
+  bamTokenUrl: z.string().optional(),  // BAM: URL to fetch BAM token from
 });
 
 export const QueryResultSchema = z.object({

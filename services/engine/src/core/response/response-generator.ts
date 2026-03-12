@@ -44,7 +44,8 @@ export class ResponseGenerator {
   async generate(
     classification: ClassificationResult,
     context: ConversationContext,
-    explicitFilters?: Record<string, string>
+    explicitFilters?: Record<string, string>,
+    incomingHeaders?: Record<string, string>
   ): Promise<BotResponse> {
     const { intent } = classification;
 
@@ -52,9 +53,9 @@ export class ResponseGenerator {
       case INTENTS.QUERY_LIST:
         return this.handleQueryList(classification, context);
       case INTENTS.QUERY_EXECUTE:
-        return this.handleQueryExecute(classification, context, explicitFilters);
+        return this.handleQueryExecute(classification, context, explicitFilters, incomingHeaders);
       case INTENTS.QUERY_MULTI:
-        return this.handleQueryMulti(classification, context);
+        return this.handleQueryMulti(classification, context, incomingHeaders);
       case INTENTS.QUERY_ESTIMATE:
         return this.handleQueryEstimate(classification, context);
       case INTENTS.URL_FIND:
@@ -137,7 +138,8 @@ export class ResponseGenerator {
   private async handleQueryExecute(
     classification: ClassificationResult,
     context: ConversationContext,
-    explicitFilters?: Record<string, string>
+    explicitFilters?: Record<string, string>,
+    incomingHeaders?: Record<string, string>
   ): Promise<BotResponse> {
     const queryNameEntity = classification.entities.find(
       (e) => e.entity === 'query_name'
@@ -177,7 +179,8 @@ export class ResponseGenerator {
       const result = await this.queryService.executeQuery(
         queryNameEntity.value,
         hasFilters ? filters : undefined,
-        options
+        options,
+        incomingHeaders
       );
 
       const execMs = result.durationMs;
@@ -336,7 +339,8 @@ export class ResponseGenerator {
 
   private async handleQueryMulti(
     classification: ClassificationResult,
-    context: ConversationContext
+    context: ConversationContext,
+    incomingHeaders?: Record<string, string>
   ): Promise<BotResponse> {
     const queryEntities = classification.entities.filter(
       (e) => e.entity === 'query_name'
@@ -370,7 +374,8 @@ export class ResponseGenerator {
     try {
       const results = await this.queryService.executeMultipleQueries(
         queryNames,
-        hasFilters ? filters : undefined
+        hasFilters ? filters : undefined,
+        incomingHeaders
       );
 
       if (results.length === 0) {

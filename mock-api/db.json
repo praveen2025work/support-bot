@@ -289,11 +289,12 @@
     {
       "id": "q21",
       "name": "user_profile",
-      "description": "User profile data fetched via path variable (demo: path binding)",
+      "description": "User profile data fetched via path variable (demo: Windows auth + path binding)",
       "estimatedDuration": 500,
       "url": "https://confluence.example.com/wiki/engineering/user-profile-api",
       "source": "engineering",
       "type": "api",
+      "authType": "windows",
       "endpoint": "/users/{user_id}/profile",
       "filters": [
         {
@@ -355,6 +356,27 @@
           "key": "format",
           "label": "Output Format",
           "binding": "body"
+        }
+      ]
+    },
+    {
+      "id": "q24",
+      "name": "bam_report",
+      "description": "Secured report fetched via BAM token authentication (demo: BAM auth)",
+      "estimatedDuration": 2000,
+      "source": "finance",
+      "type": "api",
+      "authType": "bam",
+      "bamTokenUrl": "http://localhost:8080/api/bam/token",
+      "endpoint": "/finance/revenue/{region}",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "path"
         }
       ]
     }
@@ -692,6 +714,28 @@
       "durationMs": 9,
       "timestamp": "2026-03-12T12:37:53.660Z",
       "filters": {}
+    },
+    {
+      "id": "stat_1773319896111_v1bm",
+      "queryName": "monthly_revenue",
+      "success": true,
+      "durationMs": 8,
+      "timestamp": "2026-03-12T12:51:36.111Z",
+      "filters": {
+        "time_period": "this_month"
+      }
+    },
+    {
+      "id": "stat_1773319908452_8rwa",
+      "queryName": "monthly_revenue",
+      "success": true,
+      "durationMs": 10,
+      "timestamp": "2026-03-12T12:51:48.452Z",
+      "filters": {
+        "time_period": "last_month",
+        "region": "US",
+        "date_range": "last_month"
+      }
     }
   ]
 }

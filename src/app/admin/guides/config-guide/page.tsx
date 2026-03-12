@@ -32,7 +32,202 @@ export default function ConfigGuidePage() {
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <Section title="1. Group Configuration">
+        <Section title="1. Environment Setup">
+          <p className="text-sm text-gray-600 mb-3">
+            The platform supports three environments. Each uses a dedicated <Code>.env</Code> file to control
+            authentication, data sources, and service topology.
+          </p>
+
+          <div className="text-xs font-medium text-gray-700 mb-2">Environment Comparison</div>
+          <div className="overflow-x-auto mb-4">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600"></th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">Mock</th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">Dev</th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">Prod</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">Env file</td>
+                  <td className="px-3 py-2 font-mono">.env.mock</td>
+                  <td className="px-3 py-2 font-mono">.env.dev</td>
+                  <td className="px-3 py-2 font-mono">.env.prod</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">User login</td>
+                  <td className="px-3 py-2">Fake &quot;Local Developer&quot;</td>
+                  <td className="px-3 py-2">Real AD / SSO</td>
+                  <td className="px-3 py-2">Real AD / SSO</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">Data source</td>
+                  <td className="px-3 py-2">Mock API (:8080)</td>
+                  <td className="px-3 py-2">Real org APIs</td>
+                  <td className="px-3 py-2">Real org APIs</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">Engine</td>
+                  <td className="px-3 py-2">Optional (monolith OK)</td>
+                  <td className="px-3 py-2">Local (:4000)</td>
+                  <td className="px-3 py-2">Docker (:4000)</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">npm command</td>
+                  <td className="px-3 py-2 font-mono">dev:mock</td>
+                  <td className="px-3 py-2 font-mono">dev</td>
+                  <td className="px-3 py-2 font-mono">start:prod</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">Docker</td>
+                  <td className="px-3 py-2 font-mono">docker compose up</td>
+                  <td className="px-3 py-2 font-mono">docker compose -f docker-compose.dev.yml up</td>
+                  <td className="px-3 py-2 font-mono">docker compose -f docker-compose.prod.yml up</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="text-xs font-medium text-gray-700 mt-4 mb-2">Environment Variables Reference</div>
+          <div className="overflow-x-auto mb-4">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">Variable</th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">Purpose</th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">Mock</th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">Dev / Prod</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">NODE_ENV</td>
+                  <td className="px-3 py-2">Runtime mode</td>
+                  <td className="px-3 py-2">development</td>
+                  <td className="px-3 py-2">development / production</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">ENGINE_URL</td>
+                  <td className="px-3 py-2">Enables 3-service mode</td>
+                  <td className="px-3 py-2"><em>empty</em> (monolith)</td>
+                  <td className="px-3 py-2">http://localhost:4000</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">USER_INFO_URL</td>
+                  <td className="px-3 py-2">AD/SSO endpoint</td>
+                  <td className="px-3 py-2"><em>empty</em> (mock user)</td>
+                  <td className="px-3 py-2">Your org SSO URL</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">API_BASE_URL</td>
+                  <td className="px-3 py-2">Tenant data API</td>
+                  <td className="px-3 py-2">http://localhost:8080/api</td>
+                  <td className="px-3 py-2">Your org API URL</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">API_TOKEN</td>
+                  <td className="px-3 py-2">Bearer token for APIs</td>
+                  <td className="px-3 py-2"><em>empty</em></td>
+                  <td className="px-3 py-2">Your API token</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">ENGINE_API_KEY</td>
+                  <td className="px-3 py-2">Secures engine admin API</td>
+                  <td className="px-3 py-2"><em>empty</em></td>
+                  <td className="px-3 py-2">Required in prod</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">UI_ORIGIN</td>
+                  <td className="px-3 py-2">CORS allowed origin</td>
+                  <td className="px-3 py-2">http://localhost:3000</td>
+                  <td className="px-3 py-2">Your prod domain</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="text-xs font-medium text-gray-700 mt-4 mb-2">Quick Start: Mock Environment</div>
+          <div className="space-y-2 mb-4">
+            <div className="flex gap-2 text-xs text-gray-600">
+              <span className="w-5 h-5 rounded-full bg-green-100 text-green-700 font-bold flex items-center justify-center shrink-0">1</span>
+              <span>Copy <Code>.env.example</Code> to <Code>.env.mock</Code> (defaults work out of the box)</span>
+            </div>
+            <div className="flex gap-2 text-xs text-gray-600">
+              <span className="w-5 h-5 rounded-full bg-green-100 text-green-700 font-bold flex items-center justify-center shrink-0">2</span>
+              <span>Run <Code>npm install</Code> in root and <Code>services/engine</Code> and <Code>services/mock-api</Code></span>
+            </div>
+            <div className="flex gap-2 text-xs text-gray-600">
+              <span className="w-5 h-5 rounded-full bg-green-100 text-green-700 font-bold flex items-center justify-center shrink-0">3</span>
+              <span>Run <Code>npm run dev:mock</Code> &mdash; opens at <Code>http://localhost:3000</Code></span>
+            </div>
+            <div className="flex gap-2 text-xs text-gray-600">
+              <span className="w-5 h-5 rounded-full bg-green-100 text-green-700 font-bold flex items-center justify-center shrink-0">4</span>
+              <span>Login shows &quot;Local Developer&quot; with admin access. All sample data available.</span>
+            </div>
+          </div>
+
+          <div className="text-xs font-medium text-gray-700 mt-4 mb-2">Quick Start: Dev Environment (Real APIs)</div>
+          <div className="space-y-2 mb-4">
+            <div className="flex gap-2 text-xs text-gray-600">
+              <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0">1</span>
+              <span>Copy <Code>.env.example</Code> to <Code>.env.dev</Code></span>
+            </div>
+            <div className="flex gap-2 text-xs text-gray-600">
+              <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0">2</span>
+              <span>Set <Code>USER_INFO_URL</Code> to your org&apos;s AD/SSO userinfo endpoint</span>
+            </div>
+            <div className="flex gap-2 text-xs text-gray-600">
+              <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0">3</span>
+              <span>Set <Code>API_BASE_URL</Code> and <Code>API_TOKEN</Code> to your org&apos;s data API</span>
+            </div>
+            <div className="flex gap-2 text-xs text-gray-600">
+              <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0">4</span>
+              <span>Set <Code>ENGINE_URL=http://localhost:4000</Code> for 3-service mode</span>
+            </div>
+            <div className="flex gap-2 text-xs text-gray-600">
+              <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0">5</span>
+              <span>Run <Code>npm run dev</Code> &mdash; engine + UI start together</span>
+            </div>
+          </div>
+
+          <div className="text-xs font-medium text-gray-700 mt-4 mb-2">Quick Start: Production Deployment</div>
+          <div className="space-y-2 mb-4">
+            <div className="flex gap-2 text-xs text-gray-600">
+              <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center shrink-0">1</span>
+              <span>Copy <Code>.env.example</Code> to <Code>.env.prod</Code> and fill in all production values</span>
+            </div>
+            <div className="flex gap-2 text-xs text-gray-600">
+              <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center shrink-0">2</span>
+              <span>Set <Code>ENGINE_API_KEY</Code> to a secure random string (required for admin API security)</span>
+            </div>
+            <div className="flex gap-2 text-xs text-gray-600">
+              <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center shrink-0">3</span>
+              <span>Set <Code>UI_ORIGIN</Code> to your production domain for CORS</span>
+            </div>
+            <div className="flex gap-2 text-xs text-gray-600">
+              <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 font-bold flex items-center justify-center shrink-0">4</span>
+              <span>Run <Code>docker compose -f docker-compose.prod.yml up -d</Code></span>
+            </div>
+          </div>
+
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700 mb-3">
+            <span className="font-medium">Security:</span> Never commit <Code>.env.mock</Code>, <Code>.env.dev</Code>, or <Code>.env.prod</Code> to git.
+            Only <Code>.env.example</Code> (the template) is tracked. Env files with secrets are excluded via <Code>.gitignore</Code>.
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4 mb-3">
+            <div className="text-xs font-medium text-gray-700 mb-2">NPM Scripts Summary</div>
+            <pre className="text-[10px] text-gray-600 font-mono whitespace-pre-wrap">{`npm run dev:mock       # Mock API + UI (monolith, sample data)
+npm run dev:mock:3svc  # Mock API + Engine + UI (3-service, sample data)
+npm run dev            # Engine + UI (real APIs, requires .env.dev)
+npm run start:demo     # Production build, mock data
+npm run start:prod     # Production build, real APIs`}</pre>
+          </div>
+        </Section>
+
+        <Section title="2. Group Configuration">
           <p className="text-sm text-gray-600 mb-3">
             Groups define isolated bot instances. Each group has its own queries, training data, templates, and data sources.
           </p>
@@ -100,7 +295,7 @@ export default function ConfigGuidePage() {
           </p>
         </Section>
 
-        <Section title="2. Query Configuration">
+        <Section title="3. Query Configuration">
           <p className="text-sm text-gray-600 mb-3">
             Queries define what data the bot can fetch. Each query maps to a data source type.
           </p>
@@ -143,12 +338,70 @@ export default function ConfigGuidePage() {
             </div>
           </div>
 
+          <div className="text-xs font-medium text-gray-700 mt-4 mb-2">Per-Query Authentication</div>
+          <p className="text-xs text-gray-600 mb-2">
+            Each API query can independently specify how it authenticates with the backend data API.
+            Set <Code>authType</Code> in the query config or via the Admin UI dropdown.
+          </p>
+          <div className="overflow-x-auto mb-3">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">Auth Type</th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">How It Works</th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">Extra Fields</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">none</td>
+                  <td className="px-3 py-2">Uses global <Code>API_TOKEN</Code> from env (or no auth in mock mode). Default.</td>
+                  <td className="px-3 py-2">&mdash;</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">bearer</td>
+                  <td className="px-3 py-2">Same as &quot;none&quot; &mdash; uses <Code>API_TOKEN</Code> as Bearer header.</td>
+                  <td className="px-3 py-2">&mdash;</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">windows</td>
+                  <td className="px-3 py-2">Forwards the logged-in user&apos;s AD/Windows auth headers (Authorization, Cookie) to the backend API. No extra token call needed.</td>
+                  <td className="px-3 py-2">&mdash;</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">bam</td>
+                  <td className="px-3 py-2">
+                    Two-step: (1) POST to <Code>bamTokenUrl</Code> to get a BAM token, (2) use the token as <Code>X-BAM-Token</Code> header on the actual data API call. Tokens are cached for 5 min.
+                  </td>
+                  <td className="px-3 py-2"><Code>bamTokenUrl</Code> (required)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4 mb-3">
+            <div className="text-xs font-medium text-gray-700 mb-2">Example: BAM-authenticated query</div>
+            <pre className="text-[10px] text-gray-600 font-mono whitespace-pre-wrap">{`{
+  "name": "bam_report",
+  "type": "api",
+  "authType": "bam",
+  "bamTokenUrl": "https://auth.company.com/bam/token",
+  "endpoint": "/finance/revenue/{region}",
+  "filters": [...]
+}`}</pre>
+          </div>
+
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700 mb-3">
+            <span className="font-medium">BAM Token Response:</span> The BAM endpoint must return
+            <Code>{`{ code: "success", message: "success", bamToken: "...", redirectURL: "..." }`}</Code>
+          </div>
+
           <p className="text-xs text-gray-400">
             Manage queries via Admin &rarr; Groups &rarr; [group] &rarr; Queries tab.
           </p>
         </Section>
 
-        <Section title="3. Intent & Entity Configuration">
+        <Section title="4. Intent & Entity Configuration">
           <p className="text-sm text-gray-600 mb-3">
             Intents define what the bot understands. Entities define named values it can extract.
             The NLP model trains on these definitions to classify user messages.
@@ -325,7 +578,7 @@ export default function ConfigGuidePage() {
           </p>
         </Section>
 
-        <Section title="4. Response Templates">
+        <Section title="5. Response Templates">
           <p className="text-sm text-gray-600 mb-3">
             Templates control what the bot says for static intents (greeting, help, farewell, unknown).
             The system uses a two-tier approach: base templates provide defaults, and group-level overrides customize responses per bot instance.
@@ -439,7 +692,7 @@ export default function ConfigGuidePage() {
           </p>
         </Section>
 
-        <Section title="5. Filter Configuration">
+        <Section title="6. Filter Configuration">
           <p className="text-sm text-gray-600 mb-3">
             Filters define UI controls for narrowing query results.
           </p>
@@ -469,7 +722,7 @@ export default function ConfigGuidePage() {
           </p>
         </Section>
 
-        <Section title="6. Adding a New Query (End-to-End)">
+        <Section title="7. Adding a New Query (End-to-End)">
           <div className="space-y-3">
             <div className="flex gap-3">
               <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-700 text-xs font-bold flex items-center justify-center shrink-0">1</div>
@@ -504,7 +757,7 @@ export default function ConfigGuidePage() {
           </div>
         </Section>
 
-        <Section title="7. Learning System">
+        <Section title="8. Learning System">
           <p className="text-sm text-gray-600 mb-3">
             The bot continuously improves through a self-learning system that captures user interactions,
             identifies patterns, and promotes successful responses into the training data — all per-group.
@@ -653,7 +906,7 @@ Bot:  "The department from user_profile is: Engineering"`}</pre>
           </div>
         </Section>
 
-        <Section title="8. Widget Embedding">
+        <Section title="9. Widget Embedding">
           <p className="text-sm text-gray-600 mb-3">
             To embed the chatbot in an external application, use the embed code from Admin &rarr; Groups &rarr; Embed.
           </p>

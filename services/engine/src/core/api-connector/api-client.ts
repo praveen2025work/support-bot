@@ -28,7 +28,7 @@ export class ApiClient {
     return headers;
   }
 
-  async get<T>(path: string, options?: { cacheTtl?: number }): Promise<T> {
+  async get<T>(path: string, options?: { cacheTtl?: number; authHeaders?: Record<string, string> }): Promise<T> {
     const cacheKey = `GET:${path}`;
     const cached = this.cache.get(cacheKey);
     if (cached) return cached as T;
@@ -37,7 +37,7 @@ export class ApiClient {
     try {
       const response = await fetch(url, {
         method: 'GET',
-        headers: this.buildHeaders(),
+        headers: { ...this.buildHeaders(), ...options?.authHeaders },
         signal: AbortSignal.timeout(30_000),
       });
 
@@ -56,7 +56,12 @@ export class ApiClient {
     }
   }
 
-  async post<T>(path: string, body: unknown, params?: Record<string, string>): Promise<T> {
+  async post<T>(
+    path: string,
+    body: unknown,
+    params?: Record<string, string>,
+    authHeaders?: Record<string, string>
+  ): Promise<T> {
     let url = `${this.baseUrl}${path}`;
     if (params && Object.keys(params).length > 0) {
       const qs = new URLSearchParams(params).toString();
@@ -66,7 +71,7 @@ export class ApiClient {
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: this.buildHeaders(),
+        headers: { ...this.buildHeaders(), ...authHeaders },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(30_000),
       });
@@ -81,6 +86,37 @@ export class ApiClient {
     } catch (error) {
       logger.error({ error, path, url }, 'API POST request failed');
       throw new ApiConnectionError(`Failed to post to ${path}`);
+    }
+  }
+
+  /**
+   * Fetch from an absolute URL (not relative to baseUrl).
+   * Used for BAM token endpoints and other external URLs.
+   */
+  async fetchAbsolute<T>(absoluteUrl: string, options?: {
+    method?: 'GET' | 'POST';
+    body?: unknown;
+    headers?: Record<string, string>;
+  }): Promise<T> {
+    const method = options?.method ?? 'POST';
+    try {
+      const response = await fetch(absoluteUrl, {
+        method,
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        body: options?.body ? JSON.stringify(options.body) : undefined,
+        signal: AbortSignal.timeout(30_000),
+      });
+
+      logger.debug({ url: absoluteUrl, status: response.status }, 'API response (absolute)');
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json() as T;
+    } catch (error) {
+      logger.error({ error, url: absoluteUrl }, 'API request (absolute) failed');
+      throw new ApiConnectionError(`Failed to fetch ${absoluteUrl}`);
     }
   }
 

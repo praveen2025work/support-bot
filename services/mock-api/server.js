@@ -367,6 +367,17 @@ server.get('/api/userinfo', (req, res) => {
   });
 });
 
+// === BAM Token Mock Endpoint ===
+server.post('/api/bam/token', (req, res) => {
+  console.log('[BAM Auth] Token request received');
+  res.json({
+    code: 'success',
+    message: 'success',
+    bamToken: 'mock-bam-token-' + Date.now(),
+    redirectURL: 'http://localhost:8080/api',
+  });
+});
+
 // Serve queries under /api/queries
 server.use('/api', router);
 

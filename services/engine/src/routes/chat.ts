@@ -43,7 +43,21 @@ chatRouter.post('/', async (req: Request, res: Response) => {
 
     const engine = getEngine(groupId);
     const explicitFilters = body.explicitFilters as Record<string, string> | undefined;
-    const response = await engine.processMessage(message, explicitFilters);
+
+    // Forward auth-related headers for Windows Auth / BAM pass-through
+    const incomingHeaders: Record<string, string> = {};
+    if (req.headers['authorization']) {
+      incomingHeaders['authorization'] = req.headers['authorization'] as string;
+    }
+    if (req.headers['cookie']) {
+      incomingHeaders['cookie'] = req.headers['cookie'] as string;
+    }
+
+    const response = await engine.processMessage(
+      message,
+      explicitFilters,
+      Object.keys(incomingHeaders).length > 0 ? incomingHeaders : undefined
+    );
     const formatted = await adapter.formatResponse(response);
 
     logConversation({

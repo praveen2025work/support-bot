@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { ApiClient } from './api-client';
 import { QuerySchema, QueryResultSchema } from './types';
+import { fetchBamToken } from './bam-auth';
 import { QueryNotFoundError, FileReadError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 import { resolveDateRange, isDatePreset } from '@/lib/date-resolver';
@@ -68,10 +69,19 @@ export class QueryService {
     return queries.map((q) => q.name);
   }
 
+  /**
+   * Execute a query by name.
+   *
+   * @param queryName - The query to execute
+   * @param filters - Optional query filters
+   * @param options - Search/aggregation options
+   * @param incomingHeaders - Headers from the user's original request (for Windows auth forwarding)
+   */
   async executeQuery(
     queryName: string,
     filters?: QueryFilters,
-    options?: QueryExecuteOptions
+    options?: QueryExecuteOptions,
+    incomingHeaders?: Record<string, string>
   ): Promise<QueryExecutionResult> {
     const startTime = performance.now();
     const queries = await this.getQueries();
@@ -95,7 +105,7 @@ export class QueryService {
         break;
       case 'api':
       default:
-        result = await this.executeApiQuery(query, filters);
+        result = await this.executeApiQuery(query, filters, incomingHeaders);
         break;
     }
 
@@ -133,7 +143,8 @@ export class QueryService {
 
   private async executeApiQuery(
     query: Query,
-    filters?: QueryFilters
+    filters?: QueryFilters,
+    incomingHeaders?: Record<string, string>
   ): Promise<QueryExecutionResult> {
     const filterBindings: FilterBinding[] = query.filters ?? [];
     const resolved = filters ? this.resolveFilters(filters) : undefined;
@@ -160,11 +171,86 @@ export class QueryService {
       }
     }
 
+    // Build per-query auth headers based on authType
+    const authHeaders = await this.resolveQueryAuth(query, incomingHeaders);
+
     const body = Object.keys(bodyFilters).length > 0 ? { filters: bodyFilters } : {};
     const params = Object.keys(paramFilters).length > 0 ? paramFilters : undefined;
-    const raw = await this.apiClient.post(urlPath, body, params);
+    const raw = await this.apiClient.post(urlPath, body, params, authHeaders);
     const apiResult = QueryResultSchema.parse(raw);
     return { type: 'api', apiResult };
+  }
+
+  /**
+   * Resolve authentication headers for a query based on its authType.
+   *
+   * - none/bearer: No extra headers (uses global API_TOKEN from env)
+   * - windows: Forward the user's Authorization/Cookie headers (pass-through)
+   * - bam: Fetch a BAM token first, then add X-BAM-Token header
+   */
+  private async resolveQueryAuth(
+    query: Query,
+    incomingHeaders?: Record<string, string>
+  ): Promise<Record<string, string> | undefined> {
+    const authType = query.authType ?? 'none';
+
+    switch (authType) {
+      case 'windows': {
+        // Forward the user's Windows auth headers (Authorization, Cookie)
+        if (!incomingHeaders) {
+          logger.warn({ query: query.name }, 'Windows auth query but no incoming headers available');
+          return undefined;
+        }
+        const forwarded: Record<string, string> = {};
+        if (incomingHeaders['authorization']) {
+          forwarded['Authorization'] = incomingHeaders['authorization'];
+        }
+        if (incomingHeaders['cookie']) {
+          forwarded['Cookie'] = incomingHeaders['cookie'];
+        }
+        logger.debug(
+          { query: query.name, hasAuth: !!forwarded['Authorization'], hasCookie: !!forwarded['Cookie'] },
+          'Windows auth: forwarding user headers'
+        );
+        return Object.keys(forwarded).length > 0 ? forwarded : undefined;
+      }
+
+      case 'bam': {
+        // Step 1: Fetch BAM token
+        if (!query.bamTokenUrl) {
+          logger.error({ query: query.name }, 'BAM auth query missing bamTokenUrl');
+          return undefined;
+        }
+
+        // Forward user headers to BAM token endpoint too (may need SSO context)
+        const forwardHeaders: Record<string, string> = {};
+        if (incomingHeaders?.['authorization']) {
+          forwardHeaders['Authorization'] = incomingHeaders['authorization'];
+        }
+        if (incomingHeaders?.['cookie']) {
+          forwardHeaders['Cookie'] = incomingHeaders['cookie'];
+        }
+
+        const bamResponse = await fetchBamToken(
+          query.bamTokenUrl,
+          Object.keys(forwardHeaders).length > 0 ? forwardHeaders : undefined
+        );
+
+        logger.debug(
+          { query: query.name, hasRedirectURL: !!bamResponse.redirectURL },
+          'BAM auth: token acquired'
+        );
+
+        // Step 2: Use bamToken as X-BAM-Token header
+        return { 'X-BAM-Token': bamResponse.bamToken };
+      }
+
+      case 'bearer':
+      case 'none':
+      default:
+        // Use global API_TOKEN (handled by ApiClient.buildHeaders())
+        return undefined;
+    }
   }
 
   private resolveFilters(filters: QueryFilters): QueryFilters {
@@ -284,11 +370,12 @@ export class QueryService {
 
   async executeMultipleQueries(
     queryNames: string[],
-    filters?: QueryFilters
+    filters?: QueryFilters,
+    incomingHeaders?: Record<string, string>
   ): Promise<MultiQueryResult[]> {
     const results = await Promise.allSettled(
       queryNames.map(async (name) => {
-        const result = await this.executeQuery(name, filters);
+        const result = await this.executeQuery(name, filters, undefined, incomingHeaders);
         return { queryName: name, result };
       })
     );
