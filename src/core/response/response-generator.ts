@@ -19,6 +19,14 @@ const STOP_WORDS = new Set([
   'much', 'many', 'from', 'with', 'by', 'at', 'on', 'it', 'that', 'this',
 ]);
 
+// Pattern for follow-up questions about previous query results
+const FOLLOWUP_PATTERN = /^\s*(what(?:'s|\s+is|\s+are)?|show(?:\s+me)?|get|tell\s+me|where(?:'s|\s+is)?)\s+(?:the\s+)?(.+)/i;
+// Words to strip when matching column names
+const FOLLOWUP_NOISE = new Set(['the', 'a', 'an', 'of', 'from', 'in', 'result', 'results', 'value', 'field', 'column', 'data', 'previous', 'last']);
+
+// Pattern for filter follow-up: re-run last query with a filter
+const FILTER_FOLLOWUP_PATTERN = /\b(?:filter|show|with|only|just|where)\b.*\b(region|team|environment|severity|time_period|period|quarter)\b/i;
+
 export class ResponseGenerator {
   private templates: Record<string, string[]>;
 
@@ -39,7 +47,8 @@ export class ResponseGenerator {
   async generate(
     classification: ClassificationResult,
     context: ConversationContext,
-    explicitFilters?: Record<string, string>
+    explicitFilters?: Record<string, string>,
+    incomingHeaders?: Record<string, string>
   ): Promise<BotResponse> {
     const { intent } = classification;
 
@@ -47,9 +56,9 @@ export class ResponseGenerator {
       case INTENTS.QUERY_LIST:
         return this.handleQueryList(classification, context);
       case INTENTS.QUERY_EXECUTE:
-        return this.handleQueryExecute(classification, context, explicitFilters);
+        return this.handleQueryExecute(classification, context, explicitFilters, incomingHeaders);
       case INTENTS.QUERY_MULTI:
-        return this.handleQueryMulti(classification, context);
+        return this.handleQueryMulti(classification, context, incomingHeaders);
       case INTENTS.QUERY_ESTIMATE:
         return this.handleQueryEstimate(classification, context);
       case INTENTS.URL_FIND:
@@ -59,8 +68,15 @@ export class ResponseGenerator {
         return this.handleStaticIntent(classification, context);
       case INTENTS.FAREWELL:
         return this.handleFarewell(classification, context);
-      default:
+      default: {
+        // Try to re-run last query with a filter (e.g., "filter by region US")
+        const filterFollowUp = await this.handleFilterFollowUp(classification, context, incomingHeaders);
+        if (filterFollowUp) return filterFollowUp;
+        // Try to answer follow-up questions about the last query result
+        const followUp = this.handleFollowUp(classification, context);
+        if (followUp) return followUp;
         return this.handleUnknown(classification, context);
+      }
     }
   }
 
@@ -128,13 +144,31 @@ export class ResponseGenerator {
   private async handleQueryExecute(
     classification: ClassificationResult,
     context: ConversationContext,
-    explicitFilters?: Record<string, string>
+    explicitFilters?: Record<string, string>,
+    incomingHeaders?: Record<string, string>
   ): Promise<BotResponse> {
     const queryNameEntity = classification.entities.find(
       (e) => e.entity === 'query_name'
     );
 
     if (!queryNameEntity) {
+      // If there's a previous query, try to detect filter intent from NLP entities or text parsing
+      if (context.lastQueryName) {
+        const filters = this.extractFilters(classification.entities);
+        // Also try parsing from text (handles cases NLP didn't extract entities)
+        const userText = this.getLastUserText(context);
+        const parsedFilters = this.parseFilterFromText(userText);
+        if (parsedFilters) {
+          for (const [k, v] of Object.entries(parsedFilters)) {
+            if (!filters[k]) filters[k] = v;
+          }
+        }
+        if (Object.keys(filters).length > 0) {
+          logger.info({ lastQuery: context.lastQueryName, filters }, 'Re-running last query with filter follow-up');
+          return this.rerunLastQueryWithFilters(context, filters, classification, incomingHeaders);
+        }
+      }
+
       try {
         const names = await this.queryService.getQueryNames();
         return {
@@ -168,7 +202,8 @@ export class ResponseGenerator {
       const result = await this.queryService.executeQuery(
         queryNameEntity.value,
         hasFilters ? filters : undefined,
-        options
+        options,
+        incomingHeaders
       );
 
       const execMs = result.durationMs;
@@ -184,6 +219,22 @@ export class ResponseGenerator {
           referenceUrl = queryDef.url;
         }
       } catch { /* ignore */ }
+
+      // Store query result in context for follow-up questions
+      context.lastQueryName = queryNameEntity.value;
+      if (result.type === 'api' && result.apiResult) {
+        context.lastApiResult = result.apiResult;
+        const apiData = result.apiResult as { data?: Record<string, unknown>[] };
+        if (apiData.data && apiData.data.length > 0) {
+          context.lastQueryColumns = Object.keys(apiData.data[0]);
+        }
+      } else if (result.type === 'csv' && result.csvResult) {
+        context.lastApiResult = result.csvResult;
+        const csvData = result.csvResult as { headers?: string[] };
+        if (csvData.headers) {
+          context.lastQueryColumns = csvData.headers;
+        }
+      }
 
       switch (result.type) {
         case 'url':
@@ -311,7 +362,8 @@ export class ResponseGenerator {
 
   private async handleQueryMulti(
     classification: ClassificationResult,
-    context: ConversationContext
+    context: ConversationContext,
+    incomingHeaders?: Record<string, string>
   ): Promise<BotResponse> {
     const queryEntities = classification.entities.filter(
       (e) => e.entity === 'query_name'
@@ -345,7 +397,8 @@ export class ResponseGenerator {
     try {
       const results = await this.queryService.executeMultipleQueries(
         queryNames,
-        hasFilters ? filters : undefined
+        hasFilters ? filters : undefined,
+        incomingHeaders
       );
 
       if (results.length === 0) {
@@ -526,6 +579,263 @@ export class ResponseGenerator {
       intent: classification.intent,
       confidence: classification.confidence,
     };
+  }
+
+  /**
+   * Shared helper: re-run the last query stored in context with new filters.
+   * Used by both handleQueryExecute (no query_name but has filters) and handleFilterFollowUp.
+   */
+  private async rerunLastQueryWithFilters(
+    context: ConversationContext,
+    filters: Record<string, string>,
+    classification: ClassificationResult,
+    incomingHeaders?: Record<string, string>
+  ): Promise<BotResponse> {
+    const filterLabel = this.formatFilters(filters);
+
+    try {
+      const result = await this.queryService.executeQuery(
+        context.lastQueryName!,
+        filters,
+        undefined,
+        incomingHeaders
+      );
+
+      // Update context with new results
+      if (result.type === 'api' && result.apiResult) {
+        context.lastApiResult = result.apiResult;
+        const apiData = result.apiResult as { data?: Record<string, unknown>[] };
+        if (apiData.data && apiData.data.length > 0) {
+          context.lastQueryColumns = Object.keys(apiData.data[0]);
+        }
+      } else if (result.type === 'csv' && result.csvResult) {
+        context.lastApiResult = result.csvResult;
+        const csvData = result.csvResult as { headers?: string[] };
+        if (csvData.headers) {
+          context.lastQueryColumns = csvData.headers;
+        }
+      }
+
+      switch (result.type) {
+        case 'csv': {
+          const csv = result.csvResult!;
+          return {
+            text: `Here is "${context.lastQueryName}" filtered${filterLabel} (${csv.rowCount} rows):`,
+            richContent: csv.aggregation
+              ? { type: 'csv_aggregation', data: csv }
+              : { type: 'csv_table', data: csv },
+            sessionId: context.sessionId,
+            intent: 'followup.filter',
+            confidence: 1,
+            executionMs: result.durationMs,
+          };
+        }
+        case 'api':
+        default:
+          return {
+            text: `Here are the results for "${context.lastQueryName}"${filterLabel}:`,
+            richContent: { type: 'query_result', data: result.apiResult },
+            sessionId: context.sessionId,
+            intent: 'followup.filter',
+            confidence: 1,
+            executionMs: result.durationMs,
+          };
+      }
+    } catch (error) {
+      logger.error({ error, query: context.lastQueryName, filters }, 'Filter follow-up query failed');
+      return this.errorResponse(
+        `Unable to re-run "${context.lastQueryName}" with those filters. Please try again.`,
+        classification,
+        context
+      );
+    }
+  }
+
+  /**
+   * Handle filter follow-up from the default (unknown intent) case:
+   * when user says "filter by region US" and NLP didn't classify as query.execute.
+   */
+  private async handleFilterFollowUp(
+    classification: ClassificationResult,
+    context: ConversationContext,
+    incomingHeaders?: Record<string, string>
+  ): Promise<BotResponse | null> {
+    if (!context.lastQueryName) return null;
+
+    const userText = this.getLastUserText(context);
+    const isFilterRequest = FILTER_FOLLOWUP_PATTERN.test(userText);
+    if (!isFilterRequest) return null;
+
+    // Try to extract filter values from text
+    const filters = this.parseFilterFromText(userText);
+    if (!filters || Object.keys(filters).length === 0) return null;
+
+    logger.info({ lastQuery: context.lastQueryName, filters }, 'Re-running last query with follow-up filters (default case)');
+    return this.rerunLastQueryWithFilters(context, filters, classification, incomingHeaders);
+  }
+
+  /**
+   * Try to extract filter key/value pairs directly from text when NLP doesn't catch them.
+   * Handles patterns like "filter by region US", "with region=US", "only US region"
+   */
+  private parseFilterFromText(text: string): Record<string, string> | null {
+    const filters: Record<string, string> = {};
+    const lower = text.toLowerCase();
+
+    // Map of filter aliases to canonical names
+    const filterAliases: Record<string, string> = {
+      region: 'region', reg: 'region',
+      team: 'team',
+      environment: 'environment', env: 'environment',
+      severity: 'severity', sev: 'severity',
+      period: 'time_period', time_period: 'time_period', quarter: 'time_period',
+    };
+
+    // Known filter values
+    const knownValues: Record<string, string[]> = {
+      region: ['us', 'eu', 'apac', 'latam', 'global'],
+      team: ['engineering', 'sales', 'marketing', 'support', 'hr', 'finance'],
+      environment: ['production', 'staging', 'dev', 'prod'],
+      time_period: ['today', 'this_week', 'last_week', 'last_month', 'last_quarter', 'q1', 'q2', 'q3', 'q4'],
+    };
+
+    // Pattern: "filter by <key> <value>" or "<key> <value>" or "with <value> <key>"
+    for (const [alias, canonical] of Object.entries(filterAliases)) {
+      const byPattern = new RegExp(`\\b(?:filter|by|with|=)\\s*${alias}\\s+(?:=\\s*)?([\\w]+)`, 'i');
+      const reversePattern = new RegExp(`\\b([\\w]+)\\s+${alias}\\b`, 'i');
+
+      let match = byPattern.exec(lower);
+      if (match) {
+        filters[canonical] = match[1].toUpperCase();
+        continue;
+      }
+
+      match = reversePattern.exec(lower);
+      if (match && knownValues[canonical]?.includes(match[1].toLowerCase())) {
+        filters[canonical] = match[1].toUpperCase();
+      }
+    }
+
+    // Also try: detect known values standalone (e.g., just "US" or "only US")
+    if (Object.keys(filters).length === 0) {
+      for (const [filterKey, values] of Object.entries(knownValues)) {
+        for (const val of values) {
+          if (new RegExp(`\\b${val}\\b`, 'i').test(lower)) {
+            filters[filterKey] = val.toUpperCase();
+            break;
+          }
+        }
+      }
+    }
+
+    return Object.keys(filters).length > 0 ? filters : null;
+  }
+
+  private handleFollowUp(
+    classification: ClassificationResult,
+    context: ConversationContext
+  ): BotResponse | null {
+    // Only handle if there's a previous query result
+    if (!context.lastApiResult || !context.lastQueryName) return null;
+
+    const userText = this.getLastUserText(context);
+    const match = FOLLOWUP_PATTERN.exec(userText);
+    if (!match) return null;
+
+    // Extract the field the user is asking about
+    const rawField = match[2].trim().toLowerCase();
+    const fieldWords = rawField
+      .split(/[\s_]+/)
+      .filter((w) => !FOLLOWUP_NOISE.has(w));
+    if (fieldWords.length === 0) return null;
+
+    // Try to match against known columns
+    const columns = context.lastQueryColumns || [];
+    const matchedCol = this.fuzzyMatchColumn(fieldWords, columns);
+
+    if (!matchedCol) {
+      // No column match — show available columns as hint
+      if (columns.length > 0) {
+        return {
+          text: `I couldn't find a field matching "${rawField}" in the ${context.lastQueryName} results. Available fields are: **${columns.join(', ')}**`,
+          suggestions: columns.slice(0, 4).map((c) => `what is ${c}`),
+          sessionId: context.sessionId,
+          intent: 'followup.field',
+          confidence: classification.confidence,
+        };
+      }
+      return null;
+    }
+
+    // Extract the value from the last result
+    const apiData = context.lastApiResult as { data?: Record<string, unknown>[] };
+    const rows = apiData.data || [];
+    if (rows.length === 0) return null;
+
+    if (rows.length === 1) {
+      const value = rows[0][matchedCol];
+      return {
+        text: `The **${matchedCol}** from the ${context.lastQueryName} result is: **${value ?? 'N/A'}**`,
+        suggestions: columns
+          .filter((c) => c !== matchedCol)
+          .slice(0, 4)
+          .map((c) => `what is ${c}`),
+        sessionId: context.sessionId,
+        intent: 'followup.field',
+        confidence: 1,
+      };
+    }
+
+    // Multiple rows — show the column values
+    const values = rows.slice(0, 10).map((r) => String(r[matchedCol] ?? 'N/A'));
+    const moreText = rows.length > 10 ? ` (showing first 10 of ${rows.length})` : '';
+    return {
+      text: `The **${matchedCol}** values from ${context.lastQueryName}${moreText}:\n${values.map((v, i) => `${i + 1}. ${v}`).join('\n')}`,
+      suggestions: columns
+        .filter((c) => c !== matchedCol)
+        .slice(0, 4)
+        .map((c) => `what is ${c}`),
+      sessionId: context.sessionId,
+      intent: 'followup.field',
+      confidence: 1,
+    };
+  }
+
+  /**
+   * Fuzzy-match user's field words against actual column names.
+   * Handles: "username" → "user_id", "name" → "name", "email address" → "email"
+   */
+  private fuzzyMatchColumn(fieldWords: string[], columns: string[]): string | null {
+    const joined = fieldWords.join('');
+    const joinedSpaced = fieldWords.join(' ');
+
+    for (const col of columns) {
+      const colLower = col.toLowerCase();
+      const colNoUnderscore = colLower.replace(/_/g, '');
+
+      // Exact match
+      if (colLower === joinedSpaced || colLower === joined) return col;
+      // Match without underscores: "userid" → "user_id"
+      if (colNoUnderscore === joined) return col;
+      // Column contains the search term: "name" matches "name" in columns
+      if (colLower.includes(joined) || joined.includes(colLower)) return col;
+      // Individual word match: "user" matches "user_id"
+      for (const word of fieldWords) {
+        if (colLower === word || colNoUnderscore === word) return col;
+      }
+    }
+
+    // Partial/substring match as fallback
+    for (const col of columns) {
+      const colLower = col.toLowerCase().replace(/_/g, '');
+      for (const word of fieldWords) {
+        if (word.length >= 3 && (colLower.includes(word) || word.includes(colLower))) {
+          return col;
+        }
+      }
+    }
+
+    return null;
   }
 
   private handleUnknown(

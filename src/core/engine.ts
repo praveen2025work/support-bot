@@ -20,7 +20,11 @@ export class ChatbotEngine {
     logger.info('ChatbotEngine initialized');
   }
 
-  async processMessage(message: ChatMessage, explicitFilters?: Record<string, string>): Promise<BotResponse> {
+  async processMessage(
+    message: ChatMessage,
+    explicitFilters?: Record<string, string>,
+    incomingHeaders?: Record<string, string>
+  ): Promise<BotResponse> {
     await this.initialize();
 
     const context = await this.sessionManager.getContext(message.sessionId);
@@ -45,7 +49,8 @@ export class ChatbotEngine {
     const response = await this.responseGenerator.generate(
       classification,
       context,
-      explicitFilters
+      explicitFilters,
+      incomingHeaders
     );
 
     context.history.push({

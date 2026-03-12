@@ -6,6 +6,8 @@ export interface ChatMessage {
   groupId?: string;
   userId?: string;
   metadata?: Record<string, unknown>;
+  feedbackType?: 'suggestion_click' | 'rephrase' | 'retry' | 'normal';
+  previousMessageText?: string;
   timestamp: Date;
 }
 
@@ -53,4 +55,6 @@ export interface ConversationContext {
   currentIntent?: string;
   pendingEntities?: Record<string, string>;
   lastApiResult?: unknown;
+  lastQueryName?: string;
+  lastQueryColumns?: string[];
 }
