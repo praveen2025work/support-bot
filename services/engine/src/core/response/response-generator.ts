@@ -24,6 +24,9 @@ const FOLLOWUP_PATTERN = /^\s*(what(?:'s|\s+is|\s+are)?|show(?:\s+me)?|get|tell\
 // Words to strip when matching column names
 const FOLLOWUP_NOISE = new Set(['the', 'a', 'an', 'of', 'from', 'in', 'result', 'results', 'value', 'field', 'column', 'data', 'previous', 'last']);
 
+// Pattern for filter follow-up: re-run last query with a filter
+const FILTER_FOLLOWUP_PATTERN = /\b(?:filter|show|with|only|just|where)\b.*\b(region|team|environment|severity|time_period|period|quarter)\b/i;
+
 export class ResponseGenerator {
   private templates: Record<string, string[]>;
 
@@ -66,6 +69,9 @@ export class ResponseGenerator {
       case INTENTS.FAREWELL:
         return this.handleFarewell(classification, context);
       default: {
+        // Try to re-run last query with a filter (e.g., "filter by region US")
+        const filterFollowUp = await this.handleFilterFollowUp(classification, context, incomingHeaders);
+        if (filterFollowUp) return filterFollowUp;
         // Try to answer follow-up questions about the last query result
         const followUp = this.handleFollowUp(classification, context);
         if (followUp) return followUp;
@@ -146,6 +152,23 @@ export class ResponseGenerator {
     );
 
     if (!queryNameEntity) {
+      // If there's a previous query, try to detect filter intent from NLP entities or text parsing
+      if (context.lastQueryName) {
+        const filters = this.extractFilters(classification.entities);
+        // Also try parsing from text (handles cases NLP didn't extract entities)
+        const userText = this.getLastUserText(context);
+        const parsedFilters = this.parseFilterFromText(userText);
+        if (parsedFilters) {
+          for (const [k, v] of Object.entries(parsedFilters)) {
+            if (!filters[k]) filters[k] = v;
+          }
+        }
+        if (Object.keys(filters).length > 0) {
+          logger.info({ lastQuery: context.lastQueryName, filters }, 'Re-running last query with filter follow-up');
+          return this.rerunLastQueryWithFilters(context, filters, classification, incomingHeaders);
+        }
+      }
+
       try {
         const names = await this.queryService.getQueryNames();
         return {
@@ -556,6 +579,156 @@ export class ResponseGenerator {
       intent: classification.intent,
       confidence: classification.confidence,
     };
+  }
+
+  /**
+   * Shared helper: re-run the last query stored in context with new filters.
+   * Used by both handleQueryExecute (no query_name but has filters) and handleFilterFollowUp.
+   */
+  private async rerunLastQueryWithFilters(
+    context: ConversationContext,
+    filters: Record<string, string>,
+    classification: ClassificationResult,
+    incomingHeaders?: Record<string, string>
+  ): Promise<BotResponse> {
+    const filterLabel = this.formatFilters(filters);
+
+    try {
+      const result = await this.queryService.executeQuery(
+        context.lastQueryName!,
+        filters,
+        undefined,
+        incomingHeaders
+      );
+
+      // Update context with new results
+      if (result.type === 'api' && result.apiResult) {
+        context.lastApiResult = result.apiResult;
+        const apiData = result.apiResult as { data?: Record<string, unknown>[] };
+        if (apiData.data && apiData.data.length > 0) {
+          context.lastQueryColumns = Object.keys(apiData.data[0]);
+        }
+      } else if (result.type === 'csv' && result.csvResult) {
+        context.lastApiResult = result.csvResult;
+        const csvData = result.csvResult as { headers?: string[] };
+        if (csvData.headers) {
+          context.lastQueryColumns = csvData.headers;
+        }
+      }
+
+      switch (result.type) {
+        case 'csv': {
+          const csv = result.csvResult!;
+          return {
+            text: `Here is "${context.lastQueryName}" filtered${filterLabel} (${csv.rowCount} rows):`,
+            richContent: csv.aggregation
+              ? { type: 'csv_aggregation', data: csv }
+              : { type: 'csv_table', data: csv },
+            sessionId: context.sessionId,
+            intent: 'followup.filter',
+            confidence: 1,
+            executionMs: result.durationMs,
+          };
+        }
+        case 'api':
+        default:
+          return {
+            text: `Here are the results for "${context.lastQueryName}"${filterLabel}:`,
+            richContent: { type: 'query_result', data: result.apiResult },
+            sessionId: context.sessionId,
+            intent: 'followup.filter',
+            confidence: 1,
+            executionMs: result.durationMs,
+          };
+      }
+    } catch (error) {
+      logger.error({ error, query: context.lastQueryName, filters }, 'Filter follow-up query failed');
+      return this.errorResponse(
+        `Unable to re-run "${context.lastQueryName}" with those filters. Please try again.`,
+        classification,
+        context
+      );
+    }
+  }
+
+  /**
+   * Handle filter follow-up from the default (unknown intent) case:
+   * when user says "filter by region US" and NLP didn't classify as query.execute.
+   */
+  private async handleFilterFollowUp(
+    classification: ClassificationResult,
+    context: ConversationContext,
+    incomingHeaders?: Record<string, string>
+  ): Promise<BotResponse | null> {
+    if (!context.lastQueryName) return null;
+
+    const userText = this.getLastUserText(context);
+    const isFilterRequest = FILTER_FOLLOWUP_PATTERN.test(userText);
+    if (!isFilterRequest) return null;
+
+    // Try to extract filter values from text
+    const filters = this.parseFilterFromText(userText);
+    if (!filters || Object.keys(filters).length === 0) return null;
+
+    logger.info({ lastQuery: context.lastQueryName, filters }, 'Re-running last query with follow-up filters (default case)');
+    return this.rerunLastQueryWithFilters(context, filters, classification, incomingHeaders);
+  }
+
+  /**
+   * Try to extract filter key/value pairs directly from text when NLP doesn't catch them.
+   * Handles patterns like "filter by region US", "with region=US", "only US region"
+   */
+  private parseFilterFromText(text: string): Record<string, string> | null {
+    const filters: Record<string, string> = {};
+    const lower = text.toLowerCase();
+
+    // Map of filter aliases to canonical names
+    const filterAliases: Record<string, string> = {
+      region: 'region', reg: 'region',
+      team: 'team',
+      environment: 'environment', env: 'environment',
+      severity: 'severity', sev: 'severity',
+      period: 'time_period', time_period: 'time_period', quarter: 'time_period',
+    };
+
+    // Known filter values
+    const knownValues: Record<string, string[]> = {
+      region: ['us', 'eu', 'apac', 'latam', 'global'],
+      team: ['engineering', 'sales', 'marketing', 'support', 'hr', 'finance'],
+      environment: ['production', 'staging', 'dev', 'prod'],
+      time_period: ['today', 'this_week', 'last_week', 'last_month', 'last_quarter', 'q1', 'q2', 'q3', 'q4'],
+    };
+
+    // Pattern: "filter by <key> <value>" or "<key> <value>" or "with <value> <key>"
+    for (const [alias, canonical] of Object.entries(filterAliases)) {
+      const byPattern = new RegExp(`\\b(?:filter|by|with|=)\\s*${alias}\\s+(?:=\\s*)?([\\w]+)`, 'i');
+      const reversePattern = new RegExp(`\\b([\\w]+)\\s+${alias}\\b`, 'i');
+
+      let match = byPattern.exec(lower);
+      if (match) {
+        filters[canonical] = match[1].toUpperCase();
+        continue;
+      }
+
+      match = reversePattern.exec(lower);
+      if (match && knownValues[canonical]?.includes(match[1].toLowerCase())) {
+        filters[canonical] = match[1].toUpperCase();
+      }
+    }
+
+    // Also try: detect known values standalone (e.g., just "US" or "only US")
+    if (Object.keys(filters).length === 0) {
+      for (const [filterKey, values] of Object.entries(knownValues)) {
+        for (const val of values) {
+          if (new RegExp(`\\b${val}\\b`, 'i').test(lower)) {
+            filters[filterKey] = val.toUpperCase();
+            break;
+          }
+        }
+      }
+    }
+
+    return Object.keys(filters).length > 0 ? filters : null;
   }
 
   private handleFollowUp(

@@ -101,7 +101,7 @@ export class QueryService {
         result = await this.executeDocumentQuery(query, options);
         break;
       case 'csv':
-        result = await this.executeCsvQuery(query, options);
+        result = await this.executeCsvQuery(query, options, filters);
         break;
       case 'api':
       default:
@@ -315,10 +315,37 @@ export class QueryService {
 
   private async executeCsvQuery(
     query: Query,
-    options?: QueryExecuteOptions
+    options?: QueryExecuteOptions,
+    filters?: QueryFilters
   ): Promise<QueryExecutionResult> {
     const { content, filePath } = await this.readFile(query);
-    const csvData = parseCsv(content);
+    let csvData = parseCsv(content);
+
+    // Apply filters: match filter keys against CSV column names (case-insensitive)
+    // Rows are Record<string, string|number> objects keyed by header name
+    if (filters && Object.keys(filters).length > 0) {
+      // Build a map: lowercase filter key → matching header name in CSV
+      const filterToHeader: Record<string, string> = {};
+      for (const filterKey of Object.keys(filters)) {
+        const match = csvData.headers.find((h) => h.toLowerCase() === filterKey.toLowerCase());
+        if (match) filterToHeader[filterKey] = match;
+      }
+
+      if (Object.keys(filterToHeader).length > 0) {
+        const originalCount = csvData.rows.length;
+        const filteredRows = csvData.rows.filter((row) => {
+          for (const [filterKey, filterVal] of Object.entries(filters)) {
+            const header = filterToHeader[filterKey];
+            if (!header) continue; // filter key doesn't match a column, skip
+            const cellVal = String(row[header] ?? '').toLowerCase();
+            if (cellVal !== filterVal.toLowerCase()) return false;
+          }
+          return true;
+        });
+        csvData = { headers: csvData.headers, rows: filteredRows };
+        logger.debug({ filters, original: originalCount, filtered: filteredRows.length }, 'CSV filter applied');
+      }
+    }
 
     if (options?.aggregationText) {
       const aggRequest = parseAggregationFromText(options.aggregationText, csvData.headers);
