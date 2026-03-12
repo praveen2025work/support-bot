@@ -1,0 +1,32 @@
+[
+  {
+    "question": "How do I access the monthly revenue report?",
+    "intent": "url.find",
+    "answer": "You can access the monthly revenue report. Would you like me to find the direct link?"
+  },
+  {
+    "question": "Show me today's order numbers",
+    "intent": "query.execute",
+    "answer": "I can fetch the daily orders data for you."
+  },
+  {
+    "question": "What is our revenue this month?",
+    "intent": "query.execute",
+    "answer": "I can run the monthly revenue query for you."
+  },
+  {
+    "question": "Compare revenue and orders",
+    "intent": "query.multi",
+    "answer": "I can run both revenue and orders queries together."
+  },
+  {
+    "question": "What queries can I run?",
+    "intent": "query.list",
+    "answer": "Here are the available finance queries you can run."
+  },
+  {
+    "question": "Can you help me find some data?",
+    "intent": "help",
+    "answer": "Of course! I can run revenue and order queries, find URLs, and provide estimations."
+  }
+]

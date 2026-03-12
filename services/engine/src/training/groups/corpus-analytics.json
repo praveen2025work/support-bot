@@ -1,0 +1,107 @@
+{
+  "name": "Analytics Corpus",
+  "locale": "en-US",
+  "entities": {
+    "query_name": {
+      "options": {
+        "active_users": ["active users", "user count", "monthly active users", "MAU", "DAU", "users", "user metrics"],
+        "customer_churn": ["customer churn", "churn rate", "churn", "attrition", "customer loss"],
+        "support_tickets": ["support_tickets", "support tickets", "tickets", "support data", "ticket data"],
+        "employee_metrics": ["employee_metrics", "employee metrics", "employee data", "staff metrics", "workforce data"]
+      }
+    },
+    "time_period": {
+      "options": {
+        "today": ["today", "current day"],
+        "this_week": ["this week", "current week", "weekly"],
+        "this_month": ["this month", "current month", "monthly"],
+        "this_quarter": ["this quarter", "current quarter", "quarterly"],
+        "last_week": ["last week", "previous week"],
+        "last_month": ["last month", "previous month"]
+      }
+    }
+  },
+  "data": [
+    {
+      "intent": "greeting",
+      "utterances": ["hello", "hi", "hey", "good morning", "good afternoon", "hi there"],
+      "answers": []
+    },
+    {
+      "intent": "query.execute",
+      "utterances": [
+        "run the @query_name query",
+        "execute @query_name",
+        "show me @query_name",
+        "get me @query_name results",
+        "pull up @query_name",
+        "run @query_name for @time_period",
+        "show me @query_name for @time_period",
+        "how many active users do we have",
+        "what is the churn rate",
+        "show me retention data",
+        "user engagement metrics",
+        "run query",
+        "execute a query",
+        "count tickets in @query_name",
+        "average resolution time in @query_name",
+        "sum of resolution hours in @query_name",
+        "how many critical tickets in @query_name"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "query.multi",
+      "utterances": [
+        "show me @query_name and @query_name",
+        "run @query_name and @query_name together",
+        "compare @query_name and @query_name",
+        "show users and churn together",
+        "compare active users and churn",
+        "run multiple queries"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "query.estimate",
+      "utterances": [
+        "how long will @query_name take",
+        "estimate for @query_name",
+        "time estimate for @query_name",
+        "estimation"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "query.list",
+      "utterances": [
+        "what queries are available",
+        "list all queries",
+        "show me available queries",
+        "what reports do you have",
+        "what data can I access"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "url.find",
+      "utterances": [
+        "link for @query_name",
+        "URL for @query_name",
+        "where is the @query_name page",
+        "find me a URL for @query_name"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "help",
+      "utterances": ["help", "what can you do", "how does this work", "instructions"],
+      "answers": []
+    },
+    {
+      "intent": "farewell",
+      "utterances": ["bye", "goodbye", "see you", "thanks bye", "that is all"],
+      "answers": []
+    }
+  ]
+}

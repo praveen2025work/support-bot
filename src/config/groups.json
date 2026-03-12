@@ -1,0 +1,87 @@
+{
+  "groups": {
+    "default": {
+      "name": "General Assistant",
+      "description": "Access to all data sources",
+      "sources": [],
+      "apiBaseUrl": null,
+      "templates": null,
+      "corpus": null,
+      "faq": null
+    },
+    "finance": {
+      "name": "Finance Bot",
+      "description": "Revenue, orders, and financial metrics",
+      "sources": [
+        "finance",
+        "commerce"
+      ],
+      "apiBaseUrl": null,
+      "templates": {
+        "greeting": [
+          "Hello! I'm the Finance Bot. I can help with revenue reports, order data, and financial metrics. What would you like to know?"
+        ],
+        "help": [
+          "I can help you with:\n- Monthly revenue reports (with region/date filters)\n- Daily order volumes and fulfillment status\n- Financial trends and comparisons\n\nExamples:\n- \"run monthly revenue for US\"\n- \"show daily orders for this month\"\n- \"run revenue and orders together\"\n- \"list queries\""
+        ]
+      },
+      "corpus": "corpus-finance.json",
+      "faq": "faq-finance.json"
+    },
+    "engineering": {
+      "name": "Engineering Bot",
+      "description": "Error rates, performance, and infrastructure",
+      "sources": [
+        "engineering",
+        "devops"
+      ],
+      "apiBaseUrl": null,
+      "templates": {
+        "greeting": [
+          "Hello! I'm the Engineering Bot. I can help with error rates, performance metrics, and infrastructure costs. What do you need?"
+        ],
+        "help": [
+          "I can help you with:\n- Error rate monitoring by service and endpoint\n- API performance metrics (p50, p95, p99)\n- Infrastructure cost analysis by environment\n\nExamples:\n- \"show error rate in production\"\n- \"run performance\"\n- \"get infrastructure costs for staging\"\n- \"compare error rate and performance\""
+        ]
+      },
+      "corpus": "corpus-engineering.json",
+      "faq": "faq-engineering.json"
+    },
+    "analytics": {
+      "name": "Analytics Bot",
+      "description": "User analytics and retention metrics",
+      "sources": [
+        "analytics"
+      ],
+      "apiBaseUrl": null,
+      "templates": {
+        "greeting": [
+          "Hello! I'm the Analytics Bot. I can help with user metrics, retention data, and churn analysis. How can I help?"
+        ],
+        "help": [
+          "I can help you with:\n- Active user counts (DAU/MAU)\n- Customer churn rate analysis\n- Retention metrics and cohort breakdowns\n\nExamples:\n- \"show active users\"\n- \"run customer churn\"\n- \"run active users and churn together\"\n- \"list queries\""
+        ]
+      },
+      "corpus": "corpus-analytics.json",
+      "faq": "faq-analytics.json"
+    },
+    "hr_team": {
+      "name": "HR Bot",
+      "description": "Headcount, hiring pipeline, and team metrics",
+      "sources": [
+        "hr"
+      ],
+      "apiBaseUrl": null,
+      "templates": {
+        "greeting": [
+          "Hello! I'm the HR Bot. I can help with headcount data, hiring pipeline metrics, and team information. What do you need?"
+        ],
+        "help": [
+          "I can help you with:\n- Current headcount by department and location\n- Hiring pipeline and open positions\n- Team metrics and staffing data\n\nExamples:\n- \"show headcount\"\n- \"run hiring pipeline\"\n- \"get headcount for engineering team\"\n- \"list queries\""
+        ]
+      },
+      "corpus": null,
+      "faq": null
+    }
+  }
+}

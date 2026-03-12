@@ -1,0 +1,13 @@
+{
+  "nlpConfidenceThreshold": 0.65,
+  "fuzzyConfidenceThreshold": 0.5,
+  "sessionTtlMinutes": 30,
+  "apiCacheTtlMinutes": 5,
+  "apiBaseUrl": "",
+  "mockApiUrl": "http://localhost:8080",
+  "enabledPlatforms": [
+    "web",
+    "widget",
+    "teams"
+  ]
+}

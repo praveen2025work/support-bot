@@ -1,0 +1,36 @@
+version: '3.8'
+
+# ═══════════════════════════════════════════════════════
+# PRODUCTION — UI + Engine only (no Mock API)
+# Real tenant APIs provide the data endpoints.
+# Usage: docker compose -f docker-compose.prod.yml up
+# ═══════════════════════════════════════════════════════
+
+services:
+  # ── Service 1: UI (Next.js frontend) ──
+  ui:
+    build: .
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - ENGINE_URL=http://engine:4000
+    depends_on:
+      - engine
+    restart: unless-stopped
+
+  # ── Service 2: Engine (NLP + Query Execution + Admin API) ──
+  engine:
+    build: ./services/engine
+    ports:
+      - '4000:4000'
+    environment:
+      - NODE_ENV=production
+      - ENGINE_PORT=4000
+      # Point to real tenant API — set per deployment
+      - API_BASE_URL=${API_BASE_URL:-https://api.your-company.com}
+      - API_TOKEN=${API_TOKEN:-}
+      - UI_ORIGIN=${UI_ORIGIN:-http://ui:3000}
+      # Optional: secure Engine API with a key
+      - ENGINE_API_KEY=${ENGINE_API_KEY:-}
+    restart: unless-stopped

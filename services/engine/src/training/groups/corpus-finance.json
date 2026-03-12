@@ -1,0 +1,120 @@
+{
+  "name": "Finance Corpus",
+  "locale": "en-US",
+  "entities": {
+    "query_name": {
+      "options": {
+        "monthly_revenue": ["monthly revenue", "revenue report", "monthly sales", "revenue", "sales report"],
+        "daily_orders": ["daily orders", "orders today", "order count", "orders", "order volume"],
+        "sales_data": ["sales_data", "sales data", "sales report", "sales csv", "sales metrics", "revenue data"]
+      }
+    },
+    "time_period": {
+      "options": {
+        "today": ["today", "current day"],
+        "this_week": ["this week", "current week", "weekly"],
+        "this_month": ["this month", "current month", "monthly"],
+        "this_quarter": ["this quarter", "current quarter", "quarterly"],
+        "last_week": ["last week", "previous week"],
+        "last_month": ["last month", "previous month"],
+        "last_quarter": ["last quarter", "previous quarter"]
+      }
+    },
+    "region": {
+      "options": {
+        "US": ["US", "United States", "America", "USA"],
+        "EU": ["EU", "Europe", "European"],
+        "APAC": ["APAC", "Asia Pacific", "Asia"]
+      }
+    }
+  },
+  "data": [
+    {
+      "intent": "greeting",
+      "utterances": ["hello", "hi", "hey", "good morning", "good afternoon", "hi there"],
+      "answers": []
+    },
+    {
+      "intent": "query.execute",
+      "utterances": [
+        "run the @query_name query",
+        "execute @query_name",
+        "show me @query_name",
+        "get me @query_name results",
+        "pull up @query_name",
+        "run @query_name for @time_period",
+        "show me @query_name for @time_period",
+        "get @query_name filtered by @region",
+        "run @query_name in @region",
+        "run @query_name for @time_period in @region",
+        "what is our revenue",
+        "how are sales doing",
+        "show me order data",
+        "run query",
+        "execute a query",
+        "what is the average revenue in @query_name",
+        "sum of revenue in @query_name",
+        "top 5 by revenue in @query_name",
+        "total units in @query_name"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "query.multi",
+      "utterances": [
+        "show me @query_name and @query_name",
+        "run @query_name and @query_name together",
+        "compare @query_name and @query_name",
+        "get @query_name and @query_name data",
+        "show revenue and orders together",
+        "run multiple queries"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "query.estimate",
+      "utterances": [
+        "how long will @query_name take",
+        "estimate for @query_name",
+        "time estimate for @query_name",
+        "estimation",
+        "how long will this take"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "query.list",
+      "utterances": [
+        "what queries are available",
+        "list all queries",
+        "show me available queries",
+        "what reports do you have",
+        "what data can I access",
+        "available queries"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "url.find",
+      "utterances": [
+        "link for @query_name",
+        "URL for @query_name",
+        "where is the @query_name page",
+        "find me a URL for @query_name",
+        "give me the link",
+        "show me the URL"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "help",
+      "utterances": ["help", "what can you do", "how does this work", "instructions"],
+      "answers": []
+    },
+    {
+      "intent": "farewell",
+      "utterances": ["bye", "goodbye", "see you", "thanks bye", "that is all", "I am done"],
+      "answers": []
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "filters": {
+    "date_range": {
+      "label": "Date Range",
+      "type": "select",
+      "options": [
+        {
+          "value": "today",
+          "label": "Today"
+        },
+        {
+          "value": "this_week",
+          "label": "This Week"
+        },
+        {
+          "value": "this_month",
+          "label": "This Month"
+        },
+        {
+          "value": "last_week",
+          "label": "Last Week"
+        },
+        {
+          "value": "last_month",
+          "label": "Last Month"
+        },
+        {
+          "value": "last_quarter",
+          "label": "Last Quarter"
+        }
+      ],
+      "placeholder": null,
+      "dateFormat": "YYYY-MM-DD"
+    },
+    "region": {
+      "label": "Region",
+      "type": "select",
+      "options": [
+        {
+          "value": "US",
+          "label": "US"
+        },
+        {
+          "value": "EU",
+          "label": "EU"
+        },
+        {
+          "value": "APAC",
+          "label": "APAC"
+        }
+      ],
+      "placeholder": null
+    },
+    "environment": {
+      "label": "Environment",
+      "type": "select",
+      "options": [
+        {
+          "value": "production",
+          "label": "Production"
+        },
+        {
+          "value": "staging",
+          "label": "Staging"
+        },
+        {
+          "value": "dev",
+          "label": "Dev"
+        }
+      ],
+      "placeholder": null
+    },
+    "team": {
+      "label": "Team",
+      "type": "select",
+      "options": [
+        {
+          "value": "engineering",
+          "label": "Engineering"
+        },
+        {
+          "value": "sales",
+          "label": "Sales"
+        },
+        {
+          "value": "marketing",
+          "label": "Marketing"
+        },
+        {
+          "value": "support",
+          "label": "Support"
+        }
+      ],
+      "placeholder": null
+    },
+    "severity": {
+      "label": "Severity",
+      "type": "text",
+      "options": [],
+      "placeholder": "e.g. critical, high, medium, low"
+    },
+    "isadmin": {
+      "label": "test",
+      "type": "boolean",
+      "options": [],
+      "placeholder": null
+    }
+  }
+}

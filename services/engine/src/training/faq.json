@@ -1,0 +1,67 @@
+[
+  {
+    "question": "How do I access the monthly revenue report?",
+    "intent": "url.find",
+    "answer": "You can access the monthly revenue report. Would you like me to find the direct link?"
+  },
+  {
+    "question": "What is the current error rate?",
+    "intent": "query.execute",
+    "answer": "I can run the error rate query for you. Would you like me to do that?"
+  },
+  {
+    "question": "How many active users do we have?",
+    "intent": "query.execute",
+    "answer": "I can pull up the active users data. Let me run that query for you."
+  },
+  {
+    "question": "Show me today's order numbers",
+    "intent": "query.execute",
+    "answer": "I can fetch the daily orders data for you."
+  },
+  {
+    "question": "Where is the performance dashboard?",
+    "intent": "url.find",
+    "answer": "Let me find the performance dashboard URL for you."
+  },
+  {
+    "question": "How long does the revenue report take to generate?",
+    "intent": "query.estimate",
+    "answer": "Let me check the estimated time for the revenue report."
+  },
+  {
+    "question": "What queries can I run?",
+    "intent": "query.list",
+    "answer": "Here are the available queries you can run."
+  },
+  {
+    "question": "Can you help me find some data?",
+    "intent": "help",
+    "answer": "Of course! I can run queries, find URLs, and provide estimations. What do you need?"
+  },
+  {
+    "question": "Show me revenue and active users data together",
+    "intent": "query.multi",
+    "answer": "I can run both queries together and show you the combined results."
+  },
+  {
+    "question": "Run revenue for US region",
+    "intent": "query.execute",
+    "answer": "I can run the revenue query filtered by US region."
+  },
+  {
+    "question": "Compare error rate and performance metrics",
+    "intent": "query.multi",
+    "answer": "I can run both error rate and performance queries together for you."
+  },
+  {
+    "question": "Get infrastructure costs for production",
+    "intent": "query.execute",
+    "answer": "I can fetch the infrastructure costs filtered by production environment."
+  },
+  {
+    "question": "Show me revenue for this month in Europe",
+    "intent": "query.execute",
+    "answer": "I can run the revenue query with month and region filters."
+  }
+]

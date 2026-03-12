@@ -1,0 +1,432 @@
+'use client';
+
+import type { Message } from '@/hooks/useChat';
+import { QueryFilterForm, type QueryFilterFormData } from './QueryFilterForm';
+import { DataChart } from './DataChart';
+
+interface QueryListItem {
+  name: string;
+  description?: string;
+  type: 'api' | 'url' | 'document' | 'csv';
+  filters: string[];
+  url?: string;
+}
+
+interface UrlItem {
+  title: string;
+  url: string;
+}
+
+interface QueryResultData {
+  data: Record<string, unknown>[];
+  rowCount: number;
+  executionTime: number;
+}
+
+interface MultiQueryResultItem {
+  queryName: string;
+  result: QueryResultData;
+}
+
+interface EstimationData {
+  estimatedDuration: number;
+  description: string;
+}
+
+function renderMarkdownText(
+  text: string,
+  onAction?: (text: string) => void
+) {
+  // Split on **bold** markers and "quoted" text
+  const parts = text.split(/(\*\*[^*]+\*\*|"[^"]{3,}")/g);
+  return parts.map((part, i) => {
+    const boldMatch = part.match(/^\*\*(.+)\*\*$/);
+    if (boldMatch) {
+      return <strong key={i}>{boldMatch[1]}</strong>;
+    }
+    const quoteMatch = part.match(/^"(.{3,})"$/);
+    if (quoteMatch && onAction) {
+      return (
+        <button
+          key={i}
+          onClick={() => onAction(quoteMatch[1])}
+          className="inline-flex items-center mx-0.5 rounded-md border border-blue-300 bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer align-baseline"
+        >
+          {quoteMatch[1]}
+        </button>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
+export function MessageBubble({
+  message,
+  onAction,
+  onExecuteQuery,
+  onRetry,
+}: {
+  message: Message;
+  onAction?: (text: string) => void;
+  onExecuteQuery?: (queryName: string, filters: Record<string, string>) => void;
+  onRetry?: (text: string) => void;
+}) {
+  const isUser = message.role === 'user';
+
+  return (
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-3`}>
+      <div
+        className={`${isUser ? 'max-w-[80%]' : 'max-w-[95%]'} rounded-2xl px-4 py-3 ${
+          isUser
+            ? 'bg-blue-600 text-white'
+            : message.isError
+            ? 'bg-red-50 text-gray-900 border border-red-200'
+            : 'bg-gray-100 text-gray-900'
+        }`}
+      >
+        <p className="whitespace-pre-wrap text-sm">
+          {renderMarkdownText(message.text, isUser ? undefined : onAction)}
+        </p>
+        {message.richContent && (
+          <div className="mt-2">
+            <RichContentRenderer richContent={message.richContent} onExecuteQuery={onExecuteQuery} onAction={onAction} />
+          </div>
+        )}
+        {/* Execution time badge + reference link */}
+        {!isUser && (message.executionMs != null || message.referenceUrl) && (
+          <div className="mt-2 flex items-center gap-2">
+            {message.executionMs != null && (
+              <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
+                Completed in {message.executionMs}ms
+              </span>
+            )}
+            {message.referenceUrl && (
+              <a
+                href={message.referenceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-medium text-blue-600 hover:bg-blue-100 transition-colors"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                More info
+              </a>
+            )}
+          </div>
+        )}
+        {/* Retry button for errors */}
+        {message.isError && message.retryText && onRetry && (
+          <button
+            onClick={() => onRetry(message.retryText!)}
+            className="mt-2 inline-flex items-center gap-1 rounded-md border border-red-300 bg-white px-2.5 py-1 text-xs text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Retry
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RichContentRenderer({
+  richContent,
+  onExecuteQuery,
+  onAction,
+}: {
+  richContent: NonNullable<Message['richContent']>;
+  onExecuteQuery?: (queryName: string, filters: Record<string, string>) => void;
+  onAction?: (text: string) => void;
+}) {
+  switch (richContent.type) {
+    case 'url_list': {
+      const urls = richContent.data as UrlItem[];
+      return (
+        <ul className="mt-1 space-y-1">
+          {urls.map((url, i) => (
+            <li key={i}>
+              <a
+                href={url.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-700 underline text-sm hover:text-blue-900"
+              >
+                {url.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      );
+    }
+    case 'query_result': {
+      const result = richContent.data as QueryResultData;
+      return <QueryResultTable result={result} />;
+    }
+    case 'multi_query_result': {
+      const results = richContent.data as MultiQueryResultItem[];
+      return (
+        <div className="mt-1 space-y-4">
+          {results.map((item, i) => (
+            <div key={i}>
+              <h4 className="text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
+                {item.queryName}
+              </h4>
+              <QueryResultTable result={item.result} />
+            </div>
+          ))}
+        </div>
+      );
+    }
+    case 'estimation': {
+      const est = richContent.data as EstimationData;
+      return (
+        <div className="mt-1 text-xs text-gray-600">
+          <p>Duration: {est.estimatedDuration}ms</p>
+          <p>{est.description}</p>
+        </div>
+      );
+    }
+    case 'query_filter_form': {
+      const formData = richContent.data as QueryFilterFormData;
+      return (
+        <QueryFilterForm
+          data={formData}
+          onSubmit={(queryName, filters) => onExecuteQuery?.(queryName, filters)}
+        />
+      );
+    }
+    case 'file_content': {
+      const fileData = richContent.data as { content: string; filePath: string; format: string };
+      return (
+        <div className="mt-1">
+          <p className="text-[10px] text-gray-400 mb-1 font-mono">{fileData.filePath}</p>
+          <pre className="text-xs bg-gray-50 border border-gray-200 rounded p-2 overflow-x-auto whitespace-pre-wrap max-h-80 overflow-y-auto">
+            {fileData.content}
+          </pre>
+        </div>
+      );
+    }
+    case 'document_search': {
+      const docData = richContent.data as {
+        filePath: string;
+        searchResults: Array<{ heading: string | null; content: string; score: number }>;
+        searchKeywords?: string[];
+      };
+      return (
+        <div className="mt-1">
+          <p className="text-[10px] text-gray-400 mb-1 font-mono">{docData.filePath}</p>
+          {docData.searchResults.map((section, i) => (
+            <div key={i} className="mb-2">
+              {section.heading && (
+                <p className="text-xs font-semibold text-gray-700">{section.heading}</p>
+              )}
+              <pre className="text-xs bg-gray-50 border border-gray-200 rounded p-2 overflow-x-auto whitespace-pre-wrap max-h-40 overflow-y-auto">
+                {section.content}
+              </pre>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    case 'csv_table': {
+      const csvData = richContent.data as {
+        headers: string[];
+        rows: Record<string, string | number>[];
+        filePath: string;
+        rowCount: number;
+      };
+      return (
+        <div className="mt-1 text-xs">
+          <p className="text-[10px] text-gray-400 mb-1 font-mono">{csvData.filePath}</p>
+          <p className="text-gray-500">{csvData.rowCount} rows</p>
+          {csvData.headers.length > 0 && (
+            <>
+              <div className="mt-1 overflow-x-auto">
+                <table className="min-w-full text-xs border border-gray-200 rounded">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      {csvData.headers.map((h) => (
+                        <th key={h} className="px-2 py-1 text-left font-medium text-gray-600 border-b">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {csvData.rows.slice(0, 20).map((row, i) => (
+                      <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        {csvData.headers.map((h) => (
+                          <td key={h} className="px-2 py-1 border-b border-gray-100">{String(row[h] ?? '')}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {csvData.rows.length > 20 && (
+                  <p className="text-gray-400 mt-1">Showing 20 of {csvData.rows.length} rows</p>
+                )}
+              </div>
+              <DataChart data={csvData.rows as Record<string, unknown>[]} headers={csvData.headers} />
+            </>
+          )}
+        </div>
+      );
+    }
+    case 'csv_aggregation': {
+      const aggData = richContent.data as {
+        aggregation: {
+          operation: string;
+          column: string;
+          result: number | string;
+          topRows?: Record<string, string | number>[];
+          topHeaders?: string[];
+        };
+        filePath: string;
+        rowCount: number;
+      };
+      const isTop = aggData.aggregation.topRows && aggData.aggregation.topHeaders;
+      return (
+        <div className="mt-1 text-xs">
+          <p className="text-[10px] text-gray-400 mb-1 font-mono">{aggData.filePath}</p>
+          {isTop ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-xs border border-blue-200 rounded">
+                <thead>
+                  <tr className="bg-blue-50">
+                    <th className="px-2 py-1 text-left font-medium text-blue-700 border-b border-blue-200 w-8">#</th>
+                    {aggData.aggregation.topHeaders!.map((h) => (
+                      <th
+                        key={h}
+                        className={`px-2 py-1 text-left font-medium border-b border-blue-200 ${h === aggData.aggregation.column ? 'text-blue-800 bg-blue-100' : 'text-blue-700'}`}
+                      >
+                        {h}{h === aggData.aggregation.column ? ' \u2193' : ''}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {aggData.aggregation.topRows!.map((row, i) => (
+                    <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-blue-50/30'}>
+                      <td className="px-2 py-1 border-b border-gray-100 text-gray-400 font-medium">{i + 1}</td>
+                      {aggData.aggregation.topHeaders!.map((h) => (
+                        <td
+                          key={h}
+                          className={`px-2 py-1 border-b border-gray-100 ${h === aggData.aggregation.column ? 'font-semibold text-blue-800' : ''}`}
+                        >
+                          {String(row[h] ?? '')}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-gray-400 mt-1">Sorted by {aggData.aggregation.column} (descending) from {aggData.rowCount} total rows</p>
+            </div>
+          ) : (
+            <div className="bg-blue-50 border border-blue-200 rounded p-3">
+              <p className="font-semibold text-blue-800 text-sm">
+                {aggData.aggregation.operation.toUpperCase()}({aggData.aggregation.column}) = {String(aggData.aggregation.result)}
+              </p>
+              <p className="text-gray-500 mt-1">Computed over {aggData.rowCount} rows</p>
+            </div>
+          )}
+        </div>
+      );
+    }
+    case 'query_list': {
+      const items = richContent.data as QueryListItem[];
+      const typeColors: Record<string, string> = {
+        api: 'bg-blue-100 text-blue-700',
+        url: 'bg-green-100 text-green-700',
+        document: 'bg-purple-100 text-purple-700',
+        csv: 'bg-amber-100 text-amber-700',
+      };
+      return (
+        <div className="mt-1 space-y-1.5">
+          {items.map((item) => (
+            <button
+              key={item.name}
+              onClick={() => {
+                if (item.type === 'url' && item.url) {
+                  window.open(item.url, '_blank', 'noopener,noreferrer');
+                } else {
+                  onAction?.(`run ${item.name}`);
+                }
+              }}
+              className="w-full flex items-start gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-left hover:border-blue-400 hover:bg-blue-50 transition-colors"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-gray-800 truncate">{item.name}</span>
+                  <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${typeColors[item.type] || 'bg-gray-100 text-gray-700'}`}>
+                    {item.type}
+                  </span>
+                </div>
+                {item.description && (
+                  <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">{item.description}</p>
+                )}
+              </div>
+              {item.filters.length > 0 && (
+                <span className="text-[10px] text-gray-400 whitespace-nowrap mt-0.5">
+                  {item.filters.length} filter{item.filters.length > 1 ? 's' : ''}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      );
+    }
+    case 'error':
+      return null;
+    default:
+      return null;
+  }
+}
+
+function QueryResultTable({ result }: { result: QueryResultData }) {
+  return (
+    <div className="mt-1 text-xs">
+      <p className="text-gray-500">
+        {result.rowCount} rows in {result.executionTime}ms
+      </p>
+      {result.data.length > 0 && (
+        <>
+          <div className="mt-1 overflow-x-auto">
+            <table className="min-w-full text-xs border border-gray-200 rounded">
+              <thead>
+                <tr className="bg-gray-50">
+                  {Object.keys(result.data[0]).map((key) => (
+                    <th
+                      key={key}
+                      className="px-2 py-1 text-left font-medium text-gray-600 border-b"
+                    >
+                      {key}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {result.data.slice(0, 10).map((row, i) => (
+                  <tr key={i} className="border-b border-gray-100">
+                    {Object.values(row).map((val, j) => (
+                      <td key={j} className="px-2 py-1">
+                        {String(val)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {result.data.length > 10 && (
+              <p className="text-gray-400 mt-1">
+                Showing 10 of {result.data.length} rows
+              </p>
+            )}
+          </div>
+          <DataChart data={result.data} />
+        </>
+      )}
+    </div>
+  );
+}

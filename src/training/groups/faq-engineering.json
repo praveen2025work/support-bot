@@ -1,0 +1,37 @@
+[
+  {
+    "question": "What is the current error rate?",
+    "intent": "query.execute",
+    "answer": "I can run the error rate query for you."
+  },
+  {
+    "question": "How is API performance?",
+    "intent": "query.execute",
+    "answer": "I can fetch the performance metrics for you."
+  },
+  {
+    "question": "How much are we spending on cloud infrastructure?",
+    "intent": "query.execute",
+    "answer": "I can run the infrastructure costs query for you."
+  },
+  {
+    "question": "Compare errors and performance",
+    "intent": "query.multi",
+    "answer": "I can run both error rate and performance queries together."
+  },
+  {
+    "question": "Where is the performance dashboard?",
+    "intent": "url.find",
+    "answer": "Let me find the performance dashboard URL for you."
+  },
+  {
+    "question": "What queries can I run?",
+    "intent": "query.list",
+    "answer": "Here are the available engineering queries you can run."
+  },
+  {
+    "question": "Can you help me?",
+    "intent": "help",
+    "answer": "I can help with error rates, performance metrics, and infrastructure costs."
+  }
+]

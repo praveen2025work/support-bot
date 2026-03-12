@@ -1,0 +1,679 @@
+{
+  "queries": [
+    {
+      "id": "q1",
+      "name": "monthly_revenue",
+      "description": "Monthly revenue breakdown by product line and region",
+      "estimatedDuration": 3200,
+      "url": "https://confluence.example.com/wiki/finance/monthly-revenue-report",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/finance/revenue/{region}",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "path"
+        }
+      ]
+    },
+    {
+      "id": "q2",
+      "name": "active_users",
+      "description": "Daily and monthly active user counts with retention metrics",
+      "estimatedDuration": 1500,
+      "url": "https://confluence.example.com/wiki/analytics/active-users-metrics",
+      "source": "analytics",
+      "type": "api",
+      "endpoint": "/analytics/users/active",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "query_param"
+        }
+      ]
+    },
+    {
+      "id": "q3",
+      "name": "error_rate",
+      "description": "Application error rates by service, endpoint, and severity",
+      "estimatedDuration": 800,
+      "url": "https://confluence.example.com/wiki/engineering/error-rate-monitoring",
+      "source": "engineering",
+      "type": "api",
+      "endpoint": "/monitoring/{environment}/errors",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "environment",
+          "binding": "path"
+        }
+      ]
+    },
+    {
+      "id": "q4",
+      "name": "performance",
+      "description": "API latency percentiles (p50, p95, p99) and throughput metrics",
+      "estimatedDuration": 2100,
+      "url": "https://confluence.example.com/wiki/engineering/api-performance-sla",
+      "source": "engineering",
+      "type": "api",
+      "endpoint": "/monitoring/performance",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "environment",
+          "binding": "query_param"
+        }
+      ]
+    },
+    {
+      "id": "q5",
+      "name": "daily_orders",
+      "description": "Order volume, average order value, and fulfillment status",
+      "estimatedDuration": 1200,
+      "url": "https://confluence.example.com/wiki/commerce/daily-orders-overview",
+      "source": "commerce",
+      "type": "api",
+      "endpoint": "/commerce/orders/{region}",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "path"
+        }
+      ]
+    },
+    {
+      "id": "q6",
+      "name": "customer_churn",
+      "description": "Customer churn rate analysis with cohort breakdown",
+      "estimatedDuration": 4500,
+      "url": "https://confluence.example.com/wiki/analytics/customer-churn-analysis",
+      "source": "analytics",
+      "type": "api",
+      "endpoint": "/analytics/churn",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
+      ]
+    },
+    {
+      "id": "q7",
+      "name": "infrastructure_costs",
+      "description": "Cloud infrastructure spend by service and environment",
+      "estimatedDuration": 2800,
+      "url": "https://confluence.example.com/wiki/devops/infrastructure-cost-tracking",
+      "source": "devops",
+      "type": "api",
+      "endpoint": "/infra/costs/{environment}",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "environment",
+          "binding": "path"
+        }
+      ]
+    },
+    {
+      "id": "q8",
+      "name": "headcount",
+      "description": "Current headcount by department and location",
+      "estimatedDuration": 2000,
+      "url": "https://confluence.example.com/wiki/hr/headcount-reporting",
+      "source": "hr",
+      "type": "api",
+      "endpoint": "/hr/headcount",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "team",
+          "binding": "query_param"
+        }
+      ]
+    },
+    {
+      "id": "q9",
+      "name": "hiring_pipeline",
+      "description": "Open positions and hiring funnel metrics",
+      "estimatedDuration": 1500,
+      "url": "https://confluence.example.com/wiki/hr/hiring-pipeline-process",
+      "source": "hr",
+      "type": "api",
+      "endpoint": "/hr/hiring/pipeline",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
+      ]
+    },
+    {
+      "id": "q10",
+      "name": "onboarding_guide",
+      "description": "New employee onboarding guide on Confluence",
+      "estimatedDuration": 0,
+      "url": "https://confluence.example.com/wiki/onboarding-guide",
+      "source": "hr",
+      "type": "url",
+      "filters": []
+    },
+    {
+      "id": "q11",
+      "name": "api_changelog",
+      "description": "Latest API changelog and release notes",
+      "estimatedDuration": 0,
+      "url": "https://confluence.example.com/wiki/engineering/api-changelog",
+      "source": "engineering",
+      "type": "document",
+      "filePath": "data/knowledge/api-changelog.md",
+      "filters": []
+    },
+    {
+      "id": "q12",
+      "name": "brd_payments",
+      "description": "Business requirements document for payments module",
+      "estimatedDuration": 0,
+      "url": "https://confluence.example.com/wiki/engineering/brd-payments-module",
+      "source": "engineering",
+      "type": "document",
+      "filePath": "data/knowledge/brd-payments.md",
+      "filters": []
+    },
+    {
+      "id": "q13",
+      "name": "sales_data",
+      "description": "Regional sales data with revenue and unit metrics",
+      "estimatedDuration": 0,
+      "url": "https://confluence.example.com/wiki/finance/sales-data-dictionary",
+      "source": "finance",
+      "type": "csv",
+      "filePath": "data/sales-data.csv",
+      "filters": []
+    },
+    {
+      "id": "q14",
+      "name": "auth_spec",
+      "description": "Feature specification for authentication and authorization module v3",
+      "estimatedDuration": 0,
+      "url": "https://confluence.example.com/wiki/engineering/auth-module-v3-spec",
+      "source": "engineering",
+      "type": "document",
+      "filePath": "data/knowledge/feature-spec-auth.md",
+      "filters": []
+    },
+    {
+      "id": "q15",
+      "name": "incident_report",
+      "description": "Post-incident report for the March 2026 payment gateway outage",
+      "estimatedDuration": 0,
+      "url": "https://confluence.example.com/wiki/engineering/incident-2026-03-payment-outage",
+      "source": "engineering",
+      "type": "document",
+      "filePath": "data/knowledge/incident-report-2026-03.md",
+      "filters": []
+    },
+    {
+      "id": "q16",
+      "name": "deployment_runbook",
+      "description": "Production deployment runbook with step-by-step procedures",
+      "estimatedDuration": 0,
+      "url": "https://confluence.example.com/wiki/devops/production-deployment-runbook",
+      "source": "devops",
+      "type": "document",
+      "filePath": "data/knowledge/runbook-deployment.md",
+      "filters": []
+    },
+    {
+      "id": "q17",
+      "name": "support_tickets",
+      "description": "Support ticket data with priority, status, and resolution times",
+      "estimatedDuration": 0,
+      "url": "https://confluence.example.com/wiki/analytics/support-tickets-guide",
+      "source": "analytics",
+      "type": "csv",
+      "filePath": "data/support-tickets.csv",
+      "filters": []
+    },
+    {
+      "id": "q18",
+      "name": "employee_metrics",
+      "description": "Employee data with department, salary, performance, and tenure",
+      "estimatedDuration": 0,
+      "url": "https://confluence.example.com/wiki/hr/employee-metrics-data-dictionary",
+      "source": "hr",
+      "type": "csv",
+      "filePath": "data/employee-metrics.csv",
+      "filters": []
+    },
+    {
+      "id": "q19",
+      "name": "servicenow_dashboard",
+      "description": "ServiceNow ITSM dashboard for incident tracking",
+      "estimatedDuration": 0,
+      "url": "https://company.service-now.com/nav_to.do?uri=incident_list.do",
+      "source": "engineering",
+      "type": "url",
+      "filters": []
+    },
+    {
+      "id": "q20",
+      "name": "architecture_wiki",
+      "description": "System architecture documentation on Confluence",
+      "estimatedDuration": 0,
+      "url": "https://confluence.example.com/wiki/architecture/system-overview",
+      "source": "engineering",
+      "type": "url",
+      "filters": []
+    },
+    {
+      "id": "q21",
+      "name": "user_profile",
+      "description": "User profile data fetched via path variable (demo: path binding)",
+      "estimatedDuration": 500,
+      "url": "https://confluence.example.com/wiki/engineering/user-profile-api",
+      "source": "engineering",
+      "type": "api",
+      "endpoint": "/users/{user_id}/profile",
+      "filters": [
+        {
+          "key": "user_id",
+          "label": "User ID",
+          "binding": "path",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "q22",
+      "name": "service_logs",
+      "description": "Service logs filtered via query parameters (demo: query_param binding)",
+      "estimatedDuration": 1200,
+      "url": "https://confluence.example.com/wiki/engineering/service-logs-guide",
+      "source": "engineering",
+      "type": "api",
+      "endpoint": "/logs",
+      "filters": [
+        {
+          "key": "service",
+          "label": "Service Name",
+          "binding": "query_param"
+        },
+        {
+          "key": "level",
+          "label": "Log Level",
+          "binding": "query_param"
+        },
+        {
+          "key": "limit",
+          "label": "Max Results",
+          "binding": "query_param"
+        }
+      ]
+    },
+    {
+      "id": "q23",
+      "name": "report_generator",
+      "description": "Generate reports via request body payload (demo: body binding)",
+      "estimatedDuration": 3000,
+      "url": "https://confluence.example.com/wiki/engineering/report-generator-docs",
+      "source": "engineering",
+      "type": "api",
+      "endpoint": "/reports/generate",
+      "filters": [
+        {
+          "key": "report_type",
+          "label": "Report Type",
+          "binding": "body"
+        },
+        {
+          "key": "date_range",
+          "label": "Date Range",
+          "binding": "body"
+        },
+        {
+          "key": "format",
+          "label": "Output Format",
+          "binding": "body"
+        }
+      ]
+    }
+  ],
+  "queryStats": [
+    {
+      "id": "stat_1773259476894_hsfq",
+      "queryName": "error_rate",
+      "success": true,
+      "durationMs": 18,
+      "timestamp": "2026-03-11T20:04:36.894Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773259639596_wbbk",
+      "queryName": "employee_metrics",
+      "success": true,
+      "durationMs": 9,
+      "timestamp": "2026-03-11T20:07:19.596Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773259659064_8apa",
+      "queryName": "performance",
+      "success": true,
+      "durationMs": 12,
+      "timestamp": "2026-03-11T20:07:39.064Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773259664599_vu1r",
+      "queryName": "sales_data",
+      "success": true,
+      "durationMs": 10,
+      "timestamp": "2026-03-11T20:07:44.599Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773259991373_9gbt",
+      "queryName": "monthly_revenue",
+      "success": true,
+      "durationMs": 16,
+      "timestamp": "2026-03-11T20:13:11.373Z",
+      "filters": {
+        "time_period": "this_month",
+        "region": "US"
+      }
+    },
+    {
+      "id": "stat_1773260181414_i3xj",
+      "queryName": "error_rate",
+      "success": true,
+      "durationMs": 10,
+      "timestamp": "2026-03-11T20:16:21.414Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773260269395_3zuy",
+      "queryName": "monthly_revenue",
+      "success": true,
+      "durationMs": 4,
+      "timestamp": "2026-03-11T20:17:49.395Z",
+      "filters": {
+        "time_period": "this_month"
+      }
+    },
+    {
+      "id": "stat_1773260283178_xgfb",
+      "queryName": "daily_orders",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-11T20:18:03.178Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773260346566_tbrf",
+      "queryName": "sales_data",
+      "success": true,
+      "durationMs": 8,
+      "timestamp": "2026-03-11T20:19:06.566Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773260351769_avz6",
+      "queryName": "active_users",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-11T20:19:11.769Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773260356514_yzwz",
+      "queryName": "monthly_revenue",
+      "success": true,
+      "durationMs": 7,
+      "timestamp": "2026-03-11T20:19:16.514Z",
+      "filters": {
+        "time_period": "this_month"
+      }
+    },
+    {
+      "id": "stat_1773260361824_755t",
+      "queryName": "headcount",
+      "success": true,
+      "durationMs": 2,
+      "timestamp": "2026-03-11T20:19:21.824Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773260586726_ozpq",
+      "queryName": "error_rate",
+      "success": true,
+      "durationMs": 8,
+      "timestamp": "2026-03-11T20:23:06.726Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773260610605_b9l9",
+      "queryName": "error_rate",
+      "success": true,
+      "durationMs": 9,
+      "timestamp": "2026-03-11T20:23:30.605Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773260629362_8vsi",
+      "queryName": "monthly_revenue",
+      "success": true,
+      "durationMs": 15,
+      "timestamp": "2026-03-11T20:23:49.362Z",
+      "filters": {
+        "time_period": "this_month"
+      }
+    },
+    {
+      "id": "stat_1773260633656_n1q5",
+      "queryName": "active_users",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-11T20:23:53.656Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773260724929_9h6f",
+      "queryName": "auth_spec",
+      "success": true,
+      "durationMs": 10,
+      "timestamp": "2026-03-11T20:25:24.929Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773260735266_3wbt",
+      "queryName": "infrastructure_costs",
+      "success": true,
+      "durationMs": 6,
+      "timestamp": "2026-03-11T20:25:35.266Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773261137577_hjlc",
+      "queryName": "customer_churn",
+      "success": true,
+      "durationMs": 9,
+      "timestamp": "2026-03-11T20:32:17.577Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773261148813_bqnh",
+      "queryName": "daily_orders",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-11T20:32:28.813Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773261152067_ujk2",
+      "queryName": "report_generator",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-11T20:32:32.068Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773262710394_glmz",
+      "queryName": "error_rate",
+      "success": true,
+      "durationMs": 13,
+      "timestamp": "2026-03-11T20:58:30.394Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773264035706_40kz",
+      "queryName": "monthly_revenue",
+      "success": true,
+      "durationMs": 8,
+      "timestamp": "2026-03-11T21:20:35.706Z",
+      "filters": {
+        "time_period": "this_month"
+      }
+    },
+    {
+      "id": "stat_1773264039432_u1iw",
+      "queryName": "active_users",
+      "success": true,
+      "durationMs": 10,
+      "timestamp": "2026-03-11T21:20:39.432Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773271050425_9y0i",
+      "queryName": "error_rate",
+      "success": true,
+      "durationMs": 16,
+      "timestamp": "2026-03-11T23:17:30.425Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773271060941_0q8l",
+      "queryName": "active_users",
+      "success": true,
+      "durationMs": 11,
+      "timestamp": "2026-03-11T23:17:40.941Z",
+      "filters": {
+        "region": "US"
+      }
+    },
+    {
+      "id": "stat_1773271090709_pco9",
+      "queryName": "sales_data",
+      "success": true,
+      "durationMs": 8,
+      "timestamp": "2026-03-11T23:18:10.709Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773271497789_4rk8",
+      "queryName": "error_rate",
+      "success": true,
+      "durationMs": 14,
+      "timestamp": "2026-03-11T23:24:57.789Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773271755302_i24v",
+      "queryName": "monthly_revenue",
+      "success": true,
+      "durationMs": 10,
+      "timestamp": "2026-03-11T23:29:15.302Z",
+      "filters": {
+        "time_period": "this_month"
+      }
+    },
+    {
+      "id": "stat_1773271770431_f4cg",
+      "queryName": "monthly_revenue",
+      "success": true,
+      "durationMs": 6,
+      "timestamp": "2026-03-11T23:29:30.431Z",
+      "filters": {
+        "time_period": "this_month"
+      }
+    },
+    {
+      "id": "stat_1773271775999_2eqd",
+      "queryName": "daily_orders",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-11T23:29:35.999Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773271784165_rgpl",
+      "queryName": "error_rate",
+      "success": true,
+      "durationMs": 6,
+      "timestamp": "2026-03-11T23:29:44.165Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773271836252_bzgf",
+      "queryName": "employee_metrics",
+      "success": true,
+      "durationMs": 11,
+      "timestamp": "2026-03-11T23:30:36.252Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773271867386_ag46",
+      "queryName": "monthly_revenue",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-11T23:31:07.386Z",
+      "filters": {
+        "time_period": "this_month"
+      }
+    },
+    {
+      "id": "stat_1773272132962_j62r",
+      "queryName": "daily_orders",
+      "success": true,
+      "durationMs": 7,
+      "timestamp": "2026-03-11T23:35:32.962Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773272153768_bns5",
+      "queryName": "employee_metrics",
+      "success": true,
+      "durationMs": 4,
+      "timestamp": "2026-03-11T23:35:53.768Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773272178408_48dk",
+      "queryName": "employee_metrics",
+      "success": true,
+      "durationMs": 11,
+      "timestamp": "2026-03-11T23:36:18.408Z",
+      "filters": {}
+    }
+  ]
+}

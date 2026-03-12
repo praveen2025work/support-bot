@@ -1,0 +1,133 @@
+{
+  "name": "Engineering Corpus",
+  "locale": "en-US",
+  "entities": {
+    "query_name": {
+      "options": {
+        "error_rate": ["error rate", "errors", "failure rate", "error report", "error metrics"],
+        "performance": ["performance", "performance metrics", "latency", "response time", "p50", "p95", "p99"],
+        "infrastructure_costs": ["infrastructure costs", "infra costs", "cloud costs", "costs", "cloud spend"],
+        "api_changelog": ["api changelog", "changelog", "release notes", "api changes", "api updates"],
+        "brd_payments": ["brd_payments", "brd payments", "payments brd", "payments document", "payments requirements", "payments spec"],
+        "auth_spec": ["auth_spec", "auth spec", "authentication spec", "authorization spec", "auth feature spec", "auth module"],
+        "incident_report": ["incident_report", "incident report", "outage report", "post mortem", "incident post mortem"],
+        "deployment_runbook": ["deployment_runbook", "deployment runbook", "deploy runbook", "deployment guide", "release runbook"],
+        "servicenow_dashboard": ["servicenow_dashboard", "servicenow dashboard", "servicenow", "itsm dashboard", "incident tracking"],
+        "architecture_wiki": ["architecture_wiki", "architecture wiki", "system architecture", "architecture docs", "architecture documentation"],
+        "user_profile": ["user_profile", "user profile", "profile", "user info", "user details"],
+        "service_logs": ["service_logs", "service logs", "logs", "log data", "application logs"],
+        "report_generator": ["report_generator", "report generator", "generate report", "report", "custom report"]
+      }
+    },
+    "time_period": {
+      "options": {
+        "today": ["today", "current day"],
+        "this_week": ["this week", "current week", "weekly"],
+        "this_month": ["this month", "current month", "monthly"],
+        "this_quarter": ["this quarter", "current quarter", "quarterly"],
+        "last_week": ["last week", "previous week"],
+        "last_month": ["last month", "previous month"]
+      }
+    },
+    "environment": {
+      "options": {
+        "production": ["production", "prod", "live"],
+        "staging": ["staging", "stage", "pre-prod"],
+        "dev": ["dev", "development", "local"]
+      }
+    }
+  },
+  "data": [
+    {
+      "intent": "greeting",
+      "utterances": ["hello", "hi", "hey", "good morning", "good afternoon", "hi there"],
+      "answers": []
+    },
+    {
+      "intent": "query.execute",
+      "utterances": [
+        "run the @query_name query",
+        "execute @query_name",
+        "show me @query_name",
+        "get me @query_name results",
+        "pull up @query_name",
+        "run @query_name for @time_period",
+        "show me @query_name in @environment",
+        "get @query_name in @environment",
+        "run @query_name for @time_period in @environment",
+        "what are the error rates",
+        "how is performance looking",
+        "show latency metrics",
+        "how much are we spending on infra",
+        "run query",
+        "execute a query",
+        "search @query_name for authentication",
+        "what does @query_name say about payments",
+        "find information about security in @query_name",
+        "search @query_name for rollback",
+        "what does @query_name say about root cause",
+        "find deployment steps in @query_name",
+        "link to @query_name",
+        "open @query_name"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "query.multi",
+      "utterances": [
+        "show me @query_name and @query_name",
+        "run @query_name and @query_name together",
+        "compare @query_name and @query_name",
+        "get @query_name and @query_name data",
+        "show errors and performance together",
+        "compare error rate and latency",
+        "run multiple queries"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "query.estimate",
+      "utterances": [
+        "how long will @query_name take",
+        "estimate for @query_name",
+        "time estimate for @query_name",
+        "estimation",
+        "how long will this take"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "query.list",
+      "utterances": [
+        "what queries are available",
+        "list all queries",
+        "show me available queries",
+        "what reports do you have",
+        "what data can I access",
+        "available queries"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "url.find",
+      "utterances": [
+        "link for @query_name",
+        "URL for @query_name",
+        "where is the @query_name page",
+        "find me a URL for @query_name",
+        "give me the link"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "help",
+      "utterances": ["help", "what can you do", "how does this work", "instructions"],
+      "answers": []
+    },
+    {
+      "intent": "farewell",
+      "utterances": ["bye", "goodbye", "see you", "thanks bye", "that is all", "I am done"],
+      "answers": []
+    }
+  ]
+}

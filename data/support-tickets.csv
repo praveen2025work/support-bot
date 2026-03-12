@@ -1,0 +1,31 @@
+ticket_id,category,priority,status,region,assigned_team,created_date,resolved_date,resolution_hours,customer_type
+TK-1001,Login Issue,high,resolved,US,engineering,2026-03-01,2026-03-01,2.5,enterprise
+TK-1002,Payment Failed,critical,resolved,EU,engineering,2026-03-01,2026-03-01,1.2,enterprise
+TK-1003,Dashboard Slow,medium,resolved,US,engineering,2026-03-01,2026-03-02,18.0,standard
+TK-1004,Feature Request,low,open,APAC,support,2026-03-02,,0,standard
+TK-1005,Data Export Error,high,resolved,US,engineering,2026-03-02,2026-03-02,4.5,enterprise
+TK-1006,Account Locked,medium,resolved,EU,support,2026-03-02,2026-03-02,0.8,standard
+TK-1007,API Timeout,critical,resolved,US,engineering,2026-03-03,2026-03-03,3.0,enterprise
+TK-1008,Billing Question,low,resolved,APAC,support,2026-03-03,2026-03-03,1.0,standard
+TK-1009,SSO Config,high,resolved,EU,engineering,2026-03-03,2026-03-04,8.5,enterprise
+TK-1010,Report Bug,medium,open,US,engineering,2026-03-04,,0,standard
+TK-1011,Password Reset,low,resolved,US,support,2026-03-04,2026-03-04,0.3,standard
+TK-1012,Integration Error,critical,resolved,APAC,engineering,2026-03-04,2026-03-04,2.0,enterprise
+TK-1013,Permission Issue,high,resolved,EU,engineering,2026-03-05,2026-03-05,5.5,enterprise
+TK-1014,UI Bug,medium,resolved,US,engineering,2026-03-05,2026-03-06,12.0,standard
+TK-1015,Payment Failed,critical,resolved,US,engineering,2026-03-05,2026-03-05,0.8,enterprise
+TK-1016,Webhook Failure,high,in_progress,EU,engineering,2026-03-06,,0,enterprise
+TK-1017,Data Sync Issue,medium,resolved,APAC,engineering,2026-03-06,2026-03-07,16.0,standard
+TK-1018,Login Issue,high,resolved,US,support,2026-03-06,2026-03-06,1.5,standard
+TK-1019,Feature Request,low,open,EU,support,2026-03-07,,0,enterprise
+TK-1020,API Rate Limit,medium,resolved,US,engineering,2026-03-07,2026-03-07,3.0,enterprise
+TK-1021,Dashboard Error,high,resolved,APAC,engineering,2026-03-07,2026-03-08,6.0,standard
+TK-1022,Payment Failed,critical,resolved,EU,engineering,2026-03-08,2026-03-08,1.5,enterprise
+TK-1023,Account Locked,medium,resolved,US,support,2026-03-08,2026-03-08,0.5,standard
+TK-1024,SSO Config,high,in_progress,US,engineering,2026-03-09,,0,enterprise
+TK-1025,API Timeout,critical,resolved,APAC,engineering,2026-03-09,2026-03-09,2.5,enterprise
+TK-1026,Billing Question,low,resolved,EU,support,2026-03-09,2026-03-09,0.8,standard
+TK-1027,Integration Error,high,resolved,US,engineering,2026-03-10,2026-03-10,4.0,enterprise
+TK-1028,Report Bug,medium,open,APAC,engineering,2026-03-10,,0,standard
+TK-1029,Performance Issue,critical,in_progress,US,engineering,2026-03-11,,0,enterprise
+TK-1030,Login Issue,high,resolved,EU,support,2026-03-11,2026-03-11,1.0,standard

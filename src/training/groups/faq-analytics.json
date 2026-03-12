@@ -1,0 +1,32 @@
+[
+  {
+    "question": "How many active users do we have?",
+    "intent": "query.execute",
+    "answer": "I can pull up the active users data for you."
+  },
+  {
+    "question": "What is the churn rate?",
+    "intent": "query.execute",
+    "answer": "I can run the customer churn query for you."
+  },
+  {
+    "question": "Show me retention metrics",
+    "intent": "query.execute",
+    "answer": "I can fetch the active users data with retention metrics."
+  },
+  {
+    "question": "Compare users and churn",
+    "intent": "query.multi",
+    "answer": "I can run both active users and churn queries together."
+  },
+  {
+    "question": "What queries can I run?",
+    "intent": "query.list",
+    "answer": "Here are the available analytics queries you can run."
+  },
+  {
+    "question": "Can you help me?",
+    "intent": "help",
+    "answer": "I can help with user analytics, retention data, and churn analysis."
+  }
+]

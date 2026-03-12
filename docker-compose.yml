@@ -1,0 +1,44 @@
+version: '3.8'
+
+# ═══════════════════════════════════════════════════════
+# DEMO MODE — all 3 services
+# Usage: docker compose up
+# ═══════════════════════════════════════════════════════
+
+services:
+  # ── Service 1: UI (Next.js frontend) ──
+  ui:
+    build: .
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - ENGINE_URL=http://engine:4000
+    depends_on:
+      - engine
+    restart: unless-stopped
+
+  # ── Service 2: Engine (NLP + Query Execution + Admin API) ──
+  engine:
+    build: ./services/engine
+    ports:
+      - '4000:4000'
+    environment:
+      - NODE_ENV=production
+      - ENGINE_PORT=4000
+      - API_BASE_URL=http://mock-api:8080/api
+      - UI_ORIGIN=http://ui:3000
+    depends_on:
+      - mock-api
+    restart: unless-stopped
+
+  # ── Service 3: Mock API (sample data — demo only) ──
+  mock-api:
+    image: node:18-alpine
+    working_dir: /app
+    volumes:
+      - ./services/mock-api:/app
+    command: sh -c "npm install --production 2>/dev/null; npm start"
+    ports:
+      - '8080:8080'
+    restart: unless-stopped

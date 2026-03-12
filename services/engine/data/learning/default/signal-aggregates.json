@@ -1,0 +1,12 @@
+{
+  "run customer_churn": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "list queries": {
+    "intent": "query.list",
+    "positive": 1,
+    "negative": 0
+  }
+}
