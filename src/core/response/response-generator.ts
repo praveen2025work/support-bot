@@ -4,6 +4,17 @@ import { responseTemplates as baseTemplates } from './templates';
 import type { QueryService, QueryExecuteOptions } from '../api-connector/query-service';
 import type { QueryFilters } from '../api-connector/types';
 import type { GroupTemplates } from '@/config/group-config';
+import {
+  groupBy,
+  sortData,
+  computeSummary,
+  parseGroupByFromText,
+  parseSortFromText,
+  type CsvData,
+  type GroupByResult,
+  type SortRequest,
+  type SummaryResult,
+} from '../api-connector/csv-analyzer';
 import type {
   ClassificationResult,
   BotResponse,
@@ -26,6 +37,12 @@ const FOLLOWUP_NOISE = new Set(['the', 'a', 'an', 'of', 'from', 'in', 'result', 
 
 // Pattern for filter follow-up: re-run last query with a filter
 const FILTER_FOLLOWUP_PATTERN = /\b(?:filter|show|with|only|just|where)\b.*\b(region|team|environment|severity|time_period|period|quarter)\b/i;
+
+// Data operation follow-up patterns
+const GROUP_BY_PATTERN = /\bgroup(?:ed)?\s+by\b/i;
+const SORT_PATTERN = /\b(?:sort|order)(?:ed)?\s+by\b/i;
+const SUMMARY_PATTERN = /\b(summarize|summary|stats|statistics|describe|overview)\b/i;
+const TOP_BOTTOM_PATTERN = /\b(top|bottom)\s+(\d+)\b/i;
 
 export class ResponseGenerator {
   private templates: Record<string, string[]>;
@@ -69,6 +86,15 @@ export class ResponseGenerator {
       case INTENTS.FAREWELL:
         return this.handleFarewell(classification, context);
       default: {
+        // Data operation follow-ups (must come before filter to prevent misclassification)
+        const groupByResult = this.handleGroupByFollowUp(classification, context);
+        if (groupByResult) return groupByResult;
+        const sortResult = this.handleSortFollowUp(classification, context);
+        if (sortResult) return sortResult;
+        const summaryResult = this.handleSummaryFollowUp(classification, context);
+        if (summaryResult) return summaryResult;
+        const topNResult = this.handleTopNFollowUp(classification, context);
+        if (topNResult) return topNResult;
         // Try to re-run last query with a filter (e.g., "filter by region US")
         const filterFollowUp = await this.handleFilterFollowUp(classification, context, incomingHeaders);
         if (filterFollowUp) return filterFollowUp;
@@ -147,16 +173,42 @@ export class ResponseGenerator {
     explicitFilters?: Record<string, string>,
     incomingHeaders?: Record<string, string>
   ): Promise<BotResponse> {
+    // If user text is a data operation (group/sort/summary/top), always try follow-up first
+    if (context.lastQueryName && context.lastApiResult) {
+      const userText = this.getLastUserText(context);
+      const isDataOp = GROUP_BY_PATTERN.test(userText) || SORT_PATTERN.test(userText) || SUMMARY_PATTERN.test(userText) || TOP_BOTTOM_PATTERN.test(userText);
+      if (isDataOp) {
+        const groupByRes = this.handleGroupByFollowUp(classification, context);
+        if (groupByRes) return groupByRes;
+        const sortRes = this.handleSortFollowUp(classification, context);
+        if (sortRes) return sortRes;
+        const summaryRes = this.handleSummaryFollowUp(classification, context);
+        if (summaryRes) return summaryRes;
+        const topNRes = this.handleTopNFollowUp(classification, context);
+        if (topNRes) return topNRes;
+      }
+    }
+
     const queryNameEntity = classification.entities.find(
       (e) => e.entity === 'query_name'
     );
 
     if (!queryNameEntity) {
-      // If there's a previous query, try to detect filter intent from NLP entities or text parsing
       if (context.lastQueryName) {
-        const filters = this.extractFilters(classification.entities);
-        // Also try parsing from text (handles cases NLP didn't extract entities)
         const userText = this.getLastUserText(context);
+
+        // Data operations on previous results (group-by, sort, summary, top-N)
+        const groupByRes = this.handleGroupByFollowUp(classification, context);
+        if (groupByRes) return groupByRes;
+        const sortRes = this.handleSortFollowUp(classification, context);
+        if (sortRes) return sortRes;
+        const summaryRes = this.handleSummaryFollowUp(classification, context);
+        if (summaryRes) return summaryRes;
+        const topNRes = this.handleTopNFollowUp(classification, context);
+        if (topNRes) return topNRes;
+
+        // Filter follow-up
+        const filters = this.extractFilters(classification.entities);
         const parsedFilters = this.parseFilterFromText(userText);
         if (parsedFilters) {
           for (const [k, v] of Object.entries(parsedFilters)) {
@@ -273,6 +325,18 @@ export class ResponseGenerator {
 
         case 'csv': {
           const csv = result.csvResult!;
+          if (csv.groupByResult) {
+            const gb = csv.groupByResult;
+            return {
+              text: `Here is "${queryNameEntity.value}" grouped by **${gb.groupColumn}** (${gb.groups.length} groups, ${csv.rowCount} total rows):`,
+              richContent: { type: 'csv_group_by', data: gb },
+              sessionId: context.sessionId,
+              intent: classification.intent,
+              confidence: classification.confidence,
+              executionMs: execMs,
+              referenceUrl,
+            };
+          }
           if (csv.aggregation) {
             const agg = csv.aggregation;
             const isTop = agg.operation.startsWith('top');
@@ -348,6 +412,22 @@ export class ResponseGenerator {
 
     const hasSearchIntent = /\b(search|find|about|say|what does)\b/i.test(userText);
     const hasAggIntent = /\b(average|avg|sum|total|min|max|count|top\s+\d+|minimum|maximum|highest|lowest)\b/i.test(userText);
+    const hasGroupByIntent = GROUP_BY_PATTERN.test(userText);
+    const hasSortIntent = SORT_PATTERN.test(userText);
+
+    if (hasGroupByIntent) {
+      // Extract group-by column from text (headers resolved later in executeCsvQuery)
+      const groupMatch = userText.match(/\bgroup(?:ed)?\s+by\s+(\w+)/i);
+      if (groupMatch) return { groupByColumn: groupMatch[1] };
+    }
+
+    if (hasSortIntent) {
+      const sortMatch = userText.match(/\b(?:sort|order)(?:ed)?\s+by\s+(\w+)(?:\s+(asc|desc|ascending|descending))?/i);
+      if (sortMatch) {
+        const dir = sortMatch[2] && /desc/i.test(sortMatch[2]) ? 'desc' as const : 'asc' as const;
+        return { sortColumn: sortMatch[1], sortDirection: dir };
+      }
+    }
 
     if (hasAggIntent) {
       return { aggregationText: userText };
@@ -674,11 +754,233 @@ export class ResponseGenerator {
     return this.rerunLastQueryWithFilters(context, filters, classification, incomingHeaders);
   }
 
+  // ── Data Operation Follow-Up Handlers ──────────────────────────────
+
+  /**
+   * Handle "group by <column>" follow-up on previous query results.
+   * Also handles combined: "group by quarter for region US".
+   */
+  private handleGroupByFollowUp(
+    classification: ClassificationResult,
+    context: ConversationContext
+  ): BotResponse | null {
+    if (!context.lastApiResult || !context.lastQueryName) return null;
+    const userText = this.getLastUserText(context);
+    if (!GROUP_BY_PATTERN.test(userText)) return null;
+
+    const csvData = this.extractCsvDataFromContext(context);
+    if (!csvData) return null;
+
+    const groupCol = parseGroupByFromText(userText, csvData.headers);
+    if (!groupCol) {
+      return {
+        text: `I couldn't find that column. Available columns: **${csvData.headers.join(', ')}**`,
+        suggestions: csvData.headers.slice(0, 4).map((h) => `group by ${h}`),
+        sessionId: context.sessionId,
+        intent: 'followup.group_by',
+        confidence: 1,
+      };
+    }
+
+    // Check for combined filter: "group by quarter for region US"
+    let dataToGroup = csvData;
+    const filterMatch = userText.match(/\b(?:for|where|with|in)\s+(\w+)\s+(\w+)\s*$/i);
+    if (filterMatch) {
+      const filterKey = filterMatch[1].toLowerCase();
+      const filterVal = filterMatch[2];
+      const headerMatch = csvData.headers.find((h) => h.toLowerCase() === filterKey);
+      if (headerMatch) {
+        const filteredRows = csvData.rows.filter(
+          (r) => String(r[headerMatch] ?? '').toLowerCase() === filterVal.toLowerCase()
+        );
+        dataToGroup = { headers: csvData.headers, rows: filteredRows };
+        logger.info({ filterKey: headerMatch, filterVal, filtered: filteredRows.length }, 'Applied inline filter before group-by');
+      }
+    }
+
+    const result = groupBy(dataToGroup, groupCol);
+    if (!result || result.groups.length === 0) {
+      return {
+        text: `No groups found when grouping "${context.lastQueryName}" by **${groupCol}**.`,
+        sessionId: context.sessionId,
+        intent: 'followup.group_by',
+        confidence: 1,
+      };
+    }
+
+    logger.info({ query: context.lastQueryName, groupCol, groups: result.groups.length }, 'Group-by follow-up');
+
+    return {
+      text: `Here is "${context.lastQueryName}" grouped by **${result.groupColumn}** (${result.groups.length} groups, ${dataToGroup.rows.length} total rows):`,
+      richContent: { type: 'csv_group_by', data: result },
+      suggestions: [
+        ...csvData.headers.filter((h) => h !== groupCol).slice(0, 2).map((h) => `group by ${h}`),
+        'summarize',
+        `sort by ${result.aggregatedColumns[0]?.column ?? 'count'} desc`,
+      ],
+      sessionId: context.sessionId,
+      intent: 'followup.group_by',
+      confidence: 1,
+    };
+  }
+
+  /**
+   * Handle "sort by <column> [asc|desc]" follow-up on previous results.
+   */
+  private handleSortFollowUp(
+    classification: ClassificationResult,
+    context: ConversationContext
+  ): BotResponse | null {
+    if (!context.lastApiResult || !context.lastQueryName) return null;
+    const userText = this.getLastUserText(context);
+    if (!SORT_PATTERN.test(userText)) return null;
+
+    const csvData = this.extractCsvDataFromContext(context);
+    if (!csvData) return null;
+
+    const sortReq = parseSortFromText(userText, csvData.headers);
+    if (!sortReq) {
+      return {
+        text: `I couldn't find that column to sort by. Available columns: **${csvData.headers.join(', ')}**`,
+        suggestions: csvData.headers.slice(0, 4).map((h) => `sort by ${h} desc`),
+        sessionId: context.sessionId,
+        intent: 'followup.sort',
+        confidence: 1,
+      };
+    }
+
+    const sorted = sortData(csvData, sortReq);
+    // Update context with sorted data
+    context.lastApiResult = { headers: sorted.headers, rows: sorted.rows, filePath: (context.lastApiResult as Record<string, unknown>)?.filePath, rowCount: sorted.rows.length };
+
+    logger.info({ query: context.lastQueryName, sortCol: sortReq.column, dir: sortReq.direction }, 'Sort follow-up');
+
+    return {
+      text: `Here is "${context.lastQueryName}" sorted by **${sortReq.column}** (${sortReq.direction}) — ${sorted.rows.length} rows:`,
+      richContent: {
+        type: 'csv_table',
+        data: { headers: sorted.headers, rows: sorted.rows, filePath: (context.lastApiResult as Record<string, unknown>)?.filePath, rowCount: sorted.rows.length },
+      },
+      suggestions: [
+        `sort by ${sortReq.column} ${sortReq.direction === 'desc' ? 'asc' : 'desc'}`,
+        'summarize',
+        `top 5 by ${sortReq.column}`,
+      ],
+      sessionId: context.sessionId,
+      intent: 'followup.sort',
+      confidence: 1,
+    };
+  }
+
+  /**
+   * Handle "summarize" / "stats" / "statistics" follow-up.
+   */
+  private handleSummaryFollowUp(
+    classification: ClassificationResult,
+    context: ConversationContext
+  ): BotResponse | null {
+    if (!context.lastApiResult || !context.lastQueryName) return null;
+    const userText = this.getLastUserText(context);
+    if (!SUMMARY_PATTERN.test(userText)) return null;
+
+    const csvData = this.extractCsvDataFromContext(context);
+    if (!csvData) return null;
+
+    const summary = computeSummary(csvData);
+    logger.info({ query: context.lastQueryName, rowCount: summary.rowCount, cols: summary.columns.length }, 'Summary follow-up');
+
+    return {
+      text: `Summary of "${context.lastQueryName}" (${summary.rowCount} rows):`,
+      richContent: { type: 'csv_summary', data: summary },
+      suggestions: csvData.headers.slice(0, 3).map((h) => `group by ${h}`),
+      sessionId: context.sessionId,
+      intent: 'followup.summary',
+      confidence: 1,
+    };
+  }
+
+  /**
+   * Handle "top 5 by revenue" / "bottom 10 by units" follow-up.
+   */
+  private handleTopNFollowUp(
+    classification: ClassificationResult,
+    context: ConversationContext
+  ): BotResponse | null {
+    if (!context.lastApiResult || !context.lastQueryName) return null;
+    const userText = this.getLastUserText(context);
+    const match = TOP_BOTTOM_PATTERN.exec(userText);
+    if (!match) return null;
+
+    const csvData = this.extractCsvDataFromContext(context);
+    if (!csvData) return null;
+
+    const isBottom = match[1].toLowerCase() === 'bottom';
+    const n = parseInt(match[2], 10);
+    // Find column — check rest of text after "top N"
+    const afterMatch = userText.substring(match.index! + match[0].length);
+    const colMatch = afterMatch.match(/\b(?:by\s+)?(\w+)/i);
+    let column: string | null = null;
+    if (colMatch) {
+      const term = colMatch[1];
+      column = csvData.headers.find((h) => h.toLowerCase() === term.toLowerCase()) ?? null;
+      if (!column) column = csvData.headers.find((h) => h.toLowerCase().includes(term.toLowerCase())) ?? null;
+    }
+
+    if (!column) {
+      return {
+        text: `Which column should I use? Available: **${csvData.headers.join(', ')}**`,
+        suggestions: csvData.headers.slice(0, 4).map((h) => `top ${n} by ${h}`),
+        sessionId: context.sessionId,
+        intent: 'followup.top_n',
+        confidence: 1,
+      };
+    }
+
+    const direction: 'asc' | 'desc' = isBottom ? 'asc' : 'desc';
+    const sorted = sortData(csvData, { column, direction });
+    const topRows = sorted.rows.slice(0, n);
+
+    logger.info({ query: context.lastQueryName, n, column, isBottom }, 'Top-N follow-up');
+
+    return {
+      text: `${isBottom ? 'Bottom' : 'Top'} ${n} by **${column}** from "${context.lastQueryName}":`,
+      richContent: {
+        type: 'csv_table',
+        data: { headers: sorted.headers, rows: topRows, filePath: (context.lastApiResult as Record<string, unknown>)?.filePath, rowCount: topRows.length },
+      },
+      suggestions: [
+        `${isBottom ? 'top' : 'bottom'} ${n} by ${column}`,
+        'summarize',
+        `group by ${csvData.headers.find((h) => h !== column) ?? csvData.headers[0]}`,
+      ],
+      sessionId: context.sessionId,
+      intent: 'followup.top_n',
+      confidence: 1,
+    };
+  }
+
+  /**
+   * Extract CSV-shaped data from context.lastApiResult.
+   */
+  private extractCsvDataFromContext(context: ConversationContext): CsvData | null {
+    const raw = context.lastApiResult as Record<string, unknown>;
+    if (!raw) return null;
+    const headers = raw.headers as string[] | undefined;
+    const rows = raw.rows as Record<string, string | number>[] | undefined;
+    if (!headers || !rows) return null;
+    return { headers, rows };
+  }
+
   /**
    * Try to extract filter key/value pairs directly from text when NLP doesn't catch them.
    * Handles patterns like "filter by region US", "with region=US", "only US region"
    */
   private parseFilterFromText(text: string): Record<string, string> | null {
+    // Don't misinterpret data operations as filters
+    if (GROUP_BY_PATTERN.test(text) || SORT_PATTERN.test(text) || SUMMARY_PATTERN.test(text)) {
+      return null;
+    }
+
     const filters: Record<string, string> = {};
     const lower = text.toLowerCase();
 

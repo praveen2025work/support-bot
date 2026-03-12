@@ -7,7 +7,7 @@ import { QueryNotFoundError, FileReadError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 import { resolveDateRange, isDatePreset } from '@/lib/date-resolver';
 import { searchDocument, type DocumentSection } from './document-search';
-import { parseCsv, computeAggregation, parseAggregationFromText, type AggregationResult } from './csv-analyzer';
+import { parseCsv, computeAggregation, parseAggregationFromText, groupBy, sortData, type AggregationResult, type GroupByResult } from './csv-analyzer';
 import filterConfig from '@/config/filter-config.json';
 import type { Query, QueryResult, QueryFilters, FilterBinding } from './types';
 
@@ -29,12 +29,16 @@ export interface QueryExecutionResult {
     filePath: string;
     rowCount: number;
     aggregation?: AggregationResult;
+    groupByResult?: GroupByResult;
   };
 }
 
 export interface QueryExecuteOptions {
   searchKeywords?: string[];
   aggregationText?: string;
+  groupByColumn?: string;
+  sortColumn?: string;
+  sortDirection?: 'asc' | 'desc';
 }
 
 export interface MultiQueryResult {
@@ -345,6 +349,28 @@ export class QueryService {
         csvData = { headers: csvData.headers, rows: filteredRows };
         logger.debug({ filters, original: originalCount, filtered: filteredRows.length }, 'CSV filter applied');
       }
+    }
+
+    // Inline group-by: "run sales_data group by region"
+    if (options?.groupByColumn) {
+      const gbResult = groupBy(csvData, options.groupByColumn);
+      if (gbResult) {
+        return {
+          type: 'csv',
+          csvResult: {
+            headers: csvData.headers,
+            rows: csvData.rows,
+            filePath,
+            rowCount: csvData.rows.length,
+            groupByResult: gbResult,
+          },
+        };
+      }
+    }
+
+    // Inline sort: "run sales_data sort by revenue desc"
+    if (options?.sortColumn) {
+      csvData = sortData(csvData, { column: options.sortColumn, direction: options.sortDirection ?? 'desc' });
     }
 
     if (options?.aggregationText) {

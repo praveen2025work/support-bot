@@ -334,6 +334,101 @@ function RichContentRenderer({
         </div>
       );
     }
+    case 'csv_group_by': {
+      const gbData = richContent.data as {
+        groupColumn: string;
+        groups: { groupValue: string | number; count: number; aggregations: Record<string, number> }[];
+        aggregatedColumns: { column: string; operation: string }[];
+      };
+      const aggCols = gbData.aggregatedColumns.map((c) => c.column);
+      // Build flat records for the chart
+      const chartRows = gbData.groups.map((g) => ({
+        [gbData.groupColumn]: g.groupValue,
+        ...g.aggregations,
+      }));
+      const chartHeaders = [gbData.groupColumn, ...aggCols];
+      return (
+        <div className="mt-1 text-xs">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-xs border border-blue-200 rounded">
+              <thead>
+                <tr className="bg-blue-50">
+                  <th className="px-2 py-1 text-left font-medium text-blue-800 bg-blue-100 border-b border-blue-200">{gbData.groupColumn}</th>
+                  {aggCols.map((c) => (
+                    <th key={c} className="px-2 py-1 text-left font-medium text-blue-700 border-b border-blue-200">{c} (sum)</th>
+                  ))}
+                  <th className="px-2 py-1 text-left font-medium text-blue-700 border-b border-blue-200">count</th>
+                </tr>
+              </thead>
+              <tbody>
+                {gbData.groups.map((g, i) => (
+                  <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-blue-50/30'}>
+                    <td className="px-2 py-1 border-b border-gray-100 font-semibold text-blue-800">{String(g.groupValue)}</td>
+                    {aggCols.map((c) => (
+                      <td key={c} className="px-2 py-1 border-b border-gray-100">{g.aggregations[c]?.toLocaleString() ?? 0}</td>
+                    ))}
+                    <td className="px-2 py-1 border-b border-gray-100">{g.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {chartRows.length > 1 && (
+            <div className="mt-2">
+              <DataChart data={chartRows} headers={chartHeaders} />
+            </div>
+          )}
+        </div>
+      );
+    }
+    case 'csv_summary': {
+      const summary = richContent.data as {
+        rowCount: number;
+        columns: {
+          column: string;
+          type: 'numeric' | 'categorical';
+          sum?: number; avg?: number; min?: number; max?: number;
+          uniqueValues?: number;
+          topValues?: { value: string; count: number }[];
+        }[];
+      };
+      return (
+        <div className="mt-1 text-xs space-y-2">
+          <div className="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-medium text-[11px]">
+            {summary.rowCount} rows
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {summary.columns.map((col) => (
+              <div key={col.column} className="border border-gray-200 rounded p-2">
+                <p className="font-semibold text-gray-700 text-[11px] mb-1">{col.column}</p>
+                {col.type === 'numeric' ? (
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px]">
+                    <span className="text-gray-400">Sum</span><span className="text-right font-medium">{col.sum?.toLocaleString()}</span>
+                    <span className="text-gray-400">Avg</span><span className="text-right font-medium">{col.avg?.toLocaleString()}</span>
+                    <span className="text-gray-400">Min</span><span className="text-right font-medium">{col.min?.toLocaleString()}</span>
+                    <span className="text-gray-400">Max</span><span className="text-right font-medium">{col.max?.toLocaleString()}</span>
+                  </div>
+                ) : (
+                  <div className="text-[10px]">
+                    <p className="text-gray-400">{col.uniqueValues} unique values</p>
+                    {col.topValues && col.topValues.length > 0 && (
+                      <div className="mt-0.5 space-y-0.5">
+                        {col.topValues.slice(0, 3).map((tv) => (
+                          <div key={tv.value} className="flex justify-between">
+                            <span className="text-gray-600 truncate">{tv.value}</span>
+                            <span className="text-gray-400 ml-1">({tv.count})</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
     case 'query_list': {
       const items = richContent.data as QueryListItem[];
       const typeColors: Record<string, string> = {

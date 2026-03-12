@@ -174,3 +174,196 @@ function findColumnInText(text: string, headers: string[]): string | null {
   }
   return null;
 }
+
+// ── Group By ──────────────────────────────────────────────────────────
+
+export interface GroupByResult {
+  groupColumn: string;
+  groups: GroupRow[];
+  aggregatedColumns: { column: string; operation: string }[];
+}
+
+export interface GroupRow {
+  groupValue: string | number;
+  count: number;
+  aggregations: Record<string, number>;
+}
+
+/** Identify columns where >80% of values are numeric */
+function getNumericColumns(data: CsvData): string[] {
+  return data.headers.filter((h) => {
+    if (data.rows.length === 0) return false;
+    let numCount = 0;
+    for (const row of data.rows) {
+      const v = row[h];
+      if (typeof v === 'number' || (typeof v === 'string' && !isNaN(parseFloat(v)) && v.trim() !== '')) {
+        numCount++;
+      }
+    }
+    return numCount / data.rows.length > 0.8;
+  });
+}
+
+/**
+ * Group rows by a column and sum all numeric columns per group.
+ */
+export function groupBy(data: CsvData, groupColumn: string): GroupByResult | null {
+  const matchedCol = findMatchingHeader(groupColumn, data.headers);
+  if (!matchedCol) return null;
+
+  const numericCols = getNumericColumns(data).filter((c) => c !== matchedCol);
+  const buckets = new Map<string | number, { count: number; sums: Record<string, number> }>();
+
+  for (const row of data.rows) {
+    const key = row[matchedCol] ?? '(empty)';
+    let bucket = buckets.get(key);
+    if (!bucket) {
+      bucket = { count: 0, sums: {} };
+      for (const nc of numericCols) bucket.sums[nc] = 0;
+      buckets.set(key, bucket);
+    }
+    bucket.count++;
+    for (const nc of numericCols) {
+      const v = row[nc];
+      const num = typeof v === 'number' ? v : parseFloat(String(v));
+      if (!isNaN(num)) bucket.sums[nc] += num;
+    }
+  }
+
+  const groups: GroupRow[] = [];
+  buckets.forEach((bucket, groupValue) => {
+    // Round sums for cleaner display
+    const aggregations: Record<string, number> = {};
+    for (const [col, sum] of Object.entries(bucket.sums)) {
+      aggregations[col] = Math.round(sum * 100) / 100;
+    }
+    groups.push({ groupValue, count: bucket.count, aggregations });
+  });
+
+  // Sort groups by groupValue
+  groups.sort((a, b) => String(a.groupValue).localeCompare(String(b.groupValue)));
+
+  return {
+    groupColumn: matchedCol,
+    groups,
+    aggregatedColumns: numericCols.map((c) => ({ column: c, operation: 'sum' })),
+  };
+}
+
+// ── Sort ──────────────────────────────────────────────────────────────
+
+export interface SortRequest {
+  column: string;
+  direction: 'asc' | 'desc';
+}
+
+/**
+ * Sort CSV rows by a column.
+ */
+export function sortData(data: CsvData, request: SortRequest): CsvData {
+  const matchedCol = findMatchingHeader(request.column, data.headers);
+  if (!matchedCol) return data;
+
+  const multiplier = request.direction === 'desc' ? -1 : 1;
+  const sorted = [...data.rows].sort((a, b) => {
+    const va = a[matchedCol];
+    const vb = b[matchedCol];
+    const na = typeof va === 'number' ? va : parseFloat(String(va));
+    const nb = typeof vb === 'number' ? vb : parseFloat(String(vb));
+    // Both numeric
+    if (!isNaN(na) && !isNaN(nb)) return (na - nb) * multiplier;
+    // String comparison
+    return String(va ?? '').localeCompare(String(vb ?? '')) * multiplier;
+  });
+
+  return { headers: data.headers, rows: sorted };
+}
+
+// ── Summary / Stats ──────────────────────────────────────────────────
+
+export interface SummaryResult {
+  rowCount: number;
+  columns: ColumnSummary[];
+}
+
+export interface ColumnSummary {
+  column: string;
+  type: 'numeric' | 'categorical';
+  sum?: number;
+  avg?: number;
+  min?: number;
+  max?: number;
+  uniqueValues?: number;
+  topValues?: { value: string; count: number }[];
+}
+
+/**
+ * Compute summary statistics for all columns.
+ */
+export function computeSummary(data: CsvData): SummaryResult {
+  const numericCols = new Set(getNumericColumns(data));
+  const columns: ColumnSummary[] = [];
+
+  for (const header of data.headers) {
+    if (numericCols.has(header)) {
+      const values: number[] = [];
+      for (const row of data.rows) {
+        const v = row[header];
+        const n = typeof v === 'number' ? v : parseFloat(String(v));
+        if (!isNaN(n)) values.push(n);
+      }
+      const sum = values.reduce((a, b) => a + b, 0);
+      columns.push({
+        column: header,
+        type: 'numeric',
+        sum: Math.round(sum * 100) / 100,
+        avg: values.length > 0 ? Math.round((sum / values.length) * 100) / 100 : 0,
+        min: values.length > 0 ? Math.min(...values) : 0,
+        max: values.length > 0 ? Math.max(...values) : 0,
+      });
+    } else {
+      const freq = new Map<string, number>();
+      for (const row of data.rows) {
+        const v = String(row[header] ?? '');
+        freq.set(v, (freq.get(v) ?? 0) + 1);
+      }
+      const topValues: { value: string; count: number }[] = [];
+      freq.forEach((count, value) => topValues.push({ value, count }));
+      topValues.sort((a, b) => b.count - a.count);
+      topValues.splice(5);
+      columns.push({
+        column: header,
+        type: 'categorical',
+        uniqueValues: freq.size,
+        topValues,
+      });
+    }
+  }
+
+  return { rowCount: data.rows.length, columns };
+}
+
+// ── Text Parsers for Follow-Up Commands ─────────────────────────────
+
+/**
+ * Parse "group by <column>" from text.
+ */
+export function parseGroupByFromText(text: string, headers: string[]): string | null {
+  const match = text.match(/\bgroup(?:ed)?\s+by\s+(\w+)/i);
+  if (!match) return null;
+  return findMatchingHeader(match[1], headers);
+}
+
+/**
+ * Parse "sort by <column> [asc|desc]" from text.
+ */
+export function parseSortFromText(text: string, headers: string[]): SortRequest | null {
+  const match = text.match(/\b(?:sort|order)(?:ed)?\s+by\s+(\w+)(?:\s+(asc|desc|ascending|descending))?/i);
+  if (!match) return null;
+  const col = findMatchingHeader(match[1], headers);
+  if (!col) return null;
+  const dir = match[2];
+  const direction: 'asc' | 'desc' =
+    dir && /desc/i.test(dir) ? 'desc' : dir && /asc/i.test(dir) ? 'asc' : 'desc';
+  return { column: col, direction };
+}

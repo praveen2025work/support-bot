@@ -45,7 +45,7 @@ export interface BotResponse {
 }
 
 export interface RichContent {
-  type: 'url_list' | 'query_result' | 'multi_query_result' | 'estimation' | 'error' | 'file_content' | 'document_search' | 'csv_table' | 'csv_aggregation' | 'query_list';
+  type: 'url_list' | 'query_result' | 'multi_query_result' | 'estimation' | 'error' | 'file_content' | 'document_search' | 'csv_table' | 'csv_aggregation' | 'csv_group_by' | 'csv_summary' | 'query_list';
   data: unknown;
 }
 

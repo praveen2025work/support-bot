@@ -7,7 +7,12 @@ import { ResponseGenerator } from '@/core/response/response-generator';
 import { SessionManager } from '@/core/session/session-manager';
 import { getGroupConfig } from '@/config/group-config';
 
-const engines = new Map<string, ChatbotEngine>();
+// Store on globalThis to survive Next.js dev-mode HMR / module re-evaluation
+const globalForEngines = globalThis as unknown as { _chatbotEngines?: Map<string, ChatbotEngine> };
+if (!globalForEngines._chatbotEngines) {
+  globalForEngines._chatbotEngines = new Map();
+}
+const engines = globalForEngines._chatbotEngines;
 
 export function getEngine(groupId: string = 'default'): ChatbotEngine {
   const existing = engines.get(groupId);
