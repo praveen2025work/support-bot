@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { generateId } from '@/lib/generate-id';
 
 export interface Message {
   id: string;
@@ -39,7 +40,7 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
   const lastUserTextRef = useRef<string>('');
 
   useEffect(() => {
-    sessionIdRef.current = `${platform}-${crypto.randomUUID()}`;
+    sessionIdRef.current = `${platform}-${generateId()}`;
   }, [platform]);
 
   const clearStatusTimers = useCallback(() => {
@@ -107,7 +108,7 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
       }
 
       const userMessage: Message = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         role: 'user',
         text: text.trim(),
         timestamp: new Date(),
@@ -127,7 +128,7 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
             );
             if (query && query.filters.length > 0) {
               const formMessage: Message = {
-                id: crypto.randomUUID(),
+                id: generateId(),
                 role: 'bot',
                 text: `Configure filters for "${query.name}"${query.description ? ' — ' + query.description : ''}`,
                 richContent: {
@@ -173,7 +174,7 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
 
         if (result.error || !result.data) {
           const errorMessage: Message = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             role: 'bot',
             text: 'Sorry, something went wrong. Please try again.',
             isError: true,
@@ -184,7 +185,7 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
         } else {
           const data = result.data;
           const botMessage: Message = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             role: 'bot',
             text: data.text as string,
             richContent: data.richContent as Message['richContent'],
@@ -200,7 +201,7 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
         }
       } catch {
         const errorMessage: Message = {
-          id: crypto.randomUUID(),
+          id: generateId(),
           role: 'bot',
           text: 'Sorry, something went wrong. Please try again.',
           isError: true,
@@ -237,7 +238,7 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
           : `run ${queryName}`;
 
       const userMessage: Message = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         role: 'user',
         text: text.trim(),
         timestamp: new Date(),
@@ -266,7 +267,7 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
 
         if (result.error || !result.data) {
           const errorMessage: Message = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             role: 'bot',
             text: 'Sorry, something went wrong. Please try again.',
             isError: true,
@@ -277,7 +278,7 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
         } else {
           const data = result.data;
           const botMessage: Message = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             role: 'bot',
             text: data.text as string,
             richContent: data.richContent as Message['richContent'],
@@ -290,7 +291,7 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
         }
       } catch {
         const errorMessage: Message = {
-          id: crypto.randomUUID(),
+          id: generateId(),
           role: 'bot',
           text: 'Sorry, something went wrong. Please try again.',
           isError: true,
@@ -317,7 +318,7 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
 
   const clearMessages = useCallback(() => {
     setMessages([]);
-    sessionIdRef.current = `${platform}-${crypto.randomUUID()}`;
+    sessionIdRef.current = `${platform}-${generateId()}`;
   }, [platform]);
 
   return { messages, isLoading, loadingStatus, sendMessage, executeQuery, retryMessage, clearMessages };

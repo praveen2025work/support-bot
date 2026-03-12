@@ -1,5 +1,6 @@
 import type { IPlatformAdapter } from '../adapter.interface';
 import type { ChatMessage, BotResponse } from '@/core/types';
+import { generateId } from '@/lib/generate-id';
 
 interface TeamsActivity {
   type: string;
@@ -20,7 +21,7 @@ export class TeamsAdapter implements IPlatformAdapter {
     if (activity.type !== 'message' || !activity.text) return null;
 
     return {
-      id: activity.id || crypto.randomUUID(),
+      id: activity.id || generateId(),
       text: activity.text,
       sessionId: `teams-${activity.conversation?.id || 'unknown'}-${activity.from?.id || 'unknown'}`,
       platform: 'teams',

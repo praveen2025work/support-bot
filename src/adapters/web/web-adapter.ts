@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { IPlatformAdapter } from '../adapter.interface';
 import type { ChatMessage, BotResponse } from '@/core/types';
+import { generateId } from '@/lib/generate-id';
 
 const WebMessageSchema = z.object({
   text: z.string().min(1).max(2000),
@@ -16,7 +17,7 @@ export class WebAdapter implements IPlatformAdapter {
     if (!parsed.success) return null;
 
     return {
-      id: crypto.randomUUID(),
+      id: generateId(),
       text: parsed.data.text,
       sessionId: parsed.data.sessionId,
       platform: 'web',
