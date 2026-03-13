@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { csrfHeaders } from '@/lib/csrf';
 
 interface FilterOption {
   value: string;
@@ -109,7 +110,7 @@ export default function FiltersPage() {
       const validOptions = formOptions.filter((o) => o.value.trim() && o.label.trim());
       const res = await fetch('/api/admin/filters', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({
           key: formKey.trim(),
           label: formLabel.trim(),
@@ -138,6 +139,7 @@ export default function FiltersPage() {
     try {
       const res = await fetch(`/api/admin/filters?key=${encodeURIComponent(key)}`, {
         method: 'DELETE',
+        headers: { ...csrfHeaders() },
       });
       if (res.ok) {
         fetchFilters();

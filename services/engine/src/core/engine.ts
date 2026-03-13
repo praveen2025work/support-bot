@@ -3,7 +3,7 @@ import { ResponseGenerator } from './response/response-generator';
 import { SessionManager } from './session/session-manager';
 import type { LearningService } from './learning/learning-service';
 import { logger } from '@/lib/logger';
-import type { ChatMessage, BotResponse } from './types';
+import type { ChatMessage, BotResponse, IntentOverlap } from './types';
 
 export class ChatbotEngine {
   private initialized = false;
@@ -20,6 +20,11 @@ export class ChatbotEngine {
     await this.nlpService.initialize();
     this.initialized = true;
     logger.info('ChatbotEngine initialized');
+  }
+
+  /** Returns true if the engine (and its NLP model) has been initialized. */
+  isInitialized(): boolean {
+    return this.initialized;
   }
 
   async processMessage(
@@ -66,7 +71,7 @@ export class ChatbotEngine {
     // Log interaction for learning (fire-and-forget)
     if (this.learningService) {
       try {
-        this.learningService.logInteraction(classification, {
+        await this.learningService.logInteraction(classification, {
           text: message.text,
           sessionId: message.sessionId,
           feedbackType: message.feedbackType,
@@ -78,5 +83,11 @@ export class ChatbotEngine {
     }
 
     return response;
+  }
+
+  /** Returns intent overlap warnings detected during NLP training. */
+  async getIntentOverlaps(): Promise<IntentOverlap[]> {
+    await this.initialize();
+    return this.nlpService.getOverlaps();
   }
 }

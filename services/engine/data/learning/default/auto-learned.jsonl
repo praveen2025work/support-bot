@@ -1,0 +1,7 @@
+{"id":"al-001","timestamp":"2026-03-11T09:15:00.000Z","utterance":"run monthly revenue","intent":"query.execute","positiveSignals":5,"source":"auto"}
+{"id":"al-002","timestamp":"2026-03-11T10:30:00.000Z","utterance":"show me daily orders","intent":"query.execute","positiveSignals":4,"source":"auto"}
+{"id":"al-003","timestamp":"2026-03-11T14:00:00.000Z","utterance":"list all available queries","intent":"query.list","positiveSignals":6,"source":"auto"}
+{"id":"al-004","timestamp":"2026-03-11T17:00:00.000Z","utterance":"hello there","intent":"greeting","positiveSignals":0,"source":"admin_review"}
+{"id":"al-005","timestamp":"2026-03-12T08:20:00.000Z","utterance":"get customer churn data","intent":"query.execute","positiveSignals":3,"source":"auto"}
+{"id":"al-006","timestamp":"2026-03-12T11:45:00.000Z","utterance":"what queries can I run","intent":"query.list","positiveSignals":4,"source":"auto"}
+{"id":"al-007","timestamp":"2026-03-12T13:00:00.000Z","utterance":"help me with finance reports","intent":"help","positiveSignals":3,"source":"auto"}

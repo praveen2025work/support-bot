@@ -1,22 +1,14 @@
 import { NextResponse } from 'next/server';
-import { getGroupConfigs } from '@/config/group-config';
+import { proxyToEngine } from '@/lib/engine-proxy';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
-    const configs = getGroupConfigs();
-    const groups = Object.entries(configs).map(([id, config]) => ({
-      id,
-      name: config.name,
-      description: config.description,
-      sources: config.sources,
-      apiBaseUrl: config.apiBaseUrl,
-      hasCorpus: !!config.corpus,
-      hasFaq: !!config.faq,
-      hasTemplates: !!config.templates,
-    }));
-
-    return NextResponse.json({ groups });
-  } catch {
-    return NextResponse.json({ groups: [] }, { status: 500 });
+    const engineRes = await proxyToEngine('/api/admin/groups');
+    const data = await engineRes.json();
+    return NextResponse.json(data, { status: engineRes.status });
+  } catch (error) {
+    logger.error({ error }, 'Admin groups API error — engine unreachable');
+    return NextResponse.json({ groups: [] }, { status: 502 });
   }
 }

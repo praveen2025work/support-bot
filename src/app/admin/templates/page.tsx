@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { csrfHeaders } from '@/lib/csrf';
 
 export default function TemplateEditorPage() {
   const [baseTemplates, setBaseTemplates] = useState<Record<string, string[]>>({});
@@ -49,7 +50,7 @@ export default function TemplateEditorPage() {
       const responses = editResponses.split('\n---\n').map((r) => r.trim()).filter(Boolean);
       await fetch('/api/admin/templates', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ scope: activeScope, intent: selectedIntent, responses }),
       });
       await fetchTemplates();
@@ -65,7 +66,7 @@ export default function TemplateEditorPage() {
       const responses = newResponses.split('\n---\n').map((r) => r.trim()).filter(Boolean);
       await fetch('/api/admin/templates', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ scope: activeScope, intent: newIntent.trim(), responses }),
       });
       await fetchTemplates();
@@ -80,7 +81,7 @@ export default function TemplateEditorPage() {
 
   const handleDelete = async (intent: string) => {
     if (!confirm(`Delete template "${intent}" from ${activeScope}?`)) return;
-    await fetch(`/api/admin/templates?scope=${activeScope}&intent=${encodeURIComponent(intent)}`, { method: 'DELETE' });
+    await fetch(`/api/admin/templates?scope=${activeScope}&intent=${encodeURIComponent(intent)}`, { method: 'DELETE', headers: { ...csrfHeaders() } });
     setSelectedIntent(null);
     await fetchTemplates();
   };

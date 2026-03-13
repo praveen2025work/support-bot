@@ -10,14 +10,16 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isAdmin, loading } = useUser();
+  const { isAdmin, userRole, loading } = useUser();
+  // Allow any registered user (admin, builder, viewer) into the admin panel
+  const hasAccess = isAdmin || !!userRole;
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !isAdmin) {
+    if (!loading && !hasAccess) {
       router.replace('/');
     }
-  }, [loading, isAdmin, router]);
+  }, [loading, hasAccess, router]);
 
   // Show loading while checking auth
   if (loading) {
@@ -31,8 +33,8 @@ export default function AdminLayout({
     );
   }
 
-  // Not admin — redirecting
-  if (!isAdmin) {
+  // No access — redirecting
+  if (!hasAccess) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <div className="text-center">

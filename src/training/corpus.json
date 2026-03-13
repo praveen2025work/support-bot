@@ -228,7 +228,12 @@
         "how does token refresh work",
         "what are the security requirements",
         "explain the database schema",
-        "what roles are available"
+        "what roles are available",
+        "search the knowledge base",
+        "find information about",
+        "do we have docs on",
+        "where can I find documentation about",
+        "is there any info on"
       ],
       "answers": []
     },

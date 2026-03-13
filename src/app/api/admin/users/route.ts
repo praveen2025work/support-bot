@@ -6,17 +6,21 @@ import { isRequestAdmin } from '@/lib/admin-auth';
 
 const USERS_JSON_PATH = path.join(process.cwd(), 'src/config/users.json');
 
+type Role = 'admin' | 'builder' | 'viewer';
+
 interface User {
   id: string;
   name: string;
   email: string;
   userid: string;
   brid: string;
-  role: 'admin' | 'viewer';
+  role: Role;
   createdAt: string;
   updatedBy: string;
   updatedOn: string;
 }
+
+const VALID_ROLES: Role[] = ['admin', 'builder', 'viewer'];
 
 async function readUsers(): Promise<{ users: User[] }> {
   const raw = await fs.readFile(USERS_JSON_PATH, 'utf-8');
@@ -84,7 +88,7 @@ export async function POST(request: NextRequest) {
       email,
       userid,
       brid: brid || '',
-      role: role === 'admin' ? 'admin' : 'viewer',
+      role: role && VALID_ROLES.includes(role) ? role : 'viewer',
       createdAt: now,
       updatedBy: updatedBy || 'system',
       updatedOn: now,

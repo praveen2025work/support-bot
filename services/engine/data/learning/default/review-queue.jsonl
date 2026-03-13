@@ -1,0 +1,6 @@
+{"id":"rev-001","timestamp":"2026-03-12T14:23:11.000Z","userMessage":"what is our quarterly burn rate","detectedIntent":"query.execute","confidence":0.32,"groupId":"default","status":"pending"}
+{"id":"rev-002","timestamp":"2026-03-12T13:45:22.000Z","userMessage":"can you show profit margins by department","detectedIntent":"query.execute","confidence":0.28,"groupId":"default","status":"pending"}
+{"id":"rev-003","timestamp":"2026-03-12T12:10:05.000Z","userMessage":"send me the revenue csv","detectedIntent":"query.execute","confidence":0.35,"groupId":"default","status":"pending"}
+{"id":"rev-004","timestamp":"2026-03-12T11:30:44.000Z","userMessage":"how do I add a new data source","detectedIntent":"help","confidence":0.22,"groupId":"default","status":"pending"}
+{"id":"rev-005","timestamp":"2026-03-12T10:15:33.000Z","userMessage":"compare last month sales vs this month","detectedIntent":"query.execute","confidence":0.38,"groupId":"default","status":"pending"}
+{"id":"rev-006","timestamp":"2026-03-11T16:42:18.000Z","userMessage":"hello there","detectedIntent":"greeting","confidence":0.85,"groupId":"default","status":"resolved","correctIntent":"greeting","resolvedAt":"2026-03-11T17:00:00.000Z"}

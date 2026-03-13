@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { csrfHeaders } from '@/lib/csrf';
 
 interface IntentData {
   intent: string;
@@ -81,7 +82,7 @@ export default function IntentBuilderPage() {
       const answers = editAnswers.split('\n---\n').map((a) => a.trim()).filter(Boolean);
       await fetch('/api/admin/intents', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ intent: selectedIntent, utterances, answers }),
       });
       await fetchData();
@@ -103,7 +104,7 @@ export default function IntentBuilderPage() {
       const utterances = newIntentUtterances.split('\n').map((u) => u.trim()).filter(Boolean);
       await fetch('/api/admin/intents', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ intent: newIntentName.trim(), utterances, answers: [] }),
       });
       await fetchData();
@@ -118,7 +119,7 @@ export default function IntentBuilderPage() {
 
   const handleDeleteIntent = async (intent: string) => {
     if (!confirm(`Delete intent "${intent}"? This cannot be undone.`)) return;
-    await fetch(`/api/admin/intents?intent=${encodeURIComponent(intent)}`, { method: 'DELETE' });
+    await fetch(`/api/admin/intents?intent=${encodeURIComponent(intent)}`, { method: 'DELETE', headers: { ...csrfHeaders() } });
     setSelectedIntent(null);
     await fetchData();
   };
@@ -130,7 +131,7 @@ export default function IntentBuilderPage() {
       const synonyms = editSynonyms.split('\n').map((s) => s.trim()).filter(Boolean);
       await fetch('/api/admin/entities', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ entityType: selectedEntity, optionKey: selectedOption, synonyms }),
       });
       await fetchData();
@@ -146,7 +147,7 @@ export default function IntentBuilderPage() {
       const synonyms = newOptionSynonyms.split('\n').map((s) => s.trim()).filter(Boolean);
       await fetch('/api/admin/entities', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ entityType: selectedEntity, optionKey: newOptionKey.trim(), synonyms }),
       });
       await fetchData();

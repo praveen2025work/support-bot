@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
+import { csrfHeaders } from '@/lib/csrf';
 import { EmbedCodeGenerator } from '../../components/EmbedCodeGenerator';
 
 interface GroupDetail {
@@ -79,6 +80,7 @@ export default function GroupDetailPage() {
   const [qFilterBindings, setQFilterBindings] = useState<FilterBinding[]>([]);
   const [qSaving, setQSaving] = useState(false);
   const [qError, setQError] = useState('');
+  const [qSuccess, setQSuccess] = useState('');
   const [deletingQueryId, setDeletingQueryId] = useState<string | null>(null);
   const [qType, setQType] = useState<'api' | 'url' | 'document' | 'csv'>('api');
   const [qFilePath, setQFilePath] = useState('');
@@ -153,7 +155,7 @@ export default function GroupDetailPage() {
 
       const res = await fetch(`/api/admin/groups/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({
           name,
           description,
@@ -179,7 +181,7 @@ export default function GroupDetailPage() {
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const res = await fetch(`/api/admin/groups/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/groups/${id}`, { method: 'DELETE', headers: { ...csrfHeaders() } });
       if (res.ok) {
         router.push('/admin');
       }
@@ -209,26 +211,27 @@ export default function GroupDetailPage() {
   };
 
   const startEditQuery = (q: QueryRecord) => {
-    setQName(q.name);
-    setQDesc(q.description);
-    setQSource(q.source);
-    setQUrl(q.url);
+    setQName(q.name || '');
+    setQDesc(q.description || '');
+    setQSource(q.source || '');
+    setQUrl(q.url || '');
     setQType(q.type || 'api');
     setQFilePath(q.filePath || '');
     setQEndpoint(q.endpoint || '');
     setQAuthType(q.authType || 'none');
     setQBamTokenUrl(q.bamTokenUrl || '');
-    setQFilterBindings(q.filters.map((f) => ({ ...f })));
+    setQFilterBindings((q.filters || []).map((f) => ({ ...f })));
     setEditingQueryId(q.id);
     setSelectedQueryId(q.id);
     setShowAddQuery(true);
     setQError('');
+    setQSuccess('');
   };
 
   const startAddQuery = () => {
     setQName('');
     setQDesc('');
-    setQSource('');
+    setQSource(group?.sources?.[0] || '');
     setQUrl('');
     setQType('api');
     setQFilePath('');
@@ -242,6 +245,7 @@ export default function GroupDetailPage() {
     setSelectedQueryId(null);
     setShowAddQuery(true);
     setQError('');
+    setQSuccess('');
   };
 
   const toggleFilter = (key: string, checked: boolean) => {
@@ -271,23 +275,23 @@ export default function GroupDetailPage() {
   };
 
   const handleSaveQuery = async () => {
-    if (!qName.trim() || !qSource.trim()) {
+    if (!(qName || '').trim() || !(qSource || '').trim()) {
       setQError('Query name and source are required.');
       return;
     }
-    if (qType === 'url' && !qUrl.trim()) {
+    if (qType === 'url' && !(qUrl || '').trim()) {
       setQError('URL is required for URL-type queries.');
       return;
     }
-    if ((qType === 'document' || qType === 'csv') && !qFilePath.trim()) {
+    if ((qType === 'document' || qType === 'csv') && !(qFilePath || '').trim()) {
       setQError('File path is required for Document/CSV-type queries.');
       return;
     }
-    if (qType === 'api' && !qEndpoint.trim()) {
+    if (qType === 'api' && !(qEndpoint || '').trim()) {
       setQError('API Endpoint is required for API-type queries.');
       return;
     }
-    if (qAuthType === 'bam' && !qBamTokenUrl.trim()) {
+    if (qAuthType === 'bam' && !(qBamTokenUrl || '').trim()) {
       setQError('BAM Token URL is required when Auth Type is BAM.');
       return;
     }
@@ -295,22 +299,22 @@ export default function GroupDetailPage() {
     setQError('');
     try {
       const payload = {
-        name: qName.trim(),
-        description: qDesc.trim(),
-        source: qSource.trim(),
-        url: qUrl.trim(),
+        name: (qName || '').trim(),
+        description: (qDesc || '').trim(),
+        source: (qSource || '').trim(),
+        url: (qUrl || '').trim(),
         filters: qType === 'api' ? qFilterBindings : [],
         type: qType,
-        filePath: (qType === 'document' || qType === 'csv') ? qFilePath.trim() : '',
-        endpoint: qType === 'api' ? qEndpoint.trim() : '',
+        filePath: (qType === 'document' || qType === 'csv') ? (qFilePath || '').trim() : '',
+        endpoint: qType === 'api' ? (qEndpoint || '').trim() : '',
         authType: qType === 'api' ? qAuthType : 'none',
-        bamTokenUrl: qAuthType === 'bam' ? qBamTokenUrl.trim() : '',
+        bamTokenUrl: qAuthType === 'bam' ? (qBamTokenUrl || '').trim() : '',
       };
 
       if (editingQueryId) {
         const res = await fetch('/api/admin/queries', {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
           body: JSON.stringify({ id: editingQueryId, ...payload }),
         });
         if (!res.ok) {
@@ -321,7 +325,7 @@ export default function GroupDetailPage() {
       } else {
         const res = await fetch('/api/admin/queries', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
           body: JSON.stringify(payload),
         });
         if (!res.ok) {
@@ -331,10 +335,14 @@ export default function GroupDetailPage() {
         }
       }
 
+      const wasEditing = !!editingQueryId;
       resetQueryForm();
       if (group) await fetchQueries(group.sources);
-    } catch {
-      setQError('Failed to save query');
+      setQSuccess(wasEditing ? 'Query updated successfully!' : 'Query created successfully!');
+      setTimeout(() => setQSuccess(''), 5000);
+    } catch (err) {
+      console.error('Save query error:', err);
+      setQError(`Failed to save query: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setQSaving(false);
     }
@@ -342,7 +350,7 @@ export default function GroupDetailPage() {
 
   const handleDeleteQuery = async (queryId: string) => {
     try {
-      const res = await fetch(`/api/admin/queries?id=${queryId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/queries?id=${queryId}`, { method: 'DELETE', headers: { ...csrfHeaders() } });
       if (res.ok && group) {
         await fetchQueries(group.sources);
         if (selectedQueryId === queryId) {
@@ -506,6 +514,13 @@ export default function GroupDetailPage() {
               </button>
             </div>
 
+            {qSuccess && (
+              <p className="text-xs text-green-600 mb-3 flex items-center gap-1">
+                <span className="inline-block w-4 h-4 bg-green-100 text-green-600 rounded-full text-center leading-4 text-[10px] font-bold">✓</span>
+                {qSuccess}
+              </p>
+            )}
+
             <div className="flex gap-4" style={{ minHeight: '400px' }}>
               {/* Left: Query List */}
               <div className="w-[280px] flex-shrink-0 border-r border-gray-100 pr-4 overflow-y-auto" style={{ maxHeight: '600px' }}>
@@ -610,12 +625,16 @@ export default function GroupDetailPage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 mb-3">
-                      <input
+                      <select
                         value={qSource}
                         onChange={(e) => setQSource(e.target.value)}
-                        placeholder="Source (e.g. finance)"
                         className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      />
+                      >
+                        <option value="">Select source...</option>
+                        {(group?.sources || []).map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
                       {qType === 'url' && (
                         <input
                           value={qUrl}

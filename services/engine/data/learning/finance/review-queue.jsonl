@@ -1,0 +1,3 @@
+{"id":"rev-f01","timestamp":"2026-03-12T15:10:00.000Z","userMessage":"show me the P&L statement","detectedIntent":"query.execute","confidence":0.25,"groupId":"finance","status":"pending"}
+{"id":"rev-f02","timestamp":"2026-03-12T14:05:00.000Z","userMessage":"what are our top expenses this quarter","detectedIntent":"query.execute","confidence":0.31,"groupId":"finance","status":"pending"}
+{"id":"rev-f03","timestamp":"2026-03-12T12:30:00.000Z","userMessage":"export the bam report to excel","detectedIntent":"query.execute","confidence":0.19,"groupId":"finance","status":"pending"}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { csrfHeaders } from '@/lib/csrf';
 
 interface ReviewItem {
   id: string;
@@ -101,7 +102,7 @@ export default function LearningPage() {
     try {
       const res = await fetch(`/api/admin/learning/review/${id}/resolve`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ correctIntent: intent, groupId }),
       });
       if (res.ok) {
@@ -116,7 +117,7 @@ export default function LearningPage() {
     try {
       const res = await fetch(`/api/admin/learning/review/${id}/dismiss`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ groupId }),
       });
       if (res.ok) {
@@ -131,7 +132,7 @@ export default function LearningPage() {
     try {
       const res = await fetch('/api/admin/learning/retrain', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ groupId }),
       });
       if (res.ok) {
@@ -145,7 +146,7 @@ export default function LearningPage() {
     try {
       const res = await fetch('/api/admin/learning/process-signals', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ groupId }),
       });
       if (res.ok) {
@@ -216,20 +217,18 @@ export default function LearningPage() {
             <div className="space-y-3">
               {reviewItems.map((item) => (
                 <div key={item.id} className="border border-gray-200 rounded-lg p-4 bg-white">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">&ldquo;{item.userMessage}&rdquo;</p>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-xs text-gray-400">
-                          Detected: <span className="font-mono text-gray-600">{item.detectedIntent}</span>
-                        </span>
-                        <span className={`text-xs font-medium ${item.confidence < 0.3 ? 'text-red-600' : 'text-yellow-600'}`}>
-                          {(item.confidence * 100).toFixed(0)}% confidence
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          {new Date(item.timestamp).toLocaleDateString()}
-                        </span>
-                      </div>
+                  <p className="text-sm font-medium text-gray-900 mb-2">&ldquo;{item.userMessage}&rdquo;</p>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-400">
+                        Detected: <span className="font-mono text-gray-600">{item.detectedIntent}</span>
+                      </span>
+                      <span className={`text-xs font-medium ${item.confidence < 0.3 ? 'text-red-600' : 'text-yellow-600'}`}>
+                        {(item.confidence * 100).toFixed(0)}% confidence
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(item.timestamp).toLocaleDateString()}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <select
@@ -274,23 +273,23 @@ export default function LearningPage() {
               <p className="text-sm mt-1">Utterances will appear here once promoted from feedback signals</p>
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-fixed">
               <thead>
                 <tr className="border-b border-gray-200 text-left text-gray-500">
-                  <th className="pb-2 font-medium">Utterance</th>
-                  <th className="pb-2 font-medium">Intent</th>
-                  <th className="pb-2 font-medium">Signals</th>
-                  <th className="pb-2 font-medium">Source</th>
-                  <th className="pb-2 font-medium">Date</th>
+                  <th className="pb-2 font-medium w-[35%]">Utterance</th>
+                  <th className="pb-2 font-medium w-[22%]">Intent</th>
+                  <th className="pb-2 font-medium w-[10%] text-center">Signals</th>
+                  <th className="pb-2 font-medium w-[13%] text-center">Source</th>
+                  <th className="pb-2 font-medium w-[20%]">Date</th>
                 </tr>
               </thead>
               <tbody>
                 {autoLearned.map((item) => (
                   <tr key={item.id} className="border-b border-gray-100">
-                    <td className="py-2 text-gray-900">&ldquo;{item.utterance}&rdquo;</td>
+                    <td className="py-2 text-gray-900 truncate">&ldquo;{item.utterance}&rdquo;</td>
                     <td className="py-2 font-mono text-xs text-gray-600">{item.intent}</td>
-                    <td className="py-2 text-gray-600">{item.positiveSignals}</td>
-                    <td className="py-2">
+                    <td className="py-2 text-gray-600 text-center">{item.positiveSignals}</td>
+                    <td className="py-2 text-center">
                       <span className={`px-2 py-0.5 rounded-full text-xs ${
                         item.source === 'auto' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
                       }`}>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { csrfHeaders } from '@/lib/csrf';
 
 interface LogEntry {
   timestamp: string;
@@ -49,7 +50,7 @@ export default function ConversationLogsPage() {
 
   const handleClear = async () => {
     if (!confirm('Clear all conversation logs? This cannot be undone.')) return;
-    await fetch('/api/admin/logs', { method: 'DELETE' });
+    await fetch('/api/admin/logs', { method: 'DELETE', headers: { ...csrfHeaders() } });
     await fetchLogs();
   };
 

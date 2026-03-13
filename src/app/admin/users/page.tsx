@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { csrfHeaders } from '@/lib/csrf';
 
 interface User {
   id: string;
@@ -89,13 +90,13 @@ export default function UsersPage() {
       if (editingId) {
         res = await fetch(`/api/admin/users/${editingId}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
           body: JSON.stringify(payload),
         });
       } else {
         res = await fetch('/api/admin/users', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
           body: JSON.stringify(payload),
         });
       }
@@ -117,7 +118,7 @@ export default function UsersPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE', headers: { ...csrfHeaders() } });
       if (!res.ok) {
         const data = await res.json();
         setError(data.error || 'Failed to delete user');

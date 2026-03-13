@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { timingSafeEqual } from 'crypto';
 import { logger } from '@/lib/logger';
 
 /**
@@ -50,7 +51,11 @@ export function engineAuthMiddleware(req: Request, res: Response, next: NextFunc
 
   const provided = req.headers['x-engine-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
 
-  if (provided !== engineApiKey) {
+  const providedBuf = Buffer.from(String(provided || ''));
+  const expectedBuf = Buffer.from(engineApiKey);
+  const isValid = providedBuf.length === expectedBuf.length && timingSafeEqual(providedBuf, expectedBuf);
+
+  if (!isValid) {
     logger.warn({ ip: req.ip, url: req.url }, 'Unauthorized Engine API request');
     return res.status(401).json({ error: 'Unauthorized' });
   }

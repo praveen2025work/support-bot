@@ -5,7 +5,7 @@ import { NLP_CONFIDENCE_THRESHOLD } from '../constants';
 import { NlpNotInitializedError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 import { extractDateEntities } from './date-entity-extractor';
-import type { ClassificationResult, ExtractedEntity } from '../types';
+import type { ClassificationResult, ExtractedEntity, IntentOverlap } from '../types';
 import type { FuzzyMatcher } from './fuzzy-matcher';
 
 // Intents that should NOT match when the user is clearly asking a question
@@ -19,6 +19,7 @@ export class NlpService {
   private fuzzyMatcher: FuzzyMatcher;
   private initialized = false;
   private corpusFile: string | null;
+  private cachedOverlaps: IntentOverlap[] = [];
 
   constructor(fuzzyMatcher: FuzzyMatcher, corpusFile?: string | null) {
     this.fuzzyMatcher = fuzzyMatcher;
@@ -51,6 +52,41 @@ export class NlpService {
 
     this.initialized = true;
     logger.info({ corpus: this.corpusFile ?? 'base' }, 'NLP model trained and ready');
+
+    // Run intent overlap detection and log warnings
+    this.cachedOverlaps = await this.detectOverlaps(corpusData);
+    if (this.cachedOverlaps.length > 0) {
+      logger.warn(
+        { overlapCount: this.cachedOverlaps.length },
+        'Intent overlap detection found potential issues'
+      );
+      for (const overlap of this.cachedOverlaps) {
+        if (overlap.trainedIntent !== overlap.classifiedIntent) {
+          logger.warn(
+            {
+              utterance: overlap.utterance,
+              trained: overlap.trainedIntent,
+              classified: overlap.classifiedIntent,
+              confidence: overlap.confidence,
+            },
+            'Misclassified training utterance'
+          );
+        } else {
+          logger.warn(
+            {
+              utterance: overlap.utterance,
+              intent: overlap.trainedIntent,
+              confidence: overlap.confidence,
+              secondBest: overlap.secondBestIntent,
+              secondBestConfidence: overlap.secondBestConfidence,
+            },
+            'Ambiguous training utterance — top-2 intents within 0.15'
+          );
+        }
+      }
+    } else {
+      logger.info('Intent overlap detection: no issues found');
+    }
   }
 
   async classify(text: string): Promise<ClassificationResult> {
@@ -134,5 +170,62 @@ export class NlpService {
 
   isInitialized(): boolean {
     return this.initialized;
+  }
+
+  /** Returns cached overlap warnings from the last training run. */
+  getOverlaps(): IntentOverlap[] {
+    return this.cachedOverlaps;
+  }
+
+  /**
+   * Cross-classifies each training utterance against the trained model to detect:
+   * 1. Utterances that classify to a DIFFERENT intent than their training intent
+   * 2. Utterances where top-2 intent confidences are within 0.15 (ambiguous)
+   */
+  private async detectOverlaps(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    corpusData: any
+  ): Promise<IntentOverlap[]> {
+    if (!this.nlp) return [];
+
+    const overlaps: IntentOverlap[] = [];
+    const dataEntries: Array<{ intent: string; utterances: string[] }> =
+      corpusData.data || [];
+
+    for (const entry of dataEntries) {
+      const trainedIntent = entry.intent;
+
+      for (const utterance of entry.utterances) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result: any = await this.nlp.process('en', utterance);
+        const classifiedIntent = result.intent || 'None';
+        const confidence = result.score || 0;
+
+        // Extract the top-2 classifications from the NLP result
+        const classifications: Array<{ intent: string; score: number }> =
+          result.classifications || [];
+        const secondBest =
+          classifications.length >= 2 ? classifications[1] : undefined;
+
+        const isMisclassified = classifiedIntent !== trainedIntent;
+        const isAmbiguous =
+          !isMisclassified &&
+          secondBest != null &&
+          confidence - secondBest.score < 0.15;
+
+        if (isMisclassified || isAmbiguous) {
+          overlaps.push({
+            utterance,
+            trainedIntent,
+            classifiedIntent,
+            confidence,
+            secondBestIntent: secondBest?.intent,
+            secondBestConfidence: secondBest?.score,
+          });
+        }
+      }
+    }
+
+    return overlaps;
   }
 }

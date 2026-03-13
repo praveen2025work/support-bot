@@ -1,11 +1,60 @@
 (function () {
+  // ── Sanitization helpers ──────────────────────────────────────────────
+  /**
+   * Strip HTML tags and limit string length for config values.
+   */
+  function sanitize(str, maxLen) {
+    if (typeof str !== 'string') return '';
+    // Strip any HTML tags
+    var cleaned = str.replace(/<[^>]*>/g, '');
+    // Limit length (default 200)
+    return cleaned.slice(0, maxLen || 200);
+  }
+
+  /**
+   * Validate that a value is one of the allowed options.
+   */
+  function allowedValue(val, allowed, fallback) {
+    return allowed.indexOf(val) !== -1 ? val : fallback;
+  }
+
+  /**
+   * Extract the origin from a URL string.
+   */
+  function extractOrigin(url) {
+    try {
+      var parsed = new URL(url);
+      return parsed.origin;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ── Parse and sanitize config ─────────────────────────────────────────
   var config = window.ChatbotWidgetConfig || {};
-  var baseUrl = config.baseUrl || window.location.origin;
-  var group = config.group || '';
-  var position = config.position || 'bottom-right';
-  var theme = config.theme || 'blue';
-  var greeting = config.greeting || '';
-  var iconType = config.iconType || 'bot';
+  var baseUrl = sanitize(config.baseUrl || window.location.origin, 500);
+  var group = sanitize(config.group || '', 100);
+  var position = allowedValue(sanitize(config.position, 20), ['bottom-right', 'bottom-left'], 'bottom-right');
+  var theme = allowedValue(sanitize(config.theme, 20), ['blue', 'indigo', 'green'], 'blue');
+  var greeting = sanitize(config.greeting || '', 300);
+  var iconType = allowedValue(sanitize(config.iconType, 20), ['bot', 'headset', 'chat'], 'bot');
+
+  // ── Origin validation for postMessage ────────────────────────────────
+  var allowedOrigins = Array.isArray(config.allowedOrigins) ? config.allowedOrigins : [];
+  // Always derive the iframe src origin as a fallback
+  var iframeSrcOrigin = extractOrigin(baseUrl);
+
+  function isOriginAllowed(origin) {
+    // If an explicit allowedOrigins list is configured, use it
+    if (allowedOrigins.length > 0) {
+      for (var i = 0; i < allowedOrigins.length; i++) {
+        if (origin === allowedOrigins[i]) return true;
+      }
+      return false;
+    }
+    // Otherwise fall back to matching the iframe src origin
+    return iframeSrcOrigin ? origin === iframeSrcOrigin : false;
+  }
 
   // Theme colors
   var themes = {
@@ -20,14 +69,70 @@
   var hPos = isLeft ? 'left:20px;right:auto;' : 'right:20px;left:auto;';
   var iframeHPos = isLeft ? 'left:20px;right:auto;' : 'right:20px;left:auto;';
 
-  // SVG Icons
-  var icons = {
-    bot: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="11"/><circle cx="8" cy="16" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/><path d="M9 19h6"/></svg>',
-    headset: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3v5z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3v5z"/></svg>',
-    chat: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/></svg>',
-  };
-  var closeIcon = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-  var botIcon = icons[iconType] || icons.bot;
+  // ── SVG Icon creation via DOM (no innerHTML) ──────────────────────────
+  var svgNS = 'http://www.w3.org/2000/svg';
+
+  function createSvgElement(tag, attrs, children) {
+    var el = document.createElementNS(svgNS, tag);
+    if (attrs) {
+      for (var key in attrs) {
+        if (attrs.hasOwnProperty(key)) {
+          el.setAttribute(key, attrs[key]);
+        }
+      }
+    }
+    if (children) {
+      for (var i = 0; i < children.length; i++) {
+        el.appendChild(children[i]);
+      }
+    }
+    return el;
+  }
+
+  function createIconSvg(type) {
+    var base = { width: '28', height: '28', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' };
+    var children = [];
+
+    if (type === 'headset') {
+      children.push(createSvgElement('path', { d: 'M3 18v-6a9 9 0 0 1 18 0v6' }));
+      children.push(createSvgElement('path', { d: 'M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3v5z' }));
+      children.push(createSvgElement('path', { d: 'M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3v5z' }));
+    } else if (type === 'chat') {
+      children.push(createSvgElement('path', { d: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' }));
+      children.push(createSvgElement('path', { d: 'M8 10h.01' }));
+      children.push(createSvgElement('path', { d: 'M12 10h.01' }));
+      children.push(createSvgElement('path', { d: 'M16 10h.01' }));
+    } else {
+      // bot (default)
+      children.push(createSvgElement('rect', { x: '3', y: '11', width: '18', height: '10', rx: '2' }));
+      children.push(createSvgElement('circle', { cx: '12', cy: '5', r: '2' }));
+      children.push(createSvgElement('line', { x1: '12', y1: '7', x2: '12', y2: '11' }));
+      children.push(createSvgElement('circle', { cx: '8', cy: '16', r: '1', fill: 'currentColor' }));
+      children.push(createSvgElement('circle', { cx: '16', cy: '16', r: '1', fill: 'currentColor' }));
+      children.push(createSvgElement('path', { d: 'M9 19h6' }));
+    }
+
+    return createSvgElement('svg', base, children);
+  }
+
+  function createCloseIconSvg() {
+    var base = { width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' };
+    var children = [
+      createSvgElement('line', { x1: '18', y1: '6', x2: '6', y2: '18' }),
+      createSvgElement('line', { x1: '6', y1: '6', x2: '18', y2: '18' }),
+    ];
+    return createSvgElement('svg', base, children);
+  }
+
+  /**
+   * Replace toggle button icon using DOM methods (no innerHTML).
+   */
+  function setToggleIcon(buttonEl, svgNode) {
+    while (buttonEl.firstChild) {
+      buttonEl.removeChild(buttonEl.firstChild);
+    }
+    buttonEl.appendChild(svgNode);
+  }
 
   // Inject keyframes
   var style = document.createElement('style');
@@ -56,10 +161,10 @@
   iframe.setAttribute('title', 'Chatbot Widget');
   iframeWrap.appendChild(iframe);
 
-  // Create toggle button
+  // Create toggle button (using DOM-based SVG, no innerHTML)
   var toggle = document.createElement('button');
   toggle.id = 'chatbot-widget-toggle';
-  toggle.innerHTML = botIcon;
+  setToggleIcon(toggle, createIconSvg(iconType));
   toggle.setAttribute('aria-label', 'Open chat');
   toggle.style.cssText =
     'position:fixed;bottom:20px;' + hPos + 'width:60px;height:60px;border-radius:50%;border:none;' +
@@ -76,7 +181,7 @@
     if (!isOpen) toggle.style.transform = 'scale(1)';
   };
 
-  // Greeting tooltip
+  // Greeting tooltip (using textContent, already safe)
   var greetingEl = null;
   if (greeting) {
     greetingEl = document.createElement('div');
@@ -103,7 +208,7 @@
     if (isOpen) {
       iframeWrap.style.display = 'block';
       iframeWrap.style.animation = 'chatbot-fade-in 0.25s ease forwards';
-      toggle.innerHTML = closeIcon;
+      setToggleIcon(toggle, createCloseIconSvg());
       toggle.setAttribute('aria-label', 'Close chat');
       toggle.style.transform = 'scale(1)';
       toggle.style.animation = 'none';
@@ -113,20 +218,25 @@
       setTimeout(function () {
         iframeWrap.style.display = 'none';
       }, 200);
-      toggle.innerHTML = botIcon;
+      setToggleIcon(toggle, createIconSvg(iconType));
       toggle.setAttribute('aria-label', 'Open chat');
     }
   };
 
-  // Listen for close messages from iframe
+  // Listen for close messages from iframe — with origin validation
   window.addEventListener('message', function (event) {
+    // Validate the message origin
+    if (!isOriginAllowed(event.origin)) {
+      return;
+    }
+
     if (event.data && event.data.type === 'chatbot-close') {
       isOpen = false;
       iframeWrap.style.animation = 'chatbot-fade-out 0.2s ease forwards';
       setTimeout(function () {
         iframeWrap.style.display = 'none';
       }, 200);
-      toggle.innerHTML = botIcon;
+      setToggleIcon(toggle, createIconSvg(iconType));
       toggle.setAttribute('aria-label', 'Open chat');
     }
   });

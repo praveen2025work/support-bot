@@ -6,17 +6,21 @@ import { isRequestAdmin } from '@/lib/admin-auth';
 
 const USERS_JSON_PATH = path.join(process.cwd(), 'src/config/users.json');
 
+type Role = 'admin' | 'builder' | 'viewer';
+
 interface User {
   id: string;
   name: string;
   email: string;
   userid: string;
   brid: string;
-  role: 'admin' | 'viewer';
+  role: Role;
   createdAt: string;
   updatedBy: string;
   updatedOn: string;
 }
+
+const VALID_ROLES: Role[] = ['admin', 'builder', 'viewer'];
 
 async function readUsers(): Promise<{ users: User[] }> {
   const raw = await fs.readFile(USERS_JSON_PATH, 'utf-8');
@@ -71,7 +75,15 @@ export async function PATCH(
     if (body.email !== undefined) user.email = body.email;
     if (body.userid !== undefined) user.userid = body.userid;
     if (body.brid !== undefined) user.brid = body.brid;
-    if (body.role !== undefined) user.role = body.role === 'admin' ? 'admin' : 'viewer';
+    if (body.role !== undefined) {
+      if (!VALID_ROLES.includes(body.role)) {
+        return NextResponse.json(
+          { error: `Invalid role "${body.role}". Must be one of: admin, builder, viewer` },
+          { status: 400 }
+        );
+      }
+      user.role = body.role;
+    }
     if (body.updatedBy !== undefined) user.updatedBy = body.updatedBy;
     user.updatedOn = new Date().toISOString();
 

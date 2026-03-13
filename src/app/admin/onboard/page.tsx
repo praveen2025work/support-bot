@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { csrfHeaders } from '@/lib/csrf';
 import { OnboardForm } from '@/components/admin/OnboardForm';
 import Link from 'next/link';
 
@@ -68,7 +69,7 @@ export default function AdminOnboardPage() {
 
       const res = await fetch('/api/admin/groups/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({
           groupId: groupId.trim(),
           name: name.trim(),

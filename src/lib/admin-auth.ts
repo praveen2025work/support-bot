@@ -4,13 +4,15 @@ import { timeoutSignal } from '@/lib/generate-id';
 
 const USERS_JSON_PATH = path.join(process.cwd(), 'src/config/users.json');
 
+export type Role = 'admin' | 'builder' | 'viewer';
+
 interface AdminUser {
   id: string;
   name: string;
   email: string;
   userid: string;
   brid: string;
-  role: 'admin' | 'viewer';
+  role: Role;
 }
 
 interface AdminCheckResult {

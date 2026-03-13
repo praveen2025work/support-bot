@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { csrfHeaders } from '@/lib/csrf';
 
 interface FileInfo {
   name: string;
@@ -73,7 +74,7 @@ export default function FileManagerPage() {
     try {
       await fetch('/api/admin/files', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ name: selectedFile, content: fileContent }),
       });
       await fetchFiles();
@@ -89,7 +90,7 @@ export default function FileManagerPage() {
       const name = newFileName.endsWith('.md') ? newFileName : `${newFileName}.md`;
       await fetch('/api/admin/files', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({ name, content: newFileContent || `# ${newFileName}\n\nContent here...` }),
       });
       await fetchFiles();
@@ -104,7 +105,7 @@ export default function FileManagerPage() {
 
   const handleDelete = async (name: string) => {
     try {
-      await fetch(`/api/admin/files?name=${encodeURIComponent(name)}`, { method: 'DELETE' });
+      await fetch(`/api/admin/files?name=${encodeURIComponent(name)}`, { method: 'DELETE', headers: { ...csrfHeaders() } });
       if (selectedFile === name) {
         setSelectedFile(null);
         setFileContent('');

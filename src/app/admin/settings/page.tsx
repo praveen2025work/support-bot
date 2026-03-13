@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { csrfHeaders } from '@/lib/csrf';
 
 interface PlatformConfig {
   nlpConfidenceThreshold: number;
@@ -41,7 +42,7 @@ export default function SettingsPage() {
     try {
       await fetch('/api/admin/settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify(config),
       });
       setSaved(true);

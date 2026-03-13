@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { getEngine } from '@/lib/singleton';
 import { createAdapter } from '@/adapters/adapter-factory';
-import { logger } from '@/lib/logger';
+import { getTenantContext, getTenantLogger } from '@/middleware/tenant-context';
 import { appendFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { encryptLogEntry } from '@/lib/log-encryption';
 
 export const chatRouter = Router();
 
@@ -18,17 +19,20 @@ function logConversation(entry: Record<string, unknown>) {
     if (!existsSync(LOGS_PATH)) {
       writeFileSync(LOGS_PATH, '', 'utf-8');
     }
-    appendFileSync(LOGS_PATH, JSON.stringify(entry) + '\n', 'utf-8');
+    appendFileSync(LOGS_PATH, encryptLogEntry(JSON.stringify(entry)) + '\n', 'utf-8');
   } catch {
     // Non-blocking
   }
 }
 
 chatRouter.post('/', async (req: Request, res: Response) => {
+  const log = getTenantLogger();
+  const ctx = getTenantContext();
+
   try {
     const body = req.body;
-    const platform = body.platform || 'web';
-    const groupId = body.groupId || 'default';
+    const groupId = ctx?.groupId || body.groupId || 'default';
+    const platform = ctx?.platform || body.platform || 'web';
 
     const adapter = createAdapter(platform);
     const message = await adapter.parseIncoming(body);
@@ -65,6 +69,7 @@ chatRouter.post('/', async (req: Request, res: Response) => {
       sessionId: message.sessionId,
       groupId,
       platform,
+      requestId: ctx?.requestId,
       userMessage: message.text,
       botResponse: response.text,
       intent: response.intent,
@@ -73,10 +78,13 @@ chatRouter.post('/', async (req: Request, res: Response) => {
       hasRichContent: !!response.richContent,
     });
 
+    const elapsed = ctx ? Date.now() - ctx.startTime : undefined;
+    log.info({ sessionId: message.sessionId, intent: response.intent, executionMs: elapsed }, 'Chat request completed');
+
     return res.json(formatted);
   } catch (error) {
     const err = error instanceof Error ? { message: error.message, stack: error.stack } : error;
-    logger.error({ error: err }, 'Chat API error');
+    log.error({ error: err }, 'Chat API error');
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

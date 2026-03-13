@@ -3,12 +3,14 @@ import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { chatRouter } from './routes/chat';
-import { adminRouter } from './routes/admin';
+import { adminRouter } from './routes/admin/index';
 import { queriesRouter } from './routes/queries';
 import { statsRouter } from './routes/stats';
 import { healthRouter } from './routes/health';
 import { userRouter } from './routes/user';
+import docsRouter from './routes/docs';
 import { logger } from './lib/logger';
+import { tenantContextMiddleware } from './middleware/tenant-context';
 
 const app = express();
 const PORT = parseInt(process.env.ENGINE_PORT || '4000', 10);
@@ -19,6 +21,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
+app.use(tenantContextMiddleware);
 
 // Rate limiting
 const chatLimiter = rateLimit({
@@ -50,6 +53,7 @@ app.use('/api', queriesRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api', healthRouter);
 app.use('/api', userRouter);
+app.use('/api', docsRouter);
 
 // 404 handler
 app.use((_req, res) => {
@@ -62,9 +66,31 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   logger.info(`Engine server running at http://localhost:${PORT}`);
   console.log(`Engine server running at http://localhost:${PORT}`);
 });
+
+// ---------------------------------------------------------------------------
+// Graceful shutdown
+// ---------------------------------------------------------------------------
+async function shutdown(signal: string) {
+  logger.info({ signal }, 'Shutting down gracefully...');
+
+  // Stop accepting new connections and close existing ones
+  server.close(() => {
+    logger.info('HTTP server closed');
+    process.exit(0);
+  });
+
+  // Force exit if the server hasn't closed within 10 seconds
+  setTimeout(() => {
+    logger.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 10_000).unref();
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 export default app;

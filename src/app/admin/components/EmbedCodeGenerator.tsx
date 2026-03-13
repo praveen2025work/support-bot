@@ -4,6 +4,31 @@ import { useState } from 'react';
 
 type TabId = 'iframe' | 'widget';
 
+/**
+ * Escape HTML entities to prevent injection in generated embed code.
+ */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Escape a value for use inside a JavaScript single-quoted string literal
+ * within generated embed code.
+ */
+function escapeJsString(str: string): string {
+  return str
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/</g, '\\x3c')
+    .replace(/>/g, '\\x3e')
+    .replace(/&/g, '\\x26');
+}
+
 export function EmbedCodeGenerator({ groupId }: { groupId: string }) {
   const [activeTab, setActiveTab] = useState<TabId>('widget');
   const [width, setWidth] = useState('400');
@@ -16,22 +41,26 @@ export function EmbedCodeGenerator({ groupId }: { groupId: string }) {
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
+  // Sanitize width/height to digits only
+  const safeWidth = width.replace(/\D/g, '') || '400';
+  const safeHeight = height.replace(/\D/g, '') || '600';
+
   const iframeSnippet = `<iframe
-  src="${baseUrl}/widget?group=${groupId}"
-  width="${width}"
-  height="${height}"
+  src="${escapeHtml(baseUrl)}/widget?group=${escapeHtml(encodeURIComponent(groupId))}"
+  width="${safeWidth}"
+  height="${safeHeight}"
   style="border: none; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.15);"
   allow="clipboard-write"
   title="Chatbot Widget"
 ></iframe>`;
 
   const widgetConfig = [
-    `  baseUrl: '${baseUrl}',`,
-    `  group: '${groupId}',`,
-    theme !== 'blue' ? `  theme: '${theme}',` : '',
-    position !== 'bottom-right' ? `  position: '${position}',` : '',
-    greeting ? `  greeting: '${greeting.replace(/'/g, "\\'")}',` : '',
-    iconType !== 'bot' ? `  iconType: '${iconType}',` : '',
+    `  baseUrl: '${escapeJsString(baseUrl)}',`,
+    `  group: '${escapeJsString(groupId)}',`,
+    theme !== 'blue' ? `  theme: '${escapeJsString(theme)}',` : '',
+    position !== 'bottom-right' ? `  position: '${escapeJsString(position)}',` : '',
+    greeting ? `  greeting: '${escapeJsString(greeting)}',` : '',
+    iconType !== 'bot' ? `  iconType: '${escapeJsString(iconType)}',` : '',
   ]
     .filter(Boolean)
     .join('\n');
@@ -42,7 +71,7 @@ export function EmbedCodeGenerator({ groupId }: { groupId: string }) {
 ${widgetConfig}
   };
 </script>
-<script src="${baseUrl}/widget/chatbot-widget.js"></script>`;
+<script src="${escapeHtml(baseUrl)}/widget/chatbot-widget.js"></script>`;
 
   const snippet = activeTab === 'iframe' ? iframeSnippet : widgetSnippet;
 

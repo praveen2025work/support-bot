@@ -49,6 +49,15 @@ export interface RichContent {
   data: unknown;
 }
 
+export interface IntentOverlap {
+  utterance: string;
+  trainedIntent: string;
+  classifiedIntent: string;
+  confidence: number;
+  secondBestIntent?: string;
+  secondBestConfidence?: number;
+}
+
 export interface ConversationContext {
   sessionId: string;
   history: Array<{ role: 'user' | 'bot'; text: string; timestamp: Date }>;

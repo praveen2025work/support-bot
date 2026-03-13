@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseOnboardingExcel } from '@/lib/onboard/excel-parser';
-import { processOnboarding } from '@/lib/onboard/onboard-service';
-import { getAllGroupIds } from '@/config/group-config';
+import { proxyToEngine } from '@/lib/engine-proxy';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,15 +29,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for duplicate group ID
-    const existingGroups = getAllGroupIds();
-    if (existingGroups.includes(parseResult.data.groupInfo.group_id)) {
-      return NextResponse.json(
-        {
-          error: `Group ID "${parseResult.data.groupInfo.group_id}" already exists`,
-        },
-        { status: 409 }
-      );
+    // Check for duplicate group ID by querying the engine
+    const groupsRes = await proxyToEngine('/api/groups');
+    if (groupsRes.ok) {
+      const groupsData = await groupsRes.json();
+      const existingIds = (groupsData.groups || []).map((g: { id: string }) => g.id);
+      if (existingIds.includes(parseResult.data.groupInfo.group_id)) {
+        return NextResponse.json(
+          {
+            error: `Group ID "${parseResult.data.groupInfo.group_id}" already exists`,
+          },
+          { status: 409 }
+        );
+      }
     }
 
     // Preview mode: return parsed data without writing
@@ -54,16 +57,30 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Submit mode: write all files
-    const result = await processOnboarding(parseResult.data);
+    // Submit mode: proxy to engine's group create endpoint
+    const engineRes = await proxyToEngine('/api/admin/groups/create', {
+      method: 'POST',
+      body: {
+        groupId: parseResult.data.groupInfo.group_id,
+        name: parseResult.data.groupInfo.name,
+        description: parseResult.data.groupInfo.description || '',
+        sources: parseResult.data.groupInfo.sources
+          ? parseResult.data.groupInfo.sources.split(',').map((s: string) => s.trim())
+          : [],
+        queries: parseResult.data.queries,
+        faq: parseResult.data.faq,
+      },
+    });
 
-    if (!result.success) {
+    if (!engineRes.ok) {
+      const errorData = await engineRes.json().catch(() => ({}));
       return NextResponse.json(
-        { error: 'Onboarding failed', details: result.errors },
-        { status: 500 }
+        { error: errorData.error || 'Onboarding failed', details: errorData.details },
+        { status: engineRes.status }
       );
     }
 
+    const result = await engineRes.json();
     return NextResponse.json({
       success: true,
       groupId: result.groupId,

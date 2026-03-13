@@ -3,9 +3,12 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { UserInfo } from '@/types/user-types';
 
+export type Role = 'admin' | 'builder' | 'viewer';
+
 interface UserContextValue {
   userInfo: UserInfo | null;
   isAdmin: boolean;
+  userRole: Role | null;
   loading: boolean;
   error: string | null;
 }
@@ -13,6 +16,7 @@ interface UserContextValue {
 const UserContext = createContext<UserContextValue>({
   userInfo: null,
   isAdmin: false,
+  userRole: null,
   loading: true,
   error: null,
 });
@@ -20,6 +24,7 @@ const UserContext = createContext<UserContextValue>({
 export function UserProvider({ children }: { children: ReactNode }) {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userRole, setUserRole] = useState<Role | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,11 +56,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
             const adminData = await adminRes.json();
             if (!cancelled) {
               setIsAdmin(adminData.isAdmin === true);
+              setUserRole(adminData.user?.role || null);
             }
           }
         } catch {
           // Admin check failed — default to non-admin
-          if (!cancelled) setIsAdmin(false);
+          if (!cancelled) {
+            setIsAdmin(false);
+            setUserRole(null);
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -87,7 +96,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <UserContext.Provider value={{ userInfo, isAdmin, loading, error }}>
+    <UserContext.Provider value={{ userInfo, isAdmin, userRole, loading, error }}>
       {children}
     </UserContext.Provider>
   );

@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { promises as fsp } from 'fs';
 import { resolve } from 'path';
 import { logger } from '@/lib/logger';
 import type { SignalAggregate } from './types';
@@ -19,10 +19,14 @@ export class SignalProcessor {
     return text.toLowerCase().trim().replace(/\s+/g, ' ');
   }
 
-  isAlreadyInCorpus(utterance: string, intent: string, corpusPath: string): boolean {
-    if (!existsSync(corpusPath)) return false;
+  async isAlreadyInCorpus(utterance: string, intent: string, corpusPath: string): Promise<boolean> {
     try {
-      const corpus: CorpusData = JSON.parse(readFileSync(corpusPath, 'utf-8'));
+      await fsp.access(corpusPath);
+    } catch {
+      return false;
+    }
+    try {
+      const corpus: CorpusData = JSON.parse(await fsp.readFile(corpusPath, 'utf-8'));
       const normalized = this.normalizeUtterance(utterance);
       const intentData = corpus.data.find((d) => d.intent === intent);
       if (!intentData) return false;
@@ -41,14 +45,16 @@ export class SignalProcessor {
     return signals.negative / total <= AUTO_LEARN_MAX_NEG_RATIO;
   }
 
-  addToCorpus(utterance: string, intent: string, corpusPath: string): boolean {
+  async addToCorpus(utterance: string, intent: string, corpusPath: string): Promise<boolean> {
     try {
-      if (!existsSync(corpusPath)) {
+      try {
+        await fsp.access(corpusPath);
+      } catch {
         logger.warn({ corpusPath }, 'Corpus file not found for auto-learn');
         return false;
       }
 
-      const corpus: CorpusData = JSON.parse(readFileSync(corpusPath, 'utf-8'));
+      const corpus: CorpusData = JSON.parse(await fsp.readFile(corpusPath, 'utf-8'));
       let intentData = corpus.data.find((d) => d.intent === intent);
 
       if (!intentData) {
@@ -63,7 +69,7 @@ export class SignalProcessor {
       }
 
       intentData.utterances.push(utterance);
-      writeFileSync(corpusPath, JSON.stringify(corpus, null, 2), 'utf-8');
+      await fsp.writeFile(corpusPath, JSON.stringify(corpus, null, 2), 'utf-8');
       logger.info({ utterance, intent, corpusPath }, 'Auto-learned utterance added to corpus');
       return true;
     } catch (error) {
@@ -72,11 +78,16 @@ export class SignalProcessor {
     }
   }
 
-  getCorpusPath(groupId: string): string {
+  async getCorpusPath(groupId: string): Promise<string> {
     // Group-specific corpus files live in training/groups/
     if (groupId && groupId !== 'default') {
       const groupPath = resolve(process.cwd(), `src/training/groups/corpus-${groupId}.json`);
-      if (existsSync(groupPath)) return groupPath;
+      try {
+        await fsp.access(groupPath);
+        return groupPath;
+      } catch {
+        // Fall through to default
+      }
     }
     return resolve(process.cwd(), 'src/training/corpus.json');
   }

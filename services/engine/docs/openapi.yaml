@@ -1,0 +1,2885 @@
+openapi: 3.0.3
+info:
+  title: Chatbot Engine API
+  description: |
+    REST API for the Chatbot Engine — an NLP-powered chatbot platform that supports
+    multi-group configuration, intent recognition, query execution, learning feedback,
+    and administrative management.
+  version: 1.0.0
+  contact:
+    name: Chatbot Engine Team
+
+servers:
+  - url: http://localhost:4000
+    description: Local development
+  - url: '{productionUrl}'
+    description: Production
+    variables:
+      productionUrl:
+        default: https://chatbot-engine.example.com
+        description: Production server URL
+
+tags:
+  - name: Chat
+    description: Send messages to the chatbot and receive responses
+  - name: Queries
+    description: List available queries and filters for the chat UI
+  - name: Health
+    description: Liveness and readiness probes
+  - name: Stats
+    description: Query execution statistics
+  - name: User
+    description: Current user information
+  - name: Admin/Groups
+    description: Manage chatbot groups (tenants)
+  - name: Admin/Queries
+    description: Manage data-source query definitions
+  - name: Admin/Filters
+    description: Manage filter configuration for the chat UI
+  - name: Admin/Intents
+    description: Manage NLP intents and training utterances
+  - name: Admin/Entities
+    description: Manage NLP entities and synonyms
+  - name: Admin/Templates
+    description: Manage response templates per intent
+  - name: Admin/Users
+    description: Manage admin and viewer users
+  - name: Admin/Files
+    description: Manage knowledge-base files
+  - name: Admin/Learning
+    description: Review queue, auto-learned items, retraining
+  - name: Admin/Settings
+    description: Engine configuration settings
+  - name: Admin/Logs
+    description: Conversation logs
+  - name: Admin/Audit
+    description: Audit trail of admin actions
+
+security: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: |
+        API key required for all `/api/admin/*` routes when the `ENGINE_API_KEY`
+        environment variable is set. Can also be passed as a Bearer token in the
+        Authorization header.
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Internal server error
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+
+    # ── Chat ──────────────────────────────────────────────────────────────
+    ChatRequest:
+      type: object
+      required:
+        - text
+        - sessionId
+      properties:
+        text:
+          type: string
+          example: How many open tickets are there?
+        sessionId:
+          type: string
+          example: sess_abc123
+        groupId:
+          type: string
+          example: default
+        platform:
+          type: string
+          enum: [web, widget, teams, slack]
+          example: web
+        feedbackType:
+          type: string
+          description: Feedback signal (thumbs_up, thumbs_down, rephrase)
+          example: thumbs_up
+        previousMessageText:
+          type: string
+          description: The bot message the feedback refers to
+        explicitFilters:
+          type: object
+          additionalProperties:
+            type: string
+          description: Key-value filter overrides for the query
+          example:
+            status: open
+            region: US
+
+    ChatResponse:
+      type: object
+      properties:
+        text:
+          type: string
+          example: There are 42 open tickets.
+        intent:
+          type: string
+          example: query.open_tickets
+        confidence:
+          type: number
+          example: 0.93
+        richContent:
+          type: object
+          description: Optional structured data (tables, charts, cards)
+        executionMs:
+          type: integer
+          example: 320
+
+    # ── Health ────────────────────────────────────────────────────────────
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        service:
+          type: string
+          example: chatbot-engine
+        timestamp:
+          type: string
+          format: date-time
+        uptime:
+          type: number
+          example: 12345.67
+
+    ReadinessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ready, not_ready]
+        checks:
+          type: object
+          properties:
+            nlp:
+              type: boolean
+            dataDir:
+              type: boolean
+
+    # ── Queries ───────────────────────────────────────────────────────────
+    QuerySummary:
+      type: object
+      properties:
+        name:
+          type: string
+          example: open_tickets
+        description:
+          type: string
+          example: Returns all open support tickets
+        filters:
+          type: array
+          items:
+            type: string
+        type:
+          type: string
+          enum: [api, url, document, csv]
+          example: api
+
+    GroupSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          example: default
+        name:
+          type: string
+          example: Default Group
+        description:
+          type: string
+
+    FilterConfig:
+      type: object
+      properties:
+        filters:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              label:
+                type: string
+              type:
+                type: string
+                enum: [select, text, date]
+              options:
+                type: array
+                items:
+                  type: string
+              placeholder:
+                type: string
+              dateFormat:
+                type: string
+
+    # ── Stats ─────────────────────────────────────────────────────────────
+    QueryStat:
+      type: object
+      properties:
+        id:
+          type: string
+          example: stat_1710000000_ab12
+        queryName:
+          type: string
+          example: open_tickets
+        success:
+          type: boolean
+        durationMs:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        filters:
+          type: object
+          additionalProperties:
+            type: string
+        error:
+          type: string
+
+    AggregatedStat:
+      type: object
+      properties:
+        queryName:
+          type: string
+        totalExecutions:
+          type: integer
+        successCount:
+          type: integer
+        failureCount:
+          type: integer
+        failureRate:
+          type: string
+          example: '2.5%'
+        avgDurationMs:
+          type: integer
+        p50Ms:
+          type: integer
+        p95Ms:
+          type: integer
+
+    # ── User Info ─────────────────────────────────────────────────────────
+    UserInfo:
+      type: object
+      properties:
+        samAccountName:
+          type: string
+          example: jdoe
+        displayName:
+          type: string
+          example: Jane Doe
+        emailAddress:
+          type: string
+          example: jdoe@company.com
+        employeeId:
+          type: string
+        givenName:
+          type: string
+        surname:
+          type: string
+        userName:
+          type: string
+        department:
+          type: string
+        location:
+          type: string
+        role:
+          type: string
+
+    # ── Admin: Group ──────────────────────────────────────────────────────
+    AdminGroup:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        sources:
+          type: array
+          items:
+            type: string
+        apiBaseUrl:
+          type: string
+          nullable: true
+        hasCorpus:
+          type: boolean
+        hasFaq:
+          type: boolean
+        hasTemplates:
+          type: boolean
+
+    AdminGroupDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        sources:
+          type: array
+          items:
+            type: string
+        apiBaseUrl:
+          type: string
+          nullable: true
+        corpus:
+          type: string
+          nullable: true
+        faq:
+          type: string
+          nullable: true
+        templates:
+          type: object
+          nullable: true
+
+    CreateGroupRequest:
+      type: object
+      required:
+        - groupId
+        - name
+      properties:
+        groupId:
+          type: string
+          pattern: '^[a-z0-9_]+$'
+          example: support_team
+        name:
+          type: string
+          example: Support Team
+        description:
+          type: string
+        sources:
+          type: array
+          items:
+            type: string
+        apiBaseUrl:
+          type: string
+        greeting:
+          type: string
+        helpText:
+          type: string
+        queries:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              source:
+                type: string
+              url:
+                type: string
+              estimated_duration:
+                type: integer
+              filters:
+                type: string
+        faq:
+          type: array
+          items:
+            type: object
+            properties:
+              question:
+                type: string
+              intent:
+                type: string
+              answer:
+                type: string
+
+    # ── Admin: Query ──────────────────────────────────────────────────────
+    AdminQuery:
+      type: object
+      properties:
+        id:
+          type: string
+          example: q1
+        name:
+          type: string
+        description:
+          type: string
+        estimatedDuration:
+          type: integer
+        url:
+          type: string
+        source:
+          type: string
+        filters:
+          type: array
+          items:
+            type: string
+        type:
+          type: string
+          enum: [api, url, document, csv]
+        filePath:
+          type: string
+        endpoint:
+          type: string
+
+    CreateQueryRequest:
+      type: object
+      required:
+        - name
+        - source
+      properties:
+        name:
+          type: string
+          example: open_tickets
+        description:
+          type: string
+        source:
+          type: string
+          example: support_db
+        url:
+          type: string
+        type:
+          type: string
+          enum: [api, url, document, csv]
+          default: api
+        filters:
+          type: array
+          items:
+            type: string
+        estimatedDuration:
+          type: integer
+          default: 2000
+        filePath:
+          type: string
+        endpoint:
+          type: string
+
+    # ── Admin: Filter ─────────────────────────────────────────────────────
+    CreateFilterRequest:
+      type: object
+      required:
+        - key
+        - label
+        - type
+      properties:
+        key:
+          type: string
+          example: region
+        label:
+          type: string
+          example: Region
+        type:
+          type: string
+          enum: [select, text, date]
+        options:
+          type: array
+          items:
+            type: string
+          description: Required when type is select
+        placeholder:
+          type: string
+        dateFormat:
+          type: string
+
+    # ── Admin: Intent ─────────────────────────────────────────────────────
+    IntentItem:
+      type: object
+      properties:
+        intent:
+          type: string
+          example: greeting
+        utterances:
+          type: array
+          items:
+            type: string
+          example: [hello, hi there, hey]
+        answers:
+          type: array
+          items:
+            type: string
+        utteranceCount:
+          type: integer
+
+    CreateIntentRequest:
+      type: object
+      required:
+        - intent
+        - utterances
+      properties:
+        intent:
+          type: string
+          example: greeting
+        utterances:
+          type: array
+          items:
+            type: string
+        answers:
+          type: array
+          items:
+            type: string
+
+    # ── Admin: Entity ─────────────────────────────────────────────────────
+    CreateEntityRequest:
+      type: object
+      required:
+        - entityType
+        - optionKey
+        - synonyms
+      properties:
+        entityType:
+          type: string
+          example: region
+        optionKey:
+          type: string
+          example: US
+        synonyms:
+          type: array
+          items:
+            type: string
+          example: [United States, USA, America]
+
+    # ── Admin: Template ───────────────────────────────────────────────────
+    CreateTemplateRequest:
+      type: object
+      required:
+        - intent
+        - responses
+      properties:
+        scope:
+          type: string
+          description: '"base" or a group ID'
+          default: base
+        intent:
+          type: string
+          example: greeting
+        responses:
+          type: array
+          items:
+            type: string
+          example: [Hello! How can I help you?, Hi there!]
+
+    # ── Admin: User ───────────────────────────────────────────────────────
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: string
+          example: u1
+        name:
+          type: string
+        email:
+          type: string
+        userid:
+          type: string
+        brid:
+          type: string
+        role:
+          type: string
+          enum: [admin, viewer]
+        createdAt:
+          type: string
+          format: date-time
+        updatedBy:
+          type: string
+        updatedOn:
+          type: string
+          format: date-time
+
+    CreateUserRequest:
+      type: object
+      required:
+        - name
+        - email
+        - userid
+      properties:
+        name:
+          type: string
+          example: Jane Doe
+        email:
+          type: string
+          example: jdoe@company.com
+        userid:
+          type: string
+          example: jdoe
+        brid:
+          type: string
+        role:
+          type: string
+          enum: [admin, viewer]
+          default: viewer
+        updatedBy:
+          type: string
+
+    # ── Admin: File ───────────────────────────────────────────────────────
+    KnowledgeFile:
+      type: object
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        size:
+          type: integer
+        extension:
+          type: string
+        modifiedAt:
+          type: string
+          format: date-time
+        preview:
+          type: string
+
+    CreateFileRequest:
+      type: object
+      required:
+        - name
+        - content
+      properties:
+        name:
+          type: string
+          example: faq.txt
+        content:
+          type: string
+          example: 'Q: What is this?\nA: A chatbot.'
+
+    # ── Admin: Learning ───────────────────────────────────────────────────
+    ReviewItem:
+      type: object
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+        currentIntent:
+          type: string
+        confidence:
+          type: number
+        status:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    LearningStats:
+      type: object
+      properties:
+        totalInteractions:
+          type: integer
+        autoLearnedCount:
+          type: integer
+        pendingReviewCount:
+          type: integer
+
+    # ── Admin: Settings ───────────────────────────────────────────────────
+    EngineSettings:
+      type: object
+      properties:
+        nlpConfidenceThreshold:
+          type: number
+          example: 0.65
+        fuzzyConfidenceThreshold:
+          type: number
+          example: 0.5
+        sessionTtlMinutes:
+          type: integer
+          example: 30
+        apiCacheTtlMinutes:
+          type: integer
+          example: 5
+        apiBaseUrl:
+          type: string
+        mockApiUrl:
+          type: string
+        enabledPlatforms:
+          type: array
+          items:
+            type: string
+
+    # ── Admin: Log ────────────────────────────────────────────────────────
+    ConversationLog:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        sessionId:
+          type: string
+        groupId:
+          type: string
+        platform:
+          type: string
+        userMessage:
+          type: string
+        botResponse:
+          type: string
+        intent:
+          type: string
+        confidence:
+          type: number
+        executionMs:
+          type: integer
+
+    # ── Admin: Audit ──────────────────────────────────────────────────────
+    AuditEntry:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        action:
+          type: string
+          enum: [create, update, delete]
+        resource:
+          type: string
+        resourceId:
+          type: string
+        groupId:
+          type: string
+        details:
+          type: object
+        ip:
+          type: string
+
+paths:
+  # ════════════════════════════════════════════════════════════════════════
+  # CHAT
+  # ════════════════════════════════════════════════════════════════════════
+  /api/chat:
+    post:
+      tags: [Chat]
+      summary: Send a message to the chatbot
+      description: |
+        Processes a user message through the NLP engine and returns the bot response.
+        Supports multi-group routing, explicit filter overrides, and feedback signals.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+            example:
+              text: How many open tickets are there?
+              sessionId: sess_abc123
+              groupId: default
+              platform: web
+      responses:
+        '200':
+          description: Bot response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          description: Invalid message format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid message format
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ════════════════════════════════════════════════════════════════════════
+  # QUERIES (public)
+  # ════════════════════════════════════════════════════════════════════════
+  /api/queries:
+    get:
+      tags: [Queries]
+      summary: List available queries for a group
+      parameters:
+        - name: groupId
+          in: query
+          schema:
+            type: string
+            default: default
+          description: Group whose queries to list
+      responses:
+        '200':
+          description: List of queries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/QuerySummary'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queries:
+                    type: array
+                    items: {}
+
+  /api/filters:
+    get:
+      tags: [Queries]
+      summary: Get filter configuration for the chat UI
+      responses:
+        '200':
+          description: Filter configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilterConfig'
+
+  /api/groups:
+    get:
+      tags: [Queries]
+      summary: List all groups
+      responses:
+        '200':
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GroupSummary'
+
+  # ════════════════════════════════════════════════════════════════════════
+  # HEALTH
+  # ════════════════════════════════════════════════════════════════════════
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      description: Lightweight check that the process is running.
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /api/health/ready:
+    get:
+      tags: [Health]
+      summary: Readiness probe
+      description: Verifies that critical subsystems (NLP engine, data directory) are operational.
+      responses:
+        '200':
+          description: All checks passed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+        '503':
+          description: One or more checks failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+
+  # ════════════════════════════════════════════════════════════════════════
+  # STATS
+  # ════════════════════════════════════════════════════════════════════════
+  /api/stats:
+    get:
+      tags: [Stats]
+      summary: Get query execution statistics
+      parameters:
+        - name: queryName
+          in: query
+          schema:
+            type: string
+          description: Filter stats to a specific query
+        - name: since
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Only include stats after this timestamp
+      responses:
+        '200':
+          description: Statistics with aggregations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stats:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/QueryStat'
+                  aggregated:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AggregatedStat'
+                  totalRecords:
+                    type: integer
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Stats]
+      summary: Record a query execution statistic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - queryName
+              properties:
+                queryName:
+                  type: string
+                  example: open_tickets
+                success:
+                  type: boolean
+                  default: true
+                durationMs:
+                  type: integer
+                  default: 0
+                filters:
+                  type: object
+                  additionalProperties:
+                    type: string
+                error:
+                  type: string
+      responses:
+        '201':
+          description: Stat recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryStat'
+        '400':
+          description: Missing queryName
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: queryName is required
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ════════════════════════════════════════════════════════════════════════
+  # USER
+  # ════════════════════════════════════════════════════════════════════════
+  /api/userinfo:
+    get:
+      tags: [User]
+      summary: Get current user information
+      description: |
+        Proxies to the configured USER_INFO_URL (production) or the mock API (development).
+        Returns Active Directory / Windows Auth user profile data.
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+        '502':
+          description: Upstream user info service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ════════════════════════════════════════════════════════════════════════
+  # ADMIN — GROUPS
+  # ════════════════════════════════════════════════════════════════════════
+  /api/admin/groups:
+    get:
+      tags: [Admin/Groups]
+      summary: List all groups with configuration details
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminGroup'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items: {}
+
+  /api/admin/groups/create:
+    post:
+      tags: [Admin/Groups]
+      summary: Create a new group via onboarding
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGroupRequest'
+      responses:
+        '201':
+          description: Group created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  groupId:
+                    type: string
+                  queriesAdded:
+                    type: integer
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/groups/{id}:
+    get:
+      tags: [Admin/Groups]
+      summary: Get a single group by ID
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Group detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminGroupDetail'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Group not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      tags: [Admin/Groups]
+      summary: Update a group
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                sources:
+                  type: array
+                  items:
+                    type: string
+                apiBaseUrl:
+                  type: string
+                  nullable: true
+                templates:
+                  type: object
+                  nullable: true
+      responses:
+        '200':
+          description: Updated group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminGroupDetail'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Group not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Admin/Groups]
+      summary: Delete a group
+      description: Cannot delete the default group.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Group deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  deletedGroupId:
+                    type: string
+        '400':
+          description: Cannot delete default group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Group not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ════════════════════════════════════════════════════════════════════════
+  # ADMIN — QUERIES
+  # ════════════════════════════════════════════════════════════════════════
+  /api/admin/queries:
+    get:
+      tags: [Admin/Queries]
+      summary: List all query definitions
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: source
+          in: query
+          schema:
+            type: string
+          description: Comma-separated list of sources to filter by
+      responses:
+        '200':
+          description: List of queries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminQuery'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queries:
+                    type: array
+                    items: {}
+
+    post:
+      tags: [Admin/Queries]
+      summary: Create a new query definition
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQueryRequest'
+      responses:
+        '201':
+          description: Query created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminQuery'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Query name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      tags: [Admin/Queries]
+      summary: Update a query definition
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+              properties:
+                id:
+                  type: string
+                  example: q1
+                name:
+                  type: string
+                description:
+                  type: string
+                source:
+                  type: string
+                url:
+                  type: string
+                type:
+                  type: string
+                filters:
+                  type: array
+                  items:
+                    type: string
+                estimatedDuration:
+                  type: integer
+                filePath:
+                  type: string
+                endpoint:
+                  type: string
+      responses:
+        '200':
+          description: Updated query
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminQuery'
+        '400':
+          description: Missing id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Query not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Admin/Queries]
+      summary: Delete a query definition
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Query ID to delete
+      responses:
+        '200':
+          description: Query deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  deletedQueryId:
+                    type: string
+        '400':
+          description: Missing id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Query not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ════════════════════════════════════════════════════════════════════════
+  # ADMIN — FILTERS
+  # ════════════════════════════════════════════════════════════════════════
+  /api/admin/filters:
+    get:
+      tags: [Admin/Filters]
+      summary: Get the filter configuration
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Filter config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilterConfig'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Admin/Filters]
+      summary: Create or update a filter
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFilterRequest'
+      responses:
+        '200':
+          description: Filter saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  label:
+                    type: string
+                  type:
+                    type: string
+                  options:
+                    type: array
+                    items:
+                      type: string
+                  placeholder:
+                    type: string
+                    nullable: true
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Admin/Filters]
+      summary: Delete a filter
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: key
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Filter key to delete
+      responses:
+        '200':
+          description: Filter deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  deletedKey:
+                    type: string
+        '400':
+          description: Missing key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Filter not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ════════════════════════════════════════════════════════════════════════
+  # ADMIN — INTENTS
+  # ════════════════════════════════════════════════════════════════════════
+  /api/admin/intents:
+    get:
+      tags: [Admin/Intents]
+      summary: List all intents with utterances and entities
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Intents and entities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  intents:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/IntentItem'
+                  entities:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        options:
+                          type: object
+                          additionalProperties:
+                            type: array
+                            items:
+                              type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Admin/Intents]
+      summary: Create or update an intent
+      description: If the intent already exists, its utterances and answers are replaced.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIntentRequest'
+      responses:
+        '200':
+          description: Intent saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  intent:
+                    type: string
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Admin/Intents]
+      summary: Delete an intent
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: intent
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Intent name to delete
+      responses:
+        '200':
+          description: Intent deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  deleted:
+                    type: string
+        '400':
+          description: Missing intent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ════════════════════════════════════════════════════════════════════════
+  # ADMIN — ENTITIES
+  # ════════════════════════════════════════════════════════════════════════
+  /api/admin/entities:
+    get:
+      tags: [Admin/Entities]
+      summary: List all entities
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Entities map
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entities:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        options:
+                          type: object
+                          additionalProperties:
+                            type: array
+                            items:
+                              type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Admin/Entities]
+      summary: Create or update an entity synonym set
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEntityRequest'
+      responses:
+        '200':
+          description: Entity saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  entityType:
+                    type: string
+                  optionKey:
+                    type: string
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Admin/Entities]
+      summary: Delete an entity synonym set
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: entityType
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: optionKey
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Entity deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  deleted:
+                    type: string
+        '400':
+          description: Missing parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ════════════════════════════════════════════════════════════════════════
+  # ADMIN — TEMPLATES
+  # ════════════════════════════════════════════════════════════════════════
+  /api/admin/templates:
+    get:
+      tags: [Admin/Templates]
+      summary: Get all response templates (base and per-group)
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  baseTemplates:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        type: string
+                  groupTemplates:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      additionalProperties:
+                        type: array
+                        items:
+                          type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Admin/Templates]
+      summary: Create or update a response template
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTemplateRequest'
+      responses:
+        '200':
+          description: Template saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  scope:
+                    type: string
+                  intent:
+                    type: string
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Group not found (when scope is a group ID)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Admin/Templates]
+      summary: Delete a response template
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: scope
+          in: query
+          schema:
+            type: string
+            default: base
+          description: '"base" or a group ID'
+        - name: intent
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Intent name to delete template for
+      responses:
+        '200':
+          description: Template deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  deleted:
+                    type: string
+        '400':
+          description: Missing intent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ════════════════════════════════════════════════════════════════════════
+  # ADMIN — USERS
+  # ════════════════════════════════════════════════════════════════════════
+  /api/admin/users:
+    get:
+      tags: [Admin/Users]
+      summary: List all admin/viewer users
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: User list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminUser'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items: {}
+
+    post:
+      tags: [Admin/Users]
+      summary: Create a new user
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: User or email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/users/{id}:
+    get:
+      tags: [Admin/Users]
+      summary: Get a user by ID
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      tags: [Admin/Users]
+      summary: Update a user
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                userid:
+                  type: string
+                brid:
+                  type: string
+                role:
+                  type: string
+                  enum: [admin, viewer]
+                updatedBy:
+                  type: string
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Admin/Users]
+      summary: Delete a user
+      description: Cannot delete the last admin user.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  deletedUserId:
+                    type: string
+        '400':
+          description: Cannot delete last admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ════════════════════════════════════════════════════════════════════════
+  # ADMIN — FILES (Knowledge Base)
+  # ════════════════════════════════════════════════════════════════════════
+  /api/admin/files:
+    get:
+      tags: [Admin/Files]
+      summary: List knowledge-base files
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: File list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  files:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/KnowledgeFile'
+                  totalFiles:
+                    type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Admin/Files]
+      summary: Upload a knowledge-base file
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFileRequest'
+      responses:
+        '200':
+          description: File created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  name:
+                    type: string
+        '400':
+          description: Missing name or content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Admin/Files]
+      summary: Delete a knowledge-base file
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Filename to delete
+      responses:
+        '200':
+          description: File deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  deleted:
+                    type: string
+        '400':
+          description: Missing name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/files/read:
+    get:
+      tags: [Admin/Files]
+      summary: Read the content of a knowledge-base file
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Filename to read
+      responses:
+        '200':
+          description: File content
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  content:
+                    type: string
+        '400':
+          description: Missing name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ════════════════════════════════════════════════════════════════════════
+  # ADMIN — LEARNING
+  # ════════════════════════════════════════════════════════════════════════
+  /api/admin/learning/review:
+    get:
+      tags: [Admin/Learning]
+      summary: Get the learning review queue
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: groupId
+          in: query
+          schema:
+            type: string
+            default: default
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: Filter by review status
+      responses:
+        '200':
+          description: Review queue items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReviewItem'
+                  total:
+                    type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/learning/review/{id}/resolve:
+    post:
+      tags: [Admin/Learning]
+      summary: Resolve a review item with the correct intent
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - correctIntent
+              properties:
+                correctIntent:
+                  type: string
+                  example: query.open_tickets
+                groupId:
+                  type: string
+                  default: default
+      responses:
+        '200':
+          description: Item resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Missing correctIntent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Review item not found or already resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/learning/review/{id}/dismiss:
+    post:
+      tags: [Admin/Learning]
+      summary: Dismiss a review item
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                groupId:
+                  type: string
+                  default: default
+      responses:
+        '200':
+          description: Item dismissed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Review item not found or already resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/learning/stats:
+    get:
+      tags: [Admin/Learning]
+      summary: Get learning statistics
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: groupId
+          in: query
+          schema:
+            type: string
+            default: default
+      responses:
+        '200':
+          description: Learning stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearningStats'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/learning/auto-learned:
+    get:
+      tags: [Admin/Learning]
+      summary: Get auto-learned items
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: groupId
+          in: query
+          schema:
+            type: string
+            default: default
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Auto-learned items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                  total:
+                    type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/learning/retrain:
+    post:
+      tags: [Admin/Learning]
+      summary: Trigger NLP model retraining
+      description: |
+        Invalidates the cached NLP engine for the specified group, forcing a retrain
+        on the next request. Use groupId "all" to retrain all groups.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                groupId:
+                  type: string
+                  default: default
+                  example: all
+      responses:
+        '200':
+          description: Retrain triggered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  groupId:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/admin/learning/process-signals:
+    post:
+      tags: [Admin/Learning]
+      summary: Process pending feedback signals
+      description: Processes accumulated user feedback signals and updates the learning model.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                groupId:
+                  type: string
+                  default: default
+      responses:
+        '200':
+          description: Signals processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  processed:
+                    type: integer
+                  newReviewItems:
+                    type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ════════════════════════════════════════════════════════════════════════
+  # ADMIN — SETTINGS
+  # ════════════════════════════════════════════════════════════════════════
+  /api/admin/settings:
+    get:
+      tags: [Admin/Settings]
+      summary: Get current engine settings
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Engine settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  config:
+                    $ref: '#/components/schemas/EngineSettings'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Admin/Settings]
+      summary: Update engine settings
+      description: Merges the provided fields into the current settings.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EngineSettings'
+      responses:
+        '200':
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  config:
+                    $ref: '#/components/schemas/EngineSettings'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ════════════════════════════════════════════════════════════════════════
+  # ADMIN — LOGS
+  # ════════════════════════════════════════════════════════════════════════
+  /api/admin/logs:
+    get:
+      tags: [Admin/Logs]
+      summary: Get conversation logs
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: group
+          in: query
+          schema:
+            type: string
+          description: Filter by group ID
+        - name: intent
+          in: query
+          schema:
+            type: string
+          description: Filter by intent
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Full-text search in user messages and bot responses
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+          description: Maximum number of logs to return
+      responses:
+        '200':
+          description: Conversation logs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConversationLog'
+                  total:
+                    type: integer
+                  filtered:
+                    type: integer
+                  intentDistribution:
+                    type: object
+                    additionalProperties:
+                      type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Admin/Logs]
+      summary: Clear all conversation logs
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Logs cleared
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ════════════════════════════════════════════════════════════════════════
+  # ADMIN — AUDIT
+  # ════════════════════════════════════════════════════════════════════════
+  /api/admin/audit:
+    get:
+      tags: [Admin/Audit]
+      summary: Get admin audit log
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: resource
+          in: query
+          schema:
+            type: string
+          description: Filter by resource type (group, query, user, etc.)
+        - name: groupId
+          in: query
+          schema:
+            type: string
+          description: Filter by group ID
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: since
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Only include entries after this timestamp
+      responses:
+        '200':
+          description: Audit entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditEntry'
+                  count:
+                    type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

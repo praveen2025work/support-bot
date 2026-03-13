@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { decryptLogEntry } from '@/lib/log-encryption';
 
 const LOGS_PATH = join(process.cwd(), 'data/logs/conversations.jsonl');
 
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
     const raw = readFileSync(LOGS_PATH, 'utf-8');
     const lines = raw.trim().split('\n').filter(Boolean);
     const logs: LogEntry[] = lines.map((line) => {
-      try { return JSON.parse(line); } catch { return null; }
+      try { return JSON.parse(decryptLogEntry(line)); } catch { return null; }
     }).filter(Boolean);
 
     // Apply filters

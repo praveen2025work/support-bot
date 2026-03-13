@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { csrfHeaders } from '@/lib/csrf';
 
 interface PipelineStep {
   name: string;
@@ -53,7 +54,7 @@ export default function TestConsolePage() {
       const nlpStart = performance.now();
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({
           text: input.trim(),
           sessionId: `test-console-${Date.now()}`,

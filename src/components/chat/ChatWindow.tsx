@@ -5,6 +5,23 @@ import { useUser } from '@/contexts/UserContext';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { SuggestionChips } from './SuggestionChips';
+import { ErrorBoundary } from './ErrorBoundary';
+
+/** Compute a safe postMessage target origin instead of broadcasting to '*'. */
+function getPostMessageTargetOrigin(): string {
+  if (window.parent !== window) {
+    // Embedded in an iframe — use the parent's origin from document.referrer
+    if (document.referrer) {
+      try {
+        return new URL(document.referrer).origin;
+      } catch {
+        return '*';
+      }
+    }
+    return '*';
+  }
+  return window.location.origin;
+}
 
 export function ChatWindow({
   platform = 'web',
@@ -22,15 +39,18 @@ export function ChatWindow({
   const suggestions = lastBotMessage?.suggestions || [];
 
   const handleWidgetClose = () => {
-    window.parent.postMessage({ type: 'chatbot-close' }, '*');
+    const targetOrigin = getPostMessageTargetOrigin();
+    window.parent.postMessage({ type: 'chatbot-close' }, targetOrigin);
   };
 
   const handleWidgetMinimize = () => {
-    window.parent.postMessage({ type: 'chatbot-close' }, '*');
+    const targetOrigin = getPostMessageTargetOrigin();
+    window.parent.postMessage({ type: 'chatbot-close' }, targetOrigin);
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <ErrorBoundary>
+      <div className="flex flex-col h-full bg-white">
       {platform === 'widget' ? (
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-2.5 flex items-center gap-2 flex-shrink-0">
           {/* Bot icon */}
@@ -103,6 +123,7 @@ export function ChatWindow({
       )}
 
       <ChatInput onSend={sendMessage} disabled={isLoading} />
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }

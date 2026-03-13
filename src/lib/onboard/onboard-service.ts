@@ -2,11 +2,11 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import type { OnboardPayload } from './schemas';
 import { generateCorpus, generateFaq } from './corpus-generator';
+import { withDbLock } from '@/lib/db';
 
 const PROJECT_ROOT = process.cwd();
 const TRAINING_GROUPS_DIR = path.join(PROJECT_ROOT, 'src/training/groups');
 const GROUPS_JSON_PATH = path.join(PROJECT_ROOT, 'src/config/groups.json');
-const DB_JSON_PATH = path.join(PROJECT_ROOT, 'mock-api/db.json');
 
 export interface OnboardResult {
   success: boolean;
@@ -75,35 +75,37 @@ export async function processOnboarding(
   );
   filesWritten.push('groups.json');
 
-  // 5. Update mock-api/db.json with new queries
-  const dbRaw = await fs.readFile(DB_JSON_PATH, 'utf-8');
-  const dbData = JSON.parse(dbRaw);
-  const maxIdNum = dbData.queries
-    .map((q: { id: string }) => parseInt(q.id.replace('q', ''), 10))
-    .filter((n: number) => !isNaN(n))
-    .reduce((max: number, n: number) => Math.max(max, n), 0);
+  // 5. Update mock-api/db.json with new queries (using shared lock)
+  await withDbLock(async (dbData) => {
+    const existingQueries = (dbData.queries || []) as Array<{ id: string; [key: string]: unknown }>;
+    const maxIdNum = existingQueries
+      .map((q) => parseInt(q.id.replace('q', ''), 10))
+      .filter((n) => !isNaN(n))
+      .reduce((max, n) => Math.max(max, n), 0);
 
-  let nextId = maxIdNum + 1;
-  for (const query of queries) {
-    const filterKeys = query.filters
-      ? query.filters
-          .split(',')
-          .map((f) => f.trim())
-          .filter(Boolean)
-      : [];
-    const filters = filterKeys.map((key) => ({ key, binding: 'body' }));
+    let nextId = maxIdNum + 1;
+    for (const query of queries) {
+      const filterKeys = query.filters
+        ? query.filters
+            .split(',')
+            .map((f) => f.trim())
+            .filter(Boolean)
+        : [];
+      const filters = filterKeys.map((key) => ({ key, binding: 'body' }));
 
-    dbData.queries.push({
-      id: `q${nextId++}`,
-      name: query.name,
-      description: query.description,
-      estimatedDuration: query.estimated_duration,
-      url: query.url,
-      source: query.source,
-      filters,
-    });
-  }
-  await fs.writeFile(DB_JSON_PATH, JSON.stringify(dbData, null, 2), 'utf-8');
+      existingQueries.push({
+        id: `q${nextId++}`,
+        name: query.name,
+        description: query.description,
+        estimatedDuration: query.estimated_duration,
+        url: query.url,
+        source: query.source,
+        filters,
+      });
+    }
+    dbData.queries = existingQueries;
+    return { result: undefined, save: true };
+  });
   filesWritten.push('db.json');
 
   // 6. Invalidate engine cache + reload group config

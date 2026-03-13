@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { csrfHeaders } from '@/lib/csrf';
 import { EmbedCodeGenerator } from './components/EmbedCodeGenerator';
 
 interface GroupInfo {
@@ -38,7 +39,7 @@ export default function AdminGroupsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/admin/groups/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/groups/${id}`, { method: 'DELETE', headers: { ...csrfHeaders() } });
       if (res.ok) {
         setDeletingId(null);
         fetchGroups();

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFileSync, writeFileSync, readdirSync, unlinkSync, statSync } from 'fs';
 import { join, extname } from 'path';
+import path from 'path';
+import { isRequestAdmin } from '@/lib/admin-auth';
 
 const DATA_DIR = join(process.cwd(), 'data/knowledge');
 
@@ -14,7 +16,12 @@ interface FileInfo {
 }
 
 // GET — list all knowledge files
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await isRequestAdmin(request);
+  if (!auth.isAdmin) {
+    return NextResponse.json({ error: 'Forbidden — admin access required' }, { status: 403 });
+  }
+
   try {
     const files = readdirSync(DATA_DIR);
     const fileInfos: FileInfo[] = files
@@ -42,6 +49,11 @@ export async function GET() {
 
 // POST — create or update a file
 export async function POST(request: NextRequest) {
+  const auth = await isRequestAdmin(request);
+  if (!auth.isAdmin) {
+    return NextResponse.json({ error: 'Forbidden — admin access required' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const { name, content } = body;
@@ -52,8 +64,14 @@ export async function POST(request: NextRequest) {
 
     // Sanitize filename
     const safeName = name.replace(/[^a-zA-Z0-9._-]/g, '-');
-    const filePath = join(DATA_DIR, safeName);
-    writeFileSync(filePath, content, 'utf-8');
+
+    // Path traversal protection
+    const resolved = path.resolve(DATA_DIR, safeName);
+    if (!resolved.startsWith(path.resolve(DATA_DIR) + path.sep) && resolved !== path.resolve(DATA_DIR)) {
+      return NextResponse.json({ error: 'Invalid file path' }, { status: 400 });
+    }
+
+    writeFileSync(resolved, content, 'utf-8');
 
     return NextResponse.json({ success: true, name: safeName });
   } catch (err) {
@@ -63,6 +81,11 @@ export async function POST(request: NextRequest) {
 
 // DELETE — delete a file
 export async function DELETE(request: NextRequest) {
+  const auth = await isRequestAdmin(request);
+  if (!auth.isAdmin) {
+    return NextResponse.json({ error: 'Forbidden — admin access required' }, { status: 403 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const name = searchParams.get('name');
@@ -72,8 +95,14 @@ export async function DELETE(request: NextRequest) {
     }
 
     const safeName = name.replace(/[^a-zA-Z0-9._-]/g, '-');
-    const filePath = join(DATA_DIR, safeName);
-    unlinkSync(filePath);
+
+    // Path traversal protection
+    const resolved = path.resolve(DATA_DIR, safeName);
+    if (!resolved.startsWith(path.resolve(DATA_DIR) + path.sep) && resolved !== path.resolve(DATA_DIR)) {
+      return NextResponse.json({ error: 'Invalid file path' }, { status: 400 });
+    }
+
+    unlinkSync(resolved);
 
     return NextResponse.json({ success: true, deleted: safeName });
   } catch (err) {

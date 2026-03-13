@@ -27,6 +27,16 @@ export class ApiConnectionError extends ChatbotError {
   }
 }
 
+export class CircuitOpenError extends ChatbotError {
+  constructor(baseUrl: string) {
+    super(
+      `Circuit breaker is OPEN for ${baseUrl} — requests are temporarily blocked`,
+      'CIRCUIT_OPEN',
+      503
+    );
+  }
+}
+
 export class FileReadError extends ChatbotError {
   constructor(filePath: string, detail?: string) {
     super(
