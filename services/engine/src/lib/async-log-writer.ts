@@ -88,6 +88,7 @@ export class AsyncLogWriter {
   private flushSync(): void {
     if (this.buffer.length === 0) return;
     try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { writeFileSync, mkdirSync, existsSync } = require('fs');
       if (!existsSync(dirname(this.filePath))) {
         mkdirSync(dirname(this.filePath), { recursive: true });

@@ -77,6 +77,7 @@ router.post('/retrain', requirePermission('learning.manage'), (req: Request, res
   try {
     const groupId = (req.body.groupId as string) || 'default';
     if (groupId === 'all') {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { invalidateAllEngines } = require('@/lib/singleton');
       invalidateAllEngines();
     } else {

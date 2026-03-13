@@ -32,6 +32,7 @@ jest.mock('@/lib/logger', () => ({
 // Mock the dynamic import for corpus data (default corpus).
 // We supply the real corpus.json so intents are trained authentically.
 // ---------------------------------------------------------------------------
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const CORPUS = require('../../src/training/corpus.json');
 
 jest.mock('@/training/corpus.json', () => CORPUS, { virtual: true });

@@ -37,6 +37,7 @@ function useEngineStatus() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- polling on mount is a valid pattern
     check();
     const interval = setInterval(check, 30000);
     return () => clearInterval(interval);

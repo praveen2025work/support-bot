@@ -26,7 +26,7 @@ function splitIntoSections(content: string): Omit<DocumentSection, 'score'>[] {
 
   if (headingIndices.length === 0) {
     // No headings — split by double newlines (paragraphs)
-    let paraStart = 0;
+    const paraStart = 0;
     const text = content.trim();
     const paragraphs = text.split(/\n\s*\n/);
     let lineOffset = 0;

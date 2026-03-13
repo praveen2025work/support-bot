@@ -36,6 +36,15 @@ export default tseslint.config(
     },
   },
 
+  // Relax rules for CommonJS files (mock-api, scripts)
+  {
+    name: "project/commonjs",
+    files: ["**/*.js", "**/*.cjs"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+
   // Global ignores
   {
     ignores: [".next/", "node_modules/", "dist/", "services/engine/dist/"],

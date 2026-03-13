@@ -21,7 +21,7 @@ function parseTemplatesTs(): Record<string, string[]> {
 
   try {
     // Convert TS to valid JSON-ish: replace single quotes with double, handle template strings
-    let obj = match[1];
+    const obj = match[1];
     // Use eval-like approach via Function (safe since it's our own file)
     const result: Record<string, string[]> = {};
     const intentRegex = /(\w+)\s*:\s*\[([^\]]*)\]/g;

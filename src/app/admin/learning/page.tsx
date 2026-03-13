@@ -83,10 +83,12 @@ export default function LearningPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data fetch on mount
     fetchIntents();
   }, [fetchIntents]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch data when tab/group changes
     if (tab === 'review') fetchReviewQueue();
     else if (tab === 'auto-learned') fetchAutoLearned();
     else if (tab === 'stats') fetchStats();
