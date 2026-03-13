@@ -178,7 +178,7 @@
     toggle.style.transform = 'scale(1.08)';
   };
   toggle.onmouseleave = function () {
-    if (!isOpen) toggle.style.transform = 'scale(1)';
+    if (widgetState === 'closed') toggle.style.transform = 'scale(1)';
   };
 
   // Greeting tooltip (using textContent, already safe)
