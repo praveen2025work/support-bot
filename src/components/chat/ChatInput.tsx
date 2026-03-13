@@ -5,9 +5,15 @@ import { useState, useCallback } from 'react';
 export function ChatInput({
   onSend,
   disabled,
+  onNewSession,
+  onClearChat,
+  onDisconnect,
 }: {
   onSend: (text: string) => void;
   disabled: boolean;
+  onNewSession: () => void;
+  onClearChat: () => void;
+  onDisconnect: () => void;
 }) {
   const [text, setText] = useState('');
 
@@ -18,8 +24,8 @@ export function ChatInput({
   }, [text, disabled, onSend]);
 
   return (
-    <div className="border-t border-gray-200 p-4">
-      <div className="flex gap-2">
+    <div className="sticky bottom-0 z-10 bg-white border-t border-gray-200 flex-shrink-0">
+      <div className="flex gap-2 p-3 pb-2">
         <input
           type="text"
           value={text}
@@ -35,6 +41,42 @@ export function ChatInput({
           className="rounded-full bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           Send
+        </button>
+      </div>
+      {/* Session actions */}
+      <div className="flex items-center justify-center gap-3 px-3 pb-2 pt-0">
+        <button
+          onClick={onNewSession}
+          className="text-[11px] text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-1"
+          title="Start a new conversation session"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          New Session
+        </button>
+        <span className="text-gray-200">|</span>
+        <button
+          onClick={onClearChat}
+          disabled={disabled}
+          className="text-[11px] text-gray-400 hover:text-orange-500 transition-colors flex items-center gap-1 disabled:opacity-50"
+          title="Clear all messages"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          </svg>
+          Clear Chat
+        </button>
+        <span className="text-gray-200">|</span>
+        <button
+          onClick={onDisconnect}
+          className="text-[11px] text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1"
+          title="Disconnect and end session"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+          Disconnect
         </button>
       </div>
     </div>

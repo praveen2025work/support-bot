@@ -54,7 +54,7 @@ export function ChatWindow({
   groupId?: string;
   userName?: string;
 }) {
-  const { messages, isLoading, loadingStatus, sendMessage, executeQuery, retryMessage } = useChat(platform, groupId, userName);
+  const { messages, isLoading, loadingStatus, sendMessage, executeQuery, retryMessage, clearMessages } = useChat(platform, groupId, userName);
   const { userInfo } = useUser();
   const engineStatus = useEngineStatus();
 
@@ -69,6 +69,21 @@ export function ChatWindow({
   const handleWidgetMinimize = () => {
     const targetOrigin = getPostMessageTargetOrigin();
     window.parent.postMessage({ type: 'chatbot-minimize' }, targetOrigin);
+  };
+
+  const handleNewSession = () => {
+    clearMessages();
+  };
+
+  const handleClearChat = () => {
+    clearMessages();
+  };
+
+  const handleDisconnect = () => {
+    clearMessages();
+    if (platform === 'widget') {
+      handleWidgetClose();
+    }
   };
 
   // Status indicator config
@@ -184,7 +199,13 @@ export function ChatWindow({
         <SuggestionChips suggestions={suggestions} onSelect={sendMessage} />
       )}
 
-      <ChatInput onSend={sendMessage} disabled={isLoading} />
+      <ChatInput
+        onSend={sendMessage}
+        disabled={isLoading}
+        onNewSession={handleNewSession}
+        onClearChat={handleClearChat}
+        onDisconnect={handleDisconnect}
+      />
       </div>
     </ErrorBoundary>
   );
