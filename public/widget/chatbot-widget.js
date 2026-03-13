@@ -202,46 +202,97 @@
     }, 8000);
   }
 
-  var isOpen = false;
-  toggle.onclick = function () {
-    isOpen = !isOpen;
-    if (isOpen) {
+  // ── Widget states: 'closed' | 'open' | 'minimized' ──────────────────
+  var widgetState = 'closed'; // 'closed' | 'open' | 'minimized'
+  var savedHeight = '560px';
+
+  // Create minimized bar
+  var minimizedBar = document.createElement('div');
+  minimizedBar.id = 'chatbot-minimized-bar';
+  minimizedBar.style.cssText =
+    'position:fixed;bottom:20px;' + iframeHPos + 'width:220px;height:44px;z-index:999999;display:none;border-radius:22px;overflow:hidden;' +
+    'box-shadow:0 4px 16px rgba(0,0,0,0.15);cursor:pointer;' +
+    'background:' + t.bg + ';color:white;' +
+    'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;' +
+    'font-size:13px;font-weight:600;' +
+    'display:none;align-items:center;justify-content:center;gap:8px;padding:0 16px;' +
+    'transition:transform 0.2s ease;';
+
+  // Bot icon + label in minimized bar (DOM-based)
+  var miniIcon = createIconSvg(iconType);
+  miniIcon.setAttribute('width', '18');
+  miniIcon.setAttribute('height', '18');
+  minimizedBar.appendChild(miniIcon);
+  var miniLabel = document.createElement('span');
+  miniLabel.textContent = 'Chatbot';
+  minimizedBar.appendChild(miniLabel);
+  // Expand arrow
+  var expandSvg = createSvgElement('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+    createSvgElement('polyline', { points: '18 15 12 9 6 15' }),
+  ]);
+  expandSvg.style.marginLeft = 'auto';
+  minimizedBar.appendChild(expandSvg);
+
+  minimizedBar.onmouseenter = function () { minimizedBar.style.transform = 'scale(1.03)'; };
+  minimizedBar.onmouseleave = function () { minimizedBar.style.transform = 'scale(1)'; };
+
+  function transitionTo(newState) {
+    widgetState = newState;
+
+    if (newState === 'open') {
+      // Show full iframe, hide toggle + minimized bar
       iframeWrap.style.display = 'block';
+      iframeWrap.style.height = savedHeight;
+      iframeWrap.style.maxHeight = 'calc(100vh - 120px)';
+      iframeWrap.style.borderRadius = '16px';
       iframeWrap.style.animation = 'chatbot-fade-in 0.25s ease forwards';
-      setToggleIcon(toggle, createCloseIconSvg());
-      toggle.setAttribute('aria-label', 'Close chat');
-      toggle.style.transform = 'scale(1)';
-      toggle.style.animation = 'none';
+      toggle.style.display = 'none';
+      minimizedBar.style.display = 'none';
       if (greetingEl) greetingEl.style.display = 'none';
-    } else {
+    } else if (newState === 'minimized') {
+      // Hide full iframe + toggle, show minimized bar
       iframeWrap.style.animation = 'chatbot-fade-out 0.2s ease forwards';
-      setTimeout(function () {
-        iframeWrap.style.display = 'none';
-      }, 200);
+      setTimeout(function () { iframeWrap.style.display = 'none'; }, 200);
+      toggle.style.display = 'none';
+      minimizedBar.style.display = 'flex';
+    } else {
+      // closed — hide everything, show toggle
+      iframeWrap.style.animation = 'chatbot-fade-out 0.2s ease forwards';
+      setTimeout(function () { iframeWrap.style.display = 'none'; }, 200);
+      minimizedBar.style.display = 'none';
+      toggle.style.display = 'flex';
       setToggleIcon(toggle, createIconSvg(iconType));
       toggle.setAttribute('aria-label', 'Open chat');
+      toggle.style.animation = 'none';
+    }
+  }
+
+  toggle.onclick = function () {
+    if (widgetState === 'closed') {
+      toggle.style.animation = 'none';
+      transitionTo('open');
+    } else {
+      transitionTo('closed');
     }
   };
 
-  // Listen for close messages from iframe — with origin validation
+  minimizedBar.onclick = function () {
+    transitionTo('open');
+  };
+
+  // Listen for messages from iframe — with origin validation
   window.addEventListener('message', function (event) {
-    // Validate the message origin
-    if (!isOriginAllowed(event.origin)) {
-      return;
-    }
+    if (!isOriginAllowed(event.origin)) return;
 
     if (event.data && event.data.type === 'chatbot-close') {
-      isOpen = false;
-      iframeWrap.style.animation = 'chatbot-fade-out 0.2s ease forwards';
-      setTimeout(function () {
-        iframeWrap.style.display = 'none';
-      }, 200);
-      setToggleIcon(toggle, createIconSvg(iconType));
-      toggle.setAttribute('aria-label', 'Open chat');
+      transitionTo('closed');
+    } else if (event.data && event.data.type === 'chatbot-minimize') {
+      transitionTo('minimized');
     }
   });
 
   document.body.appendChild(iframeWrap);
   document.body.appendChild(toggle);
+  document.body.appendChild(minimizedBar);
   if (greetingEl) document.body.appendChild(greetingEl);
 })();
