@@ -12,9 +12,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
 
-    "dev:mock": "dotenv -e .env.mock -- concurrently -n mock,engine,ui -c yellow,blue,green \"npm run svc:mock-api\" \"cd services/engine && npm run dev\" \"npx next dev\"",
-    "dev:mock:3svc": "dotenv -e .env.mock -- concurrently -n mock,engine,ui -c yellow,blue,green \"npm run svc:mock-api\" \"cd services/engine && npm run dev\" \"npx next dev\"",
-    "dev": "dotenv -e .env.dev -- concurrently -n engine,ui -c blue,green \"cd services/engine && npm run dev\" \"npx next dev\"",
+    "dev:mock": "dotenv -e .env.mock -- concurrently --restart-tries 3 --restart-after 2000 -n mock,engine,ui -c yellow,blue,green \"npm run svc:mock-api\" \"cd services/engine && npm run dev\" \"npx next dev\"",
+    "dev:mock:3svc": "dotenv -e .env.mock -- concurrently --restart-tries 3 --restart-after 2000 -n mock,engine,ui -c yellow,blue,green \"npm run svc:mock-api\" \"cd services/engine && npm run dev\" \"npx next dev\"",
+    "dev": "dotenv -e .env.dev -- concurrently --restart-tries 3 --restart-after 2000 -n engine,ui -c blue,green \"cd services/engine && npm run dev\" \"npx next dev\"",
 
     "start:demo": "dotenv -e .env.mock -- concurrently -n mock,engine,ui -c yellow,blue,green \"npm run svc:mock-api\" \"cd services/engine && npm start\" \"npx next start\"",
     "start:prod": "dotenv -e .env.prod -- concurrently -n engine,ui -c blue,green \"cd services/engine && npm start\" \"npx next start\"",

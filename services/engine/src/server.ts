@@ -93,4 +93,17 @@ async function shutdown(signal: string) {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
+// ---------------------------------------------------------------------------
+// Crash protection — prevent unhandled errors from killing the process
+// ---------------------------------------------------------------------------
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error({ reason, promise: String(promise) }, 'Unhandled promise rejection — keeping server alive');
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error({ error: error.message, stack: error.stack }, 'Uncaught exception — keeping server alive');
+  // Note: for truly fatal errors (out of memory, etc.), the process will still die.
+  // For recoverable errors (bad request handling, missing file, etc.), we stay alive.
+});
+
 export default app;

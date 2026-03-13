@@ -4,7 +4,7 @@
   "private": true,
   "description": "Chatbot Engine — NLP pipeline, query execution, admin API",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "tsx watch --ignore './data/**' --ignore './dist/**' --ignore './*.jsonl' src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "train": "tsx src/training/scripts/train.ts",
