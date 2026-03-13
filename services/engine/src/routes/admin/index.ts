@@ -27,11 +27,14 @@ if (engineApiKey) {
 }
 
 // RBAC middleware — extract user role from X-User-Role header (set by the Next.js proxy)
-// and attach it to req.userRole for downstream permission checks
+// and attach it to req.userRole for downstream permission checks.
+// Default to 'admin' when no role header is present (request already passed Next.js admin auth).
 router.use((req: Request, _res: Response, next) => {
   const roleHeader = req.headers['x-user-role'] as string | undefined;
   if (roleHeader && isValidRole(roleHeader)) {
     (req as any).userRole = roleHeader as Role;
+  } else {
+    (req as any).userRole = 'admin' as Role;
   }
   next();
 });

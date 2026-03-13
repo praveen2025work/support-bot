@@ -4,62 +4,260 @@
   "entities": {
     "query_name": {
       "options": {
-        "monthly_revenue": ["monthly revenue", "revenue report", "monthly sales", "revenue"],
-        "active_users": ["active users", "user count", "monthly active users", "MAU", "users"],
-        "error_rate": ["error rate", "errors", "failure rate", "error report"],
-        "performance": ["performance", "performance metrics", "latency", "response time"],
-        "daily_orders": ["daily orders", "orders today", "order count", "orders"],
-        "customer_churn": ["customer churn", "churn rate", "churn", "attrition"],
-        "infrastructure_costs": ["infrastructure costs", "infra costs", "cloud costs", "costs"],
-        "headcount": ["headcount", "head count", "employee count", "team size"],
-        "hiring_pipeline": ["hiring pipeline", "hiring funnel", "open positions", "hiring"],
-        "onboarding_guide": ["onboarding guide", "onboarding", "new employee guide", "onboarding docs"],
-        "api_changelog": ["api changelog", "changelog", "release notes", "api changes"],
-        "brd_payments": ["brd_payments", "brd payments", "payments brd", "payments document", "payments requirements"],
-        "sales_data": ["sales_data", "sales data", "sales report", "sales csv", "sales metrics", "revenue data"],
-        "auth_spec": ["auth_spec", "auth spec", "authentication spec", "authorization spec", "auth feature spec", "auth module"],
-        "incident_report": ["incident_report", "incident report", "outage report", "post mortem", "incident post mortem"],
-        "deployment_runbook": ["deployment_runbook", "deployment runbook", "deploy runbook", "deployment guide", "release runbook"],
-        "support_tickets": ["support_tickets", "support tickets", "tickets", "support data", "ticket data"],
-        "employee_metrics": ["employee_metrics", "employee metrics", "employee data", "staff metrics", "workforce data"],
-        "servicenow_dashboard": ["servicenow_dashboard", "servicenow dashboard", "servicenow", "itsm dashboard", "incident tracking"],
-        "architecture_wiki": ["architecture_wiki", "architecture wiki", "system architecture", "architecture docs", "architecture documentation"],
-        "user_profile": ["user_profile", "user profile", "profile", "user info", "user details", "user data"],
-        "service_logs": ["service_logs", "service logs", "logs", "log data", "application logs", "server logs"],
-        "report_generator": ["report_generator", "report generator", "generate report", "report", "custom report", "generate a report"]
+        "monthly_revenue": [
+          "monthly revenue",
+          "revenue report",
+          "monthly sales",
+          "revenue"
+        ],
+        "active_users": [
+          "active users",
+          "user count",
+          "monthly active users",
+          "MAU",
+          "users"
+        ],
+        "error_rate": [
+          "error rate",
+          "errors",
+          "failure rate",
+          "error report"
+        ],
+        "performance": [
+          "performance",
+          "performance metrics",
+          "latency",
+          "response time"
+        ],
+        "daily_orders": [
+          "daily orders",
+          "orders today",
+          "order count",
+          "orders"
+        ],
+        "customer_churn": [
+          "customer churn",
+          "churn rate",
+          "churn",
+          "attrition"
+        ],
+        "infrastructure_costs": [
+          "infrastructure costs",
+          "infra costs",
+          "cloud costs",
+          "costs"
+        ],
+        "headcount": [
+          "headcount",
+          "head count",
+          "employee count",
+          "team size"
+        ],
+        "hiring_pipeline": [
+          "hiring pipeline",
+          "hiring funnel",
+          "open positions",
+          "hiring"
+        ],
+        "onboarding_guide": [
+          "onboarding guide",
+          "onboarding",
+          "new employee guide",
+          "onboarding docs"
+        ],
+        "api_changelog": [
+          "api changelog",
+          "changelog",
+          "release notes",
+          "api changes"
+        ],
+        "brd_payments": [
+          "brd_payments",
+          "brd payments",
+          "payments brd",
+          "payments document",
+          "payments requirements"
+        ],
+        "sales_data": [
+          "sales_data",
+          "sales data",
+          "sales report",
+          "sales csv",
+          "sales metrics",
+          "revenue data"
+        ],
+        "auth_spec": [
+          "auth_spec",
+          "auth spec",
+          "authentication spec",
+          "authorization spec",
+          "auth feature spec",
+          "auth module"
+        ],
+        "incident_report": [
+          "incident_report",
+          "incident report",
+          "outage report",
+          "post mortem",
+          "incident post mortem"
+        ],
+        "deployment_runbook": [
+          "deployment_runbook",
+          "deployment runbook",
+          "deploy runbook",
+          "deployment guide",
+          "release runbook"
+        ],
+        "support_tickets": [
+          "support_tickets",
+          "support tickets",
+          "tickets",
+          "support data",
+          "ticket data"
+        ],
+        "employee_metrics": [
+          "employee_metrics",
+          "employee metrics",
+          "employee data",
+          "staff metrics",
+          "workforce data"
+        ],
+        "servicenow_dashboard": [
+          "servicenow_dashboard",
+          "servicenow dashboard",
+          "servicenow",
+          "itsm dashboard",
+          "incident tracking"
+        ],
+        "architecture_wiki": [
+          "architecture_wiki",
+          "architecture wiki",
+          "system architecture",
+          "architecture docs",
+          "architecture documentation"
+        ],
+        "user_profile": [
+          "user_profile",
+          "user profile",
+          "profile",
+          "user info",
+          "user details",
+          "user data"
+        ],
+        "service_logs": [
+          "service_logs",
+          "service logs",
+          "logs",
+          "log data",
+          "application logs",
+          "server logs"
+        ],
+        "report_generator": [
+          "report_generator",
+          "report generator",
+          "generate report",
+          "report",
+          "custom report",
+          "generate a report"
+        ]
       }
     },
     "time_period": {
       "options": {
-        "today": ["today", "current day"],
-        "this_week": ["this week", "current week", "weekly"],
-        "this_month": ["this month", "current month", "monthly"],
-        "this_quarter": ["this quarter", "current quarter", "quarterly"],
-        "last_week": ["last week", "previous week"],
-        "last_month": ["last month", "previous month"],
-        "last_quarter": ["last quarter", "previous quarter"]
+        "today": [
+          "today",
+          "current day"
+        ],
+        "this_week": [
+          "this week",
+          "current week",
+          "weekly"
+        ],
+        "this_month": [
+          "this month",
+          "current month",
+          "monthly"
+        ],
+        "this_quarter": [
+          "this quarter",
+          "current quarter",
+          "quarterly"
+        ],
+        "last_week": [
+          "last week",
+          "previous week"
+        ],
+        "last_month": [
+          "last month",
+          "previous month"
+        ],
+        "last_quarter": [
+          "last quarter",
+          "previous quarter"
+        ]
       }
     },
     "region": {
       "options": {
-        "US": ["US", "United States", "America", "USA"],
-        "EU": ["EU", "Europe", "European"],
-        "APAC": ["APAC", "Asia Pacific", "Asia"]
+        "US": [
+          "US",
+          "United States",
+          "America",
+          "USA"
+        ],
+        "EU": [
+          "EU",
+          "Europe",
+          "European"
+        ],
+        "APAC": [
+          "APAC",
+          "Asia Pacific",
+          "Asia"
+        ]
       }
     },
     "team": {
       "options": {
-        "engineering": ["engineering", "engineers", "eng", "dev", "development"],
-        "sales": ["sales", "sales team"],
-        "marketing": ["marketing", "marketing team"],
-        "support": ["support", "customer support", "cs"]
+        "engineering": [
+          "engineering",
+          "engineers",
+          "eng",
+          "dev",
+          "development"
+        ],
+        "sales": [
+          "sales",
+          "sales team"
+        ],
+        "marketing": [
+          "marketing",
+          "marketing team"
+        ],
+        "support": [
+          "support",
+          "customer support",
+          "cs"
+        ]
       }
     },
     "environment": {
       "options": {
-        "production": ["production", "prod", "live"],
-        "staging": ["staging", "stage", "pre-prod"],
-        "dev": ["dev", "development", "local"]
+        "production": [
+          "production",
+          "prod",
+          "live"
+        ],
+        "staging": [
+          "staging",
+          "stage",
+          "pre-prod"
+        ],
+        "dev": [
+          "dev",
+          "development",
+          "local"
+        ]
       }
     }
   },
@@ -118,7 +316,8 @@
         "top 5 by sales in @query_name",
         "count rows in @query_name",
         "maximum revenue in @query_name",
-        "what is the total in @query_name"
+        "what is the total in @query_name",
+        "group by region"
       ],
       "answers": []
     },
@@ -169,7 +368,8 @@
         "available queries",
         "what reports are there",
         "list queries with filters",
-        "what filters are supported"
+        "what filters are supported",
+        "list queries"
       ],
       "answers": []
     },

@@ -1,4 +1,3 @@
-import 'module-alias/register';
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
@@ -13,11 +12,11 @@ import { logger } from './lib/logger';
 import { tenantContextMiddleware } from './middleware/tenant-context';
 
 const app = express();
-const PORT = parseInt(process.env.ENGINE_PORT || '4000', 10);
+const PORT = parseInt(process.env.ENGINE_PORT || '4001', 10);
 
 // Middleware
 app.use(cors({
-  origin: process.env.UI_ORIGIN || 'http://localhost:3000',
+  origin: process.env.UI_ORIGIN || 'http://localhost:3001',
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));

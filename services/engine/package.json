@@ -4,14 +4,14 @@
   "private": true,
   "description": "Chatbot Engine — NLP pipeline, query execution, admin API",
   "scripts": {
-    "predev": "node -e \"try{require('child_process').execSync(process.platform==='win32'?'for /f \"tokens=5\" %a in (\\'netstat -ano ^| findstr :4000 ^| findstr LISTENING\\') do taskkill /PID %a /F 2>nul':'lsof -ti:4000 | xargs kill -9 2>/dev/null',{stdio:'ignore'})}catch{}\"",
-    "dev": "tsx watch --ignore './data/**' --ignore './dist/**' --ignore './*.jsonl' src/server.ts",
-    "build": "tsc",
+    "predev": "node -e \"try{require('child_process').execSync(process.platform==='win32'?'for /f \"tokens=5\" %a in (\\'netstat -ano ^| findstr :4001 ^| findstr LISTENING\\') do taskkill /PID %a /F 2>nul':'lsof -ti:4001 | xargs kill -9 2>/dev/null',{stdio:'ignore'})}catch{}\"",
+    "dev": "tsx watch --require tsconfig-paths/register --ignore './data/**' --ignore './dist/**' --ignore './*.jsonl' src/server.ts",
+    "build": "tsc && tsc-alias",
     "start": "node dist/server.js",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
-    "train": "tsx src/training/scripts/train.ts",
-    "evaluate": "tsx src/training/scripts/evaluate.ts"
+    "train": "tsx --require tsconfig-paths/register src/training/scripts/train.ts",
+    "evaluate": "tsx --require tsconfig-paths/register src/training/scripts/evaluate.ts"
   },
   "dependencies": {
     "@nlpjs/core": "^4.26.1",
@@ -23,21 +23,19 @@
     "fuse.js": "^7.0.0",
     "ky": "^1.7.2",
     "lru-cache": "^11.0.0",
-    "module-alias": "^2.3.4",
     "pino": "^9.4.0",
     "pino-pretty": "^11.2.2",
+    "tsconfig-paths": "^4.2.0",
     "xlsx": "^0.18.5",
     "zod": "^4.3.6"
-  },
-  "_moduleAliases": {
-    "@": "dist"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^20.17.0",
-    "tsx": "^4.19.0",
     "eslint": "^9.39.4",
+    "tsc-alias": "^1.8.16",
+    "tsx": "^4.19.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.57.0"
   }
