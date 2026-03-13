@@ -5,13 +5,13 @@
   "description": "Chatbot Engine — NLP pipeline, query execution, admin API",
   "scripts": {
     "predev": "node -e \"try{require('child_process').execSync(process.platform==='win32'?'for /f \"tokens=5\" %a in (\\'netstat -ano ^| findstr :4001 ^| findstr LISTENING\\') do taskkill /PID %a /F 2>nul':'lsof -ti:4001 | xargs kill -9 2>/dev/null',{stdio:'ignore'})}catch{}\"",
-    "dev": "tsx watch --require tsconfig-paths/register --ignore './data/**' --ignore './dist/**' --ignore './*.jsonl' src/server.ts",
+    "dev": "tsx watch --ignore './data/**' --ignore './dist/**' --ignore './*.jsonl' src/server.ts",
     "build": "tsc && tsc-alias",
-    "start": "node dist/server.js",
+    "start": "node -r tsconfig-paths/register dist/server.js",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
-    "train": "tsx --require tsconfig-paths/register src/training/scripts/train.ts",
-    "evaluate": "tsx --require tsconfig-paths/register src/training/scripts/evaluate.ts"
+    "train": "tsx src/training/scripts/train.ts",
+    "evaluate": "tsx src/training/scripts/evaluate.ts"
   },
   "dependencies": {
     "@nlpjs/core": "^4.26.1",
