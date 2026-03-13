@@ -2,26 +2,24 @@ import { Router, Request, Response } from 'express';
 import { getEngine } from '@/lib/singleton';
 import { createAdapter } from '@/adapters/adapter-factory';
 import { getTenantContext, getTenantLogger } from '@/middleware/tenant-context';
-import { appendFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { encryptLogEntry } from '@/lib/log-encryption';
+import { AsyncLogWriter } from '@/lib/async-log-writer';
 
 export const chatRouter = Router();
 
-const LOGS_DIR = join(process.cwd(), 'data/logs');
-const LOGS_PATH = join(LOGS_DIR, 'conversations.jsonl');
+// Async buffered log writer — batches writes every 500ms or 50 entries.
+// Replaces appendFileSync which blocked the event loop on every request.
+const conversationLogger = new AsyncLogWriter(
+  join(process.cwd(), 'data', 'logs', 'conversations.jsonl'),
+  { flushIntervalMs: 500, maxBatchSize: 50, maxBufferSize: 10_000 }
+);
 
 function logConversation(entry: Record<string, unknown>) {
   try {
-    if (!existsSync(LOGS_DIR)) {
-      mkdirSync(LOGS_DIR, { recursive: true });
-    }
-    if (!existsSync(LOGS_PATH)) {
-      writeFileSync(LOGS_PATH, '', 'utf-8');
-    }
-    appendFileSync(LOGS_PATH, encryptLogEntry(JSON.stringify(entry)) + '\n', 'utf-8');
+    conversationLogger.append(encryptLogEntry(JSON.stringify(entry)));
   } catch {
-    // Non-blocking
+    // Non-blocking — never fail the chat request due to logging
   }
 }
 
@@ -45,7 +43,7 @@ chatRouter.post('/', async (req: Request, res: Response) => {
     if (body.feedbackType) message.feedbackType = body.feedbackType;
     if (body.previousMessageText) message.previousMessageText = body.previousMessageText;
 
-    const engine = getEngine(groupId);
+    const engine = await getEngine(groupId);
     const explicitFilters = body.explicitFilters as Record<string, string> | undefined;
 
     // Forward auth-related headers for Windows Auth / BAM pass-through

@@ -1,51 +1,45 @@
+import { LRUCache } from 'lru-cache';
 import { SESSION_TTL_MS, MAX_SESSIONS } from '../constants';
 import { logger } from '@/lib/logger';
 import type { ConversationContext } from '../types';
 
 /**
- * In-memory session store with bounded size and TTL-based expiry.
+ * In-memory session store using LRU cache.
  *
- * Lifecycle: the constructor starts a periodic cleanup interval. Callers that
- * create a SessionManager instance are responsible for calling `destroy()` when
- * the manager is no longer needed (e.g. on server shutdown) to clear the
- * interval and free memory. Failing to call `destroy()` will leak the timer.
+ * Replaces the hand-rolled Map + setInterval cleanup with LRU cache that
+ * provides O(1) eviction, automatic TTL expiry, and bounded memory usage.
+ *
+ * At 1500 req/min, the old O(n) evictOldest() scan across 10,000 sessions
+ * was a latency spike on every capacity overflow. LRU eviction is O(1).
  */
 export class SessionManager {
-  private sessions = new Map<
-    string,
-    { context: ConversationContext; lastAccess: number }
-  >();
-  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
+  private sessions: LRUCache<string, ConversationContext>;
 
   constructor() {
-    this.cleanupInterval = setInterval(() => this.cleanup(), 60_000);
+    this.sessions = new LRUCache<string, ConversationContext>({
+      max: MAX_SESSIONS,
+      ttl: SESSION_TTL_MS,
+      updateAgeOnGet: true, // Refresh TTL on access (like lastAccess = Date.now())
+      disposeAfter: (value, key) => {
+        logger.debug({ sessionId: key }, 'Session evicted');
+      },
+    });
   }
 
   async getContext(sessionId: string): Promise<ConversationContext> {
-    const entry = this.sessions.get(sessionId);
-    if (entry) {
-      entry.lastAccess = Date.now();
-      return entry.context;
-    }
-
-    // Evict the oldest session if we are at capacity
-    if (this.sessions.size >= MAX_SESSIONS) {
-      this.evictOldest();
-    }
+    const existing = this.sessions.get(sessionId);
+    if (existing) return existing;
 
     const context: ConversationContext = {
       sessionId,
       history: [],
     };
-    this.sessions.set(sessionId, { context, lastAccess: Date.now() });
+    this.sessions.set(sessionId, context);
     return context;
   }
 
   async saveContext(context: ConversationContext): Promise<void> {
-    this.sessions.set(context.sessionId, {
-      context,
-      lastAccess: Date.now(),
-    });
+    this.sessions.set(context.sessionId, context);
   }
 
   /** Returns the current number of active sessions. */
@@ -53,42 +47,8 @@ export class SessionManager {
     return this.sessions.size;
   }
 
-  private evictOldest(): void {
-    let oldestKey: string | null = null;
-    let oldestTime = Infinity;
-
-    for (const [key, entry] of this.sessions) {
-      if (entry.lastAccess < oldestTime) {
-        oldestTime = entry.lastAccess;
-        oldestKey = key;
-      }
-    }
-
-    if (oldestKey) {
-      this.sessions.delete(oldestKey);
-      logger.warn(
-        { evictedSession: oldestKey, sessionCount: this.sessions.size },
-        'Session evicted: store reached MAX_SESSIONS capacity (%d)',
-        MAX_SESSIONS,
-      );
-    }
-  }
-
-  private cleanup(): void {
-    const now = Date.now();
-    this.sessions.forEach((entry, sessionId) => {
-      if (now - entry.lastAccess > SESSION_TTL_MS) {
-        this.sessions.delete(sessionId);
-      }
-    });
-  }
-
-  /** Clears all sessions and stops the background cleanup timer. */
+  /** Clears all sessions. */
   destroy(): void {
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
-      this.cleanupInterval = null;
-    }
     this.sessions.clear();
   }
 

@@ -91,8 +91,9 @@ export class ApiClient {
   constructor(baseUrl?: string, options?: ApiClientOptions) {
     this.baseUrl = (baseUrl || config.apiBaseUrl).replace(/\/?$/, '/');
 
+    // Tuned for 1500 req/min: 2000 entries covers ~2min of unique requests
     this.cache = new LRUCache({
-      max: 500,
+      max: 2000,
       ttl: API_CACHE_TTL_MS,
     });
 

@@ -407,7 +407,8 @@ export class QueryService {
     }
 
     const resolved = path.resolve(process.cwd(), query.filePath);
-    if (!resolved.startsWith(process.cwd())) {
+    const relative = path.relative(process.cwd(), resolved);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
       throw new FileReadError(query.filePath, 'Path outside project directory');
     }
 

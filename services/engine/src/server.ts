@@ -23,10 +23,12 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(tenantContextMiddleware);
 
-// Rate limiting
+// Rate limiting — tuned for 1500 req/min throughput
+// Chat: 1500/min per IP (the target throughput)
+// Admin: 200/min per IP (admin operations are heavier)
 const chatLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 100,
+  windowMs: 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_CHAT || '1500', 10),
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -34,20 +36,39 @@ const chatLimiter = rateLimit({
 
 const adminLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 30,
+  max: parseInt(process.env.RATE_LIMIT_ADMIN || '200', 10),
   message: { error: 'Too many admin requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Request logging
+// Concurrency limiter — prevents CPU saturation from too many simultaneous
+// NLP classifications. At 25 req/sec with ~50ms NLP time, we need ~2
+// concurrent slots to keep up. Set to 50 to handle burst + API wait time.
+let activeRequests = 0;
+const MAX_CONCURRENT = parseInt(process.env.MAX_CONCURRENT_REQUESTS || '50', 10);
+
+function concurrencyLimiter(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (activeRequests >= MAX_CONCURRENT) {
+    logger.warn({ activeRequests, maxConcurrent: MAX_CONCURRENT }, 'Concurrency limit reached — rejecting request');
+    return res.status(503).json({ error: 'Server busy, please retry shortly' });
+  }
+  activeRequests++;
+  let released = false;
+  const release = () => { if (!released) { released = true; activeRequests--; } };
+  res.on('finish', release);
+  res.on('close', release);
+  next();
+}
+
+// Request logging (debug level to reduce I/O at high throughput)
 app.use((req, _res, next) => {
-  logger.info({ method: req.method, url: req.url }, 'Request');
+  logger.debug({ method: req.method, url: req.url }, 'Request');
   next();
 });
 
 // Routes
-app.use('/api/chat', chatLimiter, chatRouter);
+app.use('/api/chat', chatLimiter, concurrencyLimiter, chatRouter);
 app.use('/api/admin', adminLimiter, adminRouter);
 app.use('/api', queriesRouter);
 app.use('/api/stats', statsRouter);
@@ -92,6 +113,12 @@ async function shutdown(signal: string) {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
+// Windows: NSSM sends SIGHUP or uses process.kill(); handle 'beforeExit' as fallback
+process.on('SIGHUP', () => shutdown('SIGHUP'));
+// Windows service stop — ensure clean exit even if signals are missed
+process.on('beforeExit', (code) => {
+  if (code === 0) logger.info('Process exiting cleanly');
+});
 
 // ---------------------------------------------------------------------------
 // Crash protection — prevent unhandled errors from killing the process

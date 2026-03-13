@@ -5,7 +5,8 @@ import { promises as fs } from 'fs';
 const router = Router();
 
 router.get('/docs/openapi.yaml', async (req, res) => {
-  const filePath = path.join(__dirname, '../../docs/openapi.yaml');
+  // Use process.cwd() for cross-platform compatibility (works with NSSM on Windows)
+  const filePath = path.join(process.cwd(), 'docs', 'openapi.yaml');
   const content = await fs.readFile(filePath, 'utf-8');
   res.type('text/yaml').send(content);
 });

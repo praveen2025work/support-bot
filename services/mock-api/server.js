@@ -552,7 +552,20 @@ function getRawData(queryName) {
 }
 
 const PORT = 8080;
-server.listen(PORT, () => {
+const httpServer = server.listen(PORT, () => {
   console.log(`Mock API server running at http://localhost:${PORT}`);
   console.log(`Queries endpoint: http://localhost:${PORT}/api/queries`);
 });
+
+// Graceful shutdown (works on Linux SIGTERM + Windows SIGINT/SIGHUP via NSSM)
+function shutdownMockApi(signal) {
+  console.log(`[mock-api] ${signal} received, shutting down...`);
+  httpServer.close(() => {
+    console.log('[mock-api] Server closed');
+    process.exit(0);
+  });
+  setTimeout(() => { process.exit(1); }, 5000).unref();
+}
+process.on('SIGTERM', () => shutdownMockApi('SIGTERM'));
+process.on('SIGINT', () => shutdownMockApi('SIGINT'));
+process.on('SIGHUP', () => shutdownMockApi('SIGHUP'));

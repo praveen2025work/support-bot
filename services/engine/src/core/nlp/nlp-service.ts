@@ -1,6 +1,7 @@
 import { containerBootstrap } from '@nlpjs/core';
 import { Nlp } from '@nlpjs/nlp';
 import { LangEn } from '@nlpjs/lang-en';
+import { LRUCache } from 'lru-cache';
 import { NLP_CONFIDENCE_THRESHOLD } from '../constants';
 import { NlpNotInitializedError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
@@ -20,6 +21,13 @@ export class NlpService {
   private initialized = false;
   private corpusFile: string | null;
   private cachedOverlaps: IntentOverlap[] = [];
+  // Classification cache — avoids re-running NLP for identical user texts.
+  // At 1500 req/min, many users ask similar/identical questions (e.g. "help",
+  // "list queries"). Cache saves ~50ms per hit. 2000 entries × 2min TTL.
+  private classificationCache = new LRUCache<string, ClassificationResult>({
+    max: 2000,
+    ttl: 2 * 60 * 1000,
+  });
 
   constructor(fuzzyMatcher: FuzzyMatcher, corpusFile?: string | null) {
     this.fuzzyMatcher = fuzzyMatcher;
@@ -92,6 +100,14 @@ export class NlpService {
   async classify(text: string): Promise<ClassificationResult> {
     if (!this.nlp) throw new NlpNotInitializedError();
 
+    // Cache lookup — normalized lowercase key for case-insensitive matching
+    const cacheKey = text.trim().toLowerCase();
+    const cached = this.classificationCache.get(cacheKey);
+    if (cached) {
+      logger.debug({ text: cacheKey, intent: cached.intent }, 'NLP cache hit');
+      return cached;
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result: any = await this.nlp.process('en', text);
 
@@ -99,12 +115,14 @@ export class NlpService {
       logger.debug({ text, score: result.score }, 'Low confidence, trying fuzzy match');
       const fuzzyResult = this.fuzzyMatcher.match(text);
       if (fuzzyResult) {
-        return {
+        const r: ClassificationResult = {
           intent: fuzzyResult.intent,
           confidence: fuzzyResult.score,
           entities: [],
           source: 'fuzzy',
         };
+        this.classificationCache.set(cacheKey, r);
+        return r;
       }
     }
 
@@ -121,19 +139,23 @@ export class NlpService {
       );
       const fuzzyResult = this.fuzzyMatcher.match(text);
       if (fuzzyResult) {
-        return {
+        const r: ClassificationResult = {
           intent: fuzzyResult.intent,
           confidence: fuzzyResult.score,
           entities: [],
           source: 'fuzzy',
         };
+        this.classificationCache.set(cacheKey, r);
+        return r;
       }
-      return {
+      const r: ClassificationResult = {
         intent: 'None',
         confidence: result.score || 0,
         entities: [],
         source: 'nlp',
       };
+      this.classificationCache.set(cacheKey, r);
+      return r;
     }
 
     const entities: ExtractedEntity[] = (result.entities || []).map(
@@ -153,7 +175,7 @@ export class NlpService {
       entities.push(...dateEntities);
     }
 
-    return {
+    const classificationResult: ClassificationResult = {
       intent: result.intent || 'None',
       confidence: result.score || 0,
       entities,
@@ -166,6 +188,8 @@ export class NlpService {
         : undefined,
       source: 'nlp',
     };
+    this.classificationCache.set(cacheKey, classificationResult);
+    return classificationResult;
   }
 
   isInitialized(): boolean {

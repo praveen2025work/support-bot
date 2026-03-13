@@ -6,304 +6,496 @@
 - **npm** 9+ (comes with Node.js)
 - **Docker** (optional, for containerized deployments)
 
-## Quick Start
+---
+
+## Architecture
+
+```
+┌─────────────────┐     ┌─────────────────────┐     ┌───────────────────────┐
+│   Next.js UI    │────▶│   Engine Service     │────▶│  Data API (per-group) │
+│   port 3000     │     │   port 4000          │     │  port 8080 (mock)     │
+│                 │     │                      │     │  or real tenant APIs  │
+│ src/app/        │     │ services/engine/src/ │     │ services/mock-api/    │
+└─────────────────┘     └─────────────────────┘     └───────────────────────┘
+```
+
+- **UI** (Next.js) — All `/api/*` routes proxy to Engine via `src/lib/engine-proxy.ts`
+- **Engine** (Express) — NLP, query execution, admin API, tenant context
+- **Data API** — Mock API for dev, or real per-group tenant APIs in production
+
+---
+
+## Quick Start (Mock Environment)
 
 ```bash
 # 1. Clone the repository
 git clone <your-repo-url>
-cd chatbot
+cd Chatbot
 
-# 2. Install dependencies
+# 2. Install root dependencies
 npm install
 
-# 3. Set up environment
-cp .env.example .env.local
-# Edit .env.local with your API settings
+# 3. Install service dependencies
+cd services/engine && npm install && cd ../..
+cd services/mock-api && npm install && cd ../..
 
-# 4. Train the NLP model
+# 4. Copy environment template
+cp .env.example .env.mock
+
+# 5. Train the NLP model
 npm run train
 
-# 5. Start the mock API + dev server
-npm run dev:full
+# 6. Start all 3 services
+npm run dev:mock
 ```
 
-The app is now available at `http://localhost:3000`.
+This starts:
 
+| Service     | Port  | What it runs                                |
+|-------------|-------|---------------------------------------------|
+| **mock-api**| 8080  | `services/mock-api/server.js` (json-server) |
+| **engine**  | 4000  | `services/engine/src/server.ts` (Express)   |
+| **ui**      | 3000  | `src/app/` (Next.js dev server)             |
+
+Access points:
 - **Chat UI**: http://localhost:3000
 - **Admin panel**: http://localhost:3000/admin
 - **Widget preview**: http://localhost:3000/widget
+- **Engine API docs**: http://localhost:4000/api/docs
 - **Mock API**: http://localhost:8080/api/queries
-
----
-
-## Environment Configuration
-
-Create a `.env.local` file in the project root:
-
-```env
-# REST API Configuration
-API_BASE_URL=http://localhost:8080/api    # Your backend API base URL
-API_TOKEN=your-api-token-here             # Bearer token for API authentication
-
-# Teams Bot Configuration (optional)
-# TEAMS_APP_ID=
-# TEAMS_APP_PASSWORD=
-```
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `API_BASE_URL` | Yes | Base URL for the backend API that serves query data |
-| `API_TOKEN` | No | Bearer token sent with every API request |
-| `TEAMS_APP_ID` | No | Microsoft Teams bot app ID |
-| `TEAMS_APP_PASSWORD` | No | Microsoft Teams bot password |
 
 ---
 
 ## Project Structure
 
 ```
-chatbot/
-├── src/
-│   ├── app/                  # Next.js App Router pages & API routes
-│   │   ├── admin/            # Admin panel (group management, onboarding)
-│   │   ├── api/              # REST API endpoints (/chat, /queries, /filters)
-│   │   └── widget/           # Embeddable widget page
-│   ├── components/chat/      # Chat UI components (MessageBubble, DataChart, etc.)
-│   ├── config/               # Group configs, filter configs
-│   ├── core/                 # Business logic
-│   │   ├── api-connector/    # API client, query service, types
-│   │   ├── nlp/              # NLP classifier (nlpjs + fuzzy matching)
-│   │   └── response/         # Response generator
-│   ├── hooks/                # React hooks (useChat)
-│   ├── lib/                  # Utilities (config, logger, errors, dates)
-│   └── training/             # NLP corpus files and training scripts
-├── mock-api/                 # Mock API server (json-server)
-│   ├── db.json               # Query definitions
-│   └── server.js             # Custom routes & mock data
-├── data/                     # Sample data files (CSV, documents)
-├── public/widget/            # Widget embed script
-├── docs/                     # Documentation
-├── Dockerfile                # Production Docker image
-└── docker-compose.yml        # Full-stack Docker Compose
+Chatbot/
+├── src/                              # Next.js UI source
+│   ├── app/                          # App Router pages & API route handlers
+│   │   ├── admin/                    # Admin panel pages
+│   │   ├── api/                      # API routes (proxy to engine)
+│   │   │   ├── chat/route.ts
+│   │   │   ├── health/route.ts
+│   │   │   ├── queries/route.ts
+│   │   │   └── admin/               # Admin API proxies
+│   │   └── widget/                   # Embeddable widget page
+│   ├── components/
+│   │   └── chat/                     # Chat UI components
+│   │       ├── ChatWindow.tsx        # Main chat window (widget + web)
+│   │       ├── ChatInput.tsx         # Message input
+│   │       ├── MessageList.tsx       # Message display
+│   │       ├── MessageBubble.tsx     # Individual message
+│   │       ├── SuggestionChips.tsx   # Quick reply chips
+│   │       └── ErrorBoundary.tsx     # Error boundary
+│   ├── contexts/
+│   │   └── UserContext.tsx           # User info context provider
+│   ├── hooks/
+│   │   └── useChat.ts               # Chat state & API hook
+│   ├── lib/
+│   │   ├── engine-proxy.ts          # Proxy helper: Next.js → Engine
+│   │   ├── csrf.ts                  # CSRF token utility
+│   │   ├── db.ts                    # File-level locking
+│   │   └── log-encryption.ts        # AES-256-GCM log encryption
+│   └── training/
+│       ├── corpus.json              # Main NLP corpus (all groups)
+│       ├── groups/                   # Group-specific corpora
+│       │   ├── corpus-finance.json
+│       │   ├── corpus-engineering.json
+│       │   └── corpus-analytics.json
+│       └── scripts/
+│           ├── train.ts             # NLP training script
+│           └── evaluate.ts          # NLP evaluation script
+│
+├── services/
+│   ├── engine/                       # Express API service
+│   │   ├── src/
+│   │   │   ├── server.ts            # Entry point (Express app)
+│   │   │   ├── config/
+│   │   │   │   ├── groups.json      # Group definitions (per-group API config)
+│   │   │   │   ├── settings.json    # Runtime settings (thresholds, cache TTL)
+│   │   │   │   └── group-config.ts  # Group config loader & validator
+│   │   │   ├── core/
+│   │   │   │   ├── api-connector/
+│   │   │   │   │   ├── api-client.ts       # HTTP client (retry + circuit breaker)
+│   │   │   │   │   ├── query-service.ts    # Query execution & auth resolution
+│   │   │   │   │   ├── circuit-breaker.ts  # Circuit breaker (per-URL)
+│   │   │   │   │   ├── bam-auth.ts         # BAM token authentication
+│   │   │   │   │   └── types.ts            # Query & auth type definitions
+│   │   │   │   ├── nlp/
+│   │   │   │   │   └── nlp-service.ts      # NLP classifier (nlpjs + fuzzy)
+│   │   │   │   └── response/
+│   │   │   │       └── handlers/           # Response handler modules
+│   │   │   ├── lib/
+│   │   │   │   ├── config.ts        # Environment config loader
+│   │   │   │   ├── logger.ts        # Pino logger
+│   │   │   │   ├── singleton.ts     # Engine instance cache (per-group)
+│   │   │   │   ├── rbac.ts          # Role definitions & permissions
+│   │   │   │   ├── audit-logger.ts  # JSONL audit trail
+│   │   │   │   └── log-encryption.ts # AES-256-GCM encryption
+│   │   │   ├── middleware/
+│   │   │   │   ├── tenant-context.ts # AsyncLocalStorage tenant context
+│   │   │   │   └── rbac.ts          # requirePermission() middleware
+│   │   │   └── routes/
+│   │   │       ├── chat.ts          # POST /api/chat
+│   │   │       ├── queries.ts       # GET /api/queries, GET /api/groups
+│   │   │       ├── health.ts        # GET /api/health
+│   │   │       ├── stats.ts         # GET /api/stats/*
+│   │   │       ├── user.ts          # GET /api/user
+│   │   │       ├── docs.ts          # GET /api/docs (Swagger UI)
+│   │   │       └── admin/           # Admin API routes
+│   │   │           ├── index.ts     # Router aggregator
+│   │   │           ├── groups.ts    # Group CRUD
+│   │   │           ├── queries.ts   # Query CRUD
+│   │   │           ├── templates.ts # Template management
+│   │   │           ├── settings.ts  # Settings management
+│   │   │           ├── corpus.ts    # Corpus / NLP training
+│   │   │           ├── faq.ts       # FAQ management
+│   │   │           ├── import.ts    # CSV/XLSX import
+│   │   │           ├── learning.ts  # Learning stats
+│   │   │           └── logs.ts      # Log viewer
+│   │   ├── docs/
+│   │   │   └── openapi.yaml         # OpenAPI 3.0 spec
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   │
+│   └── mock-api/                     # Mock data API (json-server)
+│       ├── server.js                 # Custom Express server with mock data
+│       ├── db.json                   # Query definitions & sample data
+│       └── package.json
+│
+├── public/
+│   └── widget/
+│       └── chatbot-widget.js         # Embeddable widget script
+│
+├── tests/
+│   ├── nlp/                          # NLP classifier tests
+│   ├── csv/                          # CSV analyzer tests
+│   ├── auth/                         # Auth middleware tests
+│   └── api/                          # API route tests
+│
+├── data/                             # Runtime data (gitignored)
+│   ├── conversations/                # Chat logs
+│   ├── learning/                     # Learning feedback
+│   └── audit/                        # Audit trail
+│
+├── .env.example                      # Environment variable template
+├── .env.mock                         # Mock environment config
+├── .env.dev                          # Dev environment config (real APIs)
+├── .env.prod                         # Production config
+├── .husky/pre-commit                 # Git pre-commit hook (lint-staged)
+├── package.json                      # Root scripts & dependencies
+├── next.config.mjs                   # Next.js config (proxy rewrites)
+├── tsconfig.json                     # Root TypeScript config
+├── jest.config.ts                    # Jest test config
+├── eslint.config.mjs                 # ESLint flat config
+├── Dockerfile                        # UI Docker image
+├── docker-compose.yml                # Demo: mock-api + engine + UI
+├── docker-compose.dev.yml            # Dev: engine + UI (real APIs)
+└── docker-compose.prod.yml           # Prod: engine + UI
 ```
 
 ---
 
-## Standalone Node.js Deployment
+## Environment Configuration
 
-### Build
+### File: `.env.example` (template)
 
-```bash
-npm run build
+```env
+# ── Core ──
+NODE_ENV=development
+
+# ── Engine Service ──
+ENGINE_URL=http://localhost:4000
+ENGINE_PORT=4000
+
+# ── User Authentication ──
+USER_INFO_URL=                          # AD/SSO userinfo endpoint. Empty = mock user
+
+# ── Data API (global fallback — groups can override) ──
+API_BASE_URL=http://localhost:8080/api
+API_TOKEN=
+
+# ── Security ──
+ENGINE_API_KEY=                         # Secures Engine admin API (required in prod)
+LOG_ENCRYPTION_KEY=                     # AES-256-GCM for conversation logs (optional)
+
+# ── CORS ──
+UI_ORIGIN=http://localhost:3000
+
+# ── Teams Bot (optional) ──
+# TEAMS_APP_ID=
+# TEAMS_APP_PASSWORD=
 ```
 
-This produces a `.next` directory with a `standalone` folder (enabled by `output: 'standalone'` in `next.config.mjs`).
+### Variable Reference
 
-### Run
+| Variable | Default | Required | Description |
+|----------|---------|----------|-------------|
+| `NODE_ENV` | `development` | No | `development` or `production` |
+| `ENGINE_URL` | `http://localhost:4000` | No | URL where Engine service runs |
+| `ENGINE_PORT` | `4000` | No | Port for Engine service |
+| `USER_INFO_URL` | (empty) | No | AD/SSO endpoint. Empty → mock user fallback |
+| `API_BASE_URL` | `http://localhost:8080/api` | Yes | Global fallback for tenant API |
+| `API_TOKEN` | (empty) | No | Global bearer token for APIs |
+| `ENGINE_API_KEY` | (empty) | Prod | Secures admin API endpoints |
+| `LOG_ENCRYPTION_KEY` | (empty) | No | AES-256-GCM key for log encryption |
+| `UI_ORIGIN` | `http://localhost:3000` | No | CORS origin for Engine |
 
-```bash
-# Copy static assets (required for standalone mode)
-cp -r public .next/standalone/public
-cp -r .next/static .next/standalone/.next/static
+---
 
-# Start the production server
-NODE_ENV=production node .next/standalone/server.js
+## Development Modes
+
+### Mode 1: Mock Environment (Recommended for local dev)
+
+Uses sample data — no real APIs needed.
+
+**Env file**: `.env.mock`
+```env
+NODE_ENV=development
+API_BASE_URL=http://localhost:8080/api
+USER_INFO_URL=
 ```
 
-The server runs on port 3000 by default. Override with `PORT=8000 node .next/standalone/server.js`.
-
-### Process Management with PM2
-
+**Start command**:
 ```bash
-npm install -g pm2
-
-# Start with PM2
-pm2 start .next/standalone/server.js --name chatbot \
-  --env NODE_ENV=production
-
-# Monitor
-pm2 logs chatbot
-pm2 monit
-
-# Auto-restart on reboot
-pm2 startup
-pm2 save
+npm run dev:mock
 ```
 
-### Reverse Proxy (nginx)
+**What runs**:
+- `services/mock-api/server.js` → port 8080
+- `services/engine/src/server.ts` → port 4000
+- `src/app/` (Next.js dev) → port 3000
 
-```nginx
-server {
-    listen 80;
-    server_name chatbot.yourcompany.com;
+---
 
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
+### Mode 2: Dev Environment (Real APIs)
+
+Uses real tenant APIs and AD/SSO authentication.
+
+**Env file**: `.env.dev`
+```env
+NODE_ENV=development
+USER_INFO_URL=https://your-org-sso.company.com/api/userinfo
+API_BASE_URL=https://api-dev.yourcompany.com/api
+API_TOKEN=your-dev-bearer-token
+```
+
+**Start command**:
+```bash
+npm run dev
+```
+
+**What runs** (no mock-api):
+- `services/engine/src/server.ts` → port 4000
+- `src/app/` (Next.js dev) → port 3000
+
+---
+
+### Mode 3: Production
+
+**Env file**: `.env.prod`
+```env
+NODE_ENV=production
+ENGINE_URL=http://engine:4000
+ENGINE_API_KEY=your-secure-key
+USER_INFO_URL=https://sso.yourcompany.com/api/userinfo
+API_BASE_URL=https://api.yourcompany.com/api
+API_TOKEN=your-prod-token
+```
+
+**Build & start**:
+```bash
+npm run build                 # Build Next.js
+npm run build:engine          # Build Engine TypeScript
+npm run start:prod            # Start Engine + UI in production mode
 ```
 
 ---
 
-## Docker Deployment
+## Per-Group Tenant API Configuration
 
-### Build the Image
+API configuration lives at the **group level** and **query level** — not just globally.
 
-```bash
-docker build -t chatbot .
-```
+### File: `services/engine/src/config/groups.json`
 
-### Run with Docker
-
-```bash
-docker run -d \
-  -p 3000:3000 \
-  -e API_BASE_URL=http://your-api-host:8080/api \
-  -e API_TOKEN=your-token \
-  --name chatbot \
-  chatbot
-```
-
-### Docker Compose (Full Stack)
-
-Start both the chatbot and mock API together:
-
-```bash
-docker-compose up -d
-```
-
-This starts:
-- **chatbot** on port 3000
-- **mock-api** on port 8080
-
-```bash
-# View logs
-docker-compose logs -f
-
-# Stop
-docker-compose down
-```
-
----
-
-## Multi-Host / Org-Department Setup
-
-The chatbot supports **group-based multi-tenancy**, allowing different departments or teams to have their own configuration while sharing the same deployment.
-
-### How Groups Work
-
-Each group can have:
-- Its own **API base URL** (pointing to department-specific backends)
-- Custom **NLP corpus** (department-specific queries and vocabulary)
-- Custom **greeting/farewell templates**
-- Filtered **query sources** (only show relevant queries)
-
-### Configuration
-
-Groups are defined in `src/config/groups.json`:
+Each group can override the global `API_BASE_URL`:
 
 ```json
 {
   "groups": {
     "default": {
-      "name": "General",
-      "description": "Default group",
+      "name": "General Assistant",
       "sources": [],
-      "apiBaseUrl": null,
-      "templates": null,
-      "corpus": null,
-      "faq": null
+      "apiBaseUrl": null
+    },
+    "finance": {
+      "name": "Finance Bot",
+      "sources": ["finance", "commerce"],
+      "apiBaseUrl": "https://finance-api.yourcompany.com/api"
     },
     "engineering": {
-      "name": "Engineering",
-      "description": "Engineering team chatbot",
+      "name": "Engineering Bot",
       "sources": ["engineering", "devops"],
-      "apiBaseUrl": "https://eng-api.yourcompany.com/api",
-      "templates": null,
-      "corpus": "corpus-engineering",
-      "faq": null
-    },
-    "analytics": {
-      "name": "Analytics",
-      "description": "Analytics team chatbot",
-      "sources": ["analytics"],
-      "apiBaseUrl": "https://analytics-api.yourcompany.com/api",
-      "templates": null,
-      "corpus": "corpus-analytics",
-      "faq": null
+      "apiBaseUrl": "https://eng-api.yourcompany.com/api"
     }
   }
 }
 ```
 
-### Deployment Options
+### Per-Query Authentication
 
-**Option A: Single Instance, Multiple Groups**
+Each query can use a different auth mechanism:
 
-Deploy one chatbot instance. Each department accesses via their group URL:
-- Engineering: `https://chatbot.yourcompany.com/widget?group=engineering`
-- Analytics: `https://chatbot.yourcompany.com/widget?group=analytics`
+| `authType` | How it works | Configured in |
+|------------|-------------|---------------|
+| `none` | No auth headers | Query definition |
+| `bearer` | Uses global `API_TOKEN` from env | Query definition |
+| `windows` | Forwards user's AD/SSO headers | Query definition |
+| `bam` | Fetches short-lived token from `bamTokenUrl` | Query definition + `bamTokenUrl` field |
 
-**Option B: Separate Instances Per Department**
-
-Deploy separate instances, each configured for a specific group:
-
-```bash
-# Engineering instance
-docker run -d -p 3001:3000 \
-  -e API_BASE_URL=https://eng-api.yourcompany.com/api \
-  --name chatbot-engineering chatbot
-
-# Analytics instance
-docker run -d -p 3002:3000 \
-  -e API_BASE_URL=https://analytics-api.yourcompany.com/api \
-  --name chatbot-analytics chatbot
+**Query definition** (in `services/mock-api/db.json` or real data store):
+```json
+{
+  "id": "q1",
+  "name": "monthly_revenue",
+  "authType": "bam",
+  "bamTokenUrl": "https://auth.yourcompany.com/bam/token",
+  "endpoint": "/reports/revenue",
+  "filters": [...]
+}
 ```
 
-### Adding a New Group
+### Config Priority (highest to lowest)
 
-1. Add the group to `src/config/groups.json`
-2. (Optional) Create a group-specific corpus in `src/training/groups/`
-3. Retrain NLP: `npm run train`
-4. Restart the server
+1. **Query-level** `authType` + `bamTokenUrl` → per-query auth
+2. **Group-level** `apiBaseUrl` in `groups.json` → per-group API endpoint
+3. **Global** `API_BASE_URL` + `API_TOKEN` in env → fallback
 
-Or use the **Admin Panel** at `/admin/onboard` to create groups via the UI.
+### Runtime Flow
+
+```
+Request (groupId=finance)
+  → tenantContextMiddleware extracts groupId
+  → getEngine("finance") creates/returns cached engine
+  → Engine uses finance group's apiBaseUrl
+  → Query "monthly_revenue" resolves its own authType (bam)
+  → Fetches BAM token from bamTokenUrl
+  → Calls finance API with BAM token
+```
 
 ---
 
-## Mock API Server
+## NPM Scripts Reference
 
-The mock API (`mock-api/server.js`) simulates a real backend for development.
+### File: `package.json` (root)
 
-### Start
+| Script | What it does |
+|--------|-------------|
+| `npm run dev:mock` | Start mock-api + engine + UI (uses `.env.mock`) |
+| `npm run dev:mock:3svc` | Same as `dev:mock` |
+| `npm run dev` | Start engine + UI with real APIs (uses `.env.dev`) |
+| `npm run start:demo` | Production build with mock-api |
+| `npm run start:prod` | Production build with real APIs (uses `.env.prod`) |
+| `npm run svc:mock-api` | Start mock-api only (`services/mock-api/server.js`) |
+| `npm run svc:engine` | Start engine only (`services/engine/src/server.ts`) |
+| `npm run svc:ui` | Start UI only (Next.js dev) |
+| `npm run build` | Build Next.js for production |
+| `npm run build:engine` | Compile engine TypeScript to `services/engine/dist/` |
+| `npm run train` | Train NLP model (`src/training/scripts/train.ts`) |
+| `npm run evaluate` | Evaluate NLP model accuracy |
+| `npm test` | Run Jest tests |
+| `npm run lint` | Run ESLint |
 
-```bash
-npm run mock-api
+### File: `services/engine/package.json`
+
+| Script | What it does |
+|--------|-------------|
+| `npm run dev` | Start engine with auto-reload (`tsx watch src/server.ts`) |
+| `npm run build` | Compile TypeScript → `dist/` |
+| `npm start` | Run compiled `dist/server.js` (production) |
+| `npm run train` | Train NLP model |
+
+---
+
+## Key Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `.env.example` | Environment variable template |
+| `.env.mock` | Mock environment (local dev with sample data) |
+| `.env.dev` | Dev environment (real APIs) |
+| `.env.prod` | Production environment |
+| `next.config.mjs` | Next.js config (proxy rewrites to engine) |
+| `services/engine/src/config/groups.json` | Group definitions (per-group API URL, sources, templates) |
+| `services/engine/src/config/settings.json` | Runtime settings (NLP thresholds, cache TTL) |
+| `services/engine/src/config/group-config.ts` | Group config loader & Zod validator |
+| `services/engine/src/lib/config.ts` | Engine env config (`API_BASE_URL`, `API_TOKEN`, etc.) |
+| `services/engine/src/middleware/tenant-context.ts` | Per-request tenant context (groupId, requestId) |
+| `services/engine/src/lib/singleton.ts` | Engine instance cache (one per group) |
+| `services/mock-api/db.json` | Query definitions with auth config |
+| `services/mock-api/server.js` | Mock API endpoints and sample data |
+| `src/lib/engine-proxy.ts` | Next.js → Engine proxy utility |
+| `public/widget/chatbot-widget.js` | Embeddable widget script |
+
+---
+
+## File: `services/engine/src/config/settings.json`
+
+```json
+{
+  "nlpConfidenceThreshold": 0.65,
+  "fuzzyConfidenceThreshold": 0.5,
+  "sessionTtlMinutes": 30,
+  "apiCacheTtlMinutes": 5,
+  "apiBaseUrl": "",
+  "mockApiUrl": "http://localhost:8080",
+  "enabledPlatforms": ["web", "widget", "teams"]
+}
 ```
 
-Runs on port 8080 with these endpoints:
+---
+
+## Widget Embedding
+
+### File: `public/widget/chatbot-widget.js`
+
+Embed the chatbot widget on any page:
+
+```html
+<script>
+  window.ChatbotWidgetConfig = {
+    baseUrl: 'https://chatbot.yourcompany.com',
+    group: 'finance',
+    position: 'bottom-right',     // 'bottom-right' | 'bottom-left'
+    theme: 'blue',                // 'blue' | 'indigo' | 'green'
+    greeting: 'Need help?',
+    iconType: 'bot',              // 'bot' | 'headset' | 'chat'
+  };
+</script>
+<script src="https://chatbot.yourcompany.com/widget/chatbot-widget.js"></script>
+```
+
+Widget supports 3 states: **open** → **minimized** (collapsed bar) → **closed** (toggle button).
+
+---
+
+## Mock API Endpoints
+
+### File: `services/mock-api/server.js` (port 8080)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/queries` | List all query definitions |
-| POST | `/api/queries/:id/execute` | Execute a query with filters |
-| POST | `/api/queries/batch` | Execute multiple queries |
-| GET/POST | `/api/users/:userId/profile` | Path variable demo |
-| GET/POST | `/api/logs?service=X&level=Y` | Query parameter demo |
-| POST | `/api/reports/generate` | Request body demo |
+| `GET` | `/api/queries` | List all query definitions |
+| `POST` | `/api/queries/:id/execute` | Execute a query with filters |
+| `POST` | `/api/queries/batch` | Execute multiple queries at once |
+| `GET/POST` | `/api/users/:userId/profile` | Path variable demo |
+| `GET/POST` | `/api/logs?service=X&level=Y` | Query parameter demo |
+| `POST` | `/api/reports/generate` | Request body demo |
 
 ### Adding a New Query
 
-1. Add the query definition to `mock-api/db.json`
-2. Add mock data in the `getRawData()` function in `mock-api/server.js`
+1. Add the query definition to `services/mock-api/db.json`
+2. Add mock data in `getRawData()` in `services/mock-api/server.js`
 3. Add NLP entity synonyms in `src/training/corpus.json`
 4. Retrain: `npm run train`
 
@@ -313,56 +505,483 @@ Runs on port 8080 with these endpoints:
 
 ### Corpus Files
 
-- `src/training/corpus.json` — Main corpus (all groups)
-- `src/training/groups/corpus-*.json` — Group-specific corpora
+| File | Scope |
+|------|-------|
+| `src/training/corpus.json` | Main corpus (all groups) |
+| `src/training/groups/corpus-finance.json` | Finance group |
+| `src/training/groups/corpus-engineering.json` | Engineering group |
+| `src/training/groups/corpus-analytics.json` | Analytics group |
 
-### Train
-
-```bash
-npm run train
-```
-
-### Evaluate
+### Commands
 
 ```bash
-npm run evaluate
+npm run train      # Train NLP model
+npm run evaluate   # Evaluate accuracy
 ```
-
-### Adding Queries to NLP
-
-1. Add the query name to the `query_name` entity options with synonyms:
-   ```json
-   "my_query": ["my_query", "my query", "custom query name"]
-   ```
-
-2. Ensure the intent utterances cover common phrasings
-3. Retrain and evaluate
 
 ---
 
-## Backend Integration
+## Testing
 
-For connecting to real backend APIs, see [Backend Integration Guide](./backend-integration-guide.md).
+### File: `jest.config.ts`
 
-### Binding Types
-
-Queries support three filter binding types:
-
-- **`body`** — Filters sent as JSON in the POST request body
-- **`query_param`** — Filters sent as URL query parameters
-- **`path`** — Filters interpolated into the URL path
-
-Example query definition:
-```json
-{
-  "id": "q21",
-  "name": "user_profile",
-  "type": "api",
-  "endpoint": "/users/{user_id}/profile",
-  "filters": [
-    { "key": "user_id", "binding": "path" }
-  ]
-}
+```bash
+npm test              # Run all tests
+npm run test:watch    # Watch mode
 ```
 
-When the user provides `user_id=101`, the chatbot calls `GET /users/101/profile`.
+Test directories:
+- `tests/nlp/` — NLP classifier tests
+- `tests/csv/` — CSV analyzer tests
+- `tests/auth/` — Auth middleware tests
+- `tests/api/` — API route tests
+
+---
+
+## Docker Deployment
+
+### Build Images
+
+```bash
+# UI image
+docker build -t chatbot-ui .
+
+# Engine image
+docker build -t chatbot-engine -f services/engine/Dockerfile services/engine/
+```
+
+### Docker Compose
+
+| File | Services | Use case |
+|------|----------|----------|
+| `docker-compose.yml` | mock-api (8080) + engine (4000) + ui (3000) | Demo |
+| `docker-compose.dev.yml` | engine (4000) + ui (3000) | Dev with real APIs |
+| `docker-compose.prod.yml` | engine (4000) + ui (3000) | Production |
+
+```bash
+# Demo mode
+docker-compose up -d
+
+# Dev mode
+docker-compose -f docker-compose.dev.yml up -d
+
+# Production
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+---
+
+## Windows Deployment with NSSM
+
+[NSSM](https://nssm.cc/) (Non-Sucking Service Manager) runs Node.js processes as Windows services with auto-restart, logging, and system tray management.
+
+### Prerequisites
+
+1. **Node.js 18+** installed and in system PATH
+2. **NSSM** downloaded and added to PATH (or placed in `C:\nssm\`)
+3. Project built and ready:
+   ```cmd
+   cd C:\Chatbot
+   npm install
+   cd services\engine && npm install && npm run build && cd ..\..
+   cd services\mock-api && npm install && cd ..\..
+   npm run train
+   npm run build
+   ```
+
+### Directory Layout (recommended)
+
+```
+C:\Chatbot\                              # Project root
+├── .next\standalone\                    # Built Next.js app
+├── services\engine\dist\                # Compiled engine
+├── services\mock-api\                   # Mock API
+├── data\                                # Runtime data (logs, learning, audit)
+└── nssm\                                # NSSM scripts (optional)
+    ├── install-services.bat
+    └── env\
+        ├── engine.env                   # Engine env vars
+        └── ui.env                       # UI env vars
+```
+
+### Step 1: Build for Production
+
+```cmd
+cd C:\Chatbot
+
+:: Build Next.js
+npm run build
+
+:: Copy static assets for standalone mode
+xcopy /E /I public .next\standalone\public
+xcopy /E /I .next\static .next\standalone\.next\static
+
+:: Build Engine
+cd services\engine
+npm run build
+cd ..\..
+```
+
+### Step 2: Install Engine Service
+
+```cmd
+:: Install the service
+nssm install ChatbotEngine "C:\Program Files\nodejs\node.exe"
+
+:: Set the startup arguments
+nssm set ChatbotEngine AppParameters "dist\server.js"
+
+:: Set working directory (CRITICAL — all relative paths depend on this)
+nssm set ChatbotEngine AppDirectory "C:\Chatbot\services\engine"
+
+:: Set environment variables
+nssm set ChatbotEngine AppEnvironmentExtra ^
+  NODE_ENV=production ^
+  ENGINE_PORT=4000 ^
+  API_BASE_URL=http://localhost:8080/api ^
+  API_TOKEN=your-token ^
+  ENGINE_API_KEY=your-secure-key ^
+  UI_ORIGIN=http://localhost:3000 ^
+  USER_INFO_URL=https://sso.yourcompany.com/api/userinfo ^
+  LOG_ENCRYPTION_KEY=your-encryption-key
+
+:: Configure logging
+nssm set ChatbotEngine AppStdout "C:\Chatbot\data\logs\engine-stdout.log"
+nssm set ChatbotEngine AppStderr "C:\Chatbot\data\logs\engine-stderr.log"
+nssm set ChatbotEngine AppStdoutCreationDisposition 4
+nssm set ChatbotEngine AppStderrCreationDisposition 4
+nssm set ChatbotEngine AppRotateFiles 1
+nssm set ChatbotEngine AppRotateSeconds 86400
+nssm set ChatbotEngine AppRotateBytes 10485760
+
+:: Configure restart behavior
+nssm set ChatbotEngine AppExit Default Restart
+nssm set ChatbotEngine AppRestartDelay 3000
+
+:: Configure shutdown — send Ctrl+C, wait 10s before killing
+nssm set ChatbotEngine AppStopMethodSkip 0
+nssm set ChatbotEngine AppStopMethodConsole 10000
+nssm set ChatbotEngine AppStopMethodWindow 0
+nssm set ChatbotEngine AppStopMethodThreads 0
+
+:: Start the service
+nssm start ChatbotEngine
+```
+
+### Step 3: Install UI Service
+
+```cmd
+:: Install the service
+nssm install ChatbotUI "C:\Program Files\nodejs\node.exe"
+
+:: Set the startup arguments — standalone Next.js server
+nssm set ChatbotUI AppParameters ".next\standalone\server.js"
+
+:: Set working directory
+nssm set ChatbotUI AppDirectory "C:\Chatbot"
+
+:: Set environment variables
+nssm set ChatbotUI AppEnvironmentExtra ^
+  NODE_ENV=production ^
+  PORT=3000 ^
+  ENGINE_URL=http://localhost:4000
+
+:: Configure logging
+nssm set ChatbotUI AppStdout "C:\Chatbot\data\logs\ui-stdout.log"
+nssm set ChatbotUI AppStderr "C:\Chatbot\data\logs\ui-stderr.log"
+nssm set ChatbotUI AppStdoutCreationDisposition 4
+nssm set ChatbotUI AppStderrCreationDisposition 4
+nssm set ChatbotUI AppRotateFiles 1
+nssm set ChatbotUI AppRotateSeconds 86400
+
+:: Configure restart
+nssm set ChatbotUI AppExit Default Restart
+nssm set ChatbotUI AppRestartDelay 3000
+
+:: Depends on engine
+nssm set ChatbotUI DependOnService ChatbotEngine
+
+:: Configure shutdown
+nssm set ChatbotUI AppStopMethodSkip 0
+nssm set ChatbotUI AppStopMethodConsole 10000
+nssm set ChatbotUI AppStopMethodWindow 0
+nssm set ChatbotUI AppStopMethodThreads 0
+
+:: Start the service
+nssm start ChatbotUI
+```
+
+### Step 4: Install Mock API Service (optional — demo only)
+
+```cmd
+nssm install ChatbotMockAPI "C:\Program Files\nodejs\node.exe"
+nssm set ChatbotMockAPI AppParameters "server.js"
+nssm set ChatbotMockAPI AppDirectory "C:\Chatbot\services\mock-api"
+
+nssm set ChatbotMockAPI AppStdout "C:\Chatbot\data\logs\mock-api-stdout.log"
+nssm set ChatbotMockAPI AppStderr "C:\Chatbot\data\logs\mock-api-stderr.log"
+nssm set ChatbotMockAPI AppStdoutCreationDisposition 4
+nssm set ChatbotMockAPI AppStderrCreationDisposition 4
+nssm set ChatbotMockAPI AppRotateFiles 1
+
+nssm set ChatbotMockAPI AppExit Default Restart
+nssm set ChatbotMockAPI AppRestartDelay 3000
+nssm set ChatbotMockAPI AppStopMethodSkip 0
+nssm set ChatbotMockAPI AppStopMethodConsole 5000
+
+nssm start ChatbotMockAPI
+```
+
+### Service Management Commands
+
+```cmd
+:: Check status
+nssm status ChatbotEngine
+nssm status ChatbotUI
+nssm status ChatbotMockAPI
+
+:: Stop / Start / Restart
+nssm stop ChatbotEngine
+nssm start ChatbotEngine
+nssm restart ChatbotEngine
+
+:: View / edit config (opens GUI)
+nssm edit ChatbotEngine
+
+:: Remove a service
+nssm stop ChatbotEngine
+nssm remove ChatbotEngine confirm
+
+:: View logs (real-time)
+powershell Get-Content "C:\Chatbot\data\logs\engine-stdout.log" -Wait -Tail 50
+```
+
+### Service Startup Order
+
+| Service | Port | Depends On | Start Order |
+|---------|------|------------|-------------|
+| `ChatbotMockAPI` | 8080 | (none) | 1st |
+| `ChatbotEngine` | 4000 | MockAPI (if using mock) | 2nd |
+| `ChatbotUI` | 3000 | Engine | 3rd |
+
+NSSM `DependOnService` ensures the UI waits for Engine to start. If using real APIs (no mock), remove MockAPI.
+
+### Environment Variables for NSSM
+
+NSSM doesn't use `.env` files. Set env vars via `nssm set <service> AppEnvironmentExtra`. The key variables per service:
+
+**ChatbotEngine**:
+| Variable | Example Value | Notes |
+|----------|---------------|-------|
+| `NODE_ENV` | `production` | Required |
+| `ENGINE_PORT` | `4000` | Default 4000 |
+| `API_BASE_URL` | `http://localhost:8080/api` | Global fallback (groups override) |
+| `API_TOKEN` | `your-token` | Global fallback for bearer auth |
+| `ENGINE_API_KEY` | `your-key` | Secures admin API |
+| `UI_ORIGIN` | `http://localhost:3000` | CORS |
+| `USER_INFO_URL` | `https://sso.company.com/...` | AD/SSO endpoint |
+| `LOG_ENCRYPTION_KEY` | `your-key` | Optional AES-256-GCM |
+
+**ChatbotUI**:
+| Variable | Example Value | Notes |
+|----------|---------------|-------|
+| `NODE_ENV` | `production` | Required |
+| `PORT` | `3000` | Next.js listen port |
+| `ENGINE_URL` | `http://localhost:4000` | Engine proxy target |
+
+### Batch Script: `nssm/install-services.bat`
+
+Create this file for repeatable installs:
+
+```bat
+@echo off
+setlocal
+
+set PROJECT=C:\Chatbot
+set NODE=C:\Program Files\nodejs\node.exe
+set LOGS=%PROJECT%\data\logs
+
+:: Create log directory
+if not exist "%LOGS%" mkdir "%LOGS%"
+
+echo === Installing ChatbotEngine ===
+nssm install ChatbotEngine "%NODE%"
+nssm set ChatbotEngine AppParameters "dist\server.js"
+nssm set ChatbotEngine AppDirectory "%PROJECT%\services\engine"
+nssm set ChatbotEngine AppEnvironmentExtra NODE_ENV=production ENGINE_PORT=4000 API_BASE_URL=http://localhost:8080/api UI_ORIGIN=http://localhost:3000
+nssm set ChatbotEngine AppStdout "%LOGS%\engine-stdout.log"
+nssm set ChatbotEngine AppStderr "%LOGS%\engine-stderr.log"
+nssm set ChatbotEngine AppStdoutCreationDisposition 4
+nssm set ChatbotEngine AppStderrCreationDisposition 4
+nssm set ChatbotEngine AppRotateFiles 1
+nssm set ChatbotEngine AppRotateSeconds 86400
+nssm set ChatbotEngine AppExit Default Restart
+nssm set ChatbotEngine AppRestartDelay 3000
+nssm set ChatbotEngine AppStopMethodSkip 0
+nssm set ChatbotEngine AppStopMethodConsole 10000
+
+echo === Installing ChatbotUI ===
+nssm install ChatbotUI "%NODE%"
+nssm set ChatbotUI AppParameters ".next\standalone\server.js"
+nssm set ChatbotUI AppDirectory "%PROJECT%"
+nssm set ChatbotUI AppEnvironmentExtra NODE_ENV=production PORT=3000 ENGINE_URL=http://localhost:4000
+nssm set ChatbotUI AppStdout "%LOGS%\ui-stdout.log"
+nssm set ChatbotUI AppStderr "%LOGS%\ui-stderr.log"
+nssm set ChatbotUI AppStdoutCreationDisposition 4
+nssm set ChatbotUI AppStderrCreationDisposition 4
+nssm set ChatbotUI AppRotateFiles 1
+nssm set ChatbotUI AppRotateSeconds 86400
+nssm set ChatbotUI AppExit Default Restart
+nssm set ChatbotUI AppRestartDelay 3000
+nssm set ChatbotUI DependOnService ChatbotEngine
+nssm set ChatbotUI AppStopMethodSkip 0
+nssm set ChatbotUI AppStopMethodConsole 10000
+
+echo === Starting services ===
+nssm start ChatbotEngine
+timeout /t 5
+nssm start ChatbotUI
+
+echo === Done ===
+nssm status ChatbotEngine
+nssm status ChatbotUI
+pause
+```
+
+### NSSM Shutdown Behavior
+
+The codebase handles Windows service stops gracefully:
+
+| File | Signal Handling |
+|------|----------------|
+| `services/engine/src/server.ts` | Listens for `SIGTERM`, `SIGINT`, `SIGHUP` — 10s graceful close |
+| `services/mock-api/server.js` | Listens for `SIGTERM`, `SIGINT`, `SIGHUP` — 5s graceful close |
+| Next.js standalone | Built-in graceful shutdown |
+
+NSSM is configured with `AppStopMethodConsole 10000` which sends Ctrl+C (mapped to SIGINT) and waits 10 seconds before force-killing.
+
+### Windows Firewall
+
+If accessing from other machines, open the ports:
+
+```cmd
+:: Allow Engine port (optional — usually only UI is exposed)
+netsh advfirewall firewall add rule name="Chatbot Engine" dir=in action=allow protocol=TCP localport=4000
+
+:: Allow UI port
+netsh advfirewall firewall add rule name="Chatbot UI" dir=in action=allow protocol=TCP localport=3000
+```
+
+### Updating the Application
+
+```cmd
+:: 1. Stop services
+nssm stop ChatbotUI
+nssm stop ChatbotEngine
+
+:: 2. Pull latest code
+cd C:\Chatbot
+git pull
+
+:: 3. Install dependencies
+npm install
+cd services\engine && npm install && cd ..\..
+
+:: 4. Rebuild
+npm run build
+cd services\engine && npm run build && cd ..\..
+
+:: 5. Copy standalone assets
+xcopy /E /I /Y public .next\standalone\public
+xcopy /E /I /Y .next\static .next\standalone\.next\static
+
+:: 6. Retrain NLP (if corpus changed)
+npm run train
+
+:: 7. Restart services
+nssm start ChatbotEngine
+timeout /t 5
+nssm start ChatbotUI
+```
+
+---
+
+## Troubleshooting
+
+### Port 4000 already in use (EADDRINUSE)
+
+The engine's `predev` script in `services/engine/package.json` auto-kills orphaned processes on port 4000. If it still fails:
+
+```bash
+# Mac/Linux
+lsof -ti:4000 | xargs kill -9
+
+# Windows
+netstat -ano | findstr :4000
+taskkill /PID <PID> /F
+```
+
+### Services dying after some time
+
+The `dev:mock` script uses `concurrently --restart-tries 3 --restart-after 2000` for auto-recovery. The engine also has:
+- `unhandledRejection` / `uncaughtException` handlers in `services/engine/src/server.ts`
+- `tsx watch --ignore './data/**'` to prevent data file writes from triggering restarts
+
+### UI not loading / no styles
+
+Make sure you're running the **dev** server (not a stale production build):
+```bash
+# Kill any stale processes
+lsof -ti:3000 | xargs kill -9
+# Start fresh
+npm run dev:mock
+```
+
+### Engine health check failing
+
+The UI checks engine health via `GET /api/health` every 30 seconds (in `src/components/chat/ChatWindow.tsx`). If it shows "Disconnected":
+1. Check engine is running: `curl http://localhost:4000/api/health`
+2. Check `services/engine/` logs in the terminal
+3. Restart: `npm run svc:engine`
+
+### Windows NSSM: Service won't start
+
+```cmd
+:: Check NSSM logs for errors
+nssm status ChatbotEngine
+powershell Get-Content "C:\Chatbot\data\logs\engine-stderr.log" -Tail 30
+
+:: Common causes:
+:: 1. Node.js not in PATH — use full path in nssm install
+:: 2. Wrong AppDirectory — must be the folder containing the entry script
+:: 3. Missing build — run "npm run build:engine" first
+:: 4. Port already in use:
+netstat -ano | findstr :4000
+taskkill /PID <PID> /F
+```
+
+### Windows NSSM: Service keeps restarting
+
+Check for crash loops in the stderr log:
+```cmd
+powershell Get-Content "C:\Chatbot\data\logs\engine-stderr.log" -Tail 100
+```
+
+Common causes:
+- Missing `node_modules/` — run `npm install` in the service directory
+- Missing `dist/` — run `npm run build` in `services/engine/`
+- Missing env vars — verify with `nssm edit ChatbotEngine` → Environment tab
+- Missing data directories — create `C:\Chatbot\data\logs\`, `data\knowledge\`, etc.
+
+### Windows: Kill stale processes on ports
+
+```cmd
+:: Find what's using port 4000
+netstat -ano | findstr :4000 | findstr LISTENING
+
+:: Kill by PID
+taskkill /PID <PID> /F
+
+:: Or kill all node processes (careful in shared environments)
+taskkill /IM node.exe /F
+```
