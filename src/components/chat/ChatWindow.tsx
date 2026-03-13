@@ -83,74 +83,71 @@ export function ChatWindow({
     <ErrorBoundary>
       <div className="flex flex-col h-full bg-white">
       {platform === 'widget' ? (
-        <div className="flex-shrink-0">
-          {/* Top bar: title, status, minimize, close */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-2 flex items-center gap-2">
-            {/* Bot icon */}
-            <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="10" rx="2"/>
-                <circle cx="12" cy="5" r="2"/>
-                <line x1="12" y1="7" x2="12" y2="11"/>
-                <circle cx="8" cy="16" r="1" fill="white"/>
-                <circle cx="16" cy="16" r="1" fill="white"/>
-                <path d="M9 19h6"/>
-              </svg>
-            </div>
-            {/* Title */}
-            <h1 className="text-sm font-semibold text-white leading-tight">Chatbot</h1>
-            {/* Engine status indicator */}
-            <div className="flex items-center gap-1.5 ml-auto mr-1" title={`Engine: ${st.label}`}>
-              <span className={`w-2 h-2 rounded-full ${st.dot} ${st.animate}`} />
-              <span className="text-[10px] text-white/80 hidden sm:inline">{st.label}</span>
-            </div>
-            {/* Minimize button */}
-            <button
-              onClick={handleWidgetMinimize}
-              className="w-7 h-7 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors flex-shrink-0"
-              aria-label="Minimize chat"
-              title="Minimize"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-            </button>
-            {/* Close button */}
-            <button
-              onClick={handleWidgetClose}
-              className="w-7 h-7 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors flex-shrink-0"
-              aria-label="Close chat"
-              title="Close"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
+        /* Single-row sticky header: bot icon, title, user info, status, minimize, close */
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-2 flex items-center gap-2 flex-shrink-0 shadow-sm">
+          {/* Bot icon */}
+          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="10" rx="2"/>
+              <circle cx="12" cy="5" r="2"/>
+              <line x1="12" y1="7" x2="12" y2="11"/>
+              <circle cx="8" cy="16" r="1" fill="white"/>
+              <circle cx="16" cy="16" r="1" fill="white"/>
+              <path d="M9 19h6"/>
+            </svg>
           </div>
-          {/* User info bar — always visible */}
-          <div className="bg-blue-50 border-b border-blue-100 px-3 py-1.5 flex items-center gap-2">
-            {userInfo ? (
-              <>
-                <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0">
-                  {userInfo.givenName?.[0]}{userInfo.surname?.[0]}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs font-medium text-gray-800 truncate block">
+          {/* Title + user info on one line */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-semibold text-white whitespace-nowrap">Chatbot</span>
+              {userInfo && (
+                <>
+                  <span className="text-white/40">·</span>
+                  <div className="w-5 h-5 rounded-full bg-white/20 text-white text-[8px] font-bold flex items-center justify-center flex-shrink-0">
+                    {userInfo.givenName?.[0]}{userInfo.surname?.[0]}
+                  </div>
+                  <span className="text-[11px] text-white/80 truncate">
                     {userInfo.displayName}
                     {(userInfo.department || userInfo.role) && (
-                      <span className="text-gray-400 font-normal"> | {userInfo.department || userInfo.role}</span>
+                      <span className="text-white/50"> | {userInfo.department || userInfo.role}</span>
                     )}
                   </span>
-                </div>
-              </>
-            ) : (
-              <span className="text-xs text-gray-500">Ask me anything</span>
-            )}
+                </>
+              )}
+            </div>
           </div>
+          {/* Engine status indicator */}
+          <div className="flex items-center gap-1 flex-shrink-0" title={`Engine: ${st.label}`}>
+            <span className={`w-2 h-2 rounded-full ${st.dot} ${st.animate}`} />
+            <span className="text-[10px] text-white/70 hidden sm:inline">{st.label}</span>
+          </div>
+          {/* Minimize button */}
+          <button
+            onClick={handleWidgetMinimize}
+            className="w-6 h-6 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors flex-shrink-0"
+            aria-label="Minimize chat"
+            title="Minimize"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+          {/* Close button */}
+          <button
+            onClick={handleWidgetClose}
+            className="w-6 h-6 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors flex-shrink-0"
+            aria-label="Close chat"
+            title="Close"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
       ) : (
-        <div className="border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+        /* Non-widget: sticky header with title, status, user info */
+        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 flex-shrink-0">
           <div className="flex-1">
             <h1 className="text-lg font-semibold text-gray-900">Chatbot</h1>
             <p className="text-xs text-gray-500">
@@ -159,12 +156,12 @@ export function ChatWindow({
                 : 'Ask me about queries, URLs, or estimations'}
             </p>
           </div>
-          {/* Engine status for non-widget mode */}
+          {/* Engine status */}
           <div className="flex items-center gap-1.5" title={`Engine: ${st.label}`}>
             <span className={`w-2 h-2 rounded-full ${st.dot} ${st.animate}`} />
             <span className="text-[11px] text-gray-500">{st.label}</span>
           </div>
-          {/* User info for non-widget mode */}
+          {/* User info */}
           {userInfo && (
             <div className="flex items-center gap-2 pl-3 border-l border-gray-200">
               <div className="w-7 h-7 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
