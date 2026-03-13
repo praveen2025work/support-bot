@@ -14,7 +14,7 @@ const DEFAULT_SETTINGS = {
   sessionTtlMinutes: 30,
   apiCacheTtlMinutes: 5,
   apiBaseUrl: '',
-  mockApiUrl: 'http://localhost:8080',
+  mockApiUrl: process.env.API_BASE_URL?.replace(/\/api$/, '') || 'http://localhost:8080',
   enabledPlatforms: ['web', 'widget'],
 };
 

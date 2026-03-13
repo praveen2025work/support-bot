@@ -105,7 +105,7 @@ cp .env.example .env.mock`}</CmdBlock>
                 <tr><td className="font-mono py-0.5 pr-3">NODE_ENV</td><td>development</td></tr>
                 <tr><td className="font-mono py-0.5 pr-3">API_BASE_URL</td><td>http://localhost:8080/api (Mock API)</td></tr>
                 <tr><td className="font-mono py-0.5 pr-3">USER_INFO_URL</td><td><em>empty</em> &rarr; falls back to &quot;Local Developer&quot; mock user</td></tr>
-                <tr><td className="font-mono py-0.5 pr-3">ENGINE_URL</td><td><em>empty</em> for monolith, or http://localhost:4000 for 3-service</td></tr>
+                <tr><td className="font-mono py-0.5 pr-3">ENGINE_URL</td><td><em>empty</em> for monolith, or http://localhost:4001 for 3-service</td></tr>
               </tbody>
             </table>
           </div>
@@ -154,7 +154,7 @@ npm start
               <CmdBlock>{`cd services/engine
 npm install
 npm run dev
-# → Engine server running at http://localhost:4000`}</CmdBlock>
+# → Engine server running at http://localhost:4001`}</CmdBlock>
             </div>
             <div>
               <div className="flex items-center gap-2 mb-2">
@@ -163,7 +163,7 @@ npm run dev
               </div>
               <CmdBlock>{`# From project root — load env file
 dotenv -e .env.mock -- npx next dev
-# → UI available at http://localhost:3000`}</CmdBlock>
+# → UI available at http://localhost:3001`}</CmdBlock>
             </div>
           </div>
         </Section>
@@ -173,8 +173,8 @@ dotenv -e .env.mock -- npx next dev
 docker compose up --build
 
 # Access:
-#   UI:       http://localhost:3000
-#   Engine:   http://localhost:4000
+#   UI:       http://localhost:3001
+#   Engine:   http://localhost:4001
 #   Mock API: http://localhost:8080`}</CmdBlock>
         </Section>
 
@@ -184,7 +184,7 @@ docker compose up --build
               <span className="text-green-500 mt-0.5">&#10003;</span>
               <div>
                 <span className="font-medium">Health check:</span>{' '}
-                <code className="text-xs bg-gray-100 px-1 rounded">curl http://localhost:4000/api/health</code>
+                <code className="text-xs bg-gray-100 px-1 rounded">curl http://localhost:4001/api/health</code>
               </div>
             </div>
             <div className="flex items-start gap-2">
@@ -197,13 +197,13 @@ docker compose up --build
             <div className="flex items-start gap-2">
               <span className="text-green-500 mt-0.5">&#10003;</span>
               <div>
-                <span className="font-medium">Chat UI:</span> Open <code className="text-xs bg-gray-100 px-1 rounded">http://localhost:3000</code> — should show &quot;Local Developer&quot; logged in
+                <span className="font-medium">Chat UI:</span> Open <code className="text-xs bg-gray-100 px-1 rounded">http://localhost:3001</code> — should show &quot;Local Developer&quot; logged in
               </div>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-green-500 mt-0.5">&#10003;</span>
               <div>
-                <span className="font-medium">Admin Portal:</span> Open <code className="text-xs bg-gray-100 px-1 rounded">http://localhost:3000/admin</code> — &quot;Local Developer&quot; has admin access
+                <span className="font-medium">Admin Portal:</span> Open <code className="text-xs bg-gray-100 px-1 rounded">http://localhost:3001/admin</code> — &quot;Local Developer&quot; has admin access
               </div>
             </div>
             <div className="flex items-start gap-2">
@@ -275,12 +275,12 @@ npm run start:prod     # Production build with real APIs`}</pre>
                 <th className="px-3 py-2 text-left font-medium text-gray-600 border-b">Description</th>
               </tr></thead>
               <tbody className="text-gray-700">
-                <tr><td className="px-3 py-1.5 border-b font-mono">ENGINE_URL</td><td className="px-3 py-1.5 border-b">UI</td><td className="px-3 py-1.5 border-b"><em>empty</em> (monolith)</td><td className="px-3 py-1.5 border-b">Set to http://localhost:4000 for 3-service mode</td></tr>
+                <tr><td className="px-3 py-1.5 border-b font-mono">ENGINE_URL</td><td className="px-3 py-1.5 border-b">UI</td><td className="px-3 py-1.5 border-b"><em>empty</em> (monolith)</td><td className="px-3 py-1.5 border-b">Set to http://localhost:4001 for 3-service mode</td></tr>
                 <tr className="bg-gray-50"><td className="px-3 py-1.5 border-b font-mono">ENGINE_PORT</td><td className="px-3 py-1.5 border-b">Engine</td><td className="px-3 py-1.5 border-b">4000</td><td className="px-3 py-1.5 border-b">Port the Engine listens on</td></tr>
                 <tr><td className="px-3 py-1.5 border-b font-mono">API_BASE_URL</td><td className="px-3 py-1.5 border-b">Engine</td><td className="px-3 py-1.5 border-b">http://localhost:8080/api</td><td className="px-3 py-1.5 border-b">Points to Mock API for demo</td></tr>
                 <tr className="bg-gray-50"><td className="px-3 py-1.5 border-b font-mono">API_TOKEN</td><td className="px-3 py-1.5 border-b">Engine</td><td className="px-3 py-1.5 border-b"><em>empty</em></td><td className="px-3 py-1.5 border-b">Global bearer token (not needed for mock)</td></tr>
                 <tr><td className="px-3 py-1.5 border-b font-mono">USER_INFO_URL</td><td className="px-3 py-1.5 border-b">Engine</td><td className="px-3 py-1.5 border-b"><em>empty</em></td><td className="px-3 py-1.5 border-b">Empty = mock user &quot;Local Developer&quot;</td></tr>
-                <tr className="bg-gray-50"><td className="px-3 py-1.5 border-b font-mono">UI_ORIGIN</td><td className="px-3 py-1.5 border-b">Engine</td><td className="px-3 py-1.5 border-b">http://localhost:3000</td><td className="px-3 py-1.5 border-b">CORS allowed origin</td></tr>
+                <tr className="bg-gray-50"><td className="px-3 py-1.5 border-b font-mono">UI_ORIGIN</td><td className="px-3 py-1.5 border-b">Engine</td><td className="px-3 py-1.5 border-b">http://localhost:3001</td><td className="px-3 py-1.5 border-b">CORS allowed origin</td></tr>
               </tbody>
             </table>
           </div>

@@ -119,9 +119,9 @@ npm run dev`}</CmdBlock>
           <div className="mt-3 p-3 bg-gray-50 rounded-lg">
             <div className="text-xs font-medium text-gray-600 mb-2">Accessible at:</div>
             <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-              <div><Code>http://localhost:3000</Code> — Main chat interface</div>
-              <div><Code>http://localhost:3000/admin</Code> — Admin dashboard</div>
-              <div><Code>http://localhost:3000/widget</Code> — Embeddable widget</div>
+              <div><Code>http://localhost:3001</Code> — Main chat interface</div>
+              <div><Code>http://localhost:3001/admin</Code> — Admin dashboard</div>
+              <div><Code>http://localhost:3001/widget</Code> — Embeddable widget</div>
               <div><Code>http://localhost:8080/api</Code> — Mock API server</div>
             </div>
           </div>

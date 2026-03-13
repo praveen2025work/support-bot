@@ -13,7 +13,7 @@
 ```
 ┌─────────────────┐     ┌─────────────────────┐     ┌───────────────────────┐
 │   Next.js UI    │────▶│   Engine Service     │────▶│  Data API (per-group) │
-│   port 3000     │     │   port 4000          │     │  port 8080 (mock)     │
+│   port 3001     │     │   port 4001          │     │  port 8080 (mock)     │
 │                 │     │                      │     │  or real tenant APIs  │
 │ src/app/        │     │ services/engine/src/ │     │ services/mock-api/    │
 └─────────────────┘     └─────────────────────┘     └───────────────────────┘
@@ -54,14 +54,14 @@ This starts:
 | Service     | Port  | What it runs                                |
 |-------------|-------|---------------------------------------------|
 | **mock-api**| 8080  | `services/mock-api/server.js` (json-server) |
-| **engine**  | 4000  | `services/engine/src/server.ts` (Express)   |
-| **ui**      | 3000  | `src/app/` (Next.js dev server)             |
+| **engine**  | 4001  | `services/engine/src/server.ts` (Express)   |
+| **ui**      | 3001  | `src/app/` (Next.js dev server)             |
 
 Access points:
-- **Chat UI**: http://localhost:3000
-- **Admin panel**: http://localhost:3000/admin
-- **Widget preview**: http://localhost:3000/widget
-- **Engine API docs**: http://localhost:4000/api/docs
+- **Chat UI**: http://localhost:3001
+- **Admin panel**: http://localhost:3001/admin
+- **Widget preview**: http://localhost:3001/widget
+- **Engine API docs**: http://localhost:4001/api/docs
 - **Mock API**: http://localhost:8080/api/queries
 
 ---
@@ -205,8 +205,8 @@ Chatbot/
 NODE_ENV=development
 
 # ── Engine Service ──
-ENGINE_URL=http://localhost:4000
-ENGINE_PORT=4000
+ENGINE_URL=http://localhost:4001
+ENGINE_PORT=4001
 
 # ── User Authentication ──
 USER_INFO_URL=                          # AD/SSO userinfo endpoint. Empty = mock user
@@ -220,7 +220,7 @@ ENGINE_API_KEY=                         # Secures Engine admin API (required in 
 LOG_ENCRYPTION_KEY=                     # AES-256-GCM for conversation logs (optional)
 
 # ── CORS ──
-UI_ORIGIN=http://localhost:3000
+UI_ORIGIN=http://localhost:3001
 
 # ── Teams Bot (optional) ──
 # TEAMS_APP_ID=
@@ -232,14 +232,14 @@ UI_ORIGIN=http://localhost:3000
 | Variable | Default | Required | Description |
 |----------|---------|----------|-------------|
 | `NODE_ENV` | `development` | No | `development` or `production` |
-| `ENGINE_URL` | `http://localhost:4000` | No | URL where Engine service runs |
-| `ENGINE_PORT` | `4000` | No | Port for Engine service |
+| `ENGINE_URL` | `http://localhost:4001` | No | URL where Engine service runs |
+| `ENGINE_PORT` | `4001` | No | Port for Engine service |
 | `USER_INFO_URL` | (empty) | No | AD/SSO endpoint. Empty → mock user fallback |
 | `API_BASE_URL` | `http://localhost:8080/api` | Yes | Global fallback for tenant API |
 | `API_TOKEN` | (empty) | No | Global bearer token for APIs |
 | `ENGINE_API_KEY` | (empty) | Prod | Secures admin API endpoints |
 | `LOG_ENCRYPTION_KEY` | (empty) | No | AES-256-GCM key for log encryption |
-| `UI_ORIGIN` | `http://localhost:3000` | No | CORS origin for Engine |
+| `UI_ORIGIN` | `http://localhost:3001` | No | CORS origin for Engine |
 
 ---
 
@@ -263,8 +263,8 @@ npm run dev:mock
 
 **What runs**:
 - `services/mock-api/server.js` → port 8080
-- `services/engine/src/server.ts` → port 4000
-- `src/app/` (Next.js dev) → port 3000
+- `services/engine/src/server.ts` → port 4001
+- `src/app/` (Next.js dev) → port 3001
 
 ---
 
@@ -286,8 +286,8 @@ npm run dev
 ```
 
 **What runs** (no mock-api):
-- `services/engine/src/server.ts` → port 4000
-- `src/app/` (Next.js dev) → port 3000
+- `services/engine/src/server.ts` → port 4001
+- `src/app/` (Next.js dev) → port 3001
 
 ---
 
@@ -296,7 +296,7 @@ npm run dev
 **Env file**: `.env.prod`
 ```env
 NODE_ENV=production
-ENGINE_URL=http://engine:4000
+ENGINE_URL=http://engine:4001
 ENGINE_API_KEY=your-secure-key
 USER_INFO_URL=https://sso.yourcompany.com/api/userinfo
 API_BASE_URL=https://api.yourcompany.com/api
@@ -554,9 +554,9 @@ docker build -t chatbot-engine -f services/engine/Dockerfile services/engine/
 
 | File | Services | Use case |
 |------|----------|----------|
-| `docker-compose.yml` | mock-api (8080) + engine (4000) + ui (3000) | Demo |
-| `docker-compose.dev.yml` | engine (4000) + ui (3000) | Dev with real APIs |
-| `docker-compose.prod.yml` | engine (4000) + ui (3000) | Production |
+| `docker-compose.yml` | mock-api (8080) + engine (4001) + ui (3001) | Demo |
+| `docker-compose.dev.yml` | engine (4001) + ui (3001) | Dev with real APIs |
+| `docker-compose.prod.yml` | engine (4001) + ui (3001) | Production |
 
 ```bash
 # Demo mode
@@ -637,11 +637,11 @@ nssm set ChatbotEngine AppDirectory "C:\Chatbot\services\engine"
 :: Set environment variables
 nssm set ChatbotEngine AppEnvironmentExtra ^
   NODE_ENV=production ^
-  ENGINE_PORT=4000 ^
+  ENGINE_PORT=4001 ^
   API_BASE_URL=http://localhost:8080/api ^
   API_TOKEN=your-token ^
   ENGINE_API_KEY=your-secure-key ^
-  UI_ORIGIN=http://localhost:3000 ^
+  UI_ORIGIN=http://localhost:3001 ^
   USER_INFO_URL=https://sso.yourcompany.com/api/userinfo ^
   LOG_ENCRYPTION_KEY=your-encryption-key
 
@@ -683,8 +683,8 @@ nssm set ChatbotUI AppDirectory "C:\Chatbot"
 :: Set environment variables
 nssm set ChatbotUI AppEnvironmentExtra ^
   NODE_ENV=production ^
-  PORT=3000 ^
-  ENGINE_URL=http://localhost:4000
+  PORT=3001 ^
+  ENGINE_URL=http://localhost:4001
 
 :: Configure logging
 nssm set ChatbotUI AppStdout "C:\Chatbot\data\logs\ui-stdout.log"
@@ -761,8 +761,8 @@ powershell Get-Content "C:\Chatbot\data\logs\engine-stdout.log" -Wait -Tail 50
 | Service | Port | Depends On | Start Order |
 |---------|------|------------|-------------|
 | `ChatbotMockAPI` | 8080 | (none) | 1st |
-| `ChatbotEngine` | 4000 | MockAPI (if using mock) | 2nd |
-| `ChatbotUI` | 3000 | Engine | 3rd |
+| `ChatbotEngine` | 4001 | MockAPI (if using mock) | 2nd |
+| `ChatbotUI` | 3001 | Engine | 3rd |
 
 NSSM `DependOnService` ensures the UI waits for Engine to start. If using real APIs (no mock), remove MockAPI.
 
@@ -774,11 +774,11 @@ NSSM doesn't use `.env` files. Set env vars via `nssm set <service> AppEnvironme
 | Variable | Example Value | Notes |
 |----------|---------------|-------|
 | `NODE_ENV` | `production` | Required |
-| `ENGINE_PORT` | `4000` | Default 4000 |
+| `ENGINE_PORT` | `4001` | Default 4001 |
 | `API_BASE_URL` | `http://localhost:8080/api` | Global fallback (groups override) |
 | `API_TOKEN` | `your-token` | Global fallback for bearer auth |
 | `ENGINE_API_KEY` | `your-key` | Secures admin API |
-| `UI_ORIGIN` | `http://localhost:3000` | CORS |
+| `UI_ORIGIN` | `http://localhost:3001` | CORS |
 | `USER_INFO_URL` | `https://sso.company.com/...` | AD/SSO endpoint |
 | `LOG_ENCRYPTION_KEY` | `your-key` | Optional AES-256-GCM |
 
@@ -786,8 +786,8 @@ NSSM doesn't use `.env` files. Set env vars via `nssm set <service> AppEnvironme
 | Variable | Example Value | Notes |
 |----------|---------------|-------|
 | `NODE_ENV` | `production` | Required |
-| `PORT` | `3000` | Next.js listen port |
-| `ENGINE_URL` | `http://localhost:4000` | Engine proxy target |
+| `PORT` | `3001` | Next.js listen port |
+| `ENGINE_URL` | `http://localhost:4001` | Engine proxy target |
 
 ### Batch Script: `nssm/install-services.bat`
 
@@ -808,7 +808,7 @@ echo === Installing ChatbotEngine ===
 nssm install ChatbotEngine "%NODE%"
 nssm set ChatbotEngine AppParameters "dist\server.js"
 nssm set ChatbotEngine AppDirectory "%PROJECT%\services\engine"
-nssm set ChatbotEngine AppEnvironmentExtra NODE_ENV=production ENGINE_PORT=4000 API_BASE_URL=http://localhost:8080/api UI_ORIGIN=http://localhost:3000
+nssm set ChatbotEngine AppEnvironmentExtra NODE_ENV=production ENGINE_PORT=4001 API_BASE_URL=http://localhost:8080/api UI_ORIGIN=http://localhost:3001
 nssm set ChatbotEngine AppStdout "%LOGS%\engine-stdout.log"
 nssm set ChatbotEngine AppStderr "%LOGS%\engine-stderr.log"
 nssm set ChatbotEngine AppStdoutCreationDisposition 4
@@ -824,7 +824,7 @@ echo === Installing ChatbotUI ===
 nssm install ChatbotUI "%NODE%"
 nssm set ChatbotUI AppParameters ".next\standalone\server.js"
 nssm set ChatbotUI AppDirectory "%PROJECT%"
-nssm set ChatbotUI AppEnvironmentExtra NODE_ENV=production PORT=3000 ENGINE_URL=http://localhost:4000
+nssm set ChatbotUI AppEnvironmentExtra NODE_ENV=production PORT=3001 ENGINE_URL=http://localhost:4001
 nssm set ChatbotUI AppStdout "%LOGS%\ui-stdout.log"
 nssm set ChatbotUI AppStderr "%LOGS%\ui-stderr.log"
 nssm set ChatbotUI AppStdoutCreationDisposition 4
@@ -866,10 +866,10 @@ If accessing from other machines, open the ports:
 
 ```cmd
 :: Allow Engine port (optional — usually only UI is exposed)
-netsh advfirewall firewall add rule name="Chatbot Engine" dir=in action=allow protocol=TCP localport=4000
+netsh advfirewall firewall add rule name="Chatbot Engine" dir=in action=allow protocol=TCP localport=4001
 
 :: Allow UI port
-netsh advfirewall firewall add rule name="Chatbot UI" dir=in action=allow protocol=TCP localport=3000
+netsh advfirewall firewall add rule name="Chatbot UI" dir=in action=allow protocol=TCP localport=3001
 ```
 
 ### Updating the Application
@@ -908,16 +908,16 @@ nssm start ChatbotUI
 
 ## Troubleshooting
 
-### Port 4000 already in use (EADDRINUSE)
+### Port 4001 already in use (EADDRINUSE)
 
-The engine's `predev` script in `services/engine/package.json` auto-kills orphaned processes on port 4000. If it still fails:
+The engine's `predev` script in `services/engine/package.json` auto-kills orphaned processes on port 4001. If it still fails:
 
 ```bash
 # Mac/Linux
-lsof -ti:4000 | xargs kill -9
+lsof -ti:4001 | xargs kill -9
 
 # Windows
-netstat -ano | findstr :4000
+netstat -ano | findstr :4001
 taskkill /PID <PID> /F
 ```
 
@@ -932,7 +932,7 @@ The `dev:mock` script uses `concurrently --restart-tries 3 --restart-after 2000`
 Make sure you're running the **dev** server (not a stale production build):
 ```bash
 # Kill any stale processes
-lsof -ti:3000 | xargs kill -9
+lsof -ti:3001 | xargs kill -9
 # Start fresh
 npm run dev:mock
 ```
@@ -940,7 +940,7 @@ npm run dev:mock
 ### Engine health check failing
 
 The UI checks engine health via `GET /api/health` every 30 seconds (in `src/components/chat/ChatWindow.tsx`). If it shows "Disconnected":
-1. Check engine is running: `curl http://localhost:4000/api/health`
+1. Check engine is running: `curl http://localhost:4001/api/health`
 2. Check `services/engine/` logs in the terminal
 3. Restart: `npm run svc:engine`
 
@@ -956,7 +956,7 @@ powershell Get-Content "C:\Chatbot\data\logs\engine-stderr.log" -Tail 30
 :: 2. Wrong AppDirectory — must be the folder containing the entry script
 :: 3. Missing build — run "npm run build:engine" first
 :: 4. Port already in use:
-netstat -ano | findstr :4000
+netstat -ano | findstr :4001
 taskkill /PID <PID> /F
 ```
 
@@ -976,8 +976,8 @@ Common causes:
 ### Windows: Kill stale processes on ports
 
 ```cmd
-:: Find what's using port 4000
-netstat -ano | findstr :4000 | findstr LISTENING
+:: Find what's using port 4001
+netstat -ano | findstr :4001 | findstr LISTENING
 
 :: Kill by PID
 taskkill /PID <PID> /F

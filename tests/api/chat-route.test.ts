@@ -16,7 +16,7 @@ import { POST } from '@/app/api/chat/route';
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function createChatRequest(body: unknown): NextRequest {
-  const url = new URL('http://localhost:3000/api/chat');
+  const url = new URL('http://localhost:3001/api/chat');
   return new NextRequest(url, {
     method: 'POST',
     headers: new Headers({ 'content-type': 'application/json' }),

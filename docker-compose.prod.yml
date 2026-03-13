@@ -11,10 +11,10 @@ services:
   ui:
     build: .
     ports:
-      - '3000:3000'
+      - '3001:3001'
     env_file: .env.prod
     environment:
-      - ENGINE_URL=http://engine:4000
+      - ENGINE_URL=http://engine:4001
     depends_on:
       - engine
     restart: unless-stopped
@@ -23,8 +23,8 @@ services:
   engine:
     build: ./services/engine
     ports:
-      - '4000:4000'
+      - '4001:4001'
     env_file: .env.prod
     environment:
-      - UI_ORIGIN=http://ui:3000
+      - UI_ORIGIN=http://ui:3001
     restart: unless-stopped

@@ -112,7 +112,7 @@ export default function ConfigGuidePage() {
                   <td className="px-3 py-2 font-mono">ENGINE_URL</td>
                   <td className="px-3 py-2">Enables 3-service mode</td>
                   <td className="px-3 py-2"><em>empty</em> (monolith)</td>
-                  <td className="px-3 py-2">http://localhost:4000</td>
+                  <td className="px-3 py-2">http://localhost:4001</td>
                 </tr>
                 <tr className="border-t border-gray-100">
                   <td className="px-3 py-2 font-mono">USER_INFO_URL</td>
@@ -141,7 +141,7 @@ export default function ConfigGuidePage() {
                 <tr className="border-t border-gray-100">
                   <td className="px-3 py-2 font-mono">UI_ORIGIN</td>
                   <td className="px-3 py-2">CORS allowed origin</td>
-                  <td className="px-3 py-2">http://localhost:3000</td>
+                  <td className="px-3 py-2">http://localhost:3001</td>
                   <td className="px-3 py-2">Your prod domain</td>
                 </tr>
               </tbody>
@@ -160,7 +160,7 @@ export default function ConfigGuidePage() {
             </div>
             <div className="flex gap-2 text-xs text-gray-600">
               <span className="w-5 h-5 rounded-full bg-green-100 text-green-700 font-bold flex items-center justify-center shrink-0">3</span>
-              <span>Run <Code>npm run dev:mock</Code> &mdash; opens at <Code>http://localhost:3000</Code></span>
+              <span>Run <Code>npm run dev:mock</Code> &mdash; opens at <Code>http://localhost:3001</Code></span>
             </div>
             <div className="flex gap-2 text-xs text-gray-600">
               <span className="w-5 h-5 rounded-full bg-green-100 text-green-700 font-bold flex items-center justify-center shrink-0">4</span>
@@ -184,7 +184,7 @@ export default function ConfigGuidePage() {
             </div>
             <div className="flex gap-2 text-xs text-gray-600">
               <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0">4</span>
-              <span>Set <Code>ENGINE_URL=http://localhost:4000</Code> for 3-service mode</span>
+              <span>Set <Code>ENGINE_URL=http://localhost:4001</Code> for 3-service mode</span>
             </div>
             <div className="flex gap-2 text-xs text-gray-600">
               <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0">5</span>

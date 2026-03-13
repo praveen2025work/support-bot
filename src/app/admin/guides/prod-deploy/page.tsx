@@ -97,7 +97,7 @@ cp .env.example .env.prod`}</CmdBlock>
                 </tr></thead>
                 <tbody className="text-gray-700">
                   <tr><td className="px-3 py-1 font-mono">NODE_ENV</td><td className="px-3 py-1">production</td><td className="px-3 py-1">Enables production optimizations, structured logging</td></tr>
-                  <tr className="bg-red-50/50"><td className="px-3 py-1 font-mono">ENGINE_URL</td><td className="px-3 py-1">http://engine:4000</td><td className="px-3 py-1">UI proxies API calls to Engine (Docker) or http://localhost:4000 (PM2)</td></tr>
+                  <tr className="bg-red-50/50"><td className="px-3 py-1 font-mono">ENGINE_URL</td><td className="px-3 py-1">http://engine:4001</td><td className="px-3 py-1">UI proxies API calls to Engine (Docker) or http://localhost:4001 (PM2)</td></tr>
                   <tr><td className="px-3 py-1 font-mono">USER_INFO_URL</td><td className="px-3 py-1">https://sso.your-company.com/api/userinfo</td><td className="px-3 py-1">AD/SSO endpoint for user authentication</td></tr>
                   <tr className="bg-red-50/50"><td className="px-3 py-1 font-mono">API_BASE_URL</td><td className="px-3 py-1">https://api.your-company.com/api</td><td className="px-3 py-1">Tenant data API base URL</td></tr>
                   <tr><td className="px-3 py-1 font-mono">API_TOKEN</td><td className="px-3 py-1">your-prod-api-token</td><td className="px-3 py-1">Global bearer token for APIs using bearer auth</td></tr>
@@ -216,7 +216,7 @@ pm2 startup`}</CmdBlock>
 
     # UI
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3001;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -228,7 +228,7 @@ pm2 startup`}</CmdBlock>
 
     # Engine API (direct access for health checks)
     location /engine/ {
-        proxy_pass http://127.0.0.1:4000/;
+        proxy_pass http://127.0.0.1:4001/;
         proxy_set_header Host $host;
     }
 }`}</CmdBlock>

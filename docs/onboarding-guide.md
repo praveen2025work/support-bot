@@ -316,10 +316,10 @@ TEAMS_APP_PASSWORD=your-teams-app-password
 # 1. Start mock API server (port 8080)
 npm run mock-api
 
-# 2. Start chatbot (port 3000)
-npm run dev
+# 2. Start chatbot (port 3001)
+npm run dev:mock
 
-# 3. Open http://localhost:3000
+# 3. Open http://localhost:3001
 ```
 
 ### Add Your Queries to Mock Data

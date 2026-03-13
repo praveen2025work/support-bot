@@ -6,7 +6,7 @@
 ┌──────────────┐      ┌─────────────────────┐      ┌─────────────────┐
 │  Service 1   │ ──→  │    Service 2         │ ──→  │  Service 3      │
 │  UI (Next.js)│      │  Engine (Express)    │      │  Mock API       │
-│  Port 3000   │      │  Port 4000           │      │  (json-server)  │
+│  Port 3001   │      │  Port 4001           │      │  (json-server)  │
 │              │      │                      │      │  Port 8080      │
 │  Pages only  │      │  NLP + Query + Admin │      │                 │
 │  Proxies API │      │  API routes          │      │  Sample data    │
@@ -38,7 +38,7 @@ Extract all backend logic into a standalone Express server:
 **New files:**
 - `services/engine/package.json` — Express, @nlpjs/*, pino, zod, ky, fuse.js, lru-cache, xlsx, cors
 - `services/engine/tsconfig.json`
-- `services/engine/src/server.ts` — Express app entry point on port 4000
+- `services/engine/src/server.ts` — Express app entry point on port 4001
 - `services/engine/src/routes/chat.ts` — POST `/api/chat` (from `src/app/api/chat/route.ts`)
 - `services/engine/src/routes/admin.ts` — All `/api/admin/*` routes consolidated
 - `services/engine/src/routes/queries.ts` — `/api/queries`, `/api/filters`, `/api/groups`
@@ -77,7 +77,7 @@ Add `authType` and `authConfig` fields to the Query schema and groups.json — t
 ### Step 3: Modify UI service (existing Next.js app)
 
 **Changes to existing Next.js app:**
-- Update `next.config.mjs`: Add `rewrites()` to proxy all `/api/*` requests to `http://localhost:4000/api/*` (Engine service)
+- Update `next.config.mjs`: Add `rewrites()` to proxy all `/api/*` requests to `http://localhost:4001/api/*` (Engine service)
 - Remove `src/app/api/` directory entirely (all API routes now live in Engine)
 - Remove `src/core/`, `src/adapters/`, `src/config/`, `src/training/`, `src/lib/` (moved to Engine)
 - Keep: `src/app/` pages, `src/components/`, `src/hooks/`, `public/`, `data/knowledge/`
@@ -117,9 +117,9 @@ version: '3.8'
 services:
   ui:
     build: ./services/ui
-    ports: ['3000:3000']
+    ports: ['3000:3001']
     environment:
-      - ENGINE_URL=http://engine:4000
+      - ENGINE_URL=http://engine:4001
     depends_on: [engine]
 
   engine:
@@ -153,8 +153,8 @@ services:
 1. Prerequisites (Node.js 18+, npm, Git)
 2. Clone & install deps for all 3 services
 3. Start Mock API (port 8080)
-4. Start Engine (port 4000)
-5. Start UI (port 3000)
+4. Start Engine (port 4001)
+5. Start UI (port 3001)
 6. Or use `npm run dev` from root to start all 3
 7. Docker option: `docker compose up`
 8. Verify: health check endpoints
@@ -174,7 +174,7 @@ services:
 3. Start Engine with PM2 (`pm2 start services/engine/dist/server.js --name engine`)
 4. Start UI with PM2 (`pm2 start services/ui/server.js --name ui`)
 5. Configure IIS as reverse proxy (URL Rewrite + ARR)
-6. IIS → port 80/443 → proxy to UI :3000 and Engine :4000
+6. IIS → port 80/443 → proxy to UI :3001 and Engine :4000
 7. SSL certificate setup with IIS
 8. Windows Firewall rules
 9. Auto-start on boot (`pm2 save`, `pm2-startup install`)

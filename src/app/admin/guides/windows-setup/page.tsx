@@ -133,7 +133,7 @@ copy .env.example .env.mock
 
 # Edit .env.dev and set:
 # NODE_ENV=development
-# ENGINE_URL=http://localhost:4000
+# ENGINE_URL=http://localhost:4001
 # USER_INFO_URL=https://your-org-sso.company.com/api/userinfo
 # API_BASE_URL=https://api-dev.your-company.com/api
 # API_TOKEN=your-dev-api-token`}</CmdBlock>
@@ -148,7 +148,7 @@ copy .env.example .env.mock
 
 # Edit .env.prod and set:
 # NODE_ENV=production
-# ENGINE_URL=http://localhost:4000
+# ENGINE_URL=http://localhost:4001
 # USER_INFO_URL=https://sso.your-company.com/api/userinfo
 # API_BASE_URL=https://api.your-company.com/api
 # API_TOKEN=your-prod-api-token
@@ -165,7 +165,7 @@ copy .env.example .env.mock
 [System.Environment]::SetEnvironmentVariable("API_BASE_URL", "https://your-api.corp.com/api", "Machine")
 [System.Environment]::SetEnvironmentVariable("API_TOKEN", "your-token", "Machine")
 [System.Environment]::SetEnvironmentVariable("USER_INFO_URL", "https://sso.corp.com/api/userinfo", "Machine")
-[System.Environment]::SetEnvironmentVariable("ENGINE_URL", "http://localhost:4000", "Machine")
+[System.Environment]::SetEnvironmentVariable("ENGINE_URL", "http://localhost:4001", "Machine")
 [System.Environment]::SetEnvironmentVariable("ENGINE_API_KEY", "your-secure-key", "Machine")
 [System.Environment]::SetEnvironmentVariable("UI_ORIGIN", "https://chatbot.corp.com", "Machine")`}</CmdBlock>
         </Section>
@@ -302,7 +302,7 @@ Enable-WindowsOptionalFeature -Online -FeatureName IIS-WindowsAuthentication
       <rules>
         <rule name="ChatbotUI" stopProcessing="true">
           <match url="(.*)" />
-          <action type="Rewrite" url="http://localhost:3000/{R:1}" />
+          <action type="Rewrite" url="http://localhost:3001/{R:1}" />
         </rule>
       </rules>
     </rewrite>

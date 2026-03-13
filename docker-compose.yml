@@ -10,10 +10,10 @@ services:
   ui:
     build: .
     ports:
-      - '3000:3000'
+      - '3001:3001'
     environment:
       - NODE_ENV=production
-      - ENGINE_URL=http://engine:4000
+      - ENGINE_URL=http://engine:4001
     depends_on:
       - engine
     restart: unless-stopped
@@ -22,12 +22,12 @@ services:
   engine:
     build: ./services/engine
     ports:
-      - '4000:4000'
+      - '4001:4001'
     environment:
       - NODE_ENV=production
       - ENGINE_PORT=4000
       - API_BASE_URL=http://mock-api:8080/api
-      - UI_ORIGIN=http://ui:3000
+      - UI_ORIGIN=http://ui:3001
       # No USER_INFO_URL → mock user fallback
       # No ENGINE_API_KEY → open admin access (demo only)
     depends_on:

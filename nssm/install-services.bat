@@ -87,7 +87,7 @@ nssm set ChatbotEngine AppEnvironmentExtra ^
     API_BASE_URL=http://localhost:8080/api ^
     API_TOKEN= ^
     ENGINE_API_KEY= ^
-    UI_ORIGIN=http://localhost:3000 ^
+    UI_ORIGIN=http://localhost:3001 ^
     USER_INFO_URL= ^
     LOG_ENCRYPTION_KEY=
 
@@ -125,7 +125,7 @@ nssm set ChatbotUI AppDirectory "%PROJECT%"
 nssm set ChatbotUI AppEnvironmentExtra ^
     NODE_ENV=production ^
     PORT=3000 ^
-    ENGINE_URL=http://localhost:4000
+    ENGINE_URL=http://localhost:4001
 
 :: Logging
 nssm set ChatbotUI AppStdout "%LOGS%\ui-stdout.log"
@@ -211,10 +211,10 @@ echo.
 echo ====================================================
 echo   Access Points
 echo ====================================================
-echo   UI:       http://localhost:3000
-echo   Admin:    http://localhost:3000/admin
-echo   Widget:   http://localhost:3000/widget
-echo   Engine:   http://localhost:4000/api/health
+echo   UI:       http://localhost:3001
+echo   Admin:    http://localhost:3001/admin
+echo   Widget:   http://localhost:3001/widget
+echo   Engine:   http://localhost:4001/api/health
 echo   Mock API: http://localhost:8080/api/queries
 echo ====================================================
 echo.

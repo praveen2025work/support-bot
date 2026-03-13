@@ -551,7 +551,7 @@ function getRawData(queryName) {
   }
 }
 
-const PORT = 8080;
+const PORT = parseInt(process.env.MOCK_API_PORT || '8080', 10);
 const httpServer = server.listen(PORT, () => {
   console.log(`Mock API server running at http://localhost:${PORT}`);
   console.log(`Queries endpoint: http://localhost:${PORT}/api/queries`);

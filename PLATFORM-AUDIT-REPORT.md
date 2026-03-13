@@ -296,7 +296,7 @@ Stop words are duplicated in `response-generator.ts` at lines 26–31 and lines 
 
 ```
 ┌─────────────────────────────────────────────────┐
-│                  Next.js UI (port 3000)          │
+│                  Next.js UI (port 3001)          │
 │  ┌──────────┐  ┌──────────┐  ┌───────────────┐  │
 │  │ Chat UI  │  │ Admin UI │  │ API Proxy     │  │
 │  │ (React)  │  │ (React)  │  │ Routes        │  │
@@ -309,7 +309,7 @@ Stop words are duplicated in `response-generator.ts` at lines 26–31 and lines 
 └──────────────────────┬───────────────────────────┘
                        │ HTTP (when ENGINE_URL set)
 ┌──────────────────────▼───────────────────────────┐
-│              Engine Service (port 4000)            │
+│              Engine Service (port 4001)            │
 │  ┌──────────┐  ┌───────────┐  ┌───────────────┐  │
 │  │ NLP      │  │ Query     │  │ Response      │  │
 │  │ Service  │  │ Service   │  │ Generator     │  │
@@ -330,7 +330,7 @@ Stop words are duplicated in `response-generator.ts` at lines 26–31 and lines 
 
 ```
 ┌─────────────────────────────────────────────────┐
-│                  Next.js UI (port 3000)          │
+│                  Next.js UI (port 3001)          │
 │  ┌──────────┐  ┌──────────┐  ┌───────────────┐  │
 │  │ Chat UI  │  │ Admin UI │  │ Thin Proxy    │  │
 │  │ (React)  │  │ (React)  │  │ Only          │  │
@@ -342,7 +342,7 @@ Stop words are duplicated in `response-generator.ts` at lines 26–31 and lines 
 └──────────────────────┬───────────────────────────┘
                        │ HTTP (always through Engine)
 ┌──────────────────────▼───────────────────────────┐
-│              Engine Service (port 4000)            │
+│              Engine Service (port 4001)            │
 │  ┌────────────────────────────────────────────┐   │
 │  │ Auth Middleware (timing-safe, rate-limited) │   │
 │  └────────────────────────────────────────────┘   │

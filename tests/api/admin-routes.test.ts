@@ -36,7 +36,7 @@ function createMockRequest(
     searchParams?: Record<string, string>;
   } = {}
 ): NextRequest {
-  const url = new URL('http://localhost:3000/api/admin/files');
+  const url = new URL('http://localhost:3001/api/admin/files');
   if (options.searchParams) {
     for (const [k, v] of Object.entries(options.searchParams)) {
       url.searchParams.set(k, v);
