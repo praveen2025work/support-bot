@@ -4,6 +4,7 @@
   "private": true,
   "description": "Chatbot Engine — NLP pipeline, query execution, admin API",
   "scripts": {
+    "predev": "node -e \"try{require('child_process').execSync(process.platform==='win32'?'for /f \"tokens=5\" %a in (\\'netstat -ano ^| findstr :4000 ^| findstr LISTENING\\') do taskkill /PID %a /F 2>nul':'lsof -ti:4000 | xargs kill -9 2>/dev/null',{stdio:'ignore'})}catch{}\"",
     "dev": "tsx watch --ignore './data/**' --ignore './dist/**' --ignore './*.jsonl' src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
