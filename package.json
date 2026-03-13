@@ -6,7 +6,7 @@
     "node": ">=16.0.0"
   },
   "scripts": {
-    "build": "next build",
+    "build": "npm run lint:all && next build && cd services/engine && npm run build",
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
