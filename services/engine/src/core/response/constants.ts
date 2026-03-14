@@ -13,10 +13,13 @@ export const FOLLOWUP_PATTERN = /^\s*(what(?:'s|\s+is|\s+are)?|show(?:\s+me)?|ge
 export const FOLLOWUP_NOISE = new Set(['the', 'a', 'an', 'of', 'from', 'in', 'result', 'results', 'value', 'field', 'column', 'data', 'previous', 'last']);
 
 // Pattern for filter follow-up: re-run last query with a filter
-export const FILTER_FOLLOWUP_PATTERN = /\b(?:filter|show|with|only|just|where)\b.*\b(region|team|environment|severity|time_period|period|quarter)\b/i;
+export const FILTER_FOLLOWUP_PATTERN = /\b(?:filter|show|with|only|just|where|for|in)\b.*\b(region|team|environment|severity|time_period|period|quarter|date_range|priority)\b/i;
 
 // Data operation follow-up patterns
 export const GROUP_BY_PATTERN = /\bgroup(?:ed)?\s+by\b/i;
 export const SORT_PATTERN = /\b(?:sort|order)(?:ed)?\s+by\b/i;
-export const SUMMARY_PATTERN = /\b(summarize|summary|stats|statistics|describe|overview)\b/i;
+export const SUMMARY_PATTERN = /\b(summ\s*arize|summary|stats|statistics|describe|overview|summ\s*ary)\b/i;
 export const TOP_BOTTOM_PATTERN = /\b(top|bottom)\s+(\d+)\b/i;
+
+// Value comparison pattern: "show me retention > 70", "where revenue >= 1000", "retention greater than 72%"
+export const VALUE_COMPARE_PATTERN = /\b(\w+)\s+(?:(?:greater\s+than\s+(?:or\s+)?equal(?:\s+to)?|>=|=>)|(?:less\s+than\s+(?:or\s+)?equal(?:\s+to)?|<=|=<)|(?:greater\s+than|more\s+than|above|over|>)|(?:less\s+than|below|under|<)|(?:equal\s+to|equals|=))\s*(\d+\.?\d*)%?/i;

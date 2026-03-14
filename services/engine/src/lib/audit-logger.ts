@@ -1,10 +1,10 @@
 import { promises as fs } from 'fs';
-import path from 'path';
 import { logger } from './logger';
+import { paths } from './env-config';
 
 export interface AuditEntry {
   timestamp: string;
-  action: 'create' | 'update' | 'delete';
+  action: 'create' | 'update' | 'delete' | 'upload';
   resource: string; // e.g., 'query', 'group', 'filter', 'template', 'user', 'settings', 'file', 'intent'
   resourceId?: string;
   groupId?: string;
@@ -13,8 +13,8 @@ export interface AuditEntry {
   ip?: string;
 }
 
-const AUDIT_DIR = path.join(process.cwd(), 'data', 'audit');
-const AUDIT_FILE = path.join(AUDIT_DIR, 'audit.jsonl');
+const AUDIT_DIR = paths.data.auditDir;
+const AUDIT_FILE = paths.data.auditFile;
 
 async function ensureAuditDir() {
   await fs.mkdir(AUDIT_DIR, { recursive: true });

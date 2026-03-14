@@ -2,7 +2,7 @@ import { UserProvider } from '@/contexts/UserContext';
 import '../globals.css';
 
 export const metadata = {
-  title: 'Chatbot Widget',
+  title: 'MITR AI',
 };
 
 export default function WidgetLayout({

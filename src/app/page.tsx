@@ -65,6 +65,12 @@ function ChatPage() {
           </>
         )}
         <div className="ml-auto flex items-center gap-3">
+          <a
+            href="/dashboard"
+            className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+          >
+            Dashboard
+          </a>
           {isAdmin && (
             <a
               href="/admin"

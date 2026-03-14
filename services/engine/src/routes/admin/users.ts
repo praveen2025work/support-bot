@@ -8,8 +8,9 @@ import { Role, isValidRole } from '@/lib/rbac';
 
 const router = Router();
 
-const PROJECT_ROOT = process.cwd();
-const USERS_JSON_PATH = join(PROJECT_ROOT, 'src/config/users.json');
+import { paths } from '@/lib/env-config';
+
+const USERS_JSON_PATH = paths.config.users;
 
 async function readUsers() { return JSON.parse(await fsPromises.readFile(USERS_JSON_PATH, 'utf-8')); }
 async function writeUsers(data: unknown) { await fsPromises.writeFile(USERS_JSON_PATH, JSON.stringify(data, null, 2), 'utf-8'); }

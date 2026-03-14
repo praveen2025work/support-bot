@@ -6,9 +6,10 @@ import { requirePermission } from '@/middleware/rbac';
 
 const router = Router();
 
-const PROJECT_ROOT = process.cwd();
-const GROUPS_JSON_PATH = join(PROJECT_ROOT, 'src/config/groups.json');
-const TEMPLATES_PATH = join(PROJECT_ROOT, 'src/core/response/templates.ts');
+import { paths } from '@/lib/env-config';
+
+const GROUPS_JSON_PATH = paths.config.groups;
+const TEMPLATES_PATH = paths.templates.file;
 
 function readGroups() {
   return JSON.parse(readFileSync(GROUPS_JSON_PATH, 'utf-8'));

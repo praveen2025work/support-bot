@@ -8,6 +8,7 @@ import { statsRouter } from './routes/stats';
 import { healthRouter } from './routes/health';
 import { userRouter } from './routes/user';
 import docsRouter from './routes/docs';
+import { preferencesRouter } from './routes/preferences';
 import { logger } from './lib/logger';
 import { tenantContextMiddleware } from './middleware/tenant-context';
 
@@ -74,6 +75,7 @@ app.use('/api/stats', statsRouter);
 app.use('/api', healthRouter);
 app.use('/api', userRouter);
 app.use('/api', docsRouter);
+app.use('/api/preferences', preferencesRouter);
 
 // 404 handler
 app.use((_req, res) => {

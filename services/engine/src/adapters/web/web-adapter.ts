@@ -35,6 +35,7 @@ export class WebAdapter implements IPlatformAdapter {
       confidence: response.confidence,
       executionMs: response.executionMs,
       referenceUrl: response.referenceUrl,
+      queryName: response.queryName,
     };
   }
 

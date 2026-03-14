@@ -27,6 +27,81 @@
   {
     "question": "Can you help me find some data?",
     "intent": "help",
-    "answer": "Of course! I can run revenue and order queries, find URLs, and provide estimations."
+    "answer": "Of course! I can run revenue, trading, risk, compliance, and treasury queries, find URLs, and provide estimations."
+  },
+  {
+    "question": "What is our EBITDA this quarter?",
+    "intent": "query.execute",
+    "answer": "I can run the EBITDA query for this quarter."
+  },
+  {
+    "question": "Show me the P&L summary",
+    "intent": "query.execute",
+    "answer": "I can pull up the profit and loss summary for you."
+  },
+  {
+    "question": "What is the current VaR?",
+    "intent": "query.execute",
+    "answer": "I can run the Value at Risk report for you."
+  },
+  {
+    "question": "How much AUM do we manage?",
+    "intent": "query.execute",
+    "answer": "I can pull up the assets under management data."
+  },
+  {
+    "question": "Are there any settlement failures today?",
+    "intent": "query.execute",
+    "answer": "I can check the settlement failures report for today."
+  },
+  {
+    "question": "What is our capital adequacy ratio?",
+    "intent": "query.execute",
+    "answer": "I can run the capital adequacy report showing CET1 and Tier 1 ratios."
+  },
+  {
+    "question": "Show me the trading desk P&L",
+    "intent": "query.execute",
+    "answer": "I can pull up the trading P&L data for you."
+  },
+  {
+    "question": "What AML alerts do we have?",
+    "intent": "query.execute",
+    "answer": "I can run the AML alerts report showing suspicious activity alerts."
+  },
+  {
+    "question": "What is our liquidity position?",
+    "intent": "query.execute",
+    "answer": "I can run the liquidity report showing LCR and cash reserves."
+  },
+  {
+    "question": "How is VaR calculated for our portfolio?",
+    "intent": "knowledge.search",
+    "answer": "Let me search the knowledge base for VaR calculation methodology."
+  },
+  {
+    "question": "What is the settlement cut-off time?",
+    "intent": "knowledge.search",
+    "answer": "Let me find the settlement cut-off documentation for you."
+  },
+  {
+    "question": "Explain the credit approval process",
+    "intent": "knowledge.search",
+    "answer": "Let me search for the credit approval workflow documentation."
+  },
+  {
+    "question": "Show me NPL ratio and credit risk together",
+    "intent": "query.multi",
+    "answer": "I can run both the NPL ratio and credit risk reports together."
+  },
+  {
+    "question": "Compare our trading PnL and VaR",
+    "intent": "query.multi",
+    "answer": "I can run both trading P&L and VaR reports for comparison."
+  },
+  {
+    "question": "What is the FX exposure for APAC?",
+    "intent": "query.execute",
+    "answer": "I can run the FX exposure report filtered by the APAC region."
   }
 ]

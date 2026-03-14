@@ -40,6 +40,14 @@ export const QuerySchema = z.object({
     .transform((val) => (val === 'file' ? 'document' : val) as QueryType),
   filePath: z.string().optional(),
   endpoint: z.string().optional(),
+  // Per-query base URL — overrides group & global API_BASE_URL.
+  // Set this when a query calls a different server/port than the default.
+  // Example: "https://real-api.yourorg.com:9443/v2"
+  // If set, endpoint becomes relative to this baseUrl instead of the group/global one.
+  // If not set, falls back to group apiBaseUrl → global API_BASE_URL → mock API.
+  baseUrl: z.string().optional(),
+  // HTTP method override (default: POST for api-type queries)
+  method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).optional(),
   // Per-query authentication
   authType: z.enum(['none', 'bearer', 'windows', 'bam']).default('none'),
   bamTokenUrl: z.string().optional(),  // BAM: URL to fetch BAM token from

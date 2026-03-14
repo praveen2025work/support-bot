@@ -4,8 +4,8 @@ import { UserProvider } from '@/contexts/UserContext';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Chatbot',
-  description: 'Query assistant chatbot',
+  title: 'MITR AI',
+  description: 'MITR AI — intelligent query assistant',
 };
 
 export default function RootLayout({

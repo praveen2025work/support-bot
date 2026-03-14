@@ -1,12 +1,53 @@
 {
-  "name": "Finance Corpus",
+  "name": "MITR Finance Corpus",
   "locale": "en-US",
   "entities": {
     "query_name": {
       "options": {
         "monthly_revenue": ["monthly revenue", "revenue report", "monthly sales", "revenue", "sales report"],
         "daily_orders": ["daily orders", "orders today", "order count", "orders", "order volume"],
-        "sales_data": ["sales_data", "sales data", "sales report", "sales csv", "sales metrics", "revenue data"]
+        "sales_data": ["sales_data", "sales data", "sales report", "sales csv", "sales metrics", "revenue data"],
+
+        "quarterly_revenue": ["quarterly revenue", "Q1 revenue", "Q2 revenue", "Q3 revenue", "Q4 revenue", "quarterly earnings", "quarter revenue"],
+        "gross_margin": ["gross margin", "gross profit margin", "GP margin", "gross profit", "margin report"],
+        "ebitda": ["EBITDA", "earnings before interest", "operating earnings", "ebitda report", "ebitda margin"],
+        "net_income": ["net income", "net profit", "bottom line", "net earnings", "net revenue"],
+        "revenue_by_segment": ["revenue by segment", "segment revenue", "business line revenue", "divisional revenue", "revenue breakdown"],
+        "yoy_growth": ["YoY growth", "year over year", "annual growth", "growth rate", "YoY", "year on year"],
+        "pnl_summary": ["P&L", "profit and loss", "income statement", "P&L summary", "PnL", "profit loss statement"],
+
+        "trade_volume": ["trade volume", "trading volume", "number of trades", "trade count", "execution volume"],
+        "trading_pnl": ["trading P&L", "desk PnL", "trading profit", "desk profit and loss", "trading pnl", "desk P&L"],
+        "var_report": ["VaR", "value at risk", "VaR report", "market risk", "var analysis"],
+        "market_exposure": ["market exposure", "net exposure", "gross exposure", "position exposure", "notional exposure"],
+        "positions": ["positions", "open positions", "current positions", "book positions", "position report"],
+
+        "credit_risk": ["credit risk", "credit exposure", "counterparty risk", "credit metrics", "credit report"],
+        "regulatory_report": ["regulatory report", "reg report", "compliance report", "regulatory filing", "regulator submission"],
+        "aml_alerts": ["AML alerts", "anti money laundering", "AML report", "suspicious activity", "SAR report"],
+        "compliance_metrics": ["compliance metrics", "compliance dashboard", "compliance KPIs", "compliance scorecard"],
+        "capital_adequacy": ["capital adequacy", "CAR", "capital ratio", "Tier 1 capital", "CET1", "tier 1 ratio"],
+
+        "aum": ["AUM", "assets under management", "managed assets", "total AUM", "fund AUM"],
+        "portfolio_performance": ["portfolio performance", "fund performance", "investment returns", "portfolio returns", "fund returns"],
+        "fund_nav": ["fund NAV", "net asset value", "NAV report", "fund valuation", "NAV"],
+        "client_assets": ["client assets", "client holdings", "client balances", "client portfolio", "client book"],
+        "client_onboarding": ["client onboarding", "KYC status", "onboarding pipeline", "new client", "KYC"],
+
+        "settlement_failures": ["settlement failures", "failed settlements", "settlement fails", "unmatched trades", "failed trades"],
+        "stp_rate": ["STP rate", "straight through processing", "STP ratio", "automation rate", "STP"],
+        "reconciliation": ["reconciliation", "recon report", "reconciliation breaks", "recon status", "recon"],
+        "trade_breaks": ["trade breaks", "breaks report", "unmatched items", "exception report", "breaks"],
+        "operational_risk": ["operational risk", "op risk", "operational risk events", "op risk metrics", "oprisk"],
+
+        "loan_book": ["loan book", "loan portfolio", "outstanding loans", "loan balances", "loan exposure"],
+        "npl_ratio": ["NPL ratio", "non performing loans", "NPL report", "bad loans", "NPL"],
+        "origination_pipeline": ["origination pipeline", "loan origination", "deal pipeline", "new loans", "deal flow"],
+
+        "liquidity": ["liquidity", "liquidity report", "cash reserves", "LCR", "liquidity coverage", "NSFR"],
+        "cash_position": ["cash position", "cash balance", "daily cash", "cash flow", "cash report"],
+        "fx_exposure": ["FX exposure", "foreign exchange", "currency exposure", "FX risk", "forex exposure"],
+        "interest_rate_risk": ["interest rate risk", "rate risk", "duration risk", "IR sensitivity", "rate sensitivity"]
       }
     },
     "time_period": {
@@ -14,17 +55,28 @@
         "today": ["today", "current day"],
         "this_week": ["this week", "current week", "weekly"],
         "this_month": ["this month", "current month", "monthly"],
-        "this_quarter": ["this quarter", "current quarter", "quarterly"],
+        "this_quarter": ["this quarter", "current quarter", "quarterly", "QTD"],
         "last_week": ["last week", "previous week"],
         "last_month": ["last month", "previous month"],
-        "last_quarter": ["last quarter", "previous quarter"]
+        "last_quarter": ["last quarter", "previous quarter"],
+        "ytd": ["year to date", "YTD"],
+        "last_year": ["last year", "previous year", "FY last"],
+        "this_year": ["this year", "current year", "FY"]
       }
     },
     "region": {
       "options": {
-        "US": ["US", "United States", "America", "USA"],
-        "EU": ["EU", "Europe", "European"],
-        "APAC": ["APAC", "Asia Pacific", "Asia"]
+        "US": ["US", "United States", "America", "USA", "North America"],
+        "EU": ["EU", "Europe", "European", "EMEA"],
+        "APAC": ["APAC", "Asia Pacific", "Asia", "Asia Pac"]
+      }
+    },
+    "team": {
+      "options": {
+        "trading": ["trading", "trading desk", "markets", "equities desk", "fixed income desk"],
+        "risk": ["risk", "risk management", "compliance", "risk team"],
+        "treasury": ["treasury", "treasury desk", "treasury team"],
+        "operations": ["operations", "ops", "middle office", "back office", "settlements"]
       }
     }
   },
@@ -55,7 +107,33 @@
         "what is the average revenue in @query_name",
         "sum of revenue in @query_name",
         "top 5 by revenue in @query_name",
-        "total units in @query_name"
+        "total units in @query_name",
+
+        "pull up the desk P&L for equities",
+        "what is the mark-to-market",
+        "show me the LCR",
+        "what is our Tier 1 ratio",
+        "run daily position report",
+        "show the trade blotter",
+        "what is the funding cost",
+        "show interest rate sensitivity",
+        "what is the current NAV",
+        "run the MTM report",
+        "show me the book P&L",
+        "what is our delta exposure",
+        "pull up the risk dashboard",
+        "show me the OTC positions",
+        "what is our FX forward book",
+        "run the daily margin call report",
+        "show me the swap book",
+        "what is our repo balance",
+        "pull up the counterparty exposure",
+        "show me the collateral report",
+        "what is our duration gap",
+        "run the stress test results",
+        "show me the Greeks report",
+        "what is our credit utilization",
+        "pull up the nostro balances"
       ],
       "answers": []
     },
@@ -67,7 +145,11 @@
         "compare @query_name and @query_name",
         "get @query_name and @query_name data",
         "show revenue and orders together",
-        "run multiple queries"
+        "run multiple queries",
+        "compare P&L and VaR",
+        "show me NAV and AUM together",
+        "run credit risk and capital adequacy",
+        "compare gross margin and EBITDA"
       ],
       "answers": []
     },
@@ -90,7 +172,11 @@
         "show me available queries",
         "what reports do you have",
         "what data can I access",
-        "available queries"
+        "available queries",
+        "what finance reports are available",
+        "list all trading queries",
+        "what risk reports do you have",
+        "show me treasury reports"
       ],
       "answers": []
     },
@@ -103,6 +189,32 @@
         "find me a URL for @query_name",
         "give me the link",
         "show me the URL"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "knowledge.search",
+      "utterances": [
+        "what is our risk appetite",
+        "explain the settlement process",
+        "how does trade reconciliation work",
+        "what are the regulatory requirements",
+        "explain the capital adequacy framework",
+        "what is our AML policy",
+        "how does the loan origination process work",
+        "explain the FX hedging strategy",
+        "what are the compliance reporting deadlines",
+        "how is VaR calculated",
+        "explain the portfolio rebalancing rules",
+        "what is the client onboarding workflow",
+        "how does the treasury function operate",
+        "what are the settlement cut-off times",
+        "explain the credit approval process",
+        "what is the netting agreement",
+        "how does ISDA documentation work",
+        "what are the margin requirements",
+        "explain the prime brokerage model",
+        "what is the best execution policy"
       ],
       "answers": []
     },

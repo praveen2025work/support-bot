@@ -115,7 +115,7 @@ export function ChatWindow({
           {/* Title + user info on one line */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-semibold text-white whitespace-nowrap">Chatbot</span>
+              <span className="text-sm font-semibold text-white whitespace-nowrap">MITR AI</span>
               {userInfo && (
                 <>
                   <span className="text-white/40">·</span>
@@ -165,7 +165,7 @@ export function ChatWindow({
         /* Non-widget: sticky header with title, status, user info */
         <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 flex-shrink-0">
           <div className="flex-1">
-            <h1 className="text-lg font-semibold text-gray-900">Chatbot</h1>
+            <h1 className="text-lg font-semibold text-gray-900">MITR AI</h1>
             <p className="text-xs text-gray-500">
               {groupId && groupId !== 'default'
                 ? `${groupId.charAt(0).toUpperCase() + groupId.slice(1)} assistant`

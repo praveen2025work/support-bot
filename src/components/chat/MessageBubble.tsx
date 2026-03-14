@@ -541,6 +541,119 @@ function RichContentRenderer({
         </div>
       );
     }
+    case 'document_answer': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = richContent.data as any;
+      if (data.mode === 'answer' && data.answers) {
+        return (
+          <div className="mt-2 space-y-3">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {data.answers.map((a: any, i: number) => (
+              <div key={i} className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                <p className="text-sm text-gray-900 leading-relaxed">
+                  <span className="bg-yellow-200 font-medium px-0.5 rounded">{a.answer}</span>
+                </p>
+                {a.context && a.context !== a.answer && (
+                  <p className="mt-1.5 text-xs text-gray-600 leading-relaxed italic">{a.context}</p>
+                )}
+                <div className="mt-2 flex items-center gap-2 text-[10px] text-gray-500">
+                  {a.sourceHeading && (
+                    <span className="bg-white px-1.5 py-0.5 rounded border border-gray-200">
+                      {a.sourceHeading}
+                    </span>
+                  )}
+                  <span>{a.confidence}% confidence</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+      // Sections fallback mode
+      if (data.mode === 'sections' && data.sections) {
+        return (
+          <div className="mt-2 space-y-2">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {data.sections.map((s: any, i: number) => (
+              <div key={i} className="rounded border border-gray-200 bg-gray-50 p-2.5">
+                {s.heading && (
+                  <p className="text-xs font-semibold text-gray-700 mb-1">{s.heading}</p>
+                )}
+                <p className="text-xs text-gray-600 leading-relaxed">{s.content}</p>
+              </div>
+            ))}
+          </div>
+        );
+      }
+      return null;
+    }
+    case 'document_upload_result': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = richContent.data as any;
+      if (data.mode === 'list' && data.documents) {
+        return (
+          <div className="mt-2 space-y-1.5">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {data.documents.map((doc: any, i: number) => (
+              <div
+                key={i}
+                className="flex items-center justify-between rounded border border-gray-200 bg-white px-3 py-2"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-lg">
+                    {doc.format === 'pdf' ? '\u{1F4C4}' : doc.format === 'docx' ? '\u{1F4DD}' : '\u{1F4C3}'}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-gray-800 truncate">{doc.filename}</p>
+                    <p className="text-[10px] text-gray-500">
+                      {doc.wordCount.toLocaleString()} words &middot; {doc.chunkCount} chunks
+                      {doc.pageCount ? ` \u00b7 ${doc.pageCount} pages` : ''}
+                    </p>
+                  </div>
+                </div>
+                <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700">
+                  {doc.format}
+                </span>
+              </div>
+            ))}
+            <p className="text-[10px] text-gray-500 mt-1">
+              Total: {data.totalChunks} searchable chunks
+            </p>
+          </div>
+        );
+      }
+      // Single upload result
+      if (data.document) {
+        return (
+          <div className="mt-2 rounded border border-green-200 bg-green-50 p-3">
+            <p className="text-xs font-medium text-green-800">{data.message}</p>
+          </div>
+        );
+      }
+      return null;
+    }
+    case 'recommendations': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const recs = richContent.data as any[];
+      return (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {recs.map((rec: any, i: number) => (
+            <button
+              key={i}
+              onClick={() => onAction?.(rec.name)}
+              className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 hover:border-blue-400 hover:bg-blue-50 transition-colors"
+            >
+              <span className="text-[10px]">
+                {rec.type === 'query' ? '\u{1F50D}' : rec.type === 'document' ? '\u{1F4C4}' : '\u2753'}
+              </span>
+              <span className="font-medium">{rec.name}</span>
+              <span className="text-[10px] text-gray-400">{rec.reason}</span>
+            </button>
+          ))}
+        </div>
+      );
+    }
     case 'error':
       return null;
     default:

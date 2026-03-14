@@ -8,10 +8,11 @@ export interface Message {
   role: 'user' | 'bot';
   text: string;
   richContent?: {
-    type: 'url_list' | 'query_result' | 'multi_query_result' | 'estimation' | 'error' | 'query_filter_form' | 'file_content' | 'document_search' | 'csv_table' | 'csv_aggregation' | 'csv_group_by' | 'csv_summary' | 'document_summary' | 'knowledge_search' | 'query_list';
+    type: 'url_list' | 'query_result' | 'multi_query_result' | 'estimation' | 'error' | 'query_filter_form' | 'file_content' | 'document_search' | 'csv_table' | 'csv_aggregation' | 'csv_group_by' | 'csv_summary' | 'document_summary' | 'knowledge_search' | 'query_list' | 'document_answer' | 'document_upload_result' | 'recommendations';
     data: unknown;
   };
   suggestions?: string[];
+  recommendations?: Array<{ type: string; name: string; reason: string }>;
   executionMs?: number;
   referenceUrl?: string;
   isError?: boolean;
@@ -190,6 +191,7 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
             text: data.text as string,
             richContent: data.richContent as Message['richContent'],
             suggestions: data.suggestions as string[],
+            recommendations: data.recommendations as Message['recommendations'],
             executionMs: data.executionMs as number | undefined,
             referenceUrl: data.referenceUrl as string | undefined,
             timestamp: new Date(),
@@ -283,6 +285,7 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
             text: data.text as string,
             richContent: data.richContent as Message['richContent'],
             suggestions: data.suggestions as string[],
+            recommendations: data.recommendations as Message['recommendations'],
             executionMs: data.executionMs as number | undefined,
             referenceUrl: data.referenceUrl as string | undefined,
             timestamp: new Date(),

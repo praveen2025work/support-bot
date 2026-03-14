@@ -2,16 +2,17 @@ import { Router, Request, Response } from 'express';
 import { getEngine } from '@/lib/singleton';
 import { createAdapter } from '@/adapters/adapter-factory';
 import { getTenantContext, getTenantLogger } from '@/middleware/tenant-context';
-import { join } from 'path';
 import { encryptLogEntry } from '@/lib/log-encryption';
 import { AsyncLogWriter } from '@/lib/async-log-writer';
+import { preferencesStore } from '@/data/user-preferences';
+import { paths } from '@/lib/env-config';
 
 export const chatRouter = Router();
 
 // Async buffered log writer — batches writes every 500ms or 50 entries.
 // Replaces appendFileSync which blocked the event loop on every request.
 const conversationLogger = new AsyncLogWriter(
-  join(process.cwd(), 'data', 'logs', 'conversations.jsonl'),
+  paths.data.conversationsLog,
   { flushIntervalMs: 500, maxBatchSize: 50, maxBufferSize: 10_000 }
 );
 
@@ -75,6 +76,19 @@ chatRouter.post('/', async (req: Request, res: Response) => {
       executionMs: response.executionMs,
       hasRichContent: !!response.richContent,
     });
+
+    // Auto-track recent queries for dashboard
+    const userName = body.userName as string | undefined;
+    if (userName && response.intent?.startsWith('query.')) {
+      preferencesStore.appendRecent(userName, {
+        queryName: response.queryName || response.intent,
+        groupId,
+        userMessage: message.text,
+        intent: response.intent,
+        timestamp: new Date().toISOString(),
+        executionMs: response.executionMs,
+      }).catch(() => {});
+    }
 
     const elapsed = ctx ? Date.now() - ctx.startTime : undefined;
     log.info({ sessionId: message.sessionId, intent: response.intent, executionMs: elapsed }, 'Chat request completed');

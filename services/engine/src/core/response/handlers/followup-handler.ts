@@ -17,9 +17,10 @@ import {
   SORT_PATTERN,
   SUMMARY_PATTERN,
   TOP_BOTTOM_PATTERN,
+  VALUE_COMPARE_PATTERN,
   STOP_WORDS,
 } from '../constants';
-import { parseFilterFromText } from './filter-utils';
+import { extractFilters, parseFilterFromText, mergeFilters } from './filter-utils';
 import { getLastUserText, rerunLastQueryWithFilters } from './query-handler';
 import { summarizeDocument } from './knowledge-handler';
 
@@ -27,14 +28,25 @@ import { summarizeDocument } from './knowledge-handler';
 
 /**
  * Extract CSV-shaped data from context.lastApiResult.
+ * Handles both CSV format ({ headers, rows }) and API format ({ data: [...] }).
  */
 export function extractCsvDataFromContext(context: ConversationContext): CsvData | null {
   const raw = context.lastApiResult as Record<string, unknown>;
   if (!raw) return null;
+
+  // CSV format: { headers: string[], rows: Record[] }
   const headers = raw.headers as string[] | undefined;
   const rows = raw.rows as Record<string, string | number>[] | undefined;
-  if (!headers || !rows) return null;
-  return { headers, rows };
+  if (headers && rows) return { headers, rows };
+
+  // API format: { data: Record[] } — derive headers from first row
+  const apiData = raw.data as Record<string, string | number>[] | undefined;
+  if (apiData && apiData.length > 0) {
+    const derivedHeaders = Object.keys(apiData[0]);
+    return { headers: derivedHeaders, rows: apiData };
+  }
+
+  return null;
 }
 
 /**
@@ -276,6 +288,107 @@ export function handleTopNFollowUp(
 }
 
 /**
+ * Parse a comparison operator and threshold from user text.
+ * Supports: >, <, >=, <=, =>, =<, =, "greater than", "less than", etc.
+ */
+function parseComparison(text: string): { column: string; op: string; threshold: number } | null {
+  // Order matters: check multi-word operators first, then symbols
+  const patterns: { regex: RegExp; op: string }[] = [
+    { regex: /(\w+)\s+(?:greater\s+than\s+(?:or\s+)?equal(?:\s+to)?|>=|=>)\s*(\d+\.?\d*)%?/i, op: '>=' },
+    { regex: /(\w+)\s+(?:less\s+than\s+(?:or\s+)?equal(?:\s+to)?|<=|=<)\s*(\d+\.?\d*)%?/i, op: '<=' },
+    { regex: /(\w+)\s+(?:greater\s+than|more\s+than|above|over|>)\s*(\d+\.?\d*)%?/i, op: '>' },
+    { regex: /(\w+)\s+(?:less\s+than|below|under|<)\s*(\d+\.?\d*)%?/i, op: '<' },
+    { regex: /(\w+)\s+(?:equal\s+to|equals|=)\s*(\d+\.?\d*)%?/i, op: '=' },
+  ];
+
+  for (const { regex, op } of patterns) {
+    const m = text.match(regex);
+    if (m) {
+      return { column: m[1], op, threshold: parseFloat(m[2]) };
+    }
+  }
+  return null;
+}
+
+/**
+ * Handle value comparison follow-ups: "show me retention > 70", "where revenue >= 1000"
+ */
+export function handleValueCompareFollowUp(
+  classification: ClassificationResult,
+  context: ConversationContext
+): BotResponse | null {
+  if (!context.lastApiResult || !context.lastQueryName) return null;
+  const userText = getLastUserText(context);
+  if (!VALUE_COMPARE_PATTERN.test(userText)) return null;
+
+  const csvData = extractCsvDataFromContext(context);
+  if (!csvData) return null;
+
+  const parsed = parseComparison(userText);
+  if (!parsed) return null;
+
+  // Match column name (fuzzy)
+  const colMatch = csvData.headers.find((h) => h.toLowerCase() === parsed.column.toLowerCase())
+    ?? csvData.headers.find((h) => h.toLowerCase().includes(parsed.column.toLowerCase()))
+    ?? csvData.headers.find((h) => parsed.column.toLowerCase().includes(h.toLowerCase()));
+
+  if (!colMatch) {
+    return {
+      text: `I couldn't find a column matching "${parsed.column}". Available columns: **${csvData.headers.join(', ')}**`,
+      suggestions: csvData.headers.slice(0, 4).map((h) => `${h} > ${parsed.threshold}`),
+      sessionId: context.sessionId,
+      intent: 'followup.compare',
+      confidence: 1,
+    };
+  }
+
+  const compare = (val: number): boolean => {
+    switch (parsed.op) {
+      case '>': return val > parsed.threshold;
+      case '<': return val < parsed.threshold;
+      case '>=': return val >= parsed.threshold;
+      case '<=': return val <= parsed.threshold;
+      case '=': return val === parsed.threshold;
+      default: return false;
+    }
+  };
+
+  const filteredRows = csvData.rows.filter((row) => {
+    const raw = row[colMatch];
+    const num = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/[%$,]/g, ''));
+    return !isNaN(num) && compare(num);
+  });
+
+  logger.info({ query: context.lastQueryName, column: colMatch, op: parsed.op, threshold: parsed.threshold, matched: filteredRows.length }, 'Value comparison follow-up');
+
+  if (filteredRows.length === 0) {
+    return {
+      text: `No rows in "${context.lastQueryName}" where **${colMatch}** ${parsed.op} ${parsed.threshold}.`,
+      suggestions: [`${colMatch} > 0`, 'summarize', `sort by ${colMatch} desc`],
+      sessionId: context.sessionId,
+      intent: 'followup.compare',
+      confidence: 1,
+    };
+  }
+
+  return {
+    text: `Rows from "${context.lastQueryName}" where **${colMatch}** ${parsed.op} ${parsed.threshold} (${filteredRows.length} of ${csvData.rows.length} rows):`,
+    richContent: {
+      type: 'csv_table',
+      data: { headers: csvData.headers, rows: filteredRows, filePath: (context.lastApiResult as Record<string, unknown>)?.filePath, rowCount: filteredRows.length },
+    },
+    suggestions: [
+      `${colMatch} ${parsed.op === '>' ? '<' : '>'} ${parsed.threshold}`,
+      `sort by ${colMatch} desc`,
+      'summarize',
+    ],
+    sessionId: context.sessionId,
+    intent: 'followup.compare',
+    confidence: 1,
+  };
+}
+
+/**
  * Handle follow-up questions about specific fields from the last query result.
  */
 export function handleFollowUp(
@@ -358,10 +471,12 @@ export async function handleFilterFollowUp(
   const isFilterRequest = FILTER_FOLLOWUP_PATTERN.test(userText);
   if (!isFilterRequest) return null;
 
-  const filters = parseFilterFromText(userText);
-  if (!filters || Object.keys(filters).length === 0) return null;
+  const nlpFilters = extractFilters(classification.entities);
+  const textFilters = parseFilterFromText(userText);
+  const filters = mergeFilters(nlpFilters, textFilters);
+  if (Object.keys(filters).length === 0) return null;
 
-  logger.info({ lastQuery: context.lastQueryName, filters }, 'Re-running last query with follow-up filters (default case)');
+  logger.info({ lastQuery: context.lastQueryName, filters, nlpFilters, textFilters }, 'Re-running last query with follow-up filters (default case)');
   return rerunLastQueryWithFilters(context, filters, classification, queryService, incomingHeaders);
 }
 
@@ -381,6 +496,8 @@ export function handleDataOperation(
   if (summaryResult) return summaryResult;
   const topNResult = handleTopNFollowUp(classification, context);
   if (topNResult) return topNResult;
+  const compareResult = handleValueCompareFollowUp(classification, context);
+  if (compareResult) return compareResult;
   return null;
 }
 

@@ -1,11 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { promises as fs } from 'fs';
-import path from 'path';
+import { join } from 'path';
 import { logger } from '@/lib/logger';
+import { DATA_DIR } from '@/lib/env-config';
 
 export const statsRouter = Router();
 
-const DB_JSON_PATH = path.join(process.cwd(), 'data/db-stats.json');
+const DB_JSON_PATH = join(DATA_DIR, 'db-stats.json');
 
 interface QueryStat {
   id: string;

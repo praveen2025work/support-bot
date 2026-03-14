@@ -379,6 +379,460 @@
           "binding": "path"
         }
       ]
+    },
+    {
+      "id": "q25",
+      "name": "quarterly_revenue",
+      "description": "Quarterly revenue with YoY comparison and segment breakdown",
+      "estimatedDuration": 3500,
+      "url": "https://confluence.example.com/wiki/finance/quarterly-revenue",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/finance/quarterly-revenue",
+      "filters": [
+        { "key": "date_range", "binding": "body" },
+        { "key": "region", "binding": "query_param" }
+      ]
+    },
+    {
+      "id": "q26",
+      "name": "gross_margin",
+      "description": "Gross profit margin by product line and geography",
+      "estimatedDuration": 2800,
+      "url": "https://confluence.example.com/wiki/finance/gross-margin",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/finance/gross-margin",
+      "filters": [
+        { "key": "date_range", "binding": "body" },
+        { "key": "region", "binding": "query_param" }
+      ]
+    },
+    {
+      "id": "q27",
+      "name": "ebitda",
+      "description": "EBITDA and EBITDA margin with adjustments breakdown",
+      "estimatedDuration": 3200,
+      "url": "https://confluence.example.com/wiki/finance/ebitda-report",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/finance/ebitda",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q28",
+      "name": "net_income",
+      "description": "Net income after tax with exceptional items breakdown",
+      "estimatedDuration": 3000,
+      "url": "https://confluence.example.com/wiki/finance/net-income",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/finance/net-income",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q29",
+      "name": "revenue_by_segment",
+      "description": "Revenue breakdown by business segment and division",
+      "estimatedDuration": 2500,
+      "url": "https://confluence.example.com/wiki/finance/revenue-by-segment",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/finance/revenue/segments",
+      "filters": [
+        { "key": "date_range", "binding": "body" },
+        { "key": "region", "binding": "query_param" }
+      ]
+    },
+    {
+      "id": "q30",
+      "name": "yoy_growth",
+      "description": "Year-over-year growth rates across key financial metrics",
+      "estimatedDuration": 2200,
+      "url": "https://confluence.example.com/wiki/finance/yoy-growth",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/finance/yoy-growth",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q31",
+      "name": "pnl_summary",
+      "description": "Profit and loss summary with revenue, COGS, operating expenses",
+      "estimatedDuration": 4000,
+      "url": "https://confluence.example.com/wiki/finance/pnl-summary",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/finance/pnl",
+      "filters": [
+        { "key": "date_range", "binding": "body" },
+        { "key": "region", "binding": "query_param" }
+      ]
+    },
+    {
+      "id": "q32",
+      "name": "trade_volume",
+      "description": "Trade execution volume by asset class, desk, and venue",
+      "estimatedDuration": 1800,
+      "url": "https://confluence.example.com/wiki/trading/trade-volume",
+      "source": "trading",
+      "type": "api",
+      "endpoint": "/trading/volume",
+      "filters": [
+        { "key": "date_range", "binding": "body" },
+        { "key": "team", "binding": "query_param" }
+      ]
+    },
+    {
+      "id": "q33",
+      "name": "trading_pnl",
+      "description": "Trading desk P&L with realized and unrealized components",
+      "estimatedDuration": 2500,
+      "url": "https://confluence.example.com/wiki/trading/desk-pnl",
+      "source": "trading",
+      "type": "api",
+      "endpoint": "/trading/pnl",
+      "filters": [
+        { "key": "date_range", "binding": "body" },
+        { "key": "team", "binding": "query_param" }
+      ]
+    },
+    {
+      "id": "q34",
+      "name": "var_report",
+      "description": "Value at Risk report with historical and parametric VaR by desk",
+      "estimatedDuration": 3500,
+      "url": "https://confluence.example.com/wiki/risk/var-report",
+      "source": "risk",
+      "type": "api",
+      "endpoint": "/risk/var",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q35",
+      "name": "market_exposure",
+      "description": "Net and gross market exposure by asset class and region",
+      "estimatedDuration": 2000,
+      "url": "https://confluence.example.com/wiki/risk/market-exposure",
+      "source": "risk",
+      "type": "api",
+      "endpoint": "/risk/exposure",
+      "filters": [
+        { "key": "date_range", "binding": "body" },
+        { "key": "region", "binding": "query_param" }
+      ]
+    },
+    {
+      "id": "q36",
+      "name": "positions",
+      "description": "Current open positions by book, instrument, and notional value",
+      "estimatedDuration": 1500,
+      "url": "https://confluence.example.com/wiki/trading/positions",
+      "source": "trading",
+      "type": "api",
+      "endpoint": "/trading/positions",
+      "filters": [
+        { "key": "team", "binding": "query_param" }
+      ]
+    },
+    {
+      "id": "q37",
+      "name": "credit_risk",
+      "description": "Credit risk metrics including counterparty exposure and ratings",
+      "estimatedDuration": 3000,
+      "url": "https://confluence.example.com/wiki/risk/credit-risk",
+      "source": "risk",
+      "type": "api",
+      "endpoint": "/risk/credit",
+      "filters": [
+        { "key": "date_range", "binding": "body" },
+        { "key": "region", "binding": "query_param" }
+      ]
+    },
+    {
+      "id": "q38",
+      "name": "regulatory_report",
+      "description": "Regulatory filing status and compliance report submissions",
+      "estimatedDuration": 4000,
+      "url": "https://confluence.example.com/wiki/compliance/regulatory-reports",
+      "source": "risk",
+      "type": "api",
+      "endpoint": "/compliance/regulatory",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q39",
+      "name": "aml_alerts",
+      "description": "Anti-money laundering alerts and suspicious activity reports",
+      "estimatedDuration": 2200,
+      "url": "https://confluence.example.com/wiki/compliance/aml-alerts",
+      "source": "risk",
+      "type": "api",
+      "endpoint": "/compliance/aml/alerts",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q40",
+      "name": "compliance_metrics",
+      "description": "Compliance KPI dashboard with training, audit, and breach metrics",
+      "estimatedDuration": 1800,
+      "url": "https://confluence.example.com/wiki/compliance/metrics",
+      "source": "risk",
+      "type": "api",
+      "endpoint": "/compliance/metrics",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q41",
+      "name": "capital_adequacy",
+      "description": "Capital adequacy ratios including CET1, Tier 1, and total capital",
+      "estimatedDuration": 3500,
+      "url": "https://confluence.example.com/wiki/risk/capital-adequacy",
+      "source": "risk",
+      "type": "api",
+      "endpoint": "/risk/capital",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q42",
+      "name": "aum",
+      "description": "Assets under management by fund, strategy, and client segment",
+      "estimatedDuration": 2000,
+      "url": "https://confluence.example.com/wiki/portfolio/aum",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/portfolio/aum",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q43",
+      "name": "portfolio_performance",
+      "description": "Portfolio returns vs benchmark with attribution analysis",
+      "estimatedDuration": 3200,
+      "url": "https://confluence.example.com/wiki/portfolio/performance",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/portfolio/performance",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q44",
+      "name": "fund_nav",
+      "description": "Fund net asset value with daily pricing and change history",
+      "estimatedDuration": 1500,
+      "url": "https://confluence.example.com/wiki/portfolio/fund-nav",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/portfolio/nav",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q45",
+      "name": "client_assets",
+      "description": "Client asset holdings with allocation and performance breakdown",
+      "estimatedDuration": 2500,
+      "url": "https://confluence.example.com/wiki/portfolio/client-assets",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/portfolio/client-assets",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q46",
+      "name": "client_onboarding",
+      "description": "Client onboarding pipeline with KYC/AML status and approvals",
+      "estimatedDuration": 1800,
+      "url": "https://confluence.example.com/wiki/operations/client-onboarding",
+      "source": "commerce",
+      "type": "api",
+      "endpoint": "/operations/onboarding",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q47",
+      "name": "settlement_failures",
+      "description": "Failed settlement trades with counterparty and reason codes",
+      "estimatedDuration": 2000,
+      "url": "https://confluence.example.com/wiki/operations/settlement-failures",
+      "source": "trading",
+      "type": "api",
+      "endpoint": "/operations/settlements/failures",
+      "filters": [
+        { "key": "date_range", "binding": "body" },
+        { "key": "region", "binding": "query_param" }
+      ]
+    },
+    {
+      "id": "q48",
+      "name": "stp_rate",
+      "description": "Straight-through processing rate by trade type and counterparty",
+      "estimatedDuration": 1500,
+      "url": "https://confluence.example.com/wiki/operations/stp-rate",
+      "source": "trading",
+      "type": "api",
+      "endpoint": "/operations/stp",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q49",
+      "name": "reconciliation",
+      "description": "Reconciliation status with break analysis and aging",
+      "estimatedDuration": 2800,
+      "url": "https://confluence.example.com/wiki/operations/reconciliation",
+      "source": "trading",
+      "type": "api",
+      "endpoint": "/operations/reconciliation",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q50",
+      "name": "trade_breaks",
+      "description": "Trade break exceptions with resolution status and aging",
+      "estimatedDuration": 1800,
+      "url": "https://confluence.example.com/wiki/operations/trade-breaks",
+      "source": "trading",
+      "type": "api",
+      "endpoint": "/operations/breaks",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q51",
+      "name": "operational_risk",
+      "description": "Operational risk events, losses, and near-miss incidents",
+      "estimatedDuration": 2500,
+      "url": "https://confluence.example.com/wiki/risk/operational-risk",
+      "source": "risk",
+      "type": "api",
+      "endpoint": "/risk/operational",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q52",
+      "name": "loan_book",
+      "description": "Loan portfolio with outstanding balances, rates, and maturity profile",
+      "estimatedDuration": 3000,
+      "url": "https://confluence.example.com/wiki/lending/loan-book",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/lending/loans",
+      "filters": [
+        { "key": "date_range", "binding": "body" },
+        { "key": "region", "binding": "query_param" }
+      ]
+    },
+    {
+      "id": "q53",
+      "name": "npl_ratio",
+      "description": "Non-performing loan ratio with vintage analysis and provisioning",
+      "estimatedDuration": 2500,
+      "url": "https://confluence.example.com/wiki/lending/npl-ratio",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/lending/npl",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q54",
+      "name": "origination_pipeline",
+      "description": "Loan origination pipeline with deal stages and expected close dates",
+      "estimatedDuration": 2000,
+      "url": "https://confluence.example.com/wiki/lending/origination",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/lending/pipeline",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q55",
+      "name": "liquidity",
+      "description": "Liquidity coverage ratio (LCR) and net stable funding ratio (NSFR)",
+      "estimatedDuration": 3000,
+      "url": "https://confluence.example.com/wiki/treasury/liquidity",
+      "source": "treasury",
+      "type": "api",
+      "endpoint": "/treasury/liquidity",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
+    },
+    {
+      "id": "q56",
+      "name": "cash_position",
+      "description": "Daily cash position across accounts, currencies, and custodians",
+      "estimatedDuration": 1200,
+      "url": "https://confluence.example.com/wiki/treasury/cash-position",
+      "source": "treasury",
+      "type": "api",
+      "endpoint": "/treasury/cash",
+      "filters": [
+        { "key": "date_range", "binding": "body" },
+        { "key": "region", "binding": "query_param" }
+      ]
+    },
+    {
+      "id": "q57",
+      "name": "fx_exposure",
+      "description": "Foreign exchange exposure by currency pair with hedging status",
+      "estimatedDuration": 2000,
+      "url": "https://confluence.example.com/wiki/treasury/fx-exposure",
+      "source": "treasury",
+      "type": "api",
+      "endpoint": "/treasury/fx",
+      "filters": [
+        { "key": "date_range", "binding": "body" },
+        { "key": "region", "binding": "query_param" }
+      ]
+    },
+    {
+      "id": "q58",
+      "name": "interest_rate_risk",
+      "description": "Interest rate risk sensitivity with duration and basis point value",
+      "estimatedDuration": 2800,
+      "url": "https://confluence.example.com/wiki/treasury/interest-rate-risk",
+      "source": "treasury",
+      "type": "api",
+      "endpoint": "/treasury/rate-risk",
+      "filters": [
+        { "key": "date_range", "binding": "body" }
+      ]
     }
   ],
   "queryStats": [

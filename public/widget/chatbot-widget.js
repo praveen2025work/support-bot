@@ -158,7 +158,7 @@
   iframe.id = 'chatbot-widget-iframe';
   iframe.style.cssText = 'width:100%;height:100%;border:none;';
   iframe.setAttribute('allow', 'clipboard-write');
-  iframe.setAttribute('title', 'Chatbot Widget');
+  iframe.setAttribute('title', 'MITR AI');
   iframeWrap.appendChild(iframe);
 
   // Create toggle button (using DOM-based SVG, no innerHTML)
@@ -224,7 +224,7 @@
   miniIcon.setAttribute('height', '18');
   minimizedBar.appendChild(miniIcon);
   var miniLabel = document.createElement('span');
-  miniLabel.textContent = 'Chatbot';
+  miniLabel.textContent = 'MITR AI';
   minimizedBar.appendChild(miniLabel);
   // Expand arrow
   var expandSvg = createSvgElement('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [

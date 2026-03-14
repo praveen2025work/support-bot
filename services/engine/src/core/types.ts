@@ -16,7 +16,7 @@ export interface ClassificationResult {
   confidence: number;
   entities: ExtractedEntity[];
   sentiment?: SentimentResult;
-  source: 'nlp' | 'fuzzy';
+  source: 'nlp' | 'fuzzy' | 'fuzzy_synonym';
 }
 
 export interface ExtractedEntity {
@@ -42,10 +42,14 @@ export interface BotResponse {
   confidence: number;
   executionMs?: number;
   referenceUrl?: string;
+  /** The actual query name that was executed (e.g. "active_users"), distinct from intent. */
+  queryName?: string;
+  /** Contextual recommendations based on user behavior and content similarity */
+  recommendations?: Array<{ type: string; name: string; reason: string }>;
 }
 
 export interface RichContent {
-  type: 'url_list' | 'query_result' | 'multi_query_result' | 'estimation' | 'error' | 'file_content' | 'document_search' | 'csv_table' | 'csv_aggregation' | 'csv_group_by' | 'csv_summary' | 'document_summary' | 'knowledge_search' | 'query_list';
+  type: 'url_list' | 'query_result' | 'multi_query_result' | 'estimation' | 'error' | 'file_content' | 'document_search' | 'csv_table' | 'csv_aggregation' | 'csv_group_by' | 'csv_summary' | 'document_summary' | 'knowledge_search' | 'query_list' | 'document_answer' | 'document_upload_result' | 'recommendations';
   data: unknown;
 }
 

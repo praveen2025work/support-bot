@@ -1,9 +1,9 @@
 import { promises as fsp } from 'fs';
-import { join } from 'path';
 import { logger } from '@/lib/logger';
 import { generateId } from '@/lib/generate-id';
 import { SignalProcessor } from './signal-processor';
 import { invalidateEngine } from '@/lib/singleton';
+import { paths } from '@/lib/env-config';
 import {
   LEARNING_CONFIDENCE_THRESHOLD,
   AUTO_LEARN_PROCESS_INTERVAL,
@@ -18,8 +18,6 @@ import type {
 } from './types';
 import type { ClassificationResult } from '../types';
 
-const DATA_DIR = join(process.cwd(), 'data/learning');
-
 export class LearningService {
   private dir: string;
   private interactionsPath: string;
@@ -31,11 +29,11 @@ export class LearningService {
   private initPromise: Promise<void>;
 
   constructor(private groupId: string) {
-    this.dir = join(DATA_DIR, groupId);
-    this.interactionsPath = join(this.dir, 'interactions.jsonl');
-    this.reviewQueuePath = join(this.dir, 'review-queue.jsonl');
-    this.autoLearnedPath = join(this.dir, 'auto-learned.jsonl');
-    this.signalAggregatesPath = join(this.dir, 'signal-aggregates.json');
+    this.dir = paths.data.learningDir(groupId);
+    this.interactionsPath = paths.data.interactions(groupId);
+    this.reviewQueuePath = paths.data.reviewQueue(groupId);
+    this.autoLearnedPath = paths.data.autoLearned(groupId);
+    this.signalAggregatesPath = paths.data.signalAggregates(groupId);
     this.processor = new SignalProcessor();
 
     this.initPromise = this.ensureDir();

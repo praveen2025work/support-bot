@@ -4,8 +4,9 @@ import { join } from 'path';
 import { logAudit } from '@/lib/audit-logger';
 import { requirePermission } from '@/middleware/rbac';
 
-const PROJECT_ROOT = process.cwd();
-const CORPUS_PATH = join(PROJECT_ROOT, 'src/training/corpus.json');
+import { paths } from '@/lib/env-config';
+
+const CORPUS_PATH = paths.training.corpus;
 
 function readCorpus() {
   return JSON.parse(readFileSync(CORPUS_PATH, 'utf-8'));

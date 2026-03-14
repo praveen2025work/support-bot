@@ -10,7 +10,7 @@ export interface InteractionLog {
   userMessage: string;
   intent: string;
   confidence: number;
-  source: 'nlp' | 'fuzzy';
+  source: 'nlp' | 'fuzzy' | 'fuzzy_synonym';
   entities: ExtractedEntity[];
   feedbackType: FeedbackType;
   previousMessageText?: string;

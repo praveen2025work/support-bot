@@ -1,19 +1,24 @@
 import { NlpService } from './nlp/nlp-service';
 import { ResponseGenerator } from './response/response-generator';
 import { SessionManager } from './session/session-manager';
+import { RecommendationEngine } from './recommendations/recommendation-engine';
 import type { LearningService } from './learning/learning-service';
 import { logger } from '@/lib/logger';
 import type { ChatMessage, BotResponse, IntentOverlap } from './types';
 
 export class ChatbotEngine {
   private initialized = false;
+  private recommendationEngine: RecommendationEngine;
 
   constructor(
     private nlpService: NlpService,
     private responseGenerator: ResponseGenerator,
     private sessionManager: SessionManager,
-    private learningService?: LearningService
-  ) {}
+    private learningService?: LearningService,
+    groupId?: string
+  ) {
+    this.recommendationEngine = new RecommendationEngine(groupId || 'default');
+  }
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
@@ -59,6 +64,26 @@ export class ChatbotEngine {
       explicitFilters,
       incomingHeaders
     );
+
+    // Attach recommendations (fire-and-forget, non-blocking)
+    try {
+      if (!response.richContent || response.richContent.type !== 'error') {
+        const recs = await this.recommendationEngine.getRecommendations(
+          context,
+          classification,
+          3
+        );
+        if (recs.length > 0) {
+          response.recommendations = recs.map((r) => ({
+            type: r.type,
+            name: r.name,
+            reason: r.reason,
+          }));
+        }
+      }
+    } catch (error) {
+      logger.debug({ error }, 'Recommendation engine failed — continuing without');
+    }
 
     context.history.push({
       role: 'bot',

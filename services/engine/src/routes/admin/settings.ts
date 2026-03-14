@@ -1,12 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { join } from 'path';
 import { logAudit } from '@/lib/audit-logger';
 import { requirePermission } from '@/middleware/rbac';
+import { paths } from '@/lib/env-config';
 
-const PROJECT_ROOT = process.cwd();
-const SETTINGS_PATH = join(PROJECT_ROOT, 'src/config/settings.json');
-const LOGS_PATH = join(PROJECT_ROOT, 'data/logs/conversations.jsonl');
+const SETTINGS_PATH = paths.config.settings;
+const LOGS_PATH = paths.data.conversationsLog;
 
 const DEFAULT_SETTINGS = {
   nlpConfidenceThreshold: 0.65,

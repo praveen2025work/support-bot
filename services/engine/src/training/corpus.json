@@ -1,263 +1,121 @@
 {
-  "name": "Chatbot Corpus",
+  "name": "MITR AI Corpus",
   "locale": "en-US",
   "entities": {
     "query_name": {
       "options": {
-        "monthly_revenue": [
-          "monthly revenue",
-          "revenue report",
-          "monthly sales",
-          "revenue"
-        ],
-        "active_users": [
-          "active users",
-          "user count",
-          "monthly active users",
-          "MAU",
-          "users"
-        ],
-        "error_rate": [
-          "error rate",
-          "errors",
-          "failure rate",
-          "error report"
-        ],
-        "performance": [
-          "performance",
-          "performance metrics",
-          "latency",
-          "response time"
-        ],
-        "daily_orders": [
-          "daily orders",
-          "orders today",
-          "order count",
-          "orders"
-        ],
-        "customer_churn": [
-          "customer churn",
-          "churn rate",
-          "churn",
-          "attrition"
-        ],
-        "infrastructure_costs": [
-          "infrastructure costs",
-          "infra costs",
-          "cloud costs",
-          "costs"
-        ],
-        "headcount": [
-          "headcount",
-          "head count",
-          "employee count",
-          "team size"
-        ],
-        "hiring_pipeline": [
-          "hiring pipeline",
-          "hiring funnel",
-          "open positions",
-          "hiring"
-        ],
-        "onboarding_guide": [
-          "onboarding guide",
-          "onboarding",
-          "new employee guide",
-          "onboarding docs"
-        ],
-        "api_changelog": [
-          "api changelog",
-          "changelog",
-          "release notes",
-          "api changes"
-        ],
-        "brd_payments": [
-          "brd_payments",
-          "brd payments",
-          "payments brd",
-          "payments document",
-          "payments requirements"
-        ],
-        "sales_data": [
-          "sales_data",
-          "sales data",
-          "sales report",
-          "sales csv",
-          "sales metrics",
-          "revenue data"
-        ],
-        "auth_spec": [
-          "auth_spec",
-          "auth spec",
-          "authentication spec",
-          "authorization spec",
-          "auth feature spec",
-          "auth module"
-        ],
-        "incident_report": [
-          "incident_report",
-          "incident report",
-          "outage report",
-          "post mortem",
-          "incident post mortem"
-        ],
-        "deployment_runbook": [
-          "deployment_runbook",
-          "deployment runbook",
-          "deploy runbook",
-          "deployment guide",
-          "release runbook"
-        ],
-        "support_tickets": [
-          "support_tickets",
-          "support tickets",
-          "tickets",
-          "support data",
-          "ticket data"
-        ],
-        "employee_metrics": [
-          "employee_metrics",
-          "employee metrics",
-          "employee data",
-          "staff metrics",
-          "workforce data"
-        ],
-        "servicenow_dashboard": [
-          "servicenow_dashboard",
-          "servicenow dashboard",
-          "servicenow",
-          "itsm dashboard",
-          "incident tracking"
-        ],
-        "architecture_wiki": [
-          "architecture_wiki",
-          "architecture wiki",
-          "system architecture",
-          "architecture docs",
-          "architecture documentation"
-        ],
-        "user_profile": [
-          "user_profile",
-          "user profile",
-          "profile",
-          "user info",
-          "user details",
-          "user data"
-        ],
-        "service_logs": [
-          "service_logs",
-          "service logs",
-          "logs",
-          "log data",
-          "application logs",
-          "server logs"
-        ],
-        "report_generator": [
-          "report_generator",
-          "report generator",
-          "generate report",
-          "report",
-          "custom report",
-          "generate a report"
-        ]
+        "monthly_revenue": ["monthly revenue", "revenue report", "monthly sales", "revenue"],
+        "active_users": ["active users", "user count", "monthly active users", "MAU", "users"],
+        "error_rate": ["error rate", "errors", "failure rate", "error report"],
+        "performance": ["performance", "performance metrics", "latency", "response time"],
+        "daily_orders": ["daily orders", "orders today", "order count", "orders"],
+        "customer_churn": ["customer churn", "churn rate", "churn", "attrition"],
+        "infrastructure_costs": ["infrastructure costs", "infra costs", "cloud costs", "costs"],
+        "headcount": ["headcount", "head count", "employee count", "team size"],
+        "hiring_pipeline": ["hiring pipeline", "hiring funnel", "open positions", "hiring"],
+        "onboarding_guide": ["onboarding guide", "onboarding", "new employee guide", "onboarding docs"],
+        "api_changelog": ["api changelog", "changelog", "release notes", "api changes"],
+        "brd_payments": ["brd_payments", "brd payments", "payments brd", "payments document", "payments requirements"],
+        "sales_data": ["sales_data", "sales data", "sales report", "sales csv", "sales metrics", "revenue data"],
+        "auth_spec": ["auth_spec", "auth spec", "authentication spec", "authorization spec", "auth feature spec", "auth module"],
+        "incident_report": ["incident_report", "incident report", "outage report", "post mortem", "incident post mortem"],
+        "deployment_runbook": ["deployment_runbook", "deployment runbook", "deploy runbook", "deployment guide", "release runbook"],
+        "support_tickets": ["support_tickets", "support tickets", "tickets", "support data", "ticket data"],
+        "employee_metrics": ["employee_metrics", "employee metrics", "employee data", "staff metrics", "workforce data"],
+        "servicenow_dashboard": ["servicenow_dashboard", "servicenow dashboard", "servicenow", "itsm dashboard", "incident tracking"],
+        "architecture_wiki": ["architecture_wiki", "architecture wiki", "system architecture", "architecture docs", "architecture documentation"],
+        "user_profile": ["user_profile", "user profile", "profile", "user info", "user details", "user data"],
+        "service_logs": ["service_logs", "service logs", "logs", "log data", "application logs", "server logs"],
+        "report_generator": ["report_generator", "report generator", "generate report", "report", "custom report", "generate a report"],
+
+        "quarterly_revenue": ["quarterly revenue", "Q1 revenue", "Q2 revenue", "Q3 revenue", "Q4 revenue", "quarterly earnings"],
+        "gross_margin": ["gross margin", "gross profit margin", "GP margin", "gross profit"],
+        "ebitda": ["EBITDA", "earnings before interest", "operating earnings", "ebitda report"],
+        "net_income": ["net income", "net profit", "bottom line", "net earnings"],
+        "revenue_by_segment": ["revenue by segment", "segment revenue", "business line revenue", "divisional revenue"],
+        "yoy_growth": ["YoY growth", "year over year", "annual growth", "growth rate", "YoY"],
+        "pnl_summary": ["P&L", "profit and loss", "income statement", "P&L summary", "PnL"],
+
+        "trade_volume": ["trade volume", "trading volume", "number of trades", "trade count"],
+        "trading_pnl": ["trading P&L", "desk PnL", "trading profit", "desk profit and loss", "trading pnl"],
+        "var_report": ["VaR", "value at risk", "VaR report", "market risk"],
+        "market_exposure": ["market exposure", "net exposure", "gross exposure", "position exposure"],
+        "positions": ["positions", "open positions", "current positions", "book positions"],
+
+        "credit_risk": ["credit risk", "credit exposure", "counterparty risk", "credit metrics"],
+        "regulatory_report": ["regulatory report", "reg report", "compliance report", "regulatory filing"],
+        "aml_alerts": ["AML alerts", "anti money laundering", "AML report", "suspicious activity"],
+        "compliance_metrics": ["compliance metrics", "compliance dashboard", "compliance KPIs"],
+        "capital_adequacy": ["capital adequacy", "CAR", "capital ratio", "Tier 1 capital", "CET1"],
+
+        "aum": ["AUM", "assets under management", "managed assets", "total AUM"],
+        "portfolio_performance": ["portfolio performance", "fund performance", "investment returns", "portfolio returns"],
+        "fund_nav": ["fund NAV", "net asset value", "NAV report", "fund valuation"],
+        "client_assets": ["client assets", "client holdings", "client balances", "client portfolio"],
+        "client_onboarding": ["client onboarding", "KYC status", "onboarding pipeline", "new client"],
+
+        "settlement_failures": ["settlement failures", "failed settlements", "settlement fails", "unmatched trades"],
+        "stp_rate": ["STP rate", "straight through processing", "STP ratio", "automation rate"],
+        "reconciliation": ["reconciliation", "recon report", "reconciliation breaks", "recon status"],
+        "trade_breaks": ["trade breaks", "breaks report", "unmatched items", "exception report"],
+        "operational_risk": ["operational risk", "op risk", "operational risk events", "op risk metrics"],
+
+        "loan_book": ["loan book", "loan portfolio", "outstanding loans", "loan balances"],
+        "npl_ratio": ["NPL ratio", "non performing loans", "NPL report", "bad loans"],
+        "origination_pipeline": ["origination pipeline", "loan origination", "deal pipeline", "new loans"],
+
+        "liquidity": ["liquidity", "liquidity report", "cash reserves", "LCR", "liquidity coverage"],
+        "cash_position": ["cash position", "cash balance", "daily cash", "cash flow"],
+        "fx_exposure": ["FX exposure", "foreign exchange", "currency exposure", "FX risk"],
+        "interest_rate_risk": ["interest rate risk", "rate risk", "duration risk", "IR sensitivity"]
       }
     },
     "time_period": {
       "options": {
-        "today": [
-          "today",
-          "current day"
-        ],
-        "this_week": [
-          "this week",
-          "current week",
-          "weekly"
-        ],
-        "this_month": [
-          "this month",
-          "current month",
-          "monthly"
-        ],
-        "this_quarter": [
-          "this quarter",
-          "current quarter",
-          "quarterly"
-        ],
-        "last_week": [
-          "last week",
-          "previous week"
-        ],
-        "last_month": [
-          "last month",
-          "previous month"
-        ],
-        "last_quarter": [
-          "last quarter",
-          "previous quarter"
-        ]
+        "today": ["today", "current day"],
+        "this_week": ["this week", "current week", "weekly"],
+        "this_month": ["this month", "current month", "monthly"],
+        "this_quarter": ["this quarter", "current quarter", "quarterly"],
+        "last_week": ["last week", "previous week"],
+        "last_month": ["last month", "previous month"],
+        "last_quarter": ["last quarter", "previous quarter"],
+        "ytd": ["year to date", "YTD"],
+        "last_year": ["last year", "previous year"],
+        "this_year": ["this year", "current year"]
       }
     },
     "region": {
       "options": {
-        "US": [
-          "US",
-          "United States",
-          "America",
-          "USA"
-        ],
-        "EU": [
-          "EU",
-          "Europe",
-          "European"
-        ],
-        "APAC": [
-          "APAC",
-          "Asia Pacific",
-          "Asia"
-        ]
+        "US": ["US", "United States", "America", "USA"],
+        "EU": ["EU", "Europe", "European"],
+        "APAC": ["APAC", "Asia Pacific", "Asia"]
       }
     },
     "team": {
       "options": {
-        "engineering": [
-          "engineering",
-          "engineers",
-          "eng",
-          "dev",
-          "development"
-        ],
-        "sales": [
-          "sales",
-          "sales team"
-        ],
-        "marketing": [
-          "marketing",
-          "marketing team"
-        ],
-        "support": [
-          "support",
-          "customer support",
-          "cs"
-        ]
+        "engineering": ["engineering", "engineers", "eng", "dev", "development"],
+        "sales": ["sales", "sales team"],
+        "marketing": ["marketing", "marketing team"],
+        "support": ["support", "customer support", "cs"],
+        "trading": ["trading", "trading desk", "markets"],
+        "risk": ["risk", "risk management", "compliance"],
+        "treasury": ["treasury", "treasury desk"],
+        "operations": ["operations", "ops", "middle office", "back office"]
       }
     },
     "environment": {
       "options": {
-        "production": [
-          "production",
-          "prod",
-          "live"
-        ],
-        "staging": [
-          "staging",
-          "stage",
-          "pre-prod"
-        ],
-        "dev": [
-          "dev",
-          "development",
-          "local"
-        ]
+        "production": ["production", "prod", "live"],
+        "staging": ["staging", "stage", "pre-prod"],
+        "dev": ["dev", "development", "local"]
+      }
+    },
+    "severity": {
+      "options": {
+        "critical": ["critical", "crit", "P1", "severity 1"],
+        "high": ["high", "P2", "severity 2"],
+        "medium": ["medium", "med", "P3", "severity 3"],
+        "low": ["low", "P4", "severity 4", "minor"]
       }
     }
   },
@@ -265,19 +123,12 @@
     {
       "intent": "greeting",
       "utterances": [
-        "hello",
-        "hi",
-        "hey",
-        "good morning",
-        "good afternoon",
-        "hi there",
-        "hey there",
-        "howdy",
-        "greetings"
+        "hello", "hi", "hey", "good morning", "good afternoon",
+        "hi there", "hey there", "howdy", "greetings"
       ],
       "answers": [
-        "Hello! I can help you run queries, find URLs, or provide estimations. You can also use filters like date range, region, or team. What would you like to do?",
-        "Hi there! How can I assist you today? I can run queries (with filters), find URLs, or combine multiple data sources."
+        "Hello! I'm MITR AI. I can help you run queries, find URLs, or provide estimations. You can also use filters like date range, region, or team. What would you like to do?",
+        "Hi there! I'm MITR AI — how can I assist you today? I can run queries (with filters), find URLs, or combine multiple data sources."
       ]
     },
     {
@@ -317,7 +168,72 @@
         "count rows in @query_name",
         "maximum revenue in @query_name",
         "what is the total in @query_name",
-        "group by region"
+        "group by region",
+        "@query_name",
+        "@query_name data",
+        "@query_name report",
+        "give me @query_name",
+        "open @query_name",
+        "load @query_name",
+        "check @query_name",
+        "display @query_name",
+        "what is @query_name",
+        "show @query_name",
+        "run @query_name query",
+        "get @query_name report",
+        "pull @query_name data",
+
+        "what is our EBITDA this quarter",
+        "show me the P&L for last month",
+        "pull up the VaR report",
+        "run the trading PnL for APAC",
+        "what is our gross margin",
+        "show me settlement failures for this week",
+        "get the NPL ratio",
+        "what is our AUM",
+        "show me the capital adequacy report",
+        "run the liquidity report",
+        "what is the cash position today",
+        "show FX exposure for EU",
+        "get the STP rate for this month",
+        "pull up the reconciliation report",
+        "show me client onboarding status",
+        "what is fund NAV",
+        "run the credit risk report",
+        "show AML alerts",
+        "get the regulatory report",
+        "show trade volume for this week",
+        "what is our net income",
+        "show quarterly revenue",
+        "run the loan book",
+        "what are the open positions",
+        "show me YoY growth",
+        "run the origination pipeline",
+        "what is market exposure",
+        "show me trade breaks",
+        "get operational risk report",
+        "what is our revenue by segment",
+
+        "give me @query_name for region @region",
+        "give me @query_name for @region",
+        "show @query_name data for @region region",
+        "get @query_name for @team team",
+        "give me @query_name for the @team team",
+        "@query_name for @region for @time_period",
+        "@query_name in @region for @time_period",
+        "show me @query_name data in @region",
+        "run @query_name with severity @severity",
+        "get @query_name filtered by severity @severity",
+        "@query_name for @severity severity",
+        "show @query_name for @severity issues",
+        "run @query_name in @environment for @team",
+        "get @query_name for @region region for @time_period",
+        "show me @query_name for @team in @region",
+        "@query_name filtered by @region and @time_period",
+        "can you get @query_name for @region",
+        "I need @query_name for region @region",
+        "pull @query_name for @time_period for @region",
+        "what is @query_name for @region for @time_period"
       ],
       "answers": []
     },
@@ -336,7 +252,12 @@
         "run @query_name and @query_name in @region",
         "run multiple queries",
         "compare two queries",
-        "run several queries at once"
+        "run several queries at once",
+        "compare revenue and EBITDA",
+        "show me P&L and gross margin together",
+        "run trading PnL and VaR",
+        "compare AUM and portfolio performance",
+        "show settlement failures and STP rate"
       ],
       "answers": []
     },
@@ -369,7 +290,10 @@
         "what reports are there",
         "list queries with filters",
         "what filters are supported",
-        "list queries"
+        "list queries",
+        "what finance reports are available",
+        "show me all trading queries",
+        "what risk reports do you have"
       ],
       "answers": []
     },
@@ -403,7 +327,7 @@
         "what commands are available"
       ],
       "answers": [
-        "I can help you with:\n- **Ask any question** — I'll search the knowledge base automatically!\n- Running queries against our data (with filters)\n- Running multiple queries in a single request\n- Finding relevant URLs and documentation\n- Providing query time estimations\n- Listing available queries\n\nExamples:\n- \"what is the auth flow?\" (searches all docs)\n- \"how do I deploy?\" (finds deployment guide)\n- \"run monthly revenue for this month\"\n- \"show me active users in US\"\n- \"list queries\"\n\nJust tell me what you need!"
+        "I'm MITR AI. I can help you with:\n- **Ask any question** — I'll search the knowledge base automatically!\n- Running queries against our data (with filters)\n- Data operations: group by, sort, summarize, top-N, value comparisons\n- Running multiple queries in a single request\n- Finding relevant URLs and documentation\n- Listing available queries\n\nExamples:\n- \"what is the auth flow?\" (searches all docs)\n- \"run monthly revenue for this month\"\n- \"show me active users in US\"\n- \"run ebitda\" / \"show VaR report\"\n- \"retention > 70\" (filter by value)\n- \"list queries\"\n\nJust tell me what you need!"
       ]
     },
     {
@@ -433,26 +357,69 @@
         "find information about",
         "do we have docs on",
         "where can I find documentation about",
-        "is there any info on"
+        "is there any info on",
+
+        "what is our risk appetite",
+        "explain the settlement process",
+        "how does trade reconciliation work",
+        "what are the regulatory requirements",
+        "explain the capital adequacy framework",
+        "what is our AML policy",
+        "how does the loan origination process work",
+        "explain the FX hedging strategy",
+        "what are the compliance reporting deadlines",
+        "how is VaR calculated",
+        "explain the portfolio rebalancing rules",
+        "what is the client onboarding workflow",
+        "how does the treasury function operate",
+        "what are the settlement cut-off times",
+        "explain the credit approval process"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "document.ask",
+      "utterances": [
+        "what does the document say about",
+        "find in the documents",
+        "search documents for",
+        "answer from the uploaded files",
+        "what do the documents say about risk policy",
+        "look up in the knowledge base",
+        "check the documents for compliance rules",
+        "what information is in the uploaded files about",
+        "find the answer in the documents",
+        "search uploaded documents",
+        "what does the file say about onboarding",
+        "look in the documents for settlement process",
+        "find information about credit risk in the files",
+        "check uploaded docs for trading procedures",
+        "what is documented about the approval process"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "document.list",
+      "utterances": [
+        "what documents are available",
+        "list uploaded files",
+        "show my documents",
+        "what files have been uploaded",
+        "list documents",
+        "show uploaded documents",
+        "what is in the knowledge base",
+        "list all documents"
       ],
       "answers": []
     },
     {
       "intent": "farewell",
       "utterances": [
-        "bye",
-        "goodbye",
-        "see you",
-        "thanks bye",
-        "that is all",
-        "I am done",
-        "exit",
-        "quit",
-        "later",
-        "thank you goodbye"
+        "bye", "goodbye", "see you", "thanks bye", "that is all",
+        "I am done", "exit", "quit", "later", "thank you goodbye"
       ],
       "answers": [
-        "Goodbye! Feel free to come back anytime.",
+        "Goodbye! Feel free to come back to MITR AI anytime.",
         "See you later! Let me know if you need anything else."
       ]
     }

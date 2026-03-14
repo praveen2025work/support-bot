@@ -1,12 +1,11 @@
 import { Router } from 'express';
-import path from 'path';
 import { promises as fs } from 'fs';
+import { paths } from '@/lib/env-config';
 
 const router = Router();
 
 router.get('/docs/openapi.yaml', async (req, res) => {
-  // Use process.cwd() for cross-platform compatibility (works with NSSM on Windows)
-  const filePath = path.join(process.cwd(), 'docs', 'openapi.yaml');
+  const filePath = paths.docs.openapi;
   const content = await fs.readFile(filePath, 'utf-8');
   res.type('text/yaml').send(content);
 });

@@ -1,14 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { promises as fsPromises } from 'fs';
-import { join } from 'path';
 import { logger } from '@/lib/logger';
 import { logAudit } from '@/lib/audit-logger';
 import { requirePermission } from '@/middleware/rbac';
+import { paths } from '@/lib/env-config';
 
 const router = Router();
 
-const PROJECT_ROOT = process.cwd();
-const DB_JSON_PATH = process.env.DB_JSON_PATH || join(PROJECT_ROOT, '..', 'mock-api', 'db.json');
+const DB_JSON_PATH = paths.mockApi.dbJson;
 
 async function readDb(): Promise<Record<string, unknown>> {
   const raw = await fsPromises.readFile(DB_JSON_PATH, 'utf-8');

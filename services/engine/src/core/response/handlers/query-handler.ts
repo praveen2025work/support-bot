@@ -2,7 +2,7 @@ import { logger } from '@/lib/logger';
 import type { QueryService, QueryExecuteOptions } from '../../api-connector/query-service';
 import type { ClassificationResult, BotResponse, ConversationContext } from '../../types';
 import { STOP_WORDS, GROUP_BY_PATTERN, SORT_PATTERN, SUMMARY_PATTERN, TOP_BOTTOM_PATTERN } from '../constants';
-import { extractFilters, formatFilters, parseFilterFromText } from './filter-utils';
+import { extractFilters, formatFilters, parseFilterFromText, mergeFilters } from './filter-utils';
 import { handleGroupByFollowUp, handleSortFollowUp, handleSummaryFollowUp, handleTopNFollowUp } from './followup-handler';
 
 /**
@@ -255,14 +255,22 @@ export async function handleQueryExecute(
     }
   }
 
-  // Merge NLP-extracted filters with explicit filters from the filter form
+  // Merge NLP-extracted filters with text-parsed filters and explicit (form) filters.
+  // NLP entities provide the primary filter extraction; parseFilterFromText catches
+  // patterns the NLP model missed (e.g. "give me sales data for region US" when
+  // NLP extracted query_name but not region).
+  const userText = getLastUserText(context);
   const nlpFilters = extractFilters(classification.entities);
-  const filters = { ...nlpFilters, ...explicitFilters };
+  const textFilters = parseFilterFromText(userText);
+  const filters = mergeFilters(nlpFilters, textFilters, explicitFilters);
   const filterLabel = formatFilters(filters);
   const hasFilters = Object.keys(filters).length > 0;
 
+  if (hasFilters) {
+    logger.info({ queryName: queryNameEntity.value, filters, nlpFilters, textFilters }, 'Filters extracted from NLP + text');
+  }
+
   // Extract options for document search / CSV aggregation from user text
-  const userText = getLastUserText(context);
   const options = buildExecuteOptions(userText, queryNameEntity.value, classification);
 
   try {
@@ -314,6 +322,7 @@ export async function handleQueryExecute(
           intent: classification.intent,
           confidence: classification.confidence,
           executionMs: execMs,
+          queryName: queryNameEntity.value,
         };
 
       case 'document': {
@@ -327,6 +336,7 @@ export async function handleQueryExecute(
             confidence: classification.confidence,
             executionMs: execMs,
             referenceUrl,
+            queryName: queryNameEntity.value,
           };
         }
         return {
@@ -337,6 +347,7 @@ export async function handleQueryExecute(
           confidence: classification.confidence,
           executionMs: execMs,
           referenceUrl,
+          queryName: queryNameEntity.value,
         };
       }
 
@@ -352,6 +363,7 @@ export async function handleQueryExecute(
             confidence: classification.confidence,
             executionMs: execMs,
             referenceUrl,
+            queryName: queryNameEntity.value,
           };
         }
         if (csv.aggregation) {
@@ -368,6 +380,7 @@ export async function handleQueryExecute(
             confidence: classification.confidence,
             executionMs: execMs,
             referenceUrl,
+            queryName: queryNameEntity.value,
           };
         }
         return {
@@ -378,6 +391,7 @@ export async function handleQueryExecute(
           confidence: classification.confidence,
           executionMs: execMs,
           referenceUrl,
+          queryName: queryNameEntity.value,
         };
       }
 
@@ -391,6 +405,7 @@ export async function handleQueryExecute(
           confidence: classification.confidence,
           executionMs: execMs,
           referenceUrl,
+          queryName: queryNameEntity.value,
         };
     }
   } catch (error) {

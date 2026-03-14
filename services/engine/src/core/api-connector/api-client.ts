@@ -263,7 +263,7 @@ export class ApiClient {
    * Used for BAM token endpoints and other external URLs.
    */
   async fetchAbsolute<T>(absoluteUrl: string, options?: {
-    method?: 'GET' | 'POST';
+    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
     body?: unknown;
     headers?: Record<string, string>;
   }): Promise<T> {

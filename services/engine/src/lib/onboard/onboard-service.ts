@@ -2,11 +2,11 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import type { OnboardPayload } from './schemas';
 import { generateCorpus, generateFaq } from './corpus-generator';
+import { paths } from '@/lib/env-config';
 
-const PROJECT_ROOT = process.cwd();
-const TRAINING_GROUPS_DIR = path.join(PROJECT_ROOT, 'src/training/groups');
-const GROUPS_JSON_PATH = path.join(PROJECT_ROOT, 'src/config/groups.json');
-const DB_JSON_PATH = path.join(PROJECT_ROOT, 'mock-api/db.json');
+const TRAINING_GROUPS_DIR = paths.training.groupsDir;
+const GROUPS_JSON_PATH = paths.config.groups;
+const DB_JSON_PATH = paths.mockApi.dbJson;
 
 export interface OnboardResult {
   success: boolean;

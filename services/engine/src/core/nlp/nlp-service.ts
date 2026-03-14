@@ -46,16 +46,16 @@ export class NlpService {
     this.nlp = container.get('nlp') as InstanceType<typeof Nlp>;
     this.nlp.settings.autoSave = false;
 
-    let corpusData: unknown;
-    if (this.corpusFile) {
-      const mod = await import(`@/training/groups/${this.corpusFile}`);
-      corpusData = mod.default;
-    } else {
-      const mod = await import('@/training/corpus.json');
-      corpusData = mod.default;
-    }
-
+    // Always load base corpus first — ensures all groups share core intents/entities
+    const baseMod = await import('@/training/corpus.json');
+    const corpusData = baseMod.default;
     await this.nlp.addCorpus(corpusData);
+
+    // Additionally load group-specific corpus for focused training (addCorpus merges additively)
+    if (this.corpusFile) {
+      const groupMod = await import(`@/training/groups/${this.corpusFile}`);
+      await this.nlp.addCorpus(groupMod.default);
+    }
     await this.nlp.train();
 
     this.initialized = true;
@@ -119,7 +119,7 @@ export class NlpService {
           intent: fuzzyResult.intent,
           confidence: fuzzyResult.score,
           entities: [],
-          source: 'fuzzy',
+          source: fuzzyResult.source,
         };
         this.classificationCache.set(cacheKey, r);
         return r;
@@ -143,7 +143,7 @@ export class NlpService {
           intent: fuzzyResult.intent,
           confidence: fuzzyResult.score,
           entities: [],
-          source: 'fuzzy',
+          source: fuzzyResult.source,
         };
         this.classificationCache.set(cacheKey, r);
         return r;

@@ -1,6 +1,6 @@
 import { promises as fsp } from 'fs';
-import { resolve } from 'path';
 import { logger } from '@/lib/logger';
+import { paths } from '@/lib/env-config';
 import type { SignalAggregate } from './types';
 import {
   AUTO_LEARN_MIN_POSITIVE,
@@ -81,7 +81,7 @@ export class SignalProcessor {
   async getCorpusPath(groupId: string): Promise<string> {
     // Group-specific corpus files live in training/groups/
     if (groupId && groupId !== 'default') {
-      const groupPath = resolve(process.cwd(), `src/training/groups/corpus-${groupId}.json`);
+      const groupPath = paths.training.groupCorpus(groupId);
       try {
         await fsp.access(groupPath);
         return groupPath;
@@ -89,6 +89,6 @@ export class SignalProcessor {
         // Fall through to default
       }
     }
-    return resolve(process.cwd(), 'src/training/corpus.json');
+    return paths.training.corpus;
   }
 }

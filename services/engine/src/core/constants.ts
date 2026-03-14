@@ -8,6 +8,8 @@ export const INTENTS = {
   QUERY_ESTIMATE: 'query.estimate',
   URL_FIND: 'url.find',
   KNOWLEDGE_SEARCH: 'knowledge.search',
+  DOCUMENT_ASK: 'document.ask',
+  DOCUMENT_LIST: 'document.list',
 } as const;
 
 export const NLP_CONFIDENCE_THRESHOLD = 0.65;

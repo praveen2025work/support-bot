@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
-import path from 'path';
 import { getEngine, getEngineCount, getInitializedGroups } from '@/lib/singleton';
 import { logger } from '@/lib/logger';
+import { DATA_DIR, INSTANCE_ID } from '@/lib/env-config';
 
 export const healthRouter = Router();
 
@@ -12,6 +12,7 @@ healthRouter.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     service: 'chatbot-engine',
+    instanceId: INSTANCE_ID,
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     memory: {
@@ -35,12 +36,9 @@ healthRouter.get('/health/ready', async (_req: Request, res: Response) => {
     logger.debug({ err }, 'Readiness check: NLP not ready');
   }
 
-  // Check data directory is accessible
+  // Check data directory is accessible (NAS mount check)
   try {
-    await fs.promises.access(
-      path.join(process.cwd(), 'data'),
-      fs.constants.R_OK,
-    );
+    await fs.promises.access(DATA_DIR, fs.constants.R_OK | fs.constants.W_OK);
     checks.dataDir = true;
   } catch (err) {
     logger.debug({ err }, 'Readiness check: data directory not accessible');
@@ -49,6 +47,7 @@ healthRouter.get('/health/ready', async (_req: Request, res: Response) => {
   const ready = Object.values(checks).every(Boolean);
   res.status(ready ? 200 : 503).json({
     status: ready ? 'ready' : 'not_ready',
+    instanceId: INSTANCE_ID,
     checks,
     engines: getInitializedGroups(),
   });

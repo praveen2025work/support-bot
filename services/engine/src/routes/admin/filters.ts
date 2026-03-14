@@ -7,8 +7,9 @@ import { requirePermission } from '@/middleware/rbac';
 
 const router = Router();
 
-const PROJECT_ROOT = process.cwd();
-const FILTER_CONFIG_PATH = join(PROJECT_ROOT, 'src/config/filter-config.json');
+import { paths } from '@/lib/env-config';
+
+const FILTER_CONFIG_PATH = paths.config.filterConfig;
 
 router.get('/', requirePermission('filters.manage'), async (_req: Request, res: Response) => {
   try {

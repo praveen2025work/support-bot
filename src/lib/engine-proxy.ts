@@ -25,6 +25,7 @@ export async function proxyToEngine(
       headers,
       body: options.body ? JSON.stringify(options.body) : undefined,
       signal: controller.signal,
+      cache: 'no-store',
     });
   } finally {
     clearTimeout(timeout);

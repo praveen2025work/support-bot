@@ -57,11 +57,11 @@ async function createAndInitEngine(groupId: string): Promise<ChatbotEngine> {
   const nlpService = new NlpService(fuzzyMatcher, groupConfig.corpus);
   const apiClient = new ApiClient(groupConfig.apiBaseUrl ?? undefined);
   const queryService = new QueryService(apiClient, groupConfig.sources);
-  const responseGenerator = new ResponseGenerator(queryService, groupConfig.templates);
+  const responseGenerator = new ResponseGenerator(queryService, groupConfig.templates, groupId);
   const sessionManager = new SessionManager();
   const learningService = new LearningService(groupId);
 
-  const engine = new ChatbotEngine(nlpService, responseGenerator, sessionManager, learningService);
+  const engine = new ChatbotEngine(nlpService, responseGenerator, sessionManager, learningService, groupId);
 
   // Initialize (trains NLP model) — this is the expensive CPU operation
   await engine.initialize();

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { readFileSync } from 'fs';
-import path from 'path';
+import { paths } from '@/lib/env-config';
 import groupsData from './groups.json';
 
 const GroupTemplatesSchema = z.object({
@@ -42,7 +42,7 @@ export function getGroupConfigs(): Record<string, GroupConfig> {
 }
 
 export function reloadGroupConfig(): void {
-  const filePath = path.join(process.cwd(), 'src/config/groups.json');
+  const filePath = paths.config.groups;
   const raw = JSON.parse(readFileSync(filePath, 'utf-8'));
   parsed = GroupsFileSchema.parse(raw);
 }

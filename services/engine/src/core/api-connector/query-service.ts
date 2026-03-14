@@ -3,10 +3,12 @@ import path from 'path';
 import { ApiClient } from './api-client';
 import { QuerySchema, QueryResultSchema } from './types';
 import { fetchBamToken } from './bam-auth';
+import { DATA_DIR } from '@/lib/env-config';
 import { QueryNotFoundError, FileReadError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 import { resolveDateRange, isDatePreset } from '@/lib/date-resolver';
-import { searchDocument, type DocumentSection } from './document-search';
+import { searchDocument, searchDocumentBM25, type DocumentSection } from './document-search';
+import { DocumentManager } from '../document-index/document-manager';
 import { parseCsv, computeAggregation, parseAggregationFromText, groupBy, sortData, type AggregationResult, type GroupByResult } from './csv-analyzer';
 import filterConfig from '@/config/filter-config.json';
 import type { Query, QueryResult, QueryFilters, FilterBinding } from './types';
@@ -180,7 +182,38 @@ export class QueryService {
 
     const body = Object.keys(bodyFilters).length > 0 ? { filters: bodyFilters } : {};
     const params = Object.keys(paramFilters).length > 0 ? paramFilters : undefined;
-    const raw = await this.apiClient.post(urlPath, body, params, authHeaders);
+    const httpMethod = query.method ?? 'POST';
+
+    let raw: unknown;
+
+    if (query.baseUrl) {
+      // ── Per-query base URL: call the real API server directly ──────────
+      // This allows each query to target a different host/port, even in mock mode.
+      // e.g., query.baseUrl = "https://finance-api.corp.com:9443/v2"
+      //       query.endpoint = "/revenue/{region}"
+      //       → https://finance-api.corp.com:9443/v2/revenue/US
+      const queryBase = query.baseUrl.replace(/\/?$/, '/');
+      let absoluteUrl = `${queryBase}${urlPath}`;
+      if (params && Object.keys(params).length > 0) {
+        absoluteUrl += `?${new URLSearchParams(params).toString()}`;
+      }
+      raw = await this.apiClient.fetchAbsolute(absoluteUrl, {
+        method: httpMethod as 'GET' | 'POST',
+        body: httpMethod !== 'GET' ? body : undefined,
+        headers: { ...authHeaders },
+      });
+    } else {
+      // ── Default: use group/global base URL via ApiClient ───────────────
+      if (httpMethod === 'GET') {
+        raw = await this.apiClient.get(
+          params ? `${urlPath}?${new URLSearchParams(params).toString()}` : urlPath,
+          { authHeaders }
+        );
+      } else {
+        raw = await this.apiClient.post(urlPath, body, params, authHeaders);
+      }
+    }
+
     const apiResult = QueryResultSchema.parse(raw);
     return { type: 'api', apiResult };
   }
@@ -406,8 +439,8 @@ export class QueryService {
       throw new FileReadError(query.name, 'No file path configured');
     }
 
-    const resolved = path.resolve(process.cwd(), query.filePath);
-    const relative = path.relative(process.cwd(), resolved);
+    const resolved = path.resolve(DATA_DIR, query.filePath);
+    const relative = path.relative(DATA_DIR, resolved);
     if (relative.startsWith('..') || path.isAbsolute(relative)) {
       throw new FileReadError(query.filePath, 'Path outside project directory');
     }
@@ -486,6 +519,9 @@ export class QueryService {
 
     if (docQueries.length === 0) return [];
 
+    // Use BM25 search with the full query string for better relevance
+    const queryString = keywords.join(' ');
+
     // Read all documents in parallel
     const readResults = await Promise.allSettled(
       docQueries.map(async (q) => {
@@ -500,7 +536,10 @@ export class QueryService {
       if (r.status !== 'fulfilled') continue;
       const { query, content } = r.value;
 
-      const sections = searchDocument(content, keywords, maxResultsPerDoc);
+      // Use BM25 for better ranking (falls back to keyword search if query is too short)
+      const sections = queryString.length >= 3
+        ? searchDocumentBM25(content, queryString, maxResultsPerDoc)
+        : searchDocument(content, keywords, maxResultsPerDoc);
       if (sections.length === 0) continue;
 
       results.push({
@@ -532,6 +571,20 @@ export class QueryService {
     }
 
     return results.filter((r) => r.sections.length > 0);
+  }
+
+  /**
+   * Search across indexed documents (uploaded via document manager) using BM25.
+   * This searches the persistent TF-IDF index, not individual files.
+   */
+  async searchIndexedDocuments(
+    query: string,
+    groupId: string = 'default',
+    topK: number = 8
+  ) {
+    const docManager = DocumentManager.getInstance(groupId);
+    await docManager.ensureLoaded();
+    return docManager.search(query, topK);
   }
 }
 

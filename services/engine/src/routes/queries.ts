@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { getGroupConfig, getGroupConfigs } from '@/config/group-config';
 import { ApiClient } from '@/core/api-connector/api-client';
+import { paths } from '@/lib/env-config';
 import { QueryService } from '@/core/api-connector/query-service';
 import { logger } from '@/lib/logger';
 
@@ -34,7 +35,7 @@ queriesRouter.get('/queries', async (req: Request, res: Response) => {
 // GET /api/filters — return filter config for chat UI
 queriesRouter.get('/filters', async (_req: Request, res: Response) => {
   try {
-    const configPath = path.join(process.cwd(), 'src/config/filter-config.json');
+    const configPath = paths.config.filterConfig;
     const raw = await fs.readFile(configPath, 'utf-8');
     const data = JSON.parse(raw);
     return res.json(data);

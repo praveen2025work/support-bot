@@ -1,7 +1,7 @@
 {
   "groups": {
     "default": {
-      "name": "General Assistant",
+      "name": "MITR AI",
       "description": "Access to all data sources",
       "sources": [],
       "apiBaseUrl": null,
@@ -10,26 +10,29 @@
       "faq": null
     },
     "finance": {
-      "name": "Finance Bot",
-      "description": "Revenue, orders, and financial metrics",
+      "name": "MITR Finance",
+      "description": "Revenue, trading, risk, compliance, treasury, and financial operations",
       "sources": [
         "finance",
-        "commerce"
+        "commerce",
+        "trading",
+        "risk",
+        "treasury"
       ],
       "apiBaseUrl": null,
       "templates": {
         "greeting": [
-          "Hello! I'm the Finance Bot. I can help with revenue reports, order data, and financial metrics. What would you like to know?"
+          "Hello! I'm MITR Finance. I can help with revenue reports, P&L, trading data, risk metrics, compliance reports, treasury, and financial operations. What would you like to know?"
         ],
         "help": [
-          "I can help you with:\n- Monthly revenue reports (with region/date filters)\n- Daily order volumes and fulfillment status\n- Financial trends and comparisons\n\nExamples:\n- \"run monthly revenue for US\"\n- \"show daily orders for this month\"\n- \"run revenue and orders together\"\n- \"list queries\""
+          "I can help you with:\n- **Revenue & P&L**: monthly/quarterly revenue, gross margin, EBITDA, net income, YoY growth\n- **Trading & Markets**: trade volume, desk PnL, VaR, market exposure, positions\n- **Risk & Compliance**: credit risk, regulatory reports, AML alerts, capital adequacy\n- **Client & Portfolio**: AUM, portfolio performance, fund NAV, client assets\n- **Operations**: settlement failures, STP rate, reconciliation, trade breaks\n- **Loan & Credit**: loan book, NPL ratio, origination pipeline\n- **Treasury**: liquidity, cash position, FX exposure, interest rate risk\n\nExamples:\n- \"run ebitda for this quarter\"\n- \"show me the VaR report\"\n- \"what is our AUM\"\n- \"show settlement failures\"\n- \"run credit risk report\"\n- \"list queries\""
         ]
       },
       "corpus": "corpus-finance.json",
       "faq": "faq-finance.json"
     },
     "engineering": {
-      "name": "Engineering Bot",
+      "name": "MITR Engineering",
       "description": "Error rates, performance, and infrastructure",
       "sources": [
         "engineering",
@@ -38,7 +41,7 @@
       "apiBaseUrl": null,
       "templates": {
         "greeting": [
-          "Hello! I'm the Engineering Bot. I can help with error rates, performance metrics, and infrastructure costs. What do you need?"
+          "Hello! I'm MITR Engineering. I can help with error rates, performance metrics, and infrastructure costs. What do you need?"
         ],
         "help": [
           "I can help you with:\n- Error rate monitoring by service and endpoint\n- API performance metrics (p50, p95, p99)\n- Infrastructure cost analysis by environment\n\nExamples:\n- \"show error rate in production\"\n- \"run performance\"\n- \"get infrastructure costs for staging\"\n- \"compare error rate and performance\""
@@ -48,7 +51,7 @@
       "faq": "faq-engineering.json"
     },
     "analytics": {
-      "name": "Analytics Bot",
+      "name": "MITR Analytics",
       "description": "User analytics and retention metrics",
       "sources": [
         "analytics"
@@ -56,7 +59,7 @@
       "apiBaseUrl": null,
       "templates": {
         "greeting": [
-          "Hello! I'm the Analytics Bot. I can help with user metrics, retention data, and churn analysis. How can I help?"
+          "Hello! I'm MITR Analytics. I can help with user metrics, retention data, and churn analysis. How can I help?"
         ],
         "help": [
           "I can help you with:\n- Active user counts (DAU/MAU)\n- Customer churn rate analysis\n- Retention metrics and cohort breakdowns\n\nExamples:\n- \"show active users\"\n- \"run customer churn\"\n- \"run active users and churn together\"\n- \"list queries\""
@@ -66,7 +69,7 @@
       "faq": "faq-analytics.json"
     },
     "hr_team": {
-      "name": "HR Bot",
+      "name": "MITR HR",
       "description": "Headcount, hiring pipeline, and team metrics",
       "sources": [
         "hr"
@@ -74,7 +77,7 @@
       "apiBaseUrl": null,
       "templates": {
         "greeting": [
-          "Hello! I'm the HR Bot. I can help with headcount data, hiring pipeline metrics, and team information. What do you need?"
+          "Hello! I'm MITR HR. I can help with headcount data, hiring pipeline metrics, and team information. What do you need?"
         ],
         "help": [
           "I can help you with:\n- Current headcount by department and location\n- Hiring pipeline and open positions\n- Team metrics and staffing data\n\nExamples:\n- \"show headcount\"\n- \"run hiring pipeline\"\n- \"get headcount for engineering team\"\n- \"list queries\""
