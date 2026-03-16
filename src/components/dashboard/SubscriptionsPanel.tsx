@@ -1,19 +1,25 @@
 'use client';
 
-import type { SubscriptionItem } from '@/types/dashboard';
+import type { SubscriptionItem, QueryInfo } from '@/types/dashboard';
 import { QueryCard } from './QueryCard';
 
 export function SubscriptionsPanel({
   subscriptions,
   groupId,
   userName,
+  availableQueries,
   onRemove,
 }: {
   subscriptions: SubscriptionItem[];
   groupId: string;
   userName?: string;
+  availableQueries?: QueryInfo[];
   onRemove: (id: string) => Promise<void>;
 }) {
+  const getQueryFilters = (queryName: string) => {
+    return availableQueries?.find((q) => q.name === queryName)?.filters;
+  };
+
   return (
     <section>
       <div className="flex items-center gap-2 mb-3">
@@ -29,6 +35,7 @@ export function SubscriptionsPanel({
             groupId={sub.groupId || groupId}
             userName={userName}
             defaultFilters={sub.defaultFilters}
+            queryFilters={getQueryFilters(sub.queryName)}
             autoExecute={sub.refreshOnLoad}
             actions={
               <button

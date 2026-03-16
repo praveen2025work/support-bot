@@ -43,6 +43,8 @@ interface QueryRecord {
   type: 'api' | 'url' | 'document' | 'csv';
   filePath?: string;
   endpoint?: string;
+  baseUrl?: string;
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   authType?: 'none' | 'bearer' | 'windows' | 'bam';
   bamTokenUrl?: string;
 }
@@ -85,6 +87,8 @@ export default function GroupDetailPage() {
   const [qType, setQType] = useState<'api' | 'url' | 'document' | 'csv'>('api');
   const [qFilePath, setQFilePath] = useState('');
   const [qEndpoint, setQEndpoint] = useState('');
+  const [qBaseUrl, setQBaseUrl] = useState('');
+  const [qMethod, setQMethod] = useState<'' | 'GET' | 'POST' | 'PUT' | 'DELETE'>('');
   const [qAuthType, setQAuthType] = useState<'none' | 'bearer' | 'windows' | 'bam'>('none');
   const [qBamTokenUrl, setQBamTokenUrl] = useState('');
   const [customFilterKey, setCustomFilterKey] = useState('');
@@ -199,6 +203,8 @@ export default function GroupDetailPage() {
     setQType('api');
     setQFilePath('');
     setQEndpoint('');
+    setQBaseUrl('');
+    setQMethod('');
     setQAuthType('none');
     setQBamTokenUrl('');
     setQFilterBindings([]);
@@ -218,6 +224,8 @@ export default function GroupDetailPage() {
     setQType(q.type || 'api');
     setQFilePath(q.filePath || '');
     setQEndpoint(q.endpoint || '');
+    setQBaseUrl(q.baseUrl || '');
+    setQMethod((q.method as '' | 'GET' | 'POST' | 'PUT' | 'DELETE') || '');
     setQAuthType(q.authType || 'none');
     setQBamTokenUrl(q.bamTokenUrl || '');
     setQFilterBindings((q.filters || []).map((f) => ({ ...f })));
@@ -236,12 +244,42 @@ export default function GroupDetailPage() {
     setQType('api');
     setQFilePath('');
     setQEndpoint('');
+    setQBaseUrl('');
+    setQMethod('');
     setQAuthType('none');
     setQBamTokenUrl('');
     setQFilterBindings([]);
     setCustomFilterKey('');
     setCustomFilterBinding('body');
     setEditingQueryId(null);
+    setSelectedQueryId(null);
+    setShowAddQuery(true);
+    setQError('');
+    setQSuccess('');
+  };
+
+  const cloneQuery = (q: QueryRecord) => {
+    // Generate a unique clone name
+    const existingNames = queries.map((x) => x.name);
+    let cloneName = `${q.name}_copy`;
+    let suffix = 2;
+    while (existingNames.includes(cloneName)) {
+      cloneName = `${q.name}_copy_${suffix}`;
+      suffix++;
+    }
+    setQName(cloneName);
+    setQDesc(q.description || '');
+    setQSource(q.source || '');
+    setQUrl(q.url || '');
+    setQType(q.type || 'api');
+    setQFilePath(q.filePath || '');
+    setQEndpoint(q.endpoint || '');
+    setQBaseUrl(q.baseUrl || '');
+    setQMethod((q.method as '' | 'GET' | 'POST' | 'PUT' | 'DELETE') || '');
+    setQAuthType(q.authType || 'none');
+    setQBamTokenUrl(q.bamTokenUrl || '');
+    setQFilterBindings((q.filters || []).map((f) => ({ ...f })));
+    setEditingQueryId(null); // null = create new
     setSelectedQueryId(null);
     setShowAddQuery(true);
     setQError('');
@@ -307,6 +345,8 @@ export default function GroupDetailPage() {
         type: qType,
         filePath: (qType === 'document' || qType === 'csv') ? (qFilePath || '').trim() : '',
         endpoint: qType === 'api' ? (qEndpoint || '').trim() : '',
+        baseUrl: qType === 'api' ? (qBaseUrl || '').trim() : '',
+        method: qType === 'api' && qMethod ? qMethod : '',
         authType: qType === 'api' ? qAuthType : 'none',
         bamTokenUrl: qAuthType === 'bam' ? (qBamTokenUrl || '').trim() : '',
       };
@@ -572,12 +612,22 @@ export default function GroupDetailPage() {
                             </button>
                           </div>
                         ) : (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setDeletingQueryId(q.id); }}
-                            className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 text-[10px] text-red-400 hover:text-red-600 transition-opacity"
-                          >
-                            &times;
-                          </button>
+                          <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 flex items-center gap-1.5 transition-opacity">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); cloneQuery(q); }}
+                              className="text-[10px] text-blue-400 hover:text-blue-600"
+                              title="Clone query"
+                            >
+                              &#x2398;
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setDeletingQueryId(q.id); }}
+                              className="text-[10px] text-red-400 hover:text-red-600"
+                              title="Delete query"
+                            >
+                              &times;
+                            </button>
+                          </div>
                         )}
                       </div>
                     ))}
@@ -668,6 +718,42 @@ export default function GroupDetailPage() {
                         <p className="text-xs text-gray-400 mt-1">
                           REST path for this query. Use &#123;filter_key&#125; for path variables.
                         </p>
+                      </div>
+                    )}
+
+                    {/* Base URL & HTTP Method — only for API type */}
+                    {qType === 'api' && (
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            Base URL <span className="text-gray-400 font-normal">(per-query override)</span>
+                          </label>
+                          <input
+                            value={qBaseUrl}
+                            onChange={(e) => setQBaseUrl(e.target.value)}
+                            placeholder="e.g. https://finance-api.corp.com:9443/v2"
+                            className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                          <p className="text-xs text-gray-400 mt-1">
+                            Overrides group base URL. Leave empty to use group/global default. If endpoint starts with http(s)://, base URL is auto-ignored.
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            HTTP Method
+                          </label>
+                          <select
+                            value={qMethod}
+                            onChange={(e) => setQMethod(e.target.value as '' | 'GET' | 'POST' | 'PUT' | 'DELETE')}
+                            className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          >
+                            <option value="">Default (POST)</option>
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="DELETE">DELETE</option>
+                          </select>
+                        </div>
                       </div>
                     )}
 

@@ -1,19 +1,25 @@
 'use client';
 
-import type { FavoriteItem } from '@/types/dashboard';
+import type { FavoriteItem, QueryInfo } from '@/types/dashboard';
 import { QueryCard } from './QueryCard';
 
 export function FavoritesPanel({
   favorites,
   groupId,
   userName,
+  availableQueries,
   onRemove,
 }: {
   favorites: FavoriteItem[];
   groupId: string;
   userName?: string;
+  availableQueries?: QueryInfo[];
   onRemove: (id: string) => Promise<void>;
 }) {
+  const getQueryFilters = (queryName: string) => {
+    return availableQueries?.find((q) => q.name === queryName)?.filters;
+  };
+
   return (
     <section>
       <div className="flex items-center gap-2 mb-3">
@@ -29,6 +35,7 @@ export function FavoritesPanel({
             groupId={fav.groupId || groupId}
             userName={userName}
             defaultFilters={fav.defaultFilters}
+            queryFilters={getQueryFilters(fav.queryName)}
             actions={
               <button
                 onClick={() => onRemove(fav.id)}

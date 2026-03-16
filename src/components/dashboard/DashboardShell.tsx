@@ -69,6 +69,7 @@ export function DashboardShell({
                 favorites={dashboard.preferences!.favorites}
                 groupId={groupId}
                 userName={userId}
+                availableQueries={availableQueries}
                 onRemove={dashboard.removeFavorite}
               />
             )}

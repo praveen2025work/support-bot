@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 import { logAudit } from '@/lib/audit-logger';
 import { requirePermission } from '@/middleware/rbac';
 import { paths } from '@/lib/env-config';
+import { clearQueryCaches } from '@/lib/singleton';
 
 const router = Router();
 
@@ -53,6 +54,7 @@ router.post('/', requirePermission('queries.create'), async (req: Request, res: 
     queries.push(newQuery);
     db.queries = queries;
     await writeDb(db);
+    clearQueryCaches();
     await logAudit({ action: 'create', resource: 'query', resourceId: newQuery.id, details: { name, source, type: queryType }, ip: req.ip });
     return res.status(201).json(newQuery);
   } catch (error) {
@@ -75,6 +77,7 @@ router.patch('/', requirePermission('queries.update'), async (req: Request, res:
     queries[idx] = query;
     db.queries = queries;
     await writeDb(db);
+    clearQueryCaches();
     await logAudit({ action: 'update', resource: 'query', resourceId: id, details: updates, ip: req.ip });
     return res.json(query);
   } catch (error) {
@@ -94,12 +97,20 @@ router.delete('/', requirePermission('queries.delete'), async (req: Request, res
     queries.splice(idx, 1);
     db.queries = queries;
     await writeDb(db);
+    clearQueryCaches();
     await logAudit({ action: 'delete', resource: 'query', resourceId: id, ip: req.ip });
     return res.json({ success: true, deletedQueryId: id });
   } catch (error) {
     logger.error({ error }, 'Failed to delete query');
     return res.status(500).json({ error: 'Failed to delete query' });
   }
+});
+
+// POST /cache/clear — clear the in-memory query cache (called by Next.js after db.json writes)
+router.post('/cache/clear', (_req: Request, res: Response) => {
+  clearQueryCaches();
+  logger.info('Query caches cleared via admin API');
+  return res.json({ success: true });
 });
 
 export default router;

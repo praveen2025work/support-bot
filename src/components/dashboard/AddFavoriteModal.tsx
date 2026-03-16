@@ -1,7 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { QueryInfo } from '@/types/dashboard';
+
+interface FilterOptionConfig {
+  label: string;
+  type: 'select' | 'text' | 'boolean';
+  options?: { value: string; label: string }[];
+  placeholder?: string;
+}
+
+function fallbackConfig(filterKey: string): FilterOptionConfig {
+  return {
+    label: filterKey.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+    type: 'text',
+    placeholder: `Enter ${filterKey}...`,
+  };
+}
 
 export function AddFavoriteModal({
   queries,
@@ -16,19 +31,71 @@ export function AddFavoriteModal({
 }) {
   const [search, setSearch] = useState('');
   const [adding, setAdding] = useState<string | null>(null);
+  const [expandedQuery, setExpandedQuery] = useState<string | null>(null);
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [filterConfigs, setFilterConfigs] = useState<Record<string, FilterOptionConfig>>({});
+
+  // Fetch filter configs on mount
+  useEffect(() => {
+    fetch('/api/filters')
+      .then((res) => res.json())
+      .then((json) => {
+        const configs: Record<string, FilterOptionConfig> = {};
+        for (const [key, entry] of Object.entries(json.filters || {})) {
+          const e = entry as { label: string; type: string; options: { value: string; label: string }[]; placeholder: string | null };
+          configs[key] = {
+            label: e.label,
+            type: e.type as 'select' | 'text' | 'boolean',
+            options: e.type === 'select' ? e.options : undefined,
+            placeholder: e.placeholder ?? undefined,
+          };
+        }
+        setFilterConfigs(configs);
+      })
+      .catch(() => {});
+  }, []);
+
+  const getConfig = (filterKey: string): FilterOptionConfig => {
+    return filterConfigs[filterKey] || fallbackConfig(filterKey);
+  };
 
   const filtered = queries.filter(
     (q) => q.name.toLowerCase().includes(search.toLowerCase()) ||
            q.description?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleExpand = (query: QueryInfo) => {
+    if (expandedQuery === query.name) {
+      setExpandedQuery(null);
+      setFilterValues({});
+    } else {
+      setExpandedQuery(query.name);
+      setFilterValues({});
+    }
+  };
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilterValues((prev) => ({ ...prev, [key]: value }));
+  };
+
   const handleAdd = async (query: QueryInfo) => {
     setAdding(query.name);
     try {
-      await onAdd({ queryName: query.name, groupId, label: query.name, defaultFilters: {} });
+      // Collect non-empty filter values
+      const defaults: Record<string, string> = {};
+      for (const [k, v] of Object.entries(filterValues)) {
+        if (v.trim()) defaults[k] = v.trim();
+      }
+      await onAdd({ queryName: query.name, groupId, label: query.name, defaultFilters: defaults });
+      setExpandedQuery(null);
+      setFilterValues({});
     } finally {
       setAdding(null);
     }
+  };
+
+  const getFilterKeys = (query: QueryInfo): string[] => {
+    return query.filters.map((f) => (typeof f === 'string' ? f : (f as { key: string }).key));
   };
 
   const typeColors: Record<string, string> = {
@@ -72,43 +139,140 @@ export function AddFavoriteModal({
               {queries.length === 0 ? 'No queries available' : 'No matching queries'}
             </div>
           ) : (
-            filtered.map((query) => (
-              <div
-                key={query.name}
-                className="px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-gray-900">{query.name}</p>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${typeColors[query.type] || 'bg-gray-100 text-gray-600'}`}>
-                      {query.type}
-                    </span>
+            filtered.map((query) => {
+              const filterKeys = getFilterKeys(query);
+              const isExpanded = expandedQuery === query.name;
+
+              return (
+                <div key={query.name} className="transition-colors">
+                  <div className="px-4 py-3 hover:bg-gray-50 flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-900">{query.name}</p>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${typeColors[query.type] || 'bg-gray-100 text-gray-600'}`}>
+                          {query.type}
+                        </span>
+                      </div>
+                      {query.description && (
+                        <p className="text-xs text-gray-500 mt-0.5 truncate">{query.description}</p>
+                      )}
+                      {filterKeys.length > 0 && !isExpanded && (
+                        <div className="flex gap-1 mt-1">
+                          {filterKeys.map((key) => (
+                            <span key={key} className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
+                              {key}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {filterKeys.length > 0 ? (
+                      <button
+                        onClick={() => handleExpand(query)}
+                        disabled={adding === query.name}
+                        className="px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50"
+                      >
+                        {isExpanded ? 'Collapse' : 'Configure'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleAdd(query)}
+                        disabled={adding === query.name}
+                        className="px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50"
+                      >
+                        {adding === query.name ? 'Adding...' : 'Add'}
+                      </button>
+                    )}
                   </div>
-                  {query.description && (
-                    <p className="text-xs text-gray-500 mt-0.5 truncate">{query.description}</p>
-                  )}
-                  {query.filters.length > 0 && (
-                    <div className="flex gap-1 mt-1">
-                      {query.filters.map((f, idx) => {
-                        const label = typeof f === 'string' ? f : (f as unknown as { key: string }).key || JSON.stringify(f);
-                        return (
-                          <span key={idx} className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
-                            {label}
-                          </span>
-                        );
-                      })}
+
+                  {/* Expanded filter configuration */}
+                  {isExpanded && (
+                    <div className="px-4 pb-3 bg-gray-50 border-t border-gray-100">
+                      <p className="text-[11px] text-gray-500 mt-2 mb-2">
+                        Set default filter values (optional — can be changed when running):
+                      </p>
+                      <div className="space-y-2">
+                        {filterKeys.map((filterKey) => {
+                          const config = getConfig(filterKey);
+                          return (
+                            <div key={filterKey}>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                                {config.label}
+                              </label>
+                              {config.type === 'select' && config.options ? (
+                                <select
+                                  value={filterValues[filterKey] || ''}
+                                  onChange={(e) => handleFilterChange(filterKey, e.target.value)}
+                                  className="w-full text-xs border border-gray-300 rounded px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                >
+                                  <option value="">All (no filter)</option>
+                                  {config.options.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>
+                                      {opt.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : config.type === 'boolean' ? (
+                                <div className="flex items-center gap-3">
+                                  {['true', 'false'].map((val) => (
+                                    <label key={val} className="flex items-center gap-1.5 cursor-pointer">
+                                      <input
+                                        type="radio"
+                                        name={`add_${filterKey}`}
+                                        value={val}
+                                        checked={filterValues[filterKey] === val}
+                                        onChange={(e) => handleFilterChange(filterKey, e.target.value)}
+                                        className="accent-blue-600"
+                                      />
+                                      <span className="text-xs text-gray-700 capitalize">{val}</span>
+                                    </label>
+                                  ))}
+                                  {filterValues[filterKey] && (
+                                    <button
+                                      onClick={() => handleFilterChange(filterKey, '')}
+                                      className="text-xs text-gray-400 hover:text-gray-600"
+                                    >
+                                      Clear
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <input
+                                  type="text"
+                                  value={filterValues[filterKey] || ''}
+                                  onChange={(e) => handleFilterChange(filterKey, e.target.value)}
+                                  placeholder={config.placeholder}
+                                  className="w-full text-xs border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() => handleAdd(query)}
+                          disabled={adding === query.name}
+                          className="flex-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        >
+                          {adding === query.name ? 'Adding...' : 'Add with Filters'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setFilterValues({});
+                            handleAdd(query);
+                          }}
+                          disabled={adding === query.name}
+                          className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+                        >
+                          Add without Filters
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={() => handleAdd(query)}
-                  disabled={adding === query.name}
-                  className="px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50"
-                >
-                  {adding === query.name ? 'Adding...' : 'Add'}
-                </button>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

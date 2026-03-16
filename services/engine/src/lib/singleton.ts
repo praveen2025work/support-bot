@@ -90,3 +90,14 @@ export function getEngineCount(): number {
 export function getInitializedGroups(): string[] {
   return Array.from(engines.keys());
 }
+
+/**
+ * Clear the API-client query cache for all engines.
+ * Called after admin creates/updates/deletes queries so the
+ * next request fetches a fresh query list from the data store.
+ */
+export function clearQueryCaches(): void {
+  for (const engine of engines.values()) {
+    engine.clearQueryCache();
+  }
+}

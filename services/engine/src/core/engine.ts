@@ -115,4 +115,9 @@ export class ChatbotEngine {
     await this.initialize();
     return this.nlpService.getOverlaps();
   }
+
+  /** Clear the API client's query cache so the next request fetches fresh data. */
+  clearQueryCache(): void {
+    this.responseGenerator.clearQueryCache();
+  }
 }

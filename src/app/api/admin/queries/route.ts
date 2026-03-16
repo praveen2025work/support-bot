@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { withDbLock, readDb } from '@/lib/db';
+import { proxyToEngine } from '@/lib/engine-proxy';
 
 interface FilterBinding {
   key: string;
@@ -18,8 +19,19 @@ interface QueryRecord {
   type: 'api' | 'url' | 'document' | 'csv';
   filePath?: string;
   endpoint?: string;
+  baseUrl?: string;
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   authType?: 'none' | 'bearer' | 'windows' | 'bam';
   bamTokenUrl?: string;
+}
+
+/** Notify the engine to clear its in-memory query cache after db.json changes. */
+async function notifyEngineCacheClear(): Promise<void> {
+  try {
+    await proxyToEngine('/api/admin/queries/cache/clear', { method: 'POST' });
+  } catch {
+    // Engine may not be running — non-critical
+  }
 }
 
 // GET: List all queries, optionally filtered by source
@@ -88,6 +100,8 @@ export async function POST(request: NextRequest) {
         type: queryType,
         filePath: body.filePath || '',
         endpoint: body.endpoint || '',
+        baseUrl: body.baseUrl || '',
+        method: body.method || '',
         authType: body.authType || 'none',
         bamTokenUrl: body.bamTokenUrl || '',
       };
@@ -96,6 +110,9 @@ export async function POST(request: NextRequest) {
       db.queries = queries;
       return { result: query, save: true };
     });
+
+    // Notify engine to clear query cache
+    await notifyEngineCacheClear();
 
     return NextResponse.json(newQuery, { status: 201 });
   } catch (error) {
@@ -136,6 +153,8 @@ export async function PATCH(request: NextRequest) {
       if (updates.type !== undefined) query.type = updates.type;
       if (updates.filePath !== undefined) query.filePath = updates.filePath;
       if (updates.endpoint !== undefined) query.endpoint = updates.endpoint;
+      if (updates.baseUrl !== undefined) query.baseUrl = updates.baseUrl;
+      if (updates.method !== undefined) query.method = updates.method;
       if (updates.authType !== undefined) query.authType = updates.authType;
       if (updates.bamTokenUrl !== undefined) query.bamTokenUrl = updates.bamTokenUrl;
 
@@ -147,6 +166,9 @@ export async function PATCH(request: NextRequest) {
     if (!updated) {
       return NextResponse.json({ error: 'Query not found' }, { status: 404 });
     }
+
+    // Notify engine to clear query cache
+    await notifyEngineCacheClear();
 
     return NextResponse.json(updated);
   } catch (error) {
@@ -179,6 +201,9 @@ export async function DELETE(request: NextRequest) {
     if (!deleted) {
       return NextResponse.json({ error: 'Query not found' }, { status: 404 });
     }
+
+    // Notify engine to clear query cache
+    await notifyEngineCacheClear();
 
     return NextResponse.json({ success: true, deletedQueryId: id });
   } catch (error) {

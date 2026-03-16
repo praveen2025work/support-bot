@@ -3,7 +3,8 @@ import path from 'path';
 import { ApiClient } from './api-client';
 import { QuerySchema, QueryResultSchema } from './types';
 import { fetchBamToken } from './bam-auth';
-import { DATA_DIR } from '@/lib/env-config';
+// Note: DATA_DIR from env-config is used for shared NAS storage paths.
+// File-based queries (csv/document) use filePath relative to CWD (engine root).
 import { QueryNotFoundError, FileReadError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 import { resolveDateRange, isDatePreset } from '@/lib/date-resolver';
@@ -68,6 +69,11 @@ export class QueryService {
     }
 
     return queries;
+  }
+
+  /** Clear the API client's LRU cache so queries are re-fetched from the store. */
+  clearCache(): void {
+    this.apiClient.clearCache();
   }
 
   async getQueryNames(): Promise<string[]> {
@@ -186,7 +192,24 @@ export class QueryService {
 
     let raw: unknown;
 
-    if (query.baseUrl) {
+    // Determine if we should use an absolute URL:
+    // 1. query.baseUrl is explicitly set, OR
+    // 2. The endpoint itself starts with http:// or https:// (auto-detect)
+    const endpointIsAbsolute = /^https?:\/\//i.test(urlPath);
+
+    if (endpointIsAbsolute) {
+      // ── Endpoint is a full URL — use it directly, ignore base URLs ────
+      let absoluteUrl = urlPath;
+      if (params && Object.keys(params).length > 0) {
+        const sep = absoluteUrl.includes('?') ? '&' : '?';
+        absoluteUrl += `${sep}${new URLSearchParams(params).toString()}`;
+      }
+      raw = await this.apiClient.fetchAbsolute(absoluteUrl, {
+        method: httpMethod as 'GET' | 'POST' | 'PUT' | 'DELETE',
+        body: httpMethod !== 'GET' ? body : undefined,
+        headers: { ...authHeaders },
+      });
+    } else if (query.baseUrl) {
       // ── Per-query base URL: call the real API server directly ──────────
       // This allows each query to target a different host/port, even in mock mode.
       // e.g., query.baseUrl = "https://finance-api.corp.com:9443/v2"
@@ -198,7 +221,7 @@ export class QueryService {
         absoluteUrl += `?${new URLSearchParams(params).toString()}`;
       }
       raw = await this.apiClient.fetchAbsolute(absoluteUrl, {
-        method: httpMethod as 'GET' | 'POST',
+        method: httpMethod as 'GET' | 'POST' | 'PUT' | 'DELETE',
         body: httpMethod !== 'GET' ? body : undefined,
         headers: { ...authHeaders },
       });
@@ -439,8 +462,12 @@ export class QueryService {
       throw new FileReadError(query.name, 'No file path configured');
     }
 
-    const resolved = path.resolve(DATA_DIR, query.filePath);
-    const relative = path.relative(DATA_DIR, resolved);
+    // filePath in query config is relative to the engine project root (CWD),
+    // e.g., "data/sales-data.csv" or "data/knowledge/api-changelog.md".
+    // Resolve against CWD (not DATA_DIR) to avoid double-nesting.
+    const cwd = process.cwd();
+    const resolved = path.resolve(cwd, query.filePath);
+    const relative = path.relative(cwd, resolved);
     if (relative.startsWith('..') || path.isAbsolute(relative)) {
       throw new FileReadError(query.filePath, 'Path outside project directory');
     }

@@ -183,4 +183,9 @@ export class ResponseGenerator {
       confidence: classification.confidence,
     };
   }
+
+  /** Clear the underlying API client's query cache. */
+  clearQueryCache(): void {
+    this.queryService.clearCache();
+  }
 }
