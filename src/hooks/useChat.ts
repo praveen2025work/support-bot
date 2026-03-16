@@ -15,6 +15,16 @@ export interface Message {
   recommendations?: Array<{ type: string; name: string; reason: string }>;
   executionMs?: number;
   referenceUrl?: string;
+  anomalies?: Array<{
+    queryName: string;
+    columnName: string;
+    currentValue: number;
+    expectedMean: number;
+    zScore: number;
+    severity: 'info' | 'warning' | 'critical';
+    direction: 'spike' | 'drop';
+    message: string;
+  }>;
   isError?: boolean;
   retryText?: string;
   timestamp: Date;
@@ -194,6 +204,7 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
             recommendations: data.recommendations as Message['recommendations'],
             executionMs: data.executionMs as number | undefined,
             referenceUrl: data.referenceUrl as string | undefined,
+            anomalies: data.anomalies as Message['anomalies'],
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, botMessage]);
@@ -288,6 +299,7 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
             recommendations: data.recommendations as Message['recommendations'],
             executionMs: data.executionMs as number | undefined,
             referenceUrl: data.referenceUrl as string | undefined,
+            anomalies: data.anomalies as Message['anomalies'],
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, botMessage]);

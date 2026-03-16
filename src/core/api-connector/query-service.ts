@@ -323,7 +323,7 @@ export class QueryService {
     filters?: QueryFilters
   ): Promise<QueryExecutionResult> {
     const { content, filePath } = await this.readFile(query);
-    let csvData = parseCsv(content);
+    let csvData = await parseCsv(content);
 
     // Apply filters: match filter keys against CSV column names (case-insensitive)
     // Rows are Record<string, string|number> objects keyed by header name

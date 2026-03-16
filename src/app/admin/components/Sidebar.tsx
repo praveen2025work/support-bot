@@ -23,6 +23,7 @@ const NAV_SECTIONS = [
       { href: '/admin/learning', label: 'Learning', match: (p: string) => p.startsWith('/admin/learning') },
       { href: '/admin/audit', label: 'Audit Trail', match: (p: string) => p.startsWith('/admin/audit') },
       { href: '/admin/schedules', label: 'Schedules', match: (p: string) => p.startsWith('/admin/schedules') },
+      { href: '/admin/anomaly', label: 'Anomaly Detection', match: (p: string) => p.startsWith('/admin/anomaly') },
     ],
   },
   {

@@ -209,17 +209,40 @@ npm run dev`}</CmdBlock>
                   <td className="px-3 py-2 font-mono">npm run test:watch</td>
                   <td className="px-3 py-2">Run tests in watch mode</td>
                 </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">npm run build:prod</td>
+                  <td className="px-3 py-2">Production build: Next.js + Engine (esbuild)</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">npm run start:all</td>
+                  <td className="px-3 py-2">Start mock-api + engine + UI from production builds</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">npm run analyze</td>
+                  <td className="px-3 py-2">Bundle analysis (interactive treemap)</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">npm run storybook</td>
+                  <td className="px-3 py-2">Start Storybook dev server (port 6006)</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">npm run build:storybook</td>
+                  <td className="px-3 py-2">Build static Storybook site</td>
+                </tr>
               </tbody>
             </table>
           </div>
         </Section>
 
         <Section title="6. Production Build & Deploy">
-          <CmdBlock>{`# Build the application
-npm run build
+          <CmdBlock>{`# Build both frontend + engine backend (esbuild)
+npm run build:prod
 
-# Start production server
-npm run start`}</CmdBlock>
+# Start all services from production builds
+npm run start:all
+
+# Or start production mode (real APIs, no mock)
+npm run start:prod`}</CmdBlock>
 
           <p className="text-sm text-gray-600 mb-3">
             For production, you will need to:
@@ -310,6 +333,18 @@ npm run start`}</CmdBlock>
                 <tr className="border-t border-gray-100">
                   <td className="px-3 py-2"><FileRef path="mock-api/db.json" /></td>
                   <td className="px-3 py-2">Query definitions, stats, mock data config</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2"><FileRef path=".storybook/main.ts" /></td>
+                  <td className="px-3 py-2">Storybook config (stories, addons, framework)</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2"><FileRef path="services/engine/esbuild.config.mjs" /></td>
+                  <td className="px-3 py-2">esbuild bundler config (replaces tsc)</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2"><FileRef path="next.config.mjs" /></td>
+                  <td className="px-3 py-2">Next.js config (proxy rewrites, bundle analyzer)</td>
                 </tr>
               </tbody>
             </table>

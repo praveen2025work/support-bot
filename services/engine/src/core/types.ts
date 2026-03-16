@@ -48,6 +48,17 @@ export interface BotResponse {
   queryName?: string;
   /** Contextual recommendations based on user behavior and content similarity */
   recommendations?: Array<{ type: string; name: string; reason: string }>;
+  /** Anomaly alerts detected in query results */
+  anomalies?: Array<{
+    queryName: string;
+    columnName: string;
+    currentValue: number;
+    expectedMean: number;
+    zScore: number;
+    severity: 'info' | 'warning' | 'critical';
+    direction: 'spike' | 'drop';
+    message: string;
+  }>;
 }
 
 export interface RichContent {

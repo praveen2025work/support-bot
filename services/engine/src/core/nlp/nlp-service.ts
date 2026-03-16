@@ -3,8 +3,10 @@ import { Nlp } from '@nlpjs/nlp';
 import { LangEn } from '@nlpjs/lang-en';
 import { LRUCache } from 'lru-cache';
 import { NLP_CONFIDENCE_THRESHOLD } from '../constants';
+import { promises as fsPromises } from 'fs';
 import { NlpNotInitializedError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
+import { paths } from '@/lib/env-config';
 import { extractDateEntities } from './date-entity-extractor';
 import { correctTypos, addToDictionary } from './typo-corrector';
 import type { ClassificationResult, ExtractedEntity, IntentOverlap } from '../types';
@@ -24,6 +26,7 @@ export class NlpService {
   private initialized = false;
   private corpusFile: string | null;
   private cachedOverlaps: IntentOverlap[] = [];
+  private sources: string[];
   // Classification cache — avoids re-running NLP for identical user texts.
   // At 1500 req/min, many users ask similar/identical questions (e.g. "help",
   // "list queries"). Cache saves ~50ms per hit. 2000 entries × 2min TTL.
@@ -32,9 +35,10 @@ export class NlpService {
     ttl: 2 * 60 * 1000,
   });
 
-  constructor(fuzzyMatcher: FuzzyMatcher, corpusFile?: string | null) {
+  constructor(fuzzyMatcher: FuzzyMatcher, corpusFile?: string | null, sources?: string[]) {
     this.fuzzyMatcher = fuzzyMatcher;
     this.corpusFile = corpusFile ?? null;
+    this.sources = sources ?? [];
   }
 
   async initialize(): Promise<void> {
@@ -59,6 +63,11 @@ export class NlpService {
       const groupMod = await import(`@/training/groups/${this.corpusFile}`);
       await this.nlp.addCorpus(groupMod.default);
     }
+
+    // Dynamically sync query names from the API so newly-added queries are
+    // recognized as `query_name` entities without needing manual corpus edits.
+    await this.syncQueryEntities(corpusData);
+
     await this.nlp.train();
 
     this.initialized = true;
@@ -220,6 +229,80 @@ export class NlpService {
   /** Returns cached overlap warnings from the last training run. */
   getOverlaps(): IntentOverlap[] {
     return this.cachedOverlaps;
+  }
+
+  /**
+   * Fetch all query names from the data store (mock-api/db.json via the API)
+   * and register any that are not already in the corpus as `query_name` entity
+   * options. This ensures newly added queries are recognized by the NLP without
+   * needing manual corpus.json edits.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async syncQueryEntities(corpusData: any): Promise<void> {
+    if (!this.nlp) return;
+
+    try {
+      // Collect query names already registered in the corpus
+      const corpusQueryNames = new Set<string>();
+      const entityOptions = corpusData?.entities?.query_name?.options;
+      if (entityOptions && typeof entityOptions === 'object') {
+        for (const key of Object.keys(entityOptions)) {
+          corpusQueryNames.add(key.toLowerCase());
+        }
+      }
+
+      // Read directly from db.json (bypasses mock API in-memory cache staleness)
+      const dbPath = paths.mockApi.dbJson;
+      const raw = await fsPromises.readFile(dbPath, 'utf-8');
+      const dbData = JSON.parse(raw);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const allQueries: any[] = dbData.queries || [];
+
+      // Filter by group sources if applicable
+      let queries = allQueries;
+      if (this.sources.length > 0) {
+        queries = allQueries.filter(
+          (q) => q.source && this.sources.includes(q.source)
+        );
+      }
+
+      let addedCount = 0;
+      for (const q of queries) {
+        const name = q.name as string;
+        if (!name) continue;
+
+        if (!corpusQueryNames.has(name.toLowerCase())) {
+          // Generate synonyms from the query name (replace underscores, add description words)
+          const synonyms: string[] = [name];
+          const readable = name.replace(/_/g, ' ');
+          if (readable !== name) synonyms.push(readable);
+          if (q.description) {
+            // Add first few meaningful words of description as a synonym
+            const descWords = (q.description as string).split(/\s+/).slice(0, 4).join(' ');
+            if (descWords.length > 3) synonyms.push(descWords);
+          }
+
+          // Register as a named entity option in the NLP manager
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const nlpAny = this.nlp as any;
+          const manager = nlpAny.container?.get?.('ner') ?? nlpAny.ner;
+          if (manager?.addRuleOptionTexts) {
+            manager.addRuleOptionTexts('en', 'query_name', name, synonyms);
+          } else if (nlpAny.addNerRuleOptionTexts) {
+            nlpAny.addNerRuleOptionTexts('en', 'query_name', name, synonyms);
+          }
+          addedCount++;
+        }
+      }
+
+      if (addedCount > 0) {
+        logger.info({ addedCount, total: queries.length }, 'Synced dynamic query_name entities from db.json');
+      }
+    } catch (error) {
+      // Non-critical: if we can't read db.json, the corpus entities still work
+      logger.warn({ error }, 'Could not sync dynamic query entities from db.json — using corpus entities only');
+    }
   }
 
   /**

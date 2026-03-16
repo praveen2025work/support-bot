@@ -5,6 +5,7 @@ import { getTenantContext, getTenantLogger } from '@/middleware/tenant-context';
 import { encryptLogEntry } from '@/lib/log-encryption';
 import { AsyncLogWriter } from '@/lib/async-log-writer';
 import { preferencesStore } from '@/data/user-preferences';
+import { getInteractionTracker } from '@/core/recommendations/interaction-tracker';
 import { paths } from '@/lib/env-config';
 import { broadcastEvent } from './events';
 
@@ -41,9 +42,10 @@ chatRouter.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid message format' });
     }
 
-    // Pass feedback signals through to the learning service
+    // Pass feedback signals and userId through to the learning/recommendation services
     if (body.feedbackType) message.feedbackType = body.feedbackType;
     if (body.previousMessageText) message.previousMessageText = body.previousMessageText;
+    if (body.userName) message.userId = body.userName;
 
     const engine = await getEngine(groupId);
     const explicitFilters = body.explicitFilters as Record<string, string> | undefined;
@@ -78,8 +80,13 @@ chatRouter.post('/', async (req: Request, res: Response) => {
       hasRichContent: !!response.richContent,
     });
 
-    // Auto-track recent queries for dashboard
+    // Track user-query interactions for ML recommendations
     const userName = body.userName as string | undefined;
+    if (userName && response.queryName && response.intent === 'query.execute') {
+      getInteractionTracker(groupId).record(userName, response.queryName).catch(() => {});
+    }
+
+    // Auto-track recent queries for dashboard
     if (userName && response.intent?.startsWith('query.')) {
       preferencesStore.appendRecent(userName, {
         queryName: response.queryName || response.intent,

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import * as XLSX from 'xlsx';
 import { generateTemplate } from '@/lib/onboard/template-generator';
 
 export async function GET() {
   try {
-    const wb = generateTemplate();
+    const XLSX = await import('xlsx');
+    const wb = await generateTemplate();
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
     return new NextResponse(buf, {

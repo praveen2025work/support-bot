@@ -8,6 +8,7 @@ node_modules/
 out/
 dist/
 build/
+storybook-static/
 *.tsbuildinfo
 
 # env files (actual configs with secrets — never commit)

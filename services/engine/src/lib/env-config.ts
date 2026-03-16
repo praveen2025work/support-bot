@@ -97,6 +97,19 @@ export const paths = {
     groupIndexDir: (groupId: string) => join(DATA_DIR, 'indexes', groupId),
     documentsRegistry: (groupId: string) => join(DATA_DIR, 'indexes', groupId, 'documents.json'),
     tfidfIndex: (groupId: string) => join(DATA_DIR, 'indexes', groupId, 'tfidf-index.json'),
+    semanticIndex: (groupId: string) => join(DATA_DIR, 'indexes', groupId, 'semantic-index.json'),
+
+    /** ML recommendation data */
+    userInteractions: (groupId: string) => join(DATA_DIR, 'learning', groupId, 'user-interactions.jsonl'),
+    collaborativeMatrix: (groupId: string) => join(DATA_DIR, 'learning', groupId, 'collaborative-matrix.json'),
+    timePatterns: (groupId: string) => join(DATA_DIR, 'learning', groupId, 'time-patterns.json'),
+    userClusters: (groupId: string) => join(DATA_DIR, 'learning', groupId, 'user-clusters.json'),
+
+    /** Anomaly detection */
+    anomalyDir: (groupId: string) => join(DATA_DIR, 'anomaly', groupId),
+    anomalySnapshots: (groupId: string) => join(DATA_DIR, 'anomaly', groupId, 'snapshots.jsonl'),
+    anomalyBaselines: (groupId: string) => join(DATA_DIR, 'anomaly', groupId, 'baselines.json'),
+    anomalyConfig: (groupId: string) => join(DATA_DIR, 'anomaly', groupId, 'config.json'),
   },
 
   // ── Config (can be shared on NAS or kept per-instance for read-only) ─────

@@ -4,6 +4,7 @@ import type { ClassificationResult, BotResponse, ConversationContext } from '../
 import { STOP_WORDS, GROUP_BY_PATTERN, SORT_PATTERN, SUMMARY_PATTERN, TOP_BOTTOM_PATTERN } from '../constants';
 import { extractFilters, formatFilters, parseFilterFromText, mergeFilters } from './filter-utils';
 import { handleGroupByFollowUp, handleSortFollowUp, handleSummaryFollowUp, handleTopNFollowUp } from './followup-handler';
+import { getAnomalyDetector } from '../../anomaly/anomaly-detector';
 
 /**
  * Get the last user message text from conversation history.
@@ -186,7 +187,8 @@ export async function handleQueryExecute(
   context: ConversationContext,
   queryService: QueryService,
   explicitFilters?: Record<string, string>,
-  incomingHeaders?: Record<string, string>
+  incomingHeaders?: Record<string, string>,
+  groupId?: string
 ): Promise<BotResponse> {
   // If user text is a data operation (group/sort/summary/top), always try follow-up first
   if (context.lastQueryName && context.lastApiResult) {
@@ -313,6 +315,23 @@ export async function handleQueryExecute(
       context.lastApiResult = result.documentResult;
     }
 
+    // Anomaly detection (fire-and-forget snapshot + blocking check)
+    let anomalies: BotResponse['anomalies'] = undefined;
+    try {
+      const anomalyData = result.type === 'api'
+        ? (result.apiResult as { data?: Record<string, unknown>[] })?.data
+        : result.type === 'csv'
+        ? (result.csvResult as { rows?: Record<string, unknown>[] })?.rows
+        : undefined;
+
+      if (anomalyData && anomalyData.length > 0) {
+        const detector = getAnomalyDetector(groupId || 'default');
+        detector.recordSnapshot(queryNameEntity.value, anomalyData).catch(() => {});
+        const detected = await detector.checkAnomalies(queryNameEntity.value, anomalyData);
+        if (detected.length > 0) anomalies = detected;
+      }
+    } catch { /* anomaly detection is non-critical */ }
+
     switch (result.type) {
       case 'url':
         return {
@@ -323,6 +342,7 @@ export async function handleQueryExecute(
           confidence: classification.confidence,
           executionMs: execMs,
           queryName: queryNameEntity.value,
+          anomalies,
         };
 
       case 'document': {
@@ -337,6 +357,7 @@ export async function handleQueryExecute(
             executionMs: execMs,
             referenceUrl,
             queryName: queryNameEntity.value,
+            anomalies,
           };
         }
         return {
@@ -348,6 +369,7 @@ export async function handleQueryExecute(
           executionMs: execMs,
           referenceUrl,
           queryName: queryNameEntity.value,
+          anomalies,
         };
       }
 
@@ -364,6 +386,7 @@ export async function handleQueryExecute(
             executionMs: execMs,
             referenceUrl,
             queryName: queryNameEntity.value,
+            anomalies,
           };
         }
         if (csv.aggregation) {
@@ -381,6 +404,7 @@ export async function handleQueryExecute(
             executionMs: execMs,
             referenceUrl,
             queryName: queryNameEntity.value,
+            anomalies,
           };
         }
         return {
@@ -392,6 +416,7 @@ export async function handleQueryExecute(
           executionMs: execMs,
           referenceUrl,
           queryName: queryNameEntity.value,
+          anomalies,
         };
       }
 
@@ -406,6 +431,7 @@ export async function handleQueryExecute(
           executionMs: execMs,
           referenceUrl,
           queryName: queryNameEntity.value,
+          anomalies,
         };
     }
   } catch (error) {

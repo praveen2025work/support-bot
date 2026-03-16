@@ -35,8 +35,15 @@ const guides = [
     id: 'windows-setup',
     title: 'Windows Host Setup',
     audience: 'Admins & DevOps',
-    description: 'Deploy on Windows Server — IIS reverse proxy, PM2, SSL certificates, firewall rules.',
+    description: 'Deploy on Windows Server — IIS reverse proxy, PM2/NSSM, SSL certificates, firewall rules.',
     color: 'orange',
+  },
+  {
+    id: 'setup-guide',
+    title: 'Storybook & Dev Tools',
+    audience: 'Developers',
+    description: 'Component documentation with Storybook, bundle analysis, esbuild backend bundler, and performance tools.',
+    color: 'blue',
   },
 ];
 

@@ -48,7 +48,7 @@ export default function ProdDeployGuidePage() {
           <div className="bg-gray-50 rounded-lg p-4 text-xs text-gray-700 font-mono leading-relaxed">
             <pre>{`┌──────────┐      ┌──────────────┐      ┌───────────────────┐
 │  Users   │ ───→ │  Service 1   │ ───→ │  Service 2        │
-│ (Browser)│      │  UI (:3000)  │      │  Engine (:4000)   │
+│ (Browser)│      │  UI (:3001)  │      │  Engine (:4001)   │
 └──────────┘      └──────────────┘      │                   │
                                         │  NLP Pipeline     │
                   ┌─────────────────┐   │  Query Execution  │
@@ -68,13 +68,12 @@ export default function ProdDeployGuidePage() {
         </Section>
 
         <Section title="1. Build for Production">
-          <CmdBlock>{`# Build UI (Next.js standalone)
-npm run build
+          <CmdBlock>{`# Build both frontend + engine backend in one step
+npm run build:prod
 
-# Build Engine
-cd services/engine
-npm install --production
-npm run build`}</CmdBlock>
+# Or build separately:
+# npm run build                           # Next.js standalone
+# cd services/engine && npm run build     # esbuild → dist/server.js (~357KB)`}</CmdBlock>
         </Section>
 
         <Section title="2. Configure Environment (.env.prod)">
@@ -240,11 +239,13 @@ pm2 startup`}</CmdBlock>
 
         <Section title="NPM Scripts Reference">
           <div className="bg-gray-50 rounded-lg p-4">
-            <pre className="text-[10px] text-gray-600 font-mono whitespace-pre-wrap">{`npm run start:prod     # Production build, real APIs (.env.prod)
+            <pre className="text-[10px] text-gray-600 font-mono whitespace-pre-wrap">{`npm run build:prod     # Build Next.js + Engine (esbuild) for production
+npm run start:prod     # Production build, real APIs (.env.prod)
+npm run start:all      # Start mock-api + engine + UI from prod builds
 npm run start:demo     # Production build, mock data (.env.mock)
 npm run dev            # Dev mode, real APIs (.env.dev)
 npm run dev:mock       # Dev mode, mock data (.env.mock)
-npm run dev:mock:3svc  # Dev mode, 3-service, mock data (.env.mock)`}</pre>
+npm run analyze        # Bundle analysis (interactive treemap)`}</pre>
           </div>
         </Section>
 

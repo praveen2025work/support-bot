@@ -5,6 +5,7 @@ import { getGroupConfig, getGroupConfigs } from '@/config/group-config';
 import { ApiClient } from '@/core/api-connector/api-client';
 import { paths } from '@/lib/env-config';
 import { QueryService } from '@/core/api-connector/query-service';
+import { getSemanticIndex } from '@/core/semantic/semantic-index';
 import { logger } from '@/lib/logger';
 
 export const queriesRouter = Router();
@@ -29,6 +30,32 @@ queriesRouter.get('/queries', async (req: Request, res: Response) => {
   } catch (error) {
     logger.error({ error }, 'Queries API error');
     return res.status(500).json({ queries: [] });
+  }
+});
+
+// GET /api/queries/search — semantic search across queries
+queriesRouter.get('/queries/search', async (req: Request, res: Response) => {
+  try {
+    const q = (req.query.q as string) || '';
+    const groupId = (req.query.groupId as string) || 'default';
+    if (!q.trim()) return res.json({ results: [] });
+
+    const groupConfig = getGroupConfig(groupId);
+    const apiClient = new ApiClient(groupConfig.apiBaseUrl ?? undefined);
+    const queryService = new QueryService(apiClient, groupConfig.sources);
+
+    const idx = getSemanticIndex(groupId);
+    if (!idx.isBuilt) {
+      const queries = await queryService.getQueries();
+      idx.buildIndex(queries.map((qr) => ({ name: qr.name, description: qr.description })));
+      idx.save().catch(() => {});
+    }
+
+    const results = idx.search(q, 10);
+    return res.json({ results });
+  } catch (error) {
+    logger.error({ error }, 'Semantic search error');
+    return res.json({ results: [] });
   }
 });
 

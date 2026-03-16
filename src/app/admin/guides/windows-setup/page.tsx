@@ -94,13 +94,8 @@ npm install
 cd services\\engine && npm install && cd ..\\..
 cd services\\mock-api && npm install && cd ..\\..
 
-# Build UI
-npm run build
-
-# Build Engine
-cd services\\engine
-npm run build
-cd ..\\..`}</CmdBlock>
+# Build UI + Engine in one step (esbuild for backend)
+npm run build:prod`}</CmdBlock>
         </Section>
 
         <Section title="4. Configure Environment">
@@ -161,7 +156,7 @@ copy .env.example .env.mock
             <span className="font-medium">Alternative:</span> You can also set system-wide environment variables via PowerShell:
           </div>
           <CmdBlock label="PowerShell (Administrator) — System-wide env vars">{`[System.Environment]::SetEnvironmentVariable("NODE_ENV", "production", "Machine")
-[System.Environment]::SetEnvironmentVariable("ENGINE_PORT", "4000", "Machine")
+[System.Environment]::SetEnvironmentVariable("ENGINE_PORT", "4001", "Machine")
 [System.Environment]::SetEnvironmentVariable("API_BASE_URL", "https://your-api.corp.com/api", "Machine")
 [System.Environment]::SetEnvironmentVariable("API_TOKEN", "your-token", "Machine")
 [System.Environment]::SetEnvironmentVariable("USER_INFO_URL", "https://sso.corp.com/api/userinfo", "Machine")
@@ -208,7 +203,7 @@ copy .env.example .env.mock
 
           <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600">
             <div className="font-medium text-gray-700 mb-1">Windows Auth Flow:</div>
-            <pre className="font-mono text-[10px] text-gray-500">{`User (AD login) → Browser → IIS (Windows Auth) → UI (:3000) → Engine (:4000)
+            <pre className="font-mono text-[10px] text-gray-500">{`User (AD login) → Browser → IIS (Windows Auth) → UI (:3001) → Engine (:4001)
   → Engine forwards user's cookies/Authorization header → Tenant API (Windows Auth)`}</pre>
             <p className="mt-2">The user authenticates once via IIS Windows Auth. The Engine transparently forwards their credentials to any query with <Code>authType: &quot;windows&quot;</Code>.</p>
           </div>
@@ -257,6 +252,25 @@ pm2 save
 pm2-startup install`}</CmdBlock>
             </div>
           </div>
+        </Section>
+
+        <Section title="Alternative: NSSM Service Manager">
+          <p className="text-sm text-gray-600 mb-3">
+            Instead of PM2, you can use <a href="https://nssm.cc/" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">NSSM</a> (Non-Sucking Service Manager) to run Node.js processes as native Windows services with auto-restart, log rotation, and system tray management. See the full NSSM setup in <Code>docs/SETUP.md</Code> → &quot;Windows Deployment with NSSM&quot; section.
+          </p>
+          <CmdBlock>{`# Install Engine as Windows service
+nssm install ChatbotEngine "C:\\Program Files\\nodejs\\node.exe"
+nssm set ChatbotEngine AppParameters "dist\\server.js"
+nssm set ChatbotEngine AppDirectory "C:\\chatbot\\services\\engine"
+
+# Install UI as Windows service
+nssm install ChatbotUI "C:\\Program Files\\nodejs\\node.exe"
+nssm set ChatbotUI AppParameters ".next\\standalone\\server.js"
+nssm set ChatbotUI AppDirectory "C:\\chatbot"
+
+# Start services
+nssm start ChatbotEngine
+nssm start ChatbotUI`}</CmdBlock>
         </Section>
 
         <Section title="7. Configure IIS Reverse Proxy">
@@ -333,9 +347,9 @@ New-NetFirewallRule -DisplayName "Chatbot HTTPS" \\
 
 # For direct access (testing only):
 New-NetFirewallRule -DisplayName "Chatbot UI Direct" \\
-  -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow
+  -Direction Inbound -Protocol TCP -LocalPort 3001 -Action Allow
 New-NetFirewallRule -DisplayName "Chatbot Engine Direct" \\
-  -Direction Inbound -Protocol TCP -LocalPort 4000 -Action Allow`}</CmdBlock>
+  -Direction Inbound -Protocol TCP -LocalPort 4001 -Action Allow`}</CmdBlock>
         </Section>
 
         <Section title="10. Monitoring and Management">

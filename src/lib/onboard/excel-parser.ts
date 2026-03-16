@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import {
   GroupInfoRowSchema,
   QueryRowSchema,
@@ -14,7 +13,8 @@ interface ParseResult {
   errors?: string[];
 }
 
-export function parseOnboardingExcel(buffer: Buffer): ParseResult {
+export async function parseOnboardingExcel(buffer: Buffer): Promise<ParseResult> {
+  const XLSX = await import('xlsx');
   const errors: string[] = [];
 
   const wb = XLSX.read(buffer, { type: 'buffer' });

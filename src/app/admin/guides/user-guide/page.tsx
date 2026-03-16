@@ -88,11 +88,11 @@ export default function UserGuidePage() {
                 </div>
               </div>
               <div>
-                <div className="font-medium text-gray-700 mb-1">Other commands</div>
+                <div className="font-medium text-gray-700 mb-1">Search queries</div>
                 <div className="text-gray-500 font-mono text-xs space-y-1">
-                  <div>&quot;list queries&quot;</div>
-                  <div>&quot;how long will revenue take&quot;</div>
-                  <div>&quot;help&quot;</div>
+                  <div>&quot;find revenue data&quot;</div>
+                  <div>&quot;search for user metrics&quot;</div>
+                  <div>&quot;anything about errors&quot;</div>
                 </div>
               </div>
             </div>
@@ -126,6 +126,8 @@ export default function UserGuidePage() {
               <div><span className="font-medium">Charts</span> — Numeric data visualized as bar/line charts</div>
               <div><span className="font-medium">Document</span> — Matching sections from BRD/SOP files</div>
               <div><span className="font-medium">URL</span> — Direct links to dashboards and tools</div>
+              <div><span className="font-medium">Anomaly Badge</span> — Yellow/red indicator for unusual values vs historical baselines</div>
+              <div><span className="font-medium">Recommendations</span> — Smart follow-up suggestions based on usage patterns</div>
             </div>
           </div>
         </Section>
@@ -225,6 +227,18 @@ export default function UserGuidePage() {
             <li className="flex gap-2">
               <span className="text-blue-500 shrink-0">&#x2022;</span>
               Use suggestion chips below bot responses for quick follow-up actions.
+            </li>
+            <li className="flex gap-2">
+              <span className="text-blue-500 shrink-0">&#x2022;</span>
+              Use the dashboard search bar to find queries by description — e.g. &quot;revenue data&quot; finds <Cmd>monthly_revenue</Cmd>.
+            </li>
+            <li className="flex gap-2">
+              <span className="text-blue-500 shrink-0">&#x2022;</span>
+              Watch for yellow/red anomaly badges on results — they flag unusual values compared to historical baselines.
+            </li>
+            <li className="flex gap-2">
+              <span className="text-blue-500 shrink-0">&#x2022;</span>
+              Star your favorite queries from the dashboard for one-click access.
             </li>
           </ul>
         </Section>

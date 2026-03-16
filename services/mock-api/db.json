@@ -390,8 +390,14 @@
       "type": "api",
       "endpoint": "/finance/quarterly-revenue",
       "filters": [
-        { "key": "date_range", "binding": "body" },
-        { "key": "region", "binding": "query_param" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "query_param"
+        }
       ]
     },
     {
@@ -404,8 +410,14 @@
       "type": "api",
       "endpoint": "/finance/gross-margin",
       "filters": [
-        { "key": "date_range", "binding": "body" },
-        { "key": "region", "binding": "query_param" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "query_param"
+        }
       ]
     },
     {
@@ -418,7 +430,10 @@
       "type": "api",
       "endpoint": "/finance/ebitda",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -431,7 +446,10 @@
       "type": "api",
       "endpoint": "/finance/net-income",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -444,8 +462,14 @@
       "type": "api",
       "endpoint": "/finance/revenue/segments",
       "filters": [
-        { "key": "date_range", "binding": "body" },
-        { "key": "region", "binding": "query_param" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "query_param"
+        }
       ]
     },
     {
@@ -458,7 +482,10 @@
       "type": "api",
       "endpoint": "/finance/yoy-growth",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -471,8 +498,14 @@
       "type": "api",
       "endpoint": "/finance/pnl",
       "filters": [
-        { "key": "date_range", "binding": "body" },
-        { "key": "region", "binding": "query_param" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "query_param"
+        }
       ]
     },
     {
@@ -485,8 +518,14 @@
       "type": "api",
       "endpoint": "/trading/volume",
       "filters": [
-        { "key": "date_range", "binding": "body" },
-        { "key": "team", "binding": "query_param" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "team",
+          "binding": "query_param"
+        }
       ]
     },
     {
@@ -499,8 +538,14 @@
       "type": "api",
       "endpoint": "/trading/pnl",
       "filters": [
-        { "key": "date_range", "binding": "body" },
-        { "key": "team", "binding": "query_param" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "team",
+          "binding": "query_param"
+        }
       ]
     },
     {
@@ -513,7 +558,10 @@
       "type": "api",
       "endpoint": "/risk/var",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -526,8 +574,14 @@
       "type": "api",
       "endpoint": "/risk/exposure",
       "filters": [
-        { "key": "date_range", "binding": "body" },
-        { "key": "region", "binding": "query_param" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "query_param"
+        }
       ]
     },
     {
@@ -540,7 +594,10 @@
       "type": "api",
       "endpoint": "/trading/positions",
       "filters": [
-        { "key": "team", "binding": "query_param" }
+        {
+          "key": "team",
+          "binding": "query_param"
+        }
       ]
     },
     {
@@ -553,8 +610,14 @@
       "type": "api",
       "endpoint": "/risk/credit",
       "filters": [
-        { "key": "date_range", "binding": "body" },
-        { "key": "region", "binding": "query_param" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "query_param"
+        }
       ]
     },
     {
@@ -567,7 +630,10 @@
       "type": "api",
       "endpoint": "/compliance/regulatory",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -580,7 +646,10 @@
       "type": "api",
       "endpoint": "/compliance/aml/alerts",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -593,7 +662,10 @@
       "type": "api",
       "endpoint": "/compliance/metrics",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -606,7 +678,10 @@
       "type": "api",
       "endpoint": "/risk/capital",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -619,7 +694,10 @@
       "type": "api",
       "endpoint": "/portfolio/aum",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -632,7 +710,10 @@
       "type": "api",
       "endpoint": "/portfolio/performance",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -645,7 +726,10 @@
       "type": "api",
       "endpoint": "/portfolio/nav",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -658,7 +742,10 @@
       "type": "api",
       "endpoint": "/portfolio/client-assets",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -671,7 +758,10 @@
       "type": "api",
       "endpoint": "/operations/onboarding",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -684,8 +774,14 @@
       "type": "api",
       "endpoint": "/operations/settlements/failures",
       "filters": [
-        { "key": "date_range", "binding": "body" },
-        { "key": "region", "binding": "query_param" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "query_param"
+        }
       ]
     },
     {
@@ -698,7 +794,10 @@
       "type": "api",
       "endpoint": "/operations/stp",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -711,7 +810,10 @@
       "type": "api",
       "endpoint": "/operations/reconciliation",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -724,7 +826,10 @@
       "type": "api",
       "endpoint": "/operations/breaks",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -737,7 +842,10 @@
       "type": "api",
       "endpoint": "/risk/operational",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -750,8 +858,14 @@
       "type": "api",
       "endpoint": "/lending/loans",
       "filters": [
-        { "key": "date_range", "binding": "body" },
-        { "key": "region", "binding": "query_param" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "query_param"
+        }
       ]
     },
     {
@@ -764,7 +878,10 @@
       "type": "api",
       "endpoint": "/lending/npl",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -777,7 +894,10 @@
       "type": "api",
       "endpoint": "/lending/pipeline",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -790,7 +910,10 @@
       "type": "api",
       "endpoint": "/treasury/liquidity",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     },
     {
@@ -803,8 +926,14 @@
       "type": "api",
       "endpoint": "/treasury/cash",
       "filters": [
-        { "key": "date_range", "binding": "body" },
-        { "key": "region", "binding": "query_param" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "query_param"
+        }
       ]
     },
     {
@@ -817,8 +946,14 @@
       "type": "api",
       "endpoint": "/treasury/fx",
       "filters": [
-        { "key": "date_range", "binding": "body" },
-        { "key": "region", "binding": "query_param" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "query_param"
+        }
       ]
     },
     {
@@ -831,7 +966,10 @@
       "type": "api",
       "endpoint": "/treasury/rate-risk",
       "filters": [
-        { "key": "date_range", "binding": "body" }
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
       ]
     }
   ],

@@ -155,6 +155,7 @@ Chatbot/
 │   │   │           └── logs.ts      # Log viewer
 │   │   ├── docs/
 │   │   │   └── openapi.yaml         # OpenAPI 3.0 spec
+│   │   ├── esbuild.config.mjs         # esbuild bundler config
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
@@ -178,13 +179,17 @@ Chatbot/
 │   ├── learning/                     # Learning feedback
 │   └── audit/                        # Audit trail
 │
+├── .storybook/                        # Storybook configuration
+│   ├── main.ts                       # Stories glob, addons, framework
+│   └── preview.ts                    # Global decorators, backgrounds
+│
 ├── .env.example                      # Environment variable template
 ├── .env.mock                         # Mock environment config
 ├── .env.dev                          # Dev environment config (real APIs)
 ├── .env.prod                         # Production config
 ├── .husky/pre-commit                 # Git pre-commit hook (lint-staged)
 ├── package.json                      # Root scripts & dependencies
-├── next.config.mjs                   # Next.js config (proxy rewrites)
+├── next.config.mjs                   # Next.js config (proxy rewrites, bundle analyzer)
 ├── tsconfig.json                     # Root TypeScript config
 ├── jest.config.ts                    # Jest test config
 ├── eslint.config.mjs                 # ESLint flat config
@@ -305,9 +310,10 @@ API_TOKEN=your-prod-token
 
 **Build & start**:
 ```bash
-npm run build                 # Build Next.js
-npm run build:engine          # Build Engine TypeScript
+npm run build:prod            # Build Next.js + Engine (esbuild) in one step
 npm run start:prod            # Start Engine + UI in production mode
+# or start all 3 (including mock-api) from production builds:
+npm run start:all
 ```
 
 ---
@@ -396,6 +402,8 @@ Request (groupId=finance)
 | `npm run dev` | Start engine + UI with real APIs (uses `.env.dev`) |
 | `npm run start:demo` | Production build with mock-api |
 | `npm run start:prod` | Production build with real APIs (uses `.env.prod`) |
+| `npm run build:prod` | Production build: Next.js + Engine (esbuild) |
+| `npm run start:all` | Start mock-api + engine + UI from production builds |
 | `npm run svc:mock-api` | Start mock-api only (`services/mock-api/server.js`) |
 | `npm run svc:engine` | Start engine only (`services/engine/src/server.ts`) |
 | `npm run svc:ui` | Start UI only (Next.js dev) |
@@ -405,13 +413,17 @@ Request (groupId=finance)
 | `npm run evaluate` | Evaluate NLP model accuracy |
 | `npm test` | Run Jest tests |
 | `npm run lint` | Run ESLint |
+| `npm run analyze` | Bundle analysis (opens interactive treemap) |
+| `npm run storybook` | Start Storybook dev server (port 6006) |
+| `npm run build:storybook` | Build static Storybook site to `storybook-static/` |
 
 ### File: `services/engine/package.json`
 
 | Script | What it does |
 |--------|-------------|
 | `npm run dev` | Start engine with auto-reload (`tsx watch src/server.ts`) |
-| `npm run build` | Compile TypeScript → `dist/` |
+| `npm run build` | Bundle with esbuild → single `dist/server.js` (~357KB, ~25ms) |
+| `npm run build:typecheck` | TypeScript type-checking only (`tsc --noEmit`) |
 | `npm start` | Run compiled `dist/server.js` (production) |
 | `npm run train` | Train NLP model |
 
@@ -433,7 +445,10 @@ Request (groupId=finance)
 | `services/engine/src/middleware/tenant-context.ts` | Per-request tenant context (groupId, requestId) |
 | `services/engine/src/lib/singleton.ts` | Engine instance cache (one per group) |
 | `services/mock-api/db.json` | Query definitions with auth config |
+| `services/engine/esbuild.config.mjs` | esbuild bundler config (replaces tsc) |
 | `services/mock-api/server.js` | Mock API endpoints and sample data |
+| `.storybook/main.ts` | Storybook framework, addons, stories glob |
+| `.storybook/preview.ts` | Storybook global decorators and backgrounds |
 | `src/lib/engine-proxy.ts` | Next.js → Engine proxy utility |
 | `public/widget/chatbot-widget.js` | Embeddable widget script |
 
@@ -586,7 +601,7 @@ docker-compose -f docker-compose.prod.yml up -d
    cd services\engine && npm install && npm run build && cd ..\..
    cd services\mock-api && npm install && cd ..\..
    npm run train
-   npm run build
+   npm run build:prod
    ```
 
 ### Directory Layout (recommended)
@@ -903,6 +918,97 @@ nssm start ChatbotEngine
 timeout /t 5
 nssm start ChatbotUI
 ```
+
+---
+
+## Bundle Analysis
+
+Analyze the frontend bundle to identify large dependencies and code-splitting opportunities:
+
+```bash
+npm run analyze
+```
+
+This opens an interactive treemap in your browser showing every module in the bundle. Key things to verify:
+- **Recharts** is NOT in the main bundle (lazy-loaded via `React.lazy()` + `Suspense`)
+- **XLSX** is NOT in the main bundle (dynamically imported on first use)
+- Each admin page is a separate chunk (Next.js App Router auto-splits per route)
+
+---
+
+## Storybook (Component Documentation)
+
+The project uses [Storybook 8](https://storybook.js.org/) with `@storybook/nextjs` for component documentation and visual testing.
+
+### Configuration
+
+| File | Purpose |
+|------|---------|
+| `.storybook/main.ts` | Storybook config (stories glob, addons, framework) |
+| `.storybook/preview.ts` | Global decorators, backgrounds, controls |
+
+### Running Storybook
+
+```bash
+# Development server (port 6006)
+npm run storybook
+
+# Build static site (for deployment/sharing)
+npm run build:storybook
+```
+
+### Available Stories
+
+Stories are co-located with components as `*.stories.tsx` files:
+
+| Category | Components |
+|----------|-----------|
+| **Chat** | ChatInput, DataChart, ErrorBoundary, SuggestionChips, TablePagination |
+| **Dashboard** | AddFavoriteModal, AnomalyBadge, DashboardHeader, FavoritesPanel, RecentQueriesPanel, SearchBar |
+| **Common** | AppHeader, KeyboardShortcutsHelp, ThemeToggle |
+
+Each story includes multiple variants (Default, Empty, edge cases) with interactive controls via `@storybook/addon-essentials`.
+
+---
+
+## Engine Build (esbuild)
+
+The engine backend uses [esbuild](https://esbuild.github.io/) for fast, tree-shaken bundling instead of `tsc + tsc-alias`.
+
+### Configuration
+
+**File:** `services/engine/esbuild.config.mjs`
+
+| Setting | Value | Why |
+|---------|-------|-----|
+| `platform` | `node` | Server-side bundle |
+| `target` | `node18` | Match minimum Node.js version |
+| `format` | `cjs` | CommonJS for Node.js `require()` |
+| `treeShaking` | `true` | Removes unused exports |
+| `external` | All `dependencies` + Node built-ins | Keeps node_modules out of bundle |
+| `alias` | `{ '@': './src' }` | Resolves `@/` path imports |
+
+### Build Output
+
+```bash
+cd services/engine && npm run build
+# → dist/server.js (~357KB, built in ~25ms)
+# Compare: old tsc output was 69 files, ~1.4MB, ~3s build
+```
+
+### Type Checking
+
+esbuild strips types without checking them. Run `tsc --noEmit` separately:
+
+```bash
+cd services/engine && npm run build:typecheck
+```
+
+### Performance Optimizations
+
+The following libraries are lazy-loaded at runtime to reduce startup time:
+- **XLSX** (~700KB) — loaded on first CSV/Excel operation
+- Heavy chart rendering is deferred in the frontend via `React.lazy()`
 
 ---
 

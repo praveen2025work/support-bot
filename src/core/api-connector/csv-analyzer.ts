@@ -1,4 +1,9 @@
-import * as XLSX from 'xlsx';
+// XLSX is lazy-loaded to avoid bundling ~700KB when only parseCsv needs it
+let _xlsx: typeof import('xlsx') | null = null;
+async function getXLSX() {
+  if (!_xlsx) _xlsx = await import('xlsx');
+  return _xlsx;
+}
 
 export interface CsvData {
   headers: string[];
@@ -19,7 +24,8 @@ export interface AggregationResult {
   topHeaders?: string[];
 }
 
-export function parseCsv(content: string): CsvData {
+export async function parseCsv(content: string): Promise<CsvData> {
+  const XLSX = await getXLSX();
   const wb = XLSX.read(content, { type: 'string' });
   const sheetName = wb.SheetNames[0];
   if (!sheetName) return { headers: [], rows: [] };

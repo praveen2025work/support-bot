@@ -60,12 +60,12 @@ export default function DemoSetupGuidePage() {
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <Section title="Architecture Overview">
           <div className="grid grid-cols-3 gap-3 mb-4">
-            <ServiceCard number={1} name="UI" port={3000} color="border-blue-200 bg-blue-50" description="Next.js frontend — admin portal, chat interface, widget" />
-            <ServiceCard number={2} name="Engine" port={4000} color="border-purple-200 bg-purple-50" description="Express API — NLP pipeline, query execution, admin CRUD" />
+            <ServiceCard number={1} name="UI" port={3001} color="border-blue-200 bg-blue-50" description="Next.js frontend — admin portal, chat interface, widget" />
+            <ServiceCard number={2} name="Engine" port={4001} color="border-purple-200 bg-purple-50" description="Express API — NLP pipeline, query execution, admin CRUD" />
             <ServiceCard number={3} name="Mock API" port={8080} color="border-amber-200 bg-amber-50" description="JSON Server — sample data for Finance, Analytics, Engineering" />
           </div>
           <div className="text-xs text-gray-500 bg-gray-50 rounded p-3">
-            <p><strong>Flow:</strong> User &rarr; UI (:3000) &rarr; Engine (:4000) &rarr; Mock API (:8080) &rarr; Sample data</p>
+            <p><strong>Flow:</strong> User &rarr; UI (:3001) &rarr; Engine (:4001) &rarr; Mock API (:8080) &rarr; Sample data</p>
             <p className="mt-1">In production, Mock API is replaced by real tenant APIs with their own authentication.</p>
           </div>
         </Section>
@@ -85,7 +85,7 @@ export default function DemoSetupGuidePage() {
               <div className="text-xs text-gray-500">For cloning the repository</div>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
-              <div className="font-medium text-gray-700">Ports 3000, 4000 &amp; 8080</div>
+              <div className="font-medium text-gray-700">Ports 3001, 4001 &amp; 8080</div>
               <div className="text-xs text-gray-500">Must be available</div>
             </div>
           </div>
@@ -257,11 +257,15 @@ docker compose up --build
 
         <Section title="NPM Scripts Reference">
           <div className="bg-gray-50 rounded-lg p-4">
-            <pre className="text-[10px] text-gray-600 font-mono whitespace-pre-wrap">{`npm run dev:mock       # Mock API + UI (monolith, sample data)
-npm run dev:mock:3svc  # Mock API + Engine + UI (3-service, sample data)
+            <pre className="text-[10px] text-gray-600 font-mono whitespace-pre-wrap">{`npm run dev:mock       # Mock API + Engine + UI (sample data)
+npm run dev:mock:3svc  # Same as dev:mock (3-service mode)
 npm run dev            # Engine + UI (real APIs, requires .env.dev)
+npm run build:prod     # Production build: Next.js + Engine (esbuild)
+npm run start:all      # Start mock-api + engine + UI from prod builds
 npm run start:demo     # Production build with mock data
-npm run start:prod     # Production build with real APIs`}</pre>
+npm run start:prod     # Production build with real APIs
+npm run analyze        # Bundle analysis (interactive treemap)
+npm run storybook      # Storybook component docs (port 6006)`}</pre>
           </div>
         </Section>
 
@@ -276,7 +280,7 @@ npm run start:prod     # Production build with real APIs`}</pre>
               </tr></thead>
               <tbody className="text-gray-700">
                 <tr><td className="px-3 py-1.5 border-b font-mono">ENGINE_URL</td><td className="px-3 py-1.5 border-b">UI</td><td className="px-3 py-1.5 border-b"><em>empty</em> (monolith)</td><td className="px-3 py-1.5 border-b">Set to http://localhost:4001 for 3-service mode</td></tr>
-                <tr className="bg-gray-50"><td className="px-3 py-1.5 border-b font-mono">ENGINE_PORT</td><td className="px-3 py-1.5 border-b">Engine</td><td className="px-3 py-1.5 border-b">4000</td><td className="px-3 py-1.5 border-b">Port the Engine listens on</td></tr>
+                <tr className="bg-gray-50"><td className="px-3 py-1.5 border-b font-mono">ENGINE_PORT</td><td className="px-3 py-1.5 border-b">Engine</td><td className="px-3 py-1.5 border-b">4001</td><td className="px-3 py-1.5 border-b">Port the Engine listens on</td></tr>
                 <tr><td className="px-3 py-1.5 border-b font-mono">API_BASE_URL</td><td className="px-3 py-1.5 border-b">Engine</td><td className="px-3 py-1.5 border-b">http://localhost:8080/api</td><td className="px-3 py-1.5 border-b">Points to Mock API for demo</td></tr>
                 <tr className="bg-gray-50"><td className="px-3 py-1.5 border-b font-mono">API_TOKEN</td><td className="px-3 py-1.5 border-b">Engine</td><td className="px-3 py-1.5 border-b"><em>empty</em></td><td className="px-3 py-1.5 border-b">Global bearer token (not needed for mock)</td></tr>
                 <tr><td className="px-3 py-1.5 border-b font-mono">USER_INFO_URL</td><td className="px-3 py-1.5 border-b">Engine</td><td className="px-3 py-1.5 border-b"><em>empty</em></td><td className="px-3 py-1.5 border-b">Empty = mock user &quot;Local Developer&quot;</td></tr>

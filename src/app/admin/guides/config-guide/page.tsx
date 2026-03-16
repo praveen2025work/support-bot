@@ -906,7 +906,41 @@ Bot:  "The department from user_profile is: Engineering"`}</pre>
           </div>
         </Section>
 
-        <Section title="9. Widget Embedding">
+        <Section title="9. ML Features">
+          <p className="text-sm text-gray-600 mb-3">
+            The platform includes three ML-powered features that enhance query discovery, recommendations, and result monitoring.
+          </p>
+
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs">
+              <div className="font-medium text-blue-800 mb-1">Semantic Search</div>
+              <div className="text-blue-700">
+                TF-IDF + cosine similarity for natural language query discovery. Users type &quot;show me revenue data&quot; instead of exact query names.
+                Indexes are built per-group and persisted to <Code>data/indexes/</Code>.
+              </div>
+            </div>
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-xs">
+              <div className="font-medium text-green-800 mb-1">Smart Recommendations</div>
+              <div className="text-green-700">
+                Collaborative filtering, time-based patterns, and user clustering for personalized query suggestions.
+                Tracks interactions in <Code>data/learning/</Code> JSONL files per group.
+              </div>
+            </div>
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs">
+              <div className="font-medium text-red-800 mb-1">Anomaly Detection</div>
+              <div className="text-red-700">
+                Z-score and IQR monitoring on query results. Flags unusual numeric patterns with warning (2σ) and critical (3σ) badges.
+                Admin dashboard at <span className="font-medium">Admin &rarr; Anomaly Detection</span>.
+              </div>
+            </div>
+          </div>
+
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+            <span className="font-medium">All local:</span> No external ML services required. Everything runs locally using the <Code>natural</Code> library for TF-IDF/NLP and file-based storage for models and baselines.
+          </div>
+        </Section>
+
+        <Section title="10. Widget Embedding">
           <p className="text-sm text-gray-600 mb-3">
             To embed the chatbot in an external application, use the embed code from Admin &rarr; Groups &rarr; Embed.
           </p>

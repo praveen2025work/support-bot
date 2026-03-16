@@ -10,6 +10,7 @@ import learningRouter from './learning';
 import { settingsRouter, logsRouter } from './settings';
 import { auditRouter } from './audit';
 import { schedulesRouter } from './schedules';
+import { anomalyRouter } from './anomaly';
 import { Role, isValidRole } from '@/lib/rbac';
 import { requirePermission } from '@/middleware/rbac';
 
@@ -53,6 +54,7 @@ router.use('/settings', settingsRouter);
 router.use('/logs', logsRouter);
 router.use('/audit', auditRouter);
 router.use('/schedules', schedulesRouter);
+router.use('/anomaly', anomalyRouter);
 
 export const adminRouter = router;
 export default router;

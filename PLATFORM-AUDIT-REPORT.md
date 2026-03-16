@@ -271,18 +271,18 @@ Response templates (`services/engine/src/core/response/templates.ts`) are Englis
 
 Pino logger (`services/engine/src/lib/logger.ts`) writes to stdout with no rotation. In containerized deployments this is fine (container runtime handles log collection), but for VM deployments, logs grow unbounded.
 
-### 🟢 5.5 Missing React Error Boundaries
+### 🟢 5.5 ~~Missing React Error Boundaries~~ ✅ RESOLVED
 
-No React Error Boundary components exist. If any chat component throws, the entire chat UI crashes without recovery.
+React Error Boundary component added at `src/components/chat/ErrorBoundary.tsx` wrapping chat components. Storybook stories verify both normal rendering and error recovery scenarios.
 
 ### 🟢 5.6 Cleanup Interval Resource Leak
 
 **File:** `services/engine/src/core/session/session-manager.ts` (line 12)
 The `setInterval` for session cleanup is created in the constructor but `destroy()` is never called by any code path. Leaks if engines are garbage collected.
 
-### 🟢 5.7 No ESLint Configuration File
+### 🟢 5.7 ~~No ESLint Configuration File~~ ✅ RESOLVED
 
-While ESLint is in `devDependencies` and `next lint` is available as a script, there is no `.eslintrc` or `eslint.config.*` file enforcing rules.
+ESLint flat config added at `eslint.config.mjs` with Next.js and TypeScript rules enforced.
 
 ### 🟢 5.8 Hardcoded Stop Words Duplicated
 
@@ -538,6 +538,37 @@ Not everything is a gap. The following architectural decisions are solid:
 8. **Multi-stage Docker build** — Minimal production image with non-root user.
 9. **Environment-based configuration** — Separate `.env.mock`, `.env.dev`, `.env.prod` files with `.env.example` documentation.
 10. **Rich response types** — 11 content types (table, chart, card, suggestions, URL list, etc.) provide good UX.
+
+---
+
+---
+
+## Appendix: Post-Audit Improvements (2026-03-16)
+
+The following improvements were made after the initial audit:
+
+### Performance Optimizations
+1. **Bundle analyzer** added (`@next/bundle-analyzer`) — `npm run analyze` for interactive treemap
+2. **Recharts code-split** via `React.lazy()` + `<Suspense>` — removes ~150KB from initial bundle
+3. **XLSX lazy-loaded** in both frontend (6 files) and backend (3 files) — removes ~700KB from startup
+4. **esbuild backend bundler** — 25ms build, 357KB single-file output (was 69 files, 1.4MB, ~3s via tsc)
+5. **Next.js production config** — `output: 'standalone'`, `removeConsole` for production builds
+
+### Developer Experience
+6. **Storybook 8** setup with `@storybook/nextjs` — 12+ component stories across Chat, Dashboard, and Common categories
+7. **New npm scripts** — `build:prod`, `start:all`, `analyze`, `storybook`, `build:storybook`
+8. **Engine type-checking** separated from build — `npm run build:typecheck` for `tsc --noEmit`
+
+### ML Features Added
+9. **Semantic search** — TF-IDF + cosine similarity for natural language query discovery
+10. **ML-enhanced recommendations** — collaborative filtering, time patterns, user clustering
+11. **Anomaly detection** — z-score/IQR monitoring on query results with admin dashboard
+
+### Resolved Findings
+- ✅ 5.5 React Error Boundary — `ErrorBoundary.tsx` added with Storybook stories
+- ✅ 5.7 ESLint config — `eslint.config.mjs` with Next.js + TypeScript rules
+
+*Post-audit update: 2026-03-16*
 
 ---
 

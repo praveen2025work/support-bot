@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const parseResult = parseOnboardingExcel(buffer);
+    const parseResult = await parseOnboardingExcel(buffer);
 
     if (!parseResult.success || !parseResult.data) {
       return NextResponse.json(

@@ -1,5 +1,9 @@
 import { logger } from '@/lib/logger';
 import { CoOccurrenceTracker } from './co-occurrence';
+import { CollaborativeFilter } from './collaborative-filter';
+import { TimePatternAnalyzer } from './time-patterns';
+import { UserClustering } from './user-clustering';
+import { getInteractionTracker } from './interaction-tracker';
 import type { ClassificationResult, ConversationContext } from '../types';
 
 export interface Recommendation {
@@ -10,70 +14,100 @@ export interface Recommendation {
 }
 
 // Strategy weights
-const CO_OCCURRENCE_WEIGHT = 0.5;
-const CONTEXT_WEIGHT = 0.3;
-const POPULARITY_WEIGHT = 0.2;
+const CO_OCCURRENCE_WEIGHT = 0.25;
+const COLLABORATIVE_WEIGHT = 0.25;
+const CONTEXT_WEIGHT = 0.15;
+const TIME_WEIGHT = 0.15;
+const CLUSTER_WEIGHT = 0.10;
+const POPULARITY_WEIGHT = 0.10;
 
 /**
- * Recommendation engine that suggests relevant queries, documents, and FAQs
- * based on user behavior and session context. No ML model needed —
- * uses co-occurrence analysis, context matching, and popularity.
+ * ML-enhanced recommendation engine that suggests relevant queries, documents, and FAQs
+ * based on co-occurrence analysis, collaborative filtering, time patterns, and user clustering.
  */
 export class RecommendationEngine {
   private coTracker: CoOccurrenceTracker;
+  private collabFilter: CollaborativeFilter;
+  private timeAnalyzer: TimePatternAnalyzer;
+  private userClustering: UserClustering;
   private groupId: string;
   private loaded = false;
   private interactionCount = 0;
-  private rebuildInterval = 50; // Rebuild co-occurrence every N interactions
+  private rebuildInterval = 50;
 
   constructor(groupId: string = 'default') {
     this.groupId = groupId;
     this.coTracker = new CoOccurrenceTracker(groupId);
+    this.collabFilter = new CollaborativeFilter(groupId);
+    this.timeAnalyzer = new TimePatternAnalyzer(groupId);
+    this.userClustering = new UserClustering(groupId);
   }
 
-  /** Ensure co-occurrence data is loaded */
+  /** Ensure all data is loaded */
   async ensureLoaded(): Promise<void> {
     if (this.loaded) return;
-    await this.coTracker.load();
+    await Promise.all([
+      this.coTracker.load(),
+      this.collabFilter.load(),
+      this.timeAnalyzer.load(),
+      this.userClustering.load(),
+    ]);
     this.loaded = true;
   }
 
   /**
-   * Get recommendations based on current context and classification.
+   * Rebuild all ML models from interaction data.
+   */
+  async rebuildModels(): Promise<void> {
+    const tracker = getInteractionTracker(this.groupId);
+    const interactions = await tracker.readAll();
+
+    if (interactions.length < 3) return;
+
+    this.collabFilter.build(interactions);
+    this.timeAnalyzer.build(interactions);
+    this.userClustering.build(interactions);
+
+    await Promise.all([
+      this.coTracker.build(),
+      this.collabFilter.save(),
+      this.timeAnalyzer.save(),
+      this.userClustering.save(),
+    ]);
+
+    logger.info({ groupId: this.groupId, interactions: interactions.length }, 'ML recommendation models rebuilt');
+  }
+
+  /**
+   * Get recommendations based on current context, classification, and user identity.
    */
   async getRecommendations(
     context: ConversationContext,
     classification: ClassificationResult,
-    maxRecommendations: number = 3
+    maxRecommendations: number = 3,
+    userId?: string
   ): Promise<Recommendation[]> {
     await this.ensureLoaded();
 
-    // Periodically rebuild co-occurrence matrix
+    // Periodically rebuild all models
     this.interactionCount++;
     if (this.interactionCount % this.rebuildInterval === 0) {
-      this.coTracker.build().catch((err) =>
-        logger.error({ err }, 'Co-occurrence rebuild failed')
+      this.rebuildModels().catch((err) =>
+        logger.error({ err }, 'ML model rebuild failed')
       );
     }
 
     const recommendations: Recommendation[] = [];
     const seen = new Set<string>();
 
-    // Extract what queries were already used in this session
     const sessionQueries = new Set<string>();
-    for (const h of context.history) {
-      if (h.role === 'user') {
-        // Simple heuristic: track if a query was mentioned
-        if (context.lastQueryName) sessionQueries.add(context.lastQueryName);
-      }
-    }
+    if (context.lastQueryName) sessionQueries.add(context.lastQueryName);
 
     // 1. Co-occurrence based recommendations
     if (context.lastQueryName) {
       const related = this.coTracker.getRelated(context.lastQueryName, 5);
       for (const r of related) {
-        if (sessionQueries.has(r.name)) continue;
-        if (seen.has(r.name)) continue;
+        if (sessionQueries.has(r.name) || seen.has(r.name)) continue;
         seen.add(r.name);
         recommendations.push({
           type: 'query',
@@ -84,7 +118,22 @@ export class RecommendationEngine {
       }
     }
 
-    // 2. Context-based recommendations — suggest related intents
+    // 2. Collaborative filtering
+    if (context.lastQueryName && this.collabFilter.isLoaded) {
+      const similar = this.collabFilter.getSimilar(context.lastQueryName, 5);
+      for (const s of similar) {
+        if (sessionQueries.has(s.name) || seen.has(s.name)) continue;
+        seen.add(s.name);
+        recommendations.push({
+          type: 'query',
+          name: s.name,
+          reason: 'Popular with similar users',
+          score: s.score * COLLABORATIVE_WEIGHT,
+        });
+      }
+    }
+
+    // 3. Context-based recommendations
     const contextRecs = this.getContextRecommendations(classification, context);
     for (const rec of contextRecs) {
       if (seen.has(rec.name)) continue;
@@ -95,7 +144,38 @@ export class RecommendationEngine {
       });
     }
 
-    // 3. General suggestions based on what hasn't been tried
+    // 4. Time-aware recommendations
+    if (this.timeAnalyzer.isLoaded) {
+      const now = new Date();
+      const timeRecs = this.timeAnalyzer.getTimeRelevant(now.getHours(), now.getDay(), 5);
+      for (const tr of timeRecs) {
+        if (sessionQueries.has(tr.name) || seen.has(tr.name)) continue;
+        seen.add(tr.name);
+        recommendations.push({
+          type: 'query',
+          name: tr.name,
+          reason: 'Popular at this time',
+          score: tr.score * TIME_WEIGHT,
+        });
+      }
+    }
+
+    // 5. User cluster recommendations
+    if (userId && this.userClustering.isLoaded) {
+      const clusterRecs = this.userClustering.getClusterRecommendations(userId, 5);
+      for (const cr of clusterRecs) {
+        if (sessionQueries.has(cr.name) || seen.has(cr.name)) continue;
+        seen.add(cr.name);
+        recommendations.push({
+          type: 'query',
+          name: cr.name,
+          reason: 'Recommended for your profile',
+          score: cr.score * CLUSTER_WEIGHT,
+        });
+      }
+    }
+
+    // 6. General suggestions
     const generalRecs = this.getGeneralRecommendations(sessionQueries);
     for (const rec of generalRecs) {
       if (seen.has(rec.name)) continue;
@@ -106,7 +186,6 @@ export class RecommendationEngine {
       });
     }
 
-    // Sort by score and return top N
     recommendations.sort((a, b) => b.score - a.score);
     return recommendations.slice(0, maxRecommendations);
   }
@@ -118,43 +197,20 @@ export class RecommendationEngine {
     const recs: Recommendation[] = [];
     const intent = classification.intent;
 
-    // If they just ran a query, suggest related actions
     if (intent === 'query.execute' && context.lastQueryName) {
-      recs.push({
-        type: 'query',
-        name: 'summarize',
-        reason: 'Summarize the results',
-        score: 0.7,
-      });
-
-      // Suggest document search if they seem to want more info
-      recs.push({
-        type: 'document',
-        name: 'search documents',
-        reason: 'Find related documentation',
-        score: 0.5,
-      });
+      recs.push({ type: 'query', name: 'summarize', reason: 'Summarize the results', score: 0.7 });
+      recs.push({ type: 'document', name: 'search documents', reason: 'Find related documentation', score: 0.5 });
     }
 
-    // If they searched documents, suggest running a query
     if (intent === 'document.ask' || intent === 'knowledge.search') {
-      recs.push({
-        type: 'query',
-        name: 'list queries',
-        reason: 'See available data queries',
-        score: 0.6,
-      });
+      recs.push({ type: 'query', name: 'list queries', reason: 'See available data queries', score: 0.6 });
     }
 
     return recs;
   }
 
-  private getGeneralRecommendations(
-    sessionQueries: Set<string>
-  ): Recommendation[] {
+  private getGeneralRecommendations(sessionQueries: Set<string>): Recommendation[] {
     const recs: Recommendation[] = [];
-
-    // Suggest common actions if not tried
     const commonActions = [
       { name: 'list queries', reason: 'Explore available queries', type: 'query' as const },
       { name: 'list documents', reason: 'See uploaded documents', type: 'document' as const },
@@ -163,10 +219,7 @@ export class RecommendationEngine {
 
     for (const action of commonActions) {
       if (!sessionQueries.has(action.name)) {
-        recs.push({
-          ...action,
-          score: 0.3,
-        });
+        recs.push({ ...action, score: 0.3 });
       }
     }
 

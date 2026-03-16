@@ -1,10 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense, lazy } from 'react';
 import type { Message } from '@/hooks/useChat';
 import { QueryFilterForm, type QueryFilterFormData } from './QueryFilterForm';
-import { DataChart } from './DataChart';
 import { TablePagination, exportToCsv } from './TablePagination';
+
+// Lazy-load DataChart (pulls in Recharts ~150KB) — only loaded when chart is rendered
+const DataChart = lazy(() =>
+  import('./DataChart').then((m) => ({ default: m.DataChart }))
+);
+import { AnomalyAlert } from '@/components/dashboard/AnomalyBadge';
 
 interface QueryListItem {
   name: string;
@@ -92,6 +97,12 @@ export function MessageBubble({
         {message.richContent && (
           <div className="mt-2">
             <RichContentRenderer richContent={message.richContent} onExecuteQuery={onExecuteQuery} onAction={onAction} />
+          </div>
+        )}
+        {/* Anomaly alerts */}
+        {!isUser && message.anomalies && message.anomalies.length > 0 && (
+          <div className="mt-2">
+            <AnomalyAlert anomalies={message.anomalies} />
           </div>
         )}
         {/* Execution time badge + reference link */}
@@ -269,7 +280,9 @@ function RichContentRenderer({
                   <p className="text-gray-400 mt-1">Showing 20 of {csvData.rows.length} rows</p>
                 )}
               </div>
-              <DataChart data={csvData.rows as Record<string, unknown>[]} headers={csvData.headers} />
+              <Suspense fallback={<div className="h-64 flex items-center justify-center text-[var(--text-muted)]">Loading chart…</div>}>
+                <DataChart data={csvData.rows as Record<string, unknown>[]} headers={csvData.headers} />
+              </Suspense>
             </>
           )}
         </div>
@@ -377,7 +390,9 @@ function RichContentRenderer({
           </div>
           {chartRows.length > 1 && (
             <div className="mt-2">
-              <DataChart data={chartRows} headers={chartHeaders} />
+              <Suspense fallback={<div className="h-64 flex items-center justify-center text-[var(--text-muted)]">Loading chart…</div>}>
+                <DataChart data={chartRows} headers={chartHeaders} />
+              </Suspense>
             </div>
           )}
         </div>
@@ -708,7 +723,9 @@ function QueryResultTable({ result }: { result: QueryResultData }) {
               onExport={() => exportToCsv(result.data as Record<string, unknown>[], 'query-results.csv')}
             />
           )}
-          <DataChart data={result.data} />
+          <Suspense fallback={<div className="h-64 flex items-center justify-center text-[var(--text-muted)]">Loading chart…</div>}>
+            <DataChart data={result.data} />
+          </Suspense>
         </>
       )}
     </div>

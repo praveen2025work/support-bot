@@ -54,7 +54,7 @@ async function createAndInitEngine(groupId: string): Promise<ChatbotEngine> {
   const groupConfig = getGroupConfig(groupId);
 
   const fuzzyMatcher = new FuzzyMatcher(groupConfig.faq);
-  const nlpService = new NlpService(fuzzyMatcher, groupConfig.corpus);
+  const nlpService = new NlpService(fuzzyMatcher, groupConfig.corpus, groupConfig.sources);
   const apiClient = new ApiClient(groupConfig.apiBaseUrl ?? undefined);
   const queryService = new QueryService(apiClient, groupConfig.sources);
   const responseGenerator = new ResponseGenerator(queryService, groupConfig.templates, groupId);
@@ -100,4 +100,15 @@ export function clearQueryCaches(): void {
   for (const engine of engines.values()) {
     engine.clearQueryCache();
   }
+}
+
+/**
+ * Full cache + NLP invalidation: clears query caches AND forces all engines
+ * to re-initialize on the next request (re-trains NLP with updated query names).
+ * Called after admin creates/updates/deletes queries.
+ */
+export function invalidateQueryData(): void {
+  clearQueryCaches();
+  invalidateAllEngines();
+  logger.info('All engines invalidated — NLP will retrain with updated query names');
 }

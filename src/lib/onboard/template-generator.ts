@@ -1,6 +1,6 @@
-import * as XLSX from 'xlsx';
-
-export function generateTemplate(): XLSX.WorkBook {
+// XLSX is lazy-loaded (~700KB) — only needed when generating an onboarding template
+export async function generateTemplate() {
+  const XLSX = await import('xlsx');
   const wb = XLSX.utils.book_new();
 
   // Sheet 1: Group Info (single row expected)

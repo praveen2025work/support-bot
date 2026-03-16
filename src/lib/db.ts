@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 
-const DB_JSON_PATH = path.join(process.cwd(), 'mock-api/db.json');
+const DB_JSON_PATH = path.join(process.cwd(), 'services/mock-api/db.json');
 
 // ---------------------------------------------------------------------------
 // File-level locking (works across multiple Next.js workers / processes)

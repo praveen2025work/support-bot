@@ -1,4 +1,10 @@
-import * as XLSX from 'xlsx';
+// Lazy-load XLSX (~700KB) — only needed when parsing CSV/Excel content
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _xlsx: any = null;
+function getXLSX() {
+  if (!_xlsx) _xlsx = require('xlsx');
+  return _xlsx;
+}
 
 export interface CsvData {
   headers: string[];
@@ -20,12 +26,13 @@ export interface AggregationResult {
 }
 
 export function parseCsv(content: string): CsvData {
+  const XLSX = getXLSX();
   const wb = XLSX.read(content, { type: 'string' });
   const sheetName = wb.SheetNames[0];
   if (!sheetName) return { headers: [], rows: [] };
 
   const sheet = wb.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json<Record<string, string | number>>(sheet);
+  const rows = XLSX.utils.sheet_to_json(sheet) as Record<string, string | number>[];
   const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
 
   return { headers, rows };

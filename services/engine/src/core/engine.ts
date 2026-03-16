@@ -71,7 +71,8 @@ export class ChatbotEngine {
         const recs = await this.recommendationEngine.getRecommendations(
           context,
           classification,
-          3
+          3,
+          message.userId
         );
         if (recs.length > 0) {
           response.recommendations = recs.map((r) => ({

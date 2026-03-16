@@ -1,8 +1,18 @@
+import withBundleAnalyzer from '@next/bundle-analyzer';
+
+const analyzer = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
   experimental: {
     serverComponentsExternalPackages: ['pino', 'pino-pretty'],
+  },
+  // Reduce production bundle size — drop console.log in production builds
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
   async rewrites() {
     const engineUrl = process.env.ENGINE_URL || 'http://localhost:4001';
@@ -20,4 +30,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default analyzer(nextConfig);

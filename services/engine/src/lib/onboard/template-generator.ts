@@ -1,6 +1,7 @@
-import * as XLSX from 'xlsx';
-
-export function generateTemplate(): XLSX.WorkBook {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function generateTemplate(): any {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const XLSX = require('xlsx');
   const wb = XLSX.utils.book_new();
 
   // Sheet 1: Group Info (single row expected)

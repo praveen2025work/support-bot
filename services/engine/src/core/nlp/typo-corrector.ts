@@ -47,7 +47,7 @@ function findClosestWord(word: string, maxDistance = 2): string | null {
   let bestWord: string | null = null;
   let bestDist = maxDistance + 1;
 
-  for (const dictWord of COMMON_WORDS) {
+  for (const dictWord of Array.from(COMMON_WORDS)) {
     // Skip if length difference is too large
     if (Math.abs(dictWord.length - word.length) > maxDistance) continue;
 

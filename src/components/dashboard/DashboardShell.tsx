@@ -6,6 +6,7 @@ import { DashboardHeader } from './DashboardHeader';
 import { FavoritesPanel } from './FavoritesPanel';
 import { RecentQueriesPanel } from './RecentQueriesPanel';
 import { AddFavoriteModal } from './AddFavoriteModal';
+import { SearchBar } from './SearchBar';
 import type { QueryInfo } from '@/types/dashboard';
 
 interface GroupInfo {
@@ -56,6 +57,15 @@ export function DashboardShell({
         onGroupChange={setGroupId}
         onAddFavorite={() => setShowAddFavorite(true)}
       />
+
+      <div className="px-6 pt-4 pb-2">
+        <SearchBar
+          groupId={groupId}
+          onSelect={(queryName) => {
+            window.location.href = `/?q=run+${encodeURIComponent(queryName)}`;
+          }}
+        />
+      </div>
 
       <div className="px-6 py-6 space-y-6">
         {dashboard.loading ? (

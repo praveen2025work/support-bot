@@ -27,6 +27,7 @@ import {
   handleFilterFollowUp,
   handleDataOperation,
 } from './handlers/followup-handler';
+import { handleSemanticSearch } from './handlers/semantic-search-handler';
 
 /**
  * Simple Levenshtein distance for typo tolerance on short keywords.
@@ -153,7 +154,7 @@ export class ResponseGenerator {
       case INTENTS.QUERY_LIST:
         return handleQueryList(classification, context, this.queryService);
       case INTENTS.QUERY_EXECUTE:
-        return handleQueryExecute(classification, context, this.queryService, explicitFilters, incomingHeaders);
+        return handleQueryExecute(classification, context, this.queryService, explicitFilters, incomingHeaders, this.groupId);
       case INTENTS.QUERY_MULTI:
         return handleMultiQuery(classification, context, this.queryService, incomingHeaders);
       case INTENTS.QUERY_ESTIMATE:
@@ -172,6 +173,8 @@ export class ResponseGenerator {
         return handleDocumentAsk(classification, context, this.groupId);
       case INTENTS.DOCUMENT_LIST:
         return handleDocumentList(classification, context, this.groupId);
+      case INTENTS.QUERY_SEARCH:
+        return handleSemanticSearch(classification, context, this.queryService, this.groupId);
       default: {
         // Data operation follow-ups (must come before filter to prevent misclassification)
         const dataOpResult = handleDataOperation(classification, context);

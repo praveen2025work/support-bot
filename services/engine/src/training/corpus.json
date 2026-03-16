@@ -413,6 +413,27 @@
       "answers": []
     },
     {
+      "intent": "query.search",
+      "utterances": [
+        "search for queries about revenue",
+        "find queries related to performance",
+        "what queries do you have about users",
+        "search queries matching sales",
+        "find a query about costs",
+        "look for queries about infrastructure",
+        "search for something about orders",
+        "find queries related to churn",
+        "what queries are available about metrics",
+        "search for a report about hiring",
+        "find me a query about errors",
+        "look up queries related to deployment",
+        "search queries about employees",
+        "find queries for support tickets",
+        "what do you have about logs"
+      ],
+      "answers": []
+    },
+    {
       "intent": "farewell",
       "utterances": [
         "bye", "goodbye", "see you", "thanks bye", "that is all",

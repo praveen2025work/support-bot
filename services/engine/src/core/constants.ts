@@ -10,6 +10,7 @@ export const INTENTS = {
   KNOWLEDGE_SEARCH: 'knowledge.search',
   DOCUMENT_ASK: 'document.ask',
   DOCUMENT_LIST: 'document.list',
+  QUERY_SEARCH: 'query.search',
 } as const;
 
 export const NLP_CONFIDENCE_THRESHOLD = 0.65;

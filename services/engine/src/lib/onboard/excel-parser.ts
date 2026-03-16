@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import {
   GroupInfoRowSchema,
   QueryRowSchema,
@@ -15,6 +14,8 @@ interface ParseResult {
 }
 
 export function parseOnboardingExcel(buffer: Buffer): ParseResult {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const XLSX = require('xlsx');
   const errors: string[] = [];
 
   const wb = XLSX.read(buffer, { type: 'buffer' });

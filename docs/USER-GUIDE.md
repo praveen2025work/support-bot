@@ -18,6 +18,7 @@ Just type what you need in plain English. For example:
 | **Run a query** | Execute a data query | "run monthly_revenue" |
 | **List queries** | See all available queries | "list queries" or "what queries are available?" |
 | **Compare queries** | Run multiple queries together | "show me active_users and error_rate" |
+| **Search queries** | Find queries by natural language | "show me revenue data" or "find user metrics" |
 | **Search documents** | Find information in documents | "search auth_spec for MFA" |
 | **Get a link** | Open an external URL | "link for servicenow_dashboard" |
 | **Get an estimate** | See how long a query takes | "how long will performance take?" |
@@ -118,6 +119,42 @@ The chatbot can be embedded on any web page as a floating widget.
 
 ---
 
+## Semantic Search
+
+The chatbot includes intelligent query search. Instead of remembering exact query names, describe what you're looking for:
+
+```
+"show me revenue data"
+"find something about user metrics"
+"anything related to error rates"
+```
+
+The search bar on the dashboard also supports this — type naturally and results are ranked by relevance using TF-IDF similarity scoring.
+
+---
+
+## Smart Recommendations
+
+The chatbot learns from usage patterns to suggest relevant queries:
+- **Co-occurrence**: Queries frequently run together are recommended as follow-ups
+- **Collaborative filtering**: Based on what similar users run
+- **Time patterns**: Queries commonly run at certain times of day or days of the week
+- **User clustering**: Recommendations based on your usage profile group
+
+Recommendations appear as suggestion chips below bot responses and on the dashboard.
+
+---
+
+## Anomaly Detection
+
+When query results contain unusual numeric patterns, the chatbot automatically flags them:
+- **Warning** (yellow badge): Values 2+ standard deviations from baseline
+- **Critical** (red badge): Values 3+ standard deviations from baseline
+
+Anomaly badges appear on query result cards. Baselines are built automatically after 5+ executions of the same query. Admins can configure thresholds and view anomaly history at **Admin → Anomaly Detection**.
+
+---
+
 ## Tips & Tricks
 
 1. **Natural language works**: You don't need exact query names. "How is performance looking?" works just as well as "run performance".
@@ -136,3 +173,9 @@ The chatbot can be embedded on any web page as a floating widget.
    - "find rollback steps in deployment_runbook"
 
 5. **Quick suggestions**: After each response, look for clickable suggestion buttons to quickly follow up.
+
+6. **Semantic search**: Don't remember the query name? Use the dashboard search bar or type naturally — "find revenue data" works even if the query is named `monthly_revenue`.
+
+7. **Anomaly alerts**: Watch for yellow/red badges on results — they indicate unusual values compared to historical baselines.
+
+8. **Favorites**: Star frequently-used queries from the dashboard to access them with one click.
