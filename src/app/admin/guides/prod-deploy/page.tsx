@@ -249,6 +249,37 @@ npm run analyze        # Bundle analysis (interactive treemap)`}</pre>
           </div>
         </Section>
 
+        <Section title="ML Data Persistence">
+          <p className="text-sm text-gray-600 mb-3">
+            ML features store data under <Code>services/engine/data/</Code>. In production, ensure this directory is persistent across deployments.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border border-gray-200 rounded">
+              <thead><tr className="bg-gray-50">
+                <th className="px-3 py-2 text-left font-medium text-gray-600 border-b">ML Feature</th>
+                <th className="px-3 py-2 text-left font-medium text-gray-600 border-b">Data Path</th>
+                <th className="px-3 py-2 text-left font-medium text-gray-600 border-b">Description</th>
+              </tr></thead>
+              <tbody className="text-gray-700">
+                <tr><td className="px-3 py-1.5 border-b">Semantic Search</td><td className="px-3 py-1.5 border-b font-mono">data/indexes/{'{groupId}/'}</td><td className="px-3 py-1.5 border-b">TF-IDF index for natural language query matching</td></tr>
+                <tr className="bg-gray-50"><td className="px-3 py-1.5 border-b">Recommendations</td><td className="px-3 py-1.5 border-b font-mono">data/learning/{'{groupId}/'}</td><td className="px-3 py-1.5 border-b">User interactions, signal aggregates, collaborative filter data</td></tr>
+                <tr><td className="px-3 py-1.5 border-b">Anomaly Detection</td><td className="px-3 py-1.5 border-b font-mono">data/anomaly/{'{groupId}/'}</td><td className="px-3 py-1.5 border-b">Historical baselines and snapshots for z-score/IQR checks</td></tr>
+                <tr className="bg-gray-50"><td className="px-3 py-1.5 border-b">User Preferences</td><td className="px-3 py-1.5 border-b font-mono">data/preferences/</td><td className="px-3 py-1.5 border-b">Per-user favorites and settings</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-3 space-y-2">
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+              <span className="font-medium">Docker:</span> Mount <Code>services/engine/data/</Code> as a volume to persist ML data across container restarts:
+              <pre className="font-mono mt-1 text-[10px]">{`volumes:
+  - ./engine-data:/app/services/engine/data`}</pre>
+            </div>
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700">
+              <span className="font-medium">PM2:</span> Data persists on disk automatically. Back up <Code>services/engine/data/</Code> regularly.
+            </div>
+          </div>
+        </Section>
+
         <Section title="Monitoring Checklist">
           <div className="space-y-2 text-sm text-gray-600">
             <div className="flex items-start gap-2"><span className="text-gray-400">&#9744;</span><span>Engine health: <code className="text-xs bg-gray-100 px-1 rounded">GET /api/health</code> returns 200</span></div>

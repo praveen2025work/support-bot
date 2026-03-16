@@ -237,8 +237,106 @@ export class QueryService {
       }
     }
 
-    const apiResult = QueryResultSchema.parse(raw);
+    const apiResult = this.normalizeApiResponse(raw);
     return { type: 'api', apiResult };
+  }
+
+  /**
+   * Normalize any API response into the { data, rowCount, executionTime } format.
+   *
+   * Handles these common response shapes:
+   * 1. Already valid: { data: [...], rowCount, executionTime }
+   * 2. Array response: [{ col: val }, ...] → wrap in data/rowCount
+   * 3. Flat object: { key1: val1, key2: val2 } → convert to single-row table
+   * 4. Nested data: { results: [...] } or { items: [...] } → extract array
+   * 5. Wrapped with metadata: { data: [...], total: N } → fill missing fields
+   */
+  private normalizeApiResponse(raw: unknown): QueryResult {
+    // 1. Already valid: { data: [...], rowCount, executionTime }
+    const standard = QueryResultSchema.safeParse(raw);
+    if (standard.success) return standard.data;
+
+    // 2. Primitive values: 42, "OK", true, null
+    if (raw === null || raw === undefined || typeof raw !== 'object') {
+      const label = typeof raw === 'number' ? 'count' : 'result';
+      return { data: [{ [label]: raw ?? 'null' }], rowCount: 1, executionTime: 0 };
+    }
+
+    // 3. Raw array: [{ ... }, ...]
+    if (Array.isArray(raw)) {
+      // Array of primitives: [1, 2, 3] or ["a", "b"]
+      if (raw.length > 0 && typeof raw[0] !== 'object') {
+        return { data: raw.map((v, i) => ({ index: i, value: v })), rowCount: raw.length, executionTime: 0 };
+      }
+      return { data: raw, rowCount: raw.length, executionTime: 0 };
+    }
+
+    const obj = raw as Record<string, unknown>;
+
+    // 4. Object with a nested array field
+    //    Covers: { data: [...] }, { results: [...] }, { items: [...] },
+    //    { records: [...] }, { rows: [...] }, { content: [...] } (Spring Boot),
+    //    { entries: [...] }, { list: [...] }, { values: [...] }
+    const arrayKeys = ['data', 'results', 'items', 'records', 'rows', 'content', 'entries', 'list', 'values'];
+    for (const key of arrayKeys) {
+      if (Array.isArray(obj[key])) {
+        const arr = obj[key] as Record<string, unknown>[];
+        // Extract rowCount from common metadata fields
+        const rowCount = this.extractNumericField(obj, ['rowCount', 'total', 'totalElements', 'totalCount', 'count', 'size', 'length']);
+        return {
+          data: arr,
+          rowCount: rowCount ?? arr.length,
+          executionTime: this.extractNumericField(obj, ['executionTime', 'elapsed', 'duration', 'took']) ?? 0,
+        };
+      }
+    }
+
+    // 5. Deeply nested: { response: { body: { data: [...] } } }
+    //    Recursively look for the first array at any depth (max 3 levels)
+    const nestedArray = this.findNestedArray(obj, 3);
+    if (nestedArray) {
+      return { data: nestedArray, rowCount: nestedArray.length, executionTime: 0 };
+    }
+
+    // 6. Mixed object with primitives + nested objects/arrays
+    //    e.g., { name: "report", total: 100, details: { ... } }
+    //    → Extract just the primitive fields as a key-value table
+    const entries = Object.entries(obj);
+    const primitiveEntries = entries.filter(
+      ([, v]) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' || v === null
+    );
+
+    if (primitiveEntries.length > 0) {
+      const data = primitiveEntries.map(([key, value]) => ({ metric: key, value: value as string | number }));
+      return { data, rowCount: data.length, executionTime: 0 };
+    }
+
+    // 7. Last resort: wrap whatever we got as a single row
+    logger.warn({ rawType: typeof raw, keys: Object.keys(obj) }, 'API response could not be normalized, wrapping as-is');
+    return { data: [{ result: JSON.stringify(raw) }], rowCount: 1, executionTime: 0 };
+  }
+
+  /** Extract the first matching numeric field from an object. */
+  private extractNumericField(obj: Record<string, unknown>, keys: string[]): number | undefined {
+    for (const key of keys) {
+      if (typeof obj[key] === 'number') return obj[key] as number;
+    }
+    return undefined;
+  }
+
+  /** Recursively find the first array of objects within nested objects (up to maxDepth). */
+  private findNestedArray(obj: Record<string, unknown>, maxDepth: number): Record<string, unknown>[] | null {
+    if (maxDepth <= 0) return null;
+    for (const value of Object.values(obj)) {
+      if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
+        return value as Record<string, unknown>[];
+      }
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const found = this.findNestedArray(value as Record<string, unknown>, maxDepth - 1);
+        if (found) return found;
+      }
+    }
+    return null;
   }
 
   /**

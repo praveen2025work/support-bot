@@ -177,6 +177,44 @@ New queries can be added through the Excel onboarding flow (`/onboard` or `/admi
 | `url` | Dashboard/documentation URL |
 | `filters` | Comma-separated filter keys (e.g., `"date_range, region"`) |
 
+## ML Feature Endpoints
+
+The platform includes built-in ML features with the following API endpoints. These are served by the Engine service, not the tenant backend.
+
+### Semantic Search
+
+```
+GET /api/queries/search?q=<search-term>
+```
+
+Returns queries ranked by semantic similarity to the search term using TF-IDF vector matching. This powers natural language query discovery in the chat interface (e.g., "find something about revenue trends").
+
+### Anomaly Detection
+
+```
+GET /api/admin/anomaly/baselines
+```
+
+Returns the current anomaly detection baselines (expected value ranges, standard deviations) computed from historical query results.
+
+```
+POST /api/admin/anomaly/rebuild-baselines
+```
+
+Triggers a rebuild of anomaly baselines from stored interaction history. Use this after bulk data changes or to reset detection thresholds.
+
+```
+GET /api/admin/anomaly/config
+```
+
+Returns the anomaly detection configuration (sensitivity thresholds, enabled metrics, alert rules).
+
+### Recommendations
+
+Recommendations are generated inline within chat responses using collaborative filtering. There is no separate API endpoint — the Engine automatically appends relevant query suggestions based on user interaction history and preference profiles.
+
+---
+
 ## Running the Mock API
 
 The project includes a reference mock API implementation:

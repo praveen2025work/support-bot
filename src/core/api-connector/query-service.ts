@@ -181,8 +181,96 @@ export class QueryService {
     const body = Object.keys(bodyFilters).length > 0 ? { filters: bodyFilters } : {};
     const params = Object.keys(paramFilters).length > 0 ? paramFilters : undefined;
     const raw = await this.apiClient.post(urlPath, body, params, authHeaders);
-    const apiResult = QueryResultSchema.parse(raw);
+    const apiResult = this.normalizeApiResponse(raw);
     return { type: 'api', apiResult };
+  }
+
+  /**
+   * Normalize any API response into the { data, rowCount, executionTime } format.
+   *
+   * Handles these common response shapes:
+   * 1. Already valid: { data: [...], rowCount, executionTime }
+   * 2. Primitive values: 42, "OK", true, null
+   * 3. Raw array: [{ col: val }, ...] or [1, 2, 3]
+   * 4. Nested array field: { results/items/content/entries/list/values: [...] }
+   * 5. Deeply nested: { response: { body: { data: [...] } } } (max 3 levels)
+   * 6. Mixed object: { name: "report", total: 100, details: {...} } → extracts primitives
+   * 7. Flat object: { cancelled: 3, success: 232 } → key-value table
+   */
+  private normalizeApiResponse(raw: unknown): QueryResult {
+    // 1. Already valid
+    const standard = QueryResultSchema.safeParse(raw);
+    if (standard.success) return standard.data;
+
+    // 2. Primitive values
+    if (raw === null || raw === undefined || typeof raw !== 'object') {
+      const label = typeof raw === 'number' ? 'count' : 'result';
+      return { data: [{ [label]: raw ?? 'null' }], rowCount: 1, executionTime: 0 };
+    }
+
+    // 3. Raw array
+    if (Array.isArray(raw)) {
+      if (raw.length > 0 && typeof raw[0] !== 'object') {
+        return { data: raw.map((v, i) => ({ index: i, value: v })), rowCount: raw.length, executionTime: 0 };
+      }
+      return { data: raw, rowCount: raw.length, executionTime: 0 };
+    }
+
+    const obj = raw as Record<string, unknown>;
+
+    // 4. Nested array field
+    const arrayKeys = ['data', 'results', 'items', 'records', 'rows', 'content', 'entries', 'list', 'values'];
+    for (const key of arrayKeys) {
+      if (Array.isArray(obj[key])) {
+        const arr = obj[key] as Record<string, unknown>[];
+        const rowCount = this.extractNumericField(obj, ['rowCount', 'total', 'totalElements', 'totalCount', 'count', 'size', 'length']);
+        return {
+          data: arr,
+          rowCount: rowCount ?? arr.length,
+          executionTime: this.extractNumericField(obj, ['executionTime', 'elapsed', 'duration', 'took']) ?? 0,
+        };
+      }
+    }
+
+    // 5. Deeply nested (max 3 levels)
+    const nestedArray = this.findNestedArray(obj, 3);
+    if (nestedArray) {
+      return { data: nestedArray, rowCount: nestedArray.length, executionTime: 0 };
+    }
+
+    // 6. Extract primitive fields from mixed objects
+    const entries = Object.entries(obj);
+    const primitiveEntries = entries.filter(
+      ([, v]) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' || v === null
+    );
+    if (primitiveEntries.length > 0) {
+      const data = primitiveEntries.map(([key, value]) => ({ metric: key, value: value as string | number }));
+      return { data, rowCount: data.length, executionTime: 0 };
+    }
+
+    // 7. Last resort
+    return { data: [{ result: JSON.stringify(raw) }], rowCount: 1, executionTime: 0 };
+  }
+
+  private extractNumericField(obj: Record<string, unknown>, keys: string[]): number | undefined {
+    for (const key of keys) {
+      if (typeof obj[key] === 'number') return obj[key] as number;
+    }
+    return undefined;
+  }
+
+  private findNestedArray(obj: Record<string, unknown>, maxDepth: number): Record<string, unknown>[] | null {
+    if (maxDepth <= 0) return null;
+    for (const value of Object.values(obj)) {
+      if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
+        return value as Record<string, unknown>[];
+      }
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const found = this.findNestedArray(value as Record<string, unknown>, maxDepth - 1);
+        if (found) return found;
+      }
+    }
+    return null;
   }
 
   /**

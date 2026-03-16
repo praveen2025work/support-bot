@@ -215,7 +215,34 @@ docker compose up --build
           </div>
         </Section>
 
-        <Section title="5. Per-Query Authentication (Mock)">
+        <Section title="5. ML Features (Built-in)">
+          <p className="text-sm text-gray-600 mb-3">
+            The platform includes built-in ML features that work automatically with no configuration needed.
+            Data is stored under <Code>services/engine/data/</Code>.
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="p-3 rounded-lg border border-blue-200 bg-blue-50">
+              <div className="text-sm font-semibold text-blue-700 mb-1">Semantic Search</div>
+              <p className="text-xs text-gray-600">TF-IDF index for natural language query discovery. Type &quot;show me revenue data&quot; instead of exact query names.</p>
+              <div className="mt-2 text-xs text-gray-500">Data: <Code>data/indexes/</Code></div>
+            </div>
+            <div className="p-3 rounded-lg border border-purple-200 bg-purple-50">
+              <div className="text-sm font-semibold text-purple-700 mb-1">Recommendations</div>
+              <p className="text-xs text-gray-600">Collaborative filtering suggests related queries. Uses 6 strategies: co-occurrence, user clustering, time patterns, and more.</p>
+              <div className="mt-2 text-xs text-gray-500">Data: <Code>data/learning/</Code></div>
+            </div>
+            <div className="p-3 rounded-lg border border-red-200 bg-red-50">
+              <div className="text-sm font-semibold text-red-700 mb-1">Anomaly Detection</div>
+              <p className="text-xs text-gray-600">Z-score &amp; IQR monitoring flags unusual query results with warning/critical badges automatically.</p>
+              <div className="mt-2 text-xs text-gray-500">Data: <Code>data/anomaly/</Code></div>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            ML data accumulates as users interact. Admin &rarr; Anomaly page shows baselines and lets you rebuild them.
+          </p>
+        </Section>
+
+        <Section title="6. Per-Query Authentication (Mock)">
           <p className="text-sm text-gray-600 mb-3">
             In mock mode, sample queries demonstrate all authentication types. Each query has an <Code>authType</Code> field:
           </p>

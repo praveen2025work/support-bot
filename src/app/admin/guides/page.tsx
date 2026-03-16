@@ -7,14 +7,14 @@ const guides = [
     id: 'user-guide',
     title: 'User Guide',
     audience: 'Viewers & Admins',
-    description: 'How to use the chatbot — running queries, using filters, reading results, and using the embedded widget.',
+    description: 'How to use the chatbot — running queries, semantic search, smart recommendations, anomaly alerts, filters, and the embedded widget.',
     color: 'blue',
   },
   {
     id: 'demo-setup',
     title: 'Demo Setup Guide',
     audience: 'Developers',
-    description: 'Steps to run all 3 services locally (UI, Engine, Mock API) for demo and development.',
+    description: 'Steps to run all 3 services locally (UI, Engine, Mock API) with ML features (semantic search, recommendations, anomaly detection) for demo and development.',
     color: 'green',
   },
   {
@@ -28,7 +28,7 @@ const guides = [
     id: 'config-guide',
     title: 'Configuration Guide',
     audience: 'Developers & Admins',
-    description: 'How to configure groups, intents, entities, templates, filters, and connect data sources.',
+    description: 'How to configure groups, intents, entities, templates, filters, ML features (semantic search, recommendations, anomaly detection), and connect data sources.',
     color: 'purple',
   },
   {

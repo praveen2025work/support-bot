@@ -136,6 +136,18 @@ If your use case needs custom intents beyond the built-in ones, add utterances t
 
 ---
 
+## Built-in ML Features
+
+The platform includes built-in ML features that enhance the user experience automatically:
+
+- **Semantic search** — Users can discover queries using natural language (e.g., "something about revenue trends") instead of exact names. Powered by TF-IDF vector indexing.
+- **Smart recommendations** — After running a query, the chatbot suggests related queries based on collaborative filtering and user interaction history.
+- **Anomaly detection** — Query results are compared against learned baselines to flag unusual values automatically. Admins can configure sensitivity and rebuild baselines from the Admin panel.
+
+These features improve over time as more users interact with the platform. No additional setup is required — the Engine manages ML data in `services/engine/data/`.
+
+---
+
 ## 3. What Users Can Say
 
 The chatbot understands these types of requests:

@@ -157,6 +157,13 @@ npm run dev`}</CmdBlock>
 │   └── db.json                 # Query definitions + mock data
 ├── tests/                      # Jest test suite
 ├── public/                     # Static assets + widget JS
+├── services/
+│   └── engine/
+│       └── data/
+│           ├── indexes/        # Semantic search TF-IDF indexes
+│           ├── learning/       # Collaborative filtering models & logs
+│           ├── anomaly/        # Anomaly detection baselines & alerts
+│           └── preferences/    # User preference profiles
 ├── .env.local                  # Environment variables
 ├── package.json                # Dependencies & scripts
 └── next.config.mjs             # Next.js configuration`}</pre>

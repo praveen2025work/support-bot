@@ -370,6 +370,27 @@ pm2 restart all
 pm2 stop chatbot-engine`}</CmdBlock>
         </Section>
 
+        <Section title="ML Data Directories">
+          <p className="text-sm text-gray-600 mb-3">
+            The Engine stores ML data (semantic search indexes, learning models, anomaly baselines, and user preferences)
+            under <Code>services\engine\data\</Code>. On Windows, use backslash paths:
+          </p>
+          <div className="bg-gray-50 rounded-lg p-4 font-mono text-xs text-gray-600 mb-3">
+            <pre className="whitespace-pre-wrap">{`C:\\chatbot\\services\\engine\\data\\
+├── indexes\\              # Semantic search indexes (TF-IDF vectors)
+├── learning\\             # Collaborative filtering and interaction logs
+│   ├── default\\          # Default group learning data
+│   └── <group>\\          # Per-group learning data
+├── anomaly\\              # Anomaly detection baselines and alerts
+└── preferences\\          # User preference profiles for recommendations`}</pre>
+          </div>
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+            <span className="font-medium">Important:</span> Back up the <Code>services\engine\data\</Code> directory before upgrades or migrations.
+            These directories contain learned models and baselines that are rebuilt from interaction history.
+            Losing this data resets ML features to their initial state.
+          </div>
+        </Section>
+
         <Section title="Troubleshooting">
           <div className="space-y-3">
             <div className="p-3 bg-red-50 rounded-lg border border-red-200">
