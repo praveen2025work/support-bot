@@ -64,11 +64,25 @@ export function useDashboard(userId: string | undefined) {
     setPreferences((prev) => prev ? { ...prev, subscriptions: prev.subscriptions.filter((s) => s.id !== subscriptionId) } : prev);
   }, [userId]);
 
+  const updateFavoriteFilters = useCallback(async (favoriteId: string, filters: Record<string, string>) => {
+    if (!userId || !preferences) return;
+    const updatedFavorites = preferences.favorites.map((f) =>
+      f.id === favoriteId ? { ...f, defaultFilters: filters } : f
+    );
+    const res = await fetch('/api/preferences', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, favorites: updatedFavorites }),
+    });
+    if (!res.ok) throw new Error('Failed to update favorite filters');
+    setPreferences((prev) => prev ? { ...prev, favorites: updatedFavorites } : prev);
+  }, [userId, preferences]);
+
   const clearRecents = useCallback(async () => {
     if (!userId) return;
     await fetch(`/api/preferences/recents?userId=${encodeURIComponent(userId)}`, { method: 'DELETE' });
     setPreferences((prev) => prev ? { ...prev, recentQueries: [] } : prev);
   }, [userId]);
 
-  return { preferences, loading, error, refresh: fetchPreferences, addFavorite, removeFavorite, addSubscription, removeSubscription, clearRecents };
+  return { preferences, loading, error, refresh: fetchPreferences, addFavorite, removeFavorite, updateFavoriteFilters, addSubscription, removeSubscription, clearRecents };
 }

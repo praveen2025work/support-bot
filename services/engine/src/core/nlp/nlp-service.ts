@@ -6,8 +6,11 @@ import { NLP_CONFIDENCE_THRESHOLD } from '../constants';
 import { NlpNotInitializedError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 import { extractDateEntities } from './date-entity-extractor';
+import { correctTypos, addToDictionary } from './typo-corrector';
 import type { ClassificationResult, ExtractedEntity, IntentOverlap } from '../types';
 import type { FuzzyMatcher } from './fuzzy-matcher';
+
+export { addToDictionary };
 
 // Intents that should NOT match when the user is clearly asking a question
 const SIMPLE_INTENTS = new Set(['farewell', 'greeting']);
@@ -100,16 +103,30 @@ export class NlpService {
   async classify(text: string): Promise<ClassificationResult> {
     if (!this.nlp) throw new NlpNotInitializedError();
 
+    // Apply typo correction before classification
+    const typoResult = correctTypos(text);
+    const processedText = typoResult.wasCorrected ? typoResult.corrected : text;
+    if (typoResult.wasCorrected) {
+      logger.debug(
+        { original: text, corrected: processedText, corrections: typoResult.corrections },
+        'Typo correction applied before NLP classification'
+      );
+    }
+
     // Cache lookup — normalized lowercase key for case-insensitive matching
-    const cacheKey = text.trim().toLowerCase();
+    const cacheKey = processedText.trim().toLowerCase();
     const cached = this.classificationCache.get(cacheKey);
     if (cached) {
       logger.debug({ text: cacheKey, intent: cached.intent }, 'NLP cache hit');
+      // Attach corrections even on cache hit so the response can show "Did you mean"
+      if (typoResult.wasCorrected) {
+        return { ...cached, corrections: typoResult.corrections };
+      }
       return cached;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result: any = await this.nlp.process('en', text);
+    const result: any = await this.nlp.process('en', processedText);
 
     if (result.intent === 'None' || result.score < NLP_CONFIDENCE_THRESHOLD) {
       logger.debug({ text, score: result.score }, 'Low confidence, trying fuzzy match');
@@ -120,6 +137,7 @@ export class NlpService {
           confidence: fuzzyResult.score,
           entities: [],
           source: fuzzyResult.source,
+          ...(typoResult.wasCorrected && { corrections: typoResult.corrections }),
         };
         this.classificationCache.set(cacheKey, r);
         return r;
@@ -144,6 +162,7 @@ export class NlpService {
           confidence: fuzzyResult.score,
           entities: [],
           source: fuzzyResult.source,
+          ...(typoResult.wasCorrected && { corrections: typoResult.corrections }),
         };
         this.classificationCache.set(cacheKey, r);
         return r;
@@ -153,6 +172,7 @@ export class NlpService {
         confidence: result.score || 0,
         entities: [],
         source: 'nlp',
+        ...(typoResult.wasCorrected && { corrections: typoResult.corrections }),
       };
       this.classificationCache.set(cacheKey, r);
       return r;
@@ -187,6 +207,7 @@ export class NlpService {
           }
         : undefined,
       source: 'nlp',
+      ...(typoResult.wasCorrected && { corrections: typoResult.corrections }),
     };
     this.classificationCache.set(cacheKey, classificationResult);
     return classificationResult;

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
 import { UserProvider } from '@/contexts/UserContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -14,11 +15,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="antialiased">
-        <UserProvider>
-        {children}
-        </UserProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body className="antialiased bg-[var(--bg-primary)] text-[var(--text-primary)]">
+        <ThemeProvider>
+          <UserProvider>
+            {children}
+          </UserProvider>
+        </ThemeProvider>
         {/* Embedded widget for testing — mirrors what customers see on their sites */}
         <Script id="chatbot-widget-config" strategy="lazyOnload">
           {`

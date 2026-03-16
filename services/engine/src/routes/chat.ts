@@ -6,6 +6,7 @@ import { encryptLogEntry } from '@/lib/log-encryption';
 import { AsyncLogWriter } from '@/lib/async-log-writer';
 import { preferencesStore } from '@/data/user-preferences';
 import { paths } from '@/lib/env-config';
+import { broadcastEvent } from './events';
 
 export const chatRouter = Router();
 
@@ -92,6 +93,15 @@ chatRouter.post('/', async (req: Request, res: Response) => {
 
     const elapsed = ctx ? Date.now() - ctx.startTime : undefined;
     log.info({ sessionId: message.sessionId, intent: response.intent, executionMs: elapsed }, 'Chat request completed');
+
+    broadcastEvent('chat_message', {
+      timestamp: new Date().toISOString(),
+      intent: response.intent,
+      confidence: response.confidence,
+      queryName: response.queryName,
+      executionMs: response.executionMs,
+      groupId: body.groupId || 'default',
+    });
 
     return res.json(formatted);
   } catch (error) {

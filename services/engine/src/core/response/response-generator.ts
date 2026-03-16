@@ -109,6 +109,28 @@ export class ResponseGenerator {
   ): Promise<BotResponse> {
     const { intent } = classification;
 
+    // Dispatch to the appropriate handler
+    const response = await this.dispatch(classification, context, explicitFilters, incomingHeaders);
+
+    // Prepend a "Did you mean" note when typo corrections were applied
+    if (classification.corrections?.length) {
+      const correctionNote = classification.corrections
+        .map((c) => `${c.from} \u2192 ${c.to}`)
+        .join(', ');
+      response.text = `*Did you mean: "${correctionNote}"?*\n\n${response.text}`;
+    }
+
+    return response;
+  }
+
+  private async dispatch(
+    classification: ClassificationResult,
+    context: ConversationContext,
+    explicitFilters?: Record<string, string>,
+    incomingHeaders?: Record<string, string>
+  ): Promise<BotResponse> {
+    const { intent } = classification;
+
     // When the user has active query context, check for follow-up operations FIRST
     // before intent dispatch. This prevents "summarize", "sort by X", "filter by region US",
     // etc. from being misclassified as knowledge.search or other intents.

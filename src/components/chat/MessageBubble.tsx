@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import type { Message } from '@/hooks/useChat';
 import { QueryFilterForm, type QueryFilterFormData } from './QueryFilterForm';
 import { DataChart } from './DataChart';
+import { TablePagination, exportToCsv } from './TablePagination';
 
 interface QueryListItem {
   name: string;
@@ -662,6 +664,9 @@ function RichContentRenderer({
 }
 
 function QueryResultTable({ result }: { result: QueryResultData }) {
+  const [pageRange, setPageRange] = useState({ start: 0, end: 10 });
+  const pagedData = result.data.slice(pageRange.start, pageRange.end);
+
   return (
     <div className="mt-1 text-xs">
       <p className="text-gray-500">
@@ -684,7 +689,7 @@ function QueryResultTable({ result }: { result: QueryResultData }) {
                 </tr>
               </thead>
               <tbody>
-                {result.data.slice(0, 10).map((row, i) => (
+                {pagedData.map((row, i) => (
                   <tr key={i} className="border-b border-gray-100">
                     {Object.values(row).map((val, j) => (
                       <td key={j} className="px-2 py-1">
@@ -695,12 +700,14 @@ function QueryResultTable({ result }: { result: QueryResultData }) {
                 ))}
               </tbody>
             </table>
-            {result.data.length > 10 && (
-              <p className="text-gray-400 mt-1">
-                Showing 10 of {result.data.length} rows
-              </p>
-            )}
           </div>
+          {result.data.length > 10 && (
+            <TablePagination
+              totalRows={result.data.length}
+              onPageChange={(start, end) => setPageRange({ start, end })}
+              onExport={() => exportToCsv(result.data as Record<string, unknown>[], 'query-results.csv')}
+            />
+          )}
           <DataChart data={result.data} />
         </>
       )}

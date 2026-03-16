@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { csrfHeaders } from '@/lib/csrf';
+import { useSSE } from '@/hooks/useSSE';
 
 interface QueryStat {
   id: string;
@@ -29,6 +30,7 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [filterQuery, setFilterQuery] = useState('');
   const [timeRange, setTimeRange] = useState('all');
+  const { events: liveEvents, connected: sseConnected } = useSSE('http://localhost:8080/api/events');
 
   const fetchStats = useCallback(async () => {
     try {
@@ -235,6 +237,54 @@ export default function AnalyticsPage() {
           </div>
         </>
       )}
+
+      {/* Live Activity Feed */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mt-6">
+        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-700">Live Activity</h2>
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-block w-2 h-2 rounded-full ${sseConnected ? 'bg-green-500' : 'bg-red-500'}`}
+            />
+            <span className="text-xs text-gray-500">
+              {sseConnected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+        </div>
+        <div className="max-h-64 overflow-y-auto">
+          {liveEvents.length === 0 ? (
+            <p className="text-xs text-gray-400 p-4 text-center">No live events yet. Activity will appear here in real time.</p>
+          ) : (
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-gray-50">
+                <tr className="border-b border-gray-200">
+                  <th className="text-left px-4 py-2 font-medium text-gray-500">Time</th>
+                  <th className="text-left px-4 py-2 font-medium text-gray-500">Event</th>
+                  <th className="text-left px-4 py-2 font-medium text-gray-500">Intent</th>
+                  <th className="text-right px-4 py-2 font-medium text-gray-500">Duration</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...liveEvents].reverse().slice(0, 10).map((ev, i) => {
+                  const d = ev.data as Record<string, unknown>;
+                  return (
+                    <tr key={`${ev.timestamp}-${i}`} className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="px-4 py-1.5 text-gray-500">
+                        {new Date(ev.timestamp).toLocaleTimeString()}
+                      </td>
+                      <td className="px-4 py-1.5 text-gray-700">{ev.type}</td>
+                      <td className="px-4 py-1.5 font-mono text-gray-700">{(d.intent as string) || '-'}</td>
+                      <td className="px-4 py-1.5 text-right text-gray-700">
+                        {d.executionMs != null ? `${d.executionMs}ms` : '-'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -17,6 +17,8 @@ export interface ClassificationResult {
   entities: ExtractedEntity[];
   sentiment?: SentimentResult;
   source: 'nlp' | 'fuzzy' | 'fuzzy_synonym';
+  /** Typo corrections applied before classification, if any */
+  corrections?: Array<{ from: string; to: string }>;
 }
 
 export interface ExtractedEntity {

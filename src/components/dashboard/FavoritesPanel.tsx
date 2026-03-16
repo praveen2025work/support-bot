@@ -9,12 +9,14 @@ export function FavoritesPanel({
   userName,
   availableQueries,
   onRemove,
+  onSaveFilters,
 }: {
   favorites: FavoriteItem[];
   groupId: string;
   userName?: string;
   availableQueries?: QueryInfo[];
   onRemove: (id: string) => Promise<void>;
+  onSaveFilters?: (favoriteId: string, filters: Record<string, string>) => Promise<void>;
 }) {
   const getQueryFilters = (queryName: string) => {
     return availableQueries?.find((q) => q.name === queryName)?.filters;
@@ -36,6 +38,8 @@ export function FavoritesPanel({
             userName={userName}
             defaultFilters={fav.defaultFilters}
             queryFilters={getQueryFilters(fav.queryName)}
+            favoriteId={fav.id}
+            onSaveFilters={onSaveFilters}
             actions={
               <button
                 onClick={() => onRemove(fav.id)}

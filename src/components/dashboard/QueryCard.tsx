@@ -37,6 +37,8 @@ export function QueryCard({
   defaultFilters,
   queryFilters,
   autoExecute,
+  favoriteId,
+  onSaveFilters,
   actions,
 }: {
   queryName: string;
@@ -47,6 +49,8 @@ export function QueryCard({
   /** Filter keys from the query config — needed to show editable filter inputs */
   queryFilters?: Array<string | { key: string; binding: string }>;
   autoExecute?: boolean;
+  favoriteId?: string;
+  onSaveFilters?: (favoriteId: string, filters: Record<string, string>) => Promise<void>;
   actions?: React.ReactNode;
 }) {
   const [messages, setMessages] = useState<CardMessage[]>([]);
@@ -56,6 +60,8 @@ export function QueryCard({
   const [editingFilters, setEditingFilters] = useState(false);
   const [currentFilters, setCurrentFilters] = useState<Record<string, string>>(defaultFilters || {});
   const [filterConfigs, setFilterConfigs] = useState<Record<string, FilterOptionConfig>>({});
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const sessionIdRef = useRef(`dashboard_${userName}_${queryName}_${Date.now()}`);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const autoExecutedRef = useRef(false);
@@ -66,8 +72,9 @@ export function QueryCard({
     : Object.keys(defaultFilters || {});
 
   // Fetch filter configs for rendering editable inputs
+  const filterKeysLen = filterKeys.length;
   useEffect(() => {
-    if (filterKeys.length === 0) return;
+    if (filterKeysLen === 0) return;
     fetch('/api/filters')
       .then((res) => res.json())
       .then((json) => {
@@ -84,8 +91,7 @@ export function QueryCard({
         setFilterConfigs(configs);
       })
       .catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [filterKeysLen]);
 
   const getConfig = (filterKey: string): FilterOptionConfig => {
     return filterConfigs[filterKey] || fallbackConfig(filterKey);
@@ -181,6 +187,20 @@ export function QueryCard({
 
   const handleResetFilters = () => {
     setCurrentFilters(defaultFilters || {});
+  };
+
+  const handleSaveFilters = async () => {
+    if (!favoriteId || !onSaveFilters) return;
+    setSaving(true);
+    try {
+      await onSaveFilters(favoriteId, currentFilters);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch {
+      // silent fail
+    } finally {
+      setSaving(false);
+    }
   };
 
   const activeFilterEntries = Object.entries(currentFilters).filter(([, v]) => v);
@@ -293,13 +313,24 @@ export function QueryCard({
               </div>
             );
           })}
-          <button
-            onClick={handleRun}
-            disabled={isLoading}
-            className="w-full mt-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
-            {hasRun ? 'Re-run with Filters' : 'Run with Filters'}
-          </button>
+          <div className="flex gap-2 mt-1">
+            <button
+              onClick={handleRun}
+              disabled={isLoading}
+              className="flex-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {hasRun ? 'Re-run with Filters' : 'Run with Filters'}
+            </button>
+            {onSaveFilters && favoriteId && (
+              <button
+                onClick={handleSaveFilters}
+                disabled={saving}
+                className="px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50"
+              >
+                {saveSuccess ? 'Saved!' : saving ? 'Saving...' : 'Save Defaults'}
+              </button>
+            )}
+          </div>
         </div>
       )}
 

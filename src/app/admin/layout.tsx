@@ -4,6 +4,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
+import { AppHeader } from '@/components/AppHeader';
 
 export default function AdminLayout({
   children,
@@ -46,9 +47,12 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      <main className="flex-1 overflow-auto p-6">{children}</main>
+    <div className="flex flex-col h-screen bg-gray-50">
+      <AppHeader />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <main className="flex-1 overflow-auto p-6">{children}</main>
+      </div>
     </div>
   );
 }

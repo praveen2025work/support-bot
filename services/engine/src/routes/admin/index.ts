@@ -8,7 +8,8 @@ import usersRouter from './users';
 import filesRouter from './files';
 import learningRouter from './learning';
 import { settingsRouter, logsRouter } from './settings';
-import { getAuditLog } from '@/lib/audit-logger';
+import { auditRouter } from './audit';
+import { schedulesRouter } from './schedules';
 import { Role, isValidRole } from '@/lib/rbac';
 import { requirePermission } from '@/middleware/rbac';
 
@@ -50,20 +51,8 @@ router.use('/files', filesRouter);
 router.use('/learning', learningRouter);
 router.use('/settings', settingsRouter);
 router.use('/logs', logsRouter);
-
-// === AUDIT LOG ===
-router.get('/audit', requirePermission('audit.view'), async (req: Request, res: Response) => {
-  try {
-    const resource = req.query.resource as string | undefined;
-    const groupId = req.query.groupId as string | undefined;
-    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
-    const since = req.query.since as string | undefined;
-    const entries = await getAuditLog({ resource, groupId, limit, since });
-    return res.json({ entries, count: entries.length });
-  } catch (err) {
-    return res.status(500).json({ error: String(err) });
-  }
-});
+router.use('/audit', auditRouter);
+router.use('/schedules', schedulesRouter);
 
 export const adminRouter = router;
 export default router;

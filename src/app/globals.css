@@ -1,1 +1,177 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  --bg-card: #ffffff;
+  --bg-hover: #f3f4f6;
+  --bg-input: #ffffff;
+  --border-primary: #e5e7eb;
+  --border-secondary: #f3f4f6;
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-tertiary: #6b7280;
+  --text-muted: #9ca3af;
+  --text-link: #2563eb;
+  --accent-primary: #2563eb;
+  --accent-hover: #1d4ed8;
+  --chart-grid: #e5e7eb;
+  --chart-text: #6b7280;
+  --tooltip-bg: #ffffff;
+  --tooltip-border: #e5e7eb;
+}
+
+.dark {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-card: #1e293b;
+  --bg-hover: #334155;
+  --bg-input: #1e293b;
+  --border-primary: #334155;
+  --border-secondary: #1e293b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #e2e8f0;
+  --text-tertiary: #94a3b8;
+  --text-muted: #64748b;
+  --text-link: #60a5fa;
+  --accent-primary: #3b82f6;
+  --accent-hover: #2563eb;
+  --chart-grid: #334155;
+  --chart-text: #94a3b8;
+  --tooltip-bg: #1e293b;
+  --tooltip-border: #334155;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* ─── Global dark mode overrides ─── */
+/* Automatically remap Tailwind's hardcoded gray/white classes in dark mode */
+/* This avoids editing 20+ component files individually */
+
+/* Backgrounds */
+.dark .bg-white { background-color: #1e293b !important; }
+.dark .bg-gray-50 { background-color: #0f172a !important; }
+.dark .bg-gray-100 { background-color: #1e293b !important; }
+.dark .bg-gray-200 { background-color: #334155 !important; }
+
+/* Text colors */
+.dark .text-gray-900 { color: #f1f5f9 !important; }
+.dark .text-gray-800 { color: #e2e8f0 !important; }
+.dark .text-gray-700 { color: #cbd5e1 !important; }
+.dark .text-gray-600 { color: #94a3b8 !important; }
+.dark .text-gray-500 { color: #94a3b8 !important; }
+.dark .text-gray-400 { color: #64748b !important; }
+.dark .text-gray-300 { color: #94a3b8 !important; }
+
+/* Borders */
+.dark .border-gray-200 { border-color: #334155 !important; }
+.dark .border-gray-100 { border-color: #1e293b !important; }
+.dark .border-gray-300 { border-color: #475569 !important; }
+.dark .divide-gray-100 > :not(:last-child) { border-color: #1e293b !important; }
+.dark .divide-gray-200 > :not(:last-child) { border-color: #334155 !important; }
+
+/* Hover states */
+.dark .hover\:bg-gray-50:hover { background-color: #334155 !important; }
+.dark .hover\:bg-gray-100:hover { background-color: #334155 !important; }
+.dark .hover\:bg-gray-200:hover { background-color: #475569 !important; }
+
+/* Form inputs */
+.dark input, .dark textarea, .dark select {
+  background-color: #1e293b !important;
+  border-color: #475569 !important;
+  color: #e2e8f0 !important;
+}
+.dark input::placeholder, .dark textarea::placeholder {
+  color: #64748b !important;
+}
+.dark input:focus, .dark textarea:focus, .dark select:focus {
+  border-color: #3b82f6 !important;
+}
+
+/* Accent color adjustments for dark mode */
+.dark .bg-blue-50 { background-color: #1e3a5f !important; }
+.dark .bg-blue-100 { background-color: #1e3a5f !important; }
+.dark .text-blue-700 { color: #60a5fa !important; }
+.dark .text-blue-600 { color: #60a5fa !important; }
+.dark .text-blue-800 { color: #93bbfc !important; }
+.dark .border-blue-200 { border-color: #1e40af !important; }
+.dark .border-blue-300 { border-color: #2563eb !important; }
+.dark .border-blue-400 { border-color: #3b82f6 !important; }
+.dark .border-blue-100 { border-color: #1e3a5f !important; }
+.dark .hover\:bg-blue-50:hover { background-color: #1e3a5f !important; }
+/* bg-blue-50 with Tailwind opacity modifier (e.g. bg-blue-50/50) */
+.dark [class*="bg-blue-50\/"] { background-color: rgba(30, 58, 95, 0.5) !important; }
+.dark .hover\:border-blue-400:hover { border-color: #3b82f6 !important; }
+
+/* Red accent for errors */
+.dark .bg-red-50 { background-color: #3b1a1a !important; }
+.dark .bg-red-100 { background-color: #3b1a1a !important; }
+.dark .text-red-600 { color: #f87171 !important; }
+.dark .text-red-700 { color: #fca5a5 !important; }
+.dark .border-red-200 { border-color: #7f1d1d !important; }
+.dark .text-red-500 { color: #f87171 !important; }
+
+/* Green accent for success */
+.dark .bg-green-50 { background-color: #14332a !important; }
+.dark .bg-green-100 { background-color: #14332a !important; }
+.dark .text-green-600 { color: #4ade80 !important; }
+.dark .text-green-700 { color: #86efac !important; }
+.dark .border-green-200 { border-color: #166534 !important; }
+
+/* Purple accent */
+.dark .bg-purple-50 { background-color: #2e1065 !important; }
+.dark .bg-purple-100 { background-color: #2e1065 !important; }
+.dark .text-purple-700 { color: #c084fc !important; }
+.dark .border-purple-200 { border-color: #6b21a8 !important; }
+
+/* Orange accent */
+.dark .bg-orange-100 { background-color: #431407 !important; }
+.dark .text-orange-700 { color: #fb923c !important; }
+
+/* Yellow / Amber accent */
+.dark .bg-yellow-200 { background-color: #854d0e !important; }
+.dark .text-yellow-600 { color: #fbbf24 !important; }
+.dark .bg-amber-100 { background-color: #451a03 !important; }
+.dark .text-amber-700 { color: #fbbf24 !important; }
+
+/* Tables */
+.dark table { color: #e2e8f0; }
+.dark thead tr { background-color: #0f172a !important; }
+.dark tbody tr:hover { background-color: #334155 !important; }
+.dark th { color: #94a3b8 !important; }
+.dark td { color: #cbd5e1 !important; }
+
+/* Scrollbar styling for dark mode */
+.dark ::-webkit-scrollbar { width: 8px; height: 8px; }
+.dark ::-webkit-scrollbar-track { background: #1e293b; }
+.dark ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+/* Charts - Recharts dark mode */
+.dark .recharts-cartesian-grid line { stroke: #334155 !important; }
+.dark .recharts-text { fill: #94a3b8 !important; }
+.dark .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+.dark .recharts-legend-item-text { color: #94a3b8 !important; }
+.dark .recharts-label { fill: #94a3b8 !important; }
+
+/* Shadow adjustments */
+.dark .shadow-sm { box-shadow: 0 1px 2px rgba(0,0,0,0.4) !important; }
+.dark .shadow-lg { box-shadow: 0 10px 15px rgba(0,0,0,0.5) !important; }
+
+/* Loading animations */
+.dark .animate-pulse { opacity: 0.4; }
+
+/* Pre/code blocks */
+.dark pre { background-color: #0f172a !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+.dark code { background-color: #0f172a !important; color: #e2e8f0 !important; }

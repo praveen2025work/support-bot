@@ -71,6 +71,7 @@ export function DashboardShell({
                 userName={userId}
                 availableQueries={availableQueries}
                 onRemove={dashboard.removeFavorite}
+                onSaveFilters={dashboard.updateFavoriteFilters}
               />
             )}
             {hasRecents && (

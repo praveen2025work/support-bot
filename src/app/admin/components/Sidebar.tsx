@@ -21,6 +21,8 @@ const NAV_SECTIONS = [
       { href: '/admin/analytics', label: 'Analytics', match: (p: string) => p.startsWith('/admin/analytics') },
       { href: '/admin/logs', label: 'Conversation Logs', match: (p: string) => p.startsWith('/admin/logs') },
       { href: '/admin/learning', label: 'Learning', match: (p: string) => p.startsWith('/admin/learning') },
+      { href: '/admin/audit', label: 'Audit Trail', match: (p: string) => p.startsWith('/admin/audit') },
+      { href: '/admin/schedules', label: 'Schedules', match: (p: string) => p.startsWith('/admin/schedules') },
     ],
   },
   {
@@ -82,7 +84,7 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="px-4 py-3 border-t border-gray-200 space-y-2">
+      <div className="px-4 py-3 border-t border-gray-200">
         {userLoading ? (
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-gray-200 animate-pulse" />
@@ -99,12 +101,6 @@ export function Sidebar() {
             </div>
           </div>
         ) : null}
-        <Link
-          href="/"
-          className="text-xs text-gray-500 hover:text-blue-600 hover:underline block"
-        >
-          &larr; Back to Chat
-        </Link>
       </div>
     </aside>
   );
