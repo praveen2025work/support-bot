@@ -34,6 +34,17 @@ async function notifyEngineCacheClear(): Promise<void> {
   }
 }
 
+/** Tell the Mock API (json-server) to reload db.json from disk into memory. */
+async function reloadMockApi(): Promise<void> {
+  try {
+    const mockApiUrl = process.env.API_BASE_URL || 'http://localhost:8080/api';
+    const baseUrl = mockApiUrl.replace(/\/api\/?$/, '');
+    await fetch(`${baseUrl}/api/reload`, { method: 'POST' });
+  } catch {
+    // Mock API may not be running — non-critical
+  }
+}
+
 // GET: List all queries, optionally filtered by source
 export async function GET(request: NextRequest) {
   try {
@@ -111,8 +122,8 @@ export async function POST(request: NextRequest) {
       return { result: query, save: true };
     });
 
-    // Notify engine to clear query cache
-    await notifyEngineCacheClear();
+    // Notify engine to clear query cache + reload mock API in-memory db
+    await Promise.all([notifyEngineCacheClear(), reloadMockApi()]);
 
     return NextResponse.json(newQuery, { status: 201 });
   } catch (error) {
@@ -167,8 +178,8 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Query not found' }, { status: 404 });
     }
 
-    // Notify engine to clear query cache
-    await notifyEngineCacheClear();
+    // Notify engine to clear query cache + reload mock API in-memory db
+    await Promise.all([notifyEngineCacheClear(), reloadMockApi()]);
 
     return NextResponse.json(updated);
   } catch (error) {
@@ -202,8 +213,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Query not found' }, { status: 404 });
     }
 
-    // Notify engine to clear query cache
-    await notifyEngineCacheClear();
+    // Notify engine to clear query cache + reload mock API in-memory db
+    await Promise.all([notifyEngineCacheClear(), reloadMockApi()]);
 
     return NextResponse.json({ success: true, deletedQueryId: id });
   } catch (error) {

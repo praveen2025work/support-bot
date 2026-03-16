@@ -5,6 +5,7 @@ import { logAudit } from '@/lib/audit-logger';
 import { requirePermission } from '@/middleware/rbac';
 import { paths } from '@/lib/env-config';
 import { clearQueryCaches, invalidateQueryData } from '@/lib/singleton';
+import { config } from '@/lib/config';
 
 const router = Router();
 
@@ -16,6 +17,17 @@ async function readDb(): Promise<Record<string, unknown>> {
 }
 async function writeDb(data: Record<string, unknown>): Promise<void> {
   await fsPromises.writeFile(DB_JSON_PATH, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+/** Tell the Mock API (json-server) to reload db.json from disk into memory. */
+async function reloadMockApi(): Promise<void> {
+  try {
+    const mockApiUrl = config.apiBaseUrl.replace(/\/api\/?$/, '');
+    await fetch(`${mockApiUrl}/api/reload`, { method: 'POST' });
+    logger.info('Mock API db.json reloaded');
+  } catch {
+    // Mock API may not be running (production) — non-critical
+  }
 }
 
 router.get('/', requirePermission('queries.read'), async (req: Request, res: Response) => {
@@ -55,6 +67,7 @@ router.post('/', requirePermission('queries.create'), async (req: Request, res: 
     db.queries = queries;
     await writeDb(db);
     invalidateQueryData();
+    await reloadMockApi();
     await logAudit({ action: 'create', resource: 'query', resourceId: newQuery.id, details: { name, source, type: queryType }, ip: req.ip });
     return res.status(201).json(newQuery);
   } catch (error) {
@@ -78,6 +91,7 @@ router.patch('/', requirePermission('queries.update'), async (req: Request, res:
     db.queries = queries;
     await writeDb(db);
     invalidateQueryData();
+    await reloadMockApi();
     await logAudit({ action: 'update', resource: 'query', resourceId: id, details: updates, ip: req.ip });
     return res.json(query);
   } catch (error) {
@@ -98,6 +112,7 @@ router.delete('/', requirePermission('queries.delete'), async (req: Request, res
     db.queries = queries;
     await writeDb(db);
     invalidateQueryData();
+    await reloadMockApi();
     await logAudit({ action: 'delete', resource: 'query', resourceId: id, ip: req.ip });
     return res.json({ success: true, deletedQueryId: id });
   } catch (error) {

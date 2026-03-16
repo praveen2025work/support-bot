@@ -47,9 +47,15 @@ export const QuerySchema = z.object({
   // If not set, falls back to group apiBaseUrl → global API_BASE_URL → mock API.
   baseUrl: z.string().optional(),
   // HTTP method override (default: POST for api-type queries)
-  method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).optional(),
+  method: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.enum(['GET', 'POST', 'PUT', 'DELETE']).optional()
+  ),
   // Per-query authentication
-  authType: z.enum(['none', 'bearer', 'windows', 'bam']).default('none'),
+  authType: z.preprocess(
+    (val) => (val === '' ? 'none' : val),
+    z.enum(['none', 'bearer', 'windows', 'bam']).default('none')
+  ),
   bamTokenUrl: z.string().optional(),  // BAM: URL to fetch BAM token from
 });
 

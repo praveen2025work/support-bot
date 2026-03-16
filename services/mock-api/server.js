@@ -378,6 +378,23 @@ server.post('/api/bam/token', (req, res) => {
   });
 });
 
+// Reload db.json into json-server's in-memory database.
+// Called by the Engine/UI after admin creates/updates/deletes queries.
+server.post('/api/reload', (req, res) => {
+  try {
+    const fs = require('fs');
+    const dbPath = path.join(__dirname, 'db.json');
+    const freshData = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
+    // Replace json-server's in-memory db with fresh disk data
+    router.db.setState(freshData);
+    console.log(`[${new Date().toISOString()}] db.json reloaded — ${(freshData.queries || []).length} queries`);
+    res.json({ success: true, queries: (freshData.queries || []).length });
+  } catch (err) {
+    console.error('Failed to reload db.json:', err.message);
+    res.status(500).json({ error: 'Failed to reload db.json' });
+  }
+});
+
 // Serve queries under /api/queries
 server.use('/api', router);
 
