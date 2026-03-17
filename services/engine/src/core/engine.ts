@@ -47,7 +47,8 @@ export class ChatbotEngine {
       timestamp: message.timestamp,
     });
 
-    const classification = await this.nlpService.classify(message.text);
+    const hasQueryContext = !!(context.lastQueryName && context.lastApiResult);
+    const classification = await this.nlpService.classify(message.text, hasQueryContext);
     logger.info(
       {
         intent: classification.intent,

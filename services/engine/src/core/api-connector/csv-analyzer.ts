@@ -163,15 +163,45 @@ export function parseAggregationFromText(
 }
 
 function findMatchingHeader(term: string, headers: string[]): string | null {
-  const lowerTerm = term.toLowerCase();
-  // Exact match
+  const lowerTerm = term.toLowerCase().replace(/_/g, '');
+
+  // 1. Exact match (case-insensitive)
   for (const h of headers) {
-    if (h.toLowerCase() === lowerTerm) return h;
+    if (h.toLowerCase() === term.toLowerCase()) return h;
   }
-  // Partial match
+
+  // 2. Exact match ignoring underscores/spaces (e.g., "bookstatus" matches "Book_Status")
   for (const h of headers) {
-    if (h.toLowerCase().includes(lowerTerm) || lowerTerm.includes(h.toLowerCase())) return h;
+    if (h.toLowerCase().replace(/[_\s]/g, '') === lowerTerm) return h;
   }
+
+  // 3. Whole-word boundary match — header contains the term as a distinct word
+  //    e.g., "status" matches "Book Status" or "Book_Status" but NOT "StatusCode"
+  for (const h of headers) {
+    const hLower = h.toLowerCase();
+    // Split by underscore, space, or camelCase boundaries
+    const hWords = hLower.replace(/([a-z])([A-Z])/g, '$1 $2').split(/[_\s]+/);
+    if (hWords.includes(term.toLowerCase())) return h;
+  }
+
+  // 4. Term ends with header word or header word ends with term (suffix match)
+  //    e.g., "region" matches "Region" but avoids "RegionalCode"
+  for (const h of headers) {
+    const hNorm = h.toLowerCase().replace(/[_\s]/g, '');
+    if (hNorm === lowerTerm) return h;
+    // Only allow suffix/prefix match for longer terms (>=4 chars) to avoid false positives
+    if (lowerTerm.length >= 4 && hNorm.endsWith(lowerTerm)) return h;
+    if (lowerTerm.length >= 4 && lowerTerm.endsWith(hNorm) && hNorm.length >= 4) return h;
+  }
+
+  // 5. Partial match (last resort) — but require term to be substantial (>=4 chars)
+  if (lowerTerm.length >= 4) {
+    for (const h of headers) {
+      const hNorm = h.toLowerCase().replace(/[_\s]/g, '');
+      if (hNorm.includes(lowerTerm)) return h;
+    }
+  }
+
   return null;
 }
 
@@ -194,12 +224,16 @@ function findColumnInText(text: string, headers: string[]): string | null {
 
 export interface GroupByResult {
   groupColumn: string;
+  /** When multi-column group-by is used, lists all group columns */
+  groupColumns?: string[];
   groups: GroupRow[];
   aggregatedColumns: { column: string; operation: string }[];
 }
 
 export interface GroupRow {
   groupValue: string | number;
+  /** When multi-column group-by is used, holds the composite key parts */
+  groupValues?: Record<string, string | number>;
   count: number;
   aggregations: Record<string, number>;
 }
@@ -259,6 +293,33 @@ function isIdentityColumn(header: string, rows: Record<string, string | number>[
   return false;
 }
 
+/**
+ * Check if a column contains date values (not just date-like column names).
+ * Detects: date strings ("2026-03-15", "03/15/2026", "15-Mar-2026"),
+ * Excel serial dates (numeric values in 1-100000 range with column name hint),
+ * and JS Date objects serialized as ISO strings.
+ */
+function isDateValueColumn(header: string, rows: Record<string, string | number>[]): boolean {
+  // Column name strongly suggests date — very likely dates even if values look numeric
+  if (DATE_COLUMN_PATTERN.test(header)) return true;
+
+  // Sample values for date string detection
+  const sample = rows.slice(0, 20);
+  let dateStringCount = 0;
+  for (const row of sample) {
+    const v = row[header];
+    if (v === undefined || v === null || v === '') continue;
+    const s = String(v).trim();
+    if (detectDateFormat(s)) {
+      dateStringCount++;
+    }
+  }
+  const nonEmpty = sample.filter((r) => r[header] !== undefined && r[header] !== null && r[header] !== '').length;
+  if (nonEmpty > 0 && dateStringCount / nonEmpty > 0.5) return true;
+
+  return false;
+}
+
 function getNumericColumns(data: CsvData, columnConfig?: ColumnConfig): string[] {
   // If explicit valueColumns provided, use those directly (validate they exist in headers)
   if (columnConfig?.valueColumns && columnConfig.valueColumns.length > 0) {
@@ -275,6 +336,8 @@ function getNumericColumns(data: CsvData, columnConfig?: ColumnConfig): string[]
     if (data.rows.length === 0) return false;
     // Skip ID, date, and ignored columns
     if (isIdentityColumn(h, data.rows, columnConfig)) return false;
+    // Skip date columns (by name pattern or by detecting date values)
+    if (isDateValueColumn(h, data.rows)) return false;
     let numCount = 0;
     for (const row of data.rows) {
       const v = row[h];
@@ -287,9 +350,17 @@ function getNumericColumns(data: CsvData, columnConfig?: ColumnConfig): string[]
 }
 
 /**
- * Group rows by a column and sum all numeric columns per group.
+ * Group rows by one or more columns and sum all numeric columns per group.
+ * Supports single column: groupBy(data, "region")
+ * Supports multi-column: groupBy(data, "region") for single, or use groupByMultiple.
  */
 export function groupBy(data: CsvData, groupColumn: string): GroupByResult | null {
+  // Check if this is a multi-column request: "product and region", "product, region"
+  const multiCols = groupColumn.split(/\s+and\s+|,\s*/i).map((c) => c.trim()).filter(Boolean);
+  if (multiCols.length > 1) {
+    return groupByMultiple(data, multiCols);
+  }
+
   const matchedCol = findMatchingHeader(groupColumn, data.headers);
   if (!matchedCol) return null;
 
@@ -314,7 +385,6 @@ export function groupBy(data: CsvData, groupColumn: string): GroupByResult | nul
 
   const groups: GroupRow[] = [];
   buckets.forEach((bucket, groupValue) => {
-    // Round sums for cleaner display
     const aggregations: Record<string, number> = {};
     for (const [col, sum] of Object.entries(bucket.sums)) {
       aggregations[col] = Math.round(sum * 100) / 100;
@@ -322,11 +392,77 @@ export function groupBy(data: CsvData, groupColumn: string): GroupByResult | nul
     groups.push({ groupValue, count: bucket.count, aggregations });
   });
 
-  // Sort groups by groupValue
   groups.sort((a, b) => String(a.groupValue).localeCompare(String(b.groupValue)));
 
   return {
     groupColumn: matchedCol,
+    groups,
+    aggregatedColumns: numericCols.map((c) => ({ column: c, operation: 'sum' })),
+  };
+}
+
+/**
+ * Group rows by multiple columns (composite key).
+ * e.g., "group by product and region" → each unique (product, region) pair is a group.
+ */
+export function groupByMultiple(data: CsvData, groupColumns: string[]): GroupByResult | null {
+  // Resolve each column name
+  const matchedCols: string[] = [];
+  for (const col of groupColumns) {
+    const matched = findMatchingHeader(col, data.headers);
+    if (!matched) return null; // Bail if any column not found
+    matchedCols.push(matched);
+  }
+
+  const groupColSet = new Set(matchedCols);
+  const numericCols = getNumericColumns(data).filter((c) => !groupColSet.has(c));
+
+  // Use a composite string key: "val1|||val2|||val3"
+  const SEPARATOR = '|||';
+  const buckets = new Map<string, { values: Record<string, string | number>; count: number; sums: Record<string, number> }>();
+
+  for (const row of data.rows) {
+    const keyParts = matchedCols.map((col) => String(row[col] ?? '(empty)'));
+    const compositeKey = keyParts.join(SEPARATOR);
+
+    let bucket = buckets.get(compositeKey);
+    if (!bucket) {
+      const values: Record<string, string | number> = {};
+      matchedCols.forEach((col) => { values[col] = row[col] ?? '(empty)'; });
+      bucket = { values, count: 0, sums: {} };
+      for (const nc of numericCols) bucket.sums[nc] = 0;
+      buckets.set(compositeKey, bucket);
+    }
+    bucket.count++;
+    for (const nc of numericCols) {
+      const v = row[nc];
+      const num = typeof v === 'number' ? v : parseFloat(String(v));
+      if (!isNaN(num)) bucket.sums[nc] += num;
+    }
+  }
+
+  const groups: GroupRow[] = [];
+  buckets.forEach((bucket) => {
+    const aggregations: Record<string, number> = {};
+    for (const [col, sum] of Object.entries(bucket.sums)) {
+      aggregations[col] = Math.round(sum * 100) / 100;
+    }
+    // Display label: "Product A | US"
+    const displayLabel = matchedCols.map((col) => String(bucket.values[col])).join(' | ');
+    groups.push({
+      groupValue: displayLabel,
+      groupValues: bucket.values,
+      count: bucket.count,
+      aggregations,
+    });
+  });
+
+  groups.sort((a, b) => String(a.groupValue).localeCompare(String(b.groupValue)));
+
+  const displayColumnName = matchedCols.join(' + ');
+  return {
+    groupColumn: displayColumnName,
+    groupColumns: matchedCols,
     groups,
     aggregatedColumns: numericCols.map((c) => ({ column: c, operation: 'sum' })),
   };
@@ -599,20 +735,54 @@ export function computeSummary(data: CsvData): SummaryResult {
  * Parse "group by <column>" from text.
  */
 export function parseGroupByFromText(text: string, headers: string[]): string | null {
-  const match = text.match(/\bgroup(?:ed)?\s+by\s+(\w+)/i);
+  // Try multi-word match first: "group by book status" → try "book status", then "book"
+  const match = text.match(/\bgroup(?:ed)?\s+by\s+(.+?)(?:\s+(?:asc|desc|ascending|descending|for|where|with|in)\b|$)/i);
   if (!match) return null;
-  return findMatchingHeader(match[1], headers);
+
+  const rawCol = match[1].trim();
+
+  // Check for multi-column request: "group by product and region" or "group by product, region"
+  const multiParts = rawCol.split(/\s+and\s+|,\s*/i).map((c) => c.trim()).filter(Boolean);
+  if (multiParts.length > 1) {
+    // Validate each column exists before returning multi-column string
+    const matched: string[] = [];
+    for (const part of multiParts) {
+      const m = findMatchingHeader(part, headers);
+      if (!m) return null; // If any column is invalid, fail
+      matched.push(m);
+    }
+    // Return as "col1 and col2" so groupBy() can split and delegate to groupByMultiple()
+    return matched.join(' and ');
+  }
+
+  // Try the full phrase first (handles multi-word column names)
+  const fullMatch = findMatchingHeader(rawCol, headers);
+  if (fullMatch) return fullMatch;
+
+  // Fall back to first word only
+  const firstWord = rawCol.split(/\s+/)[0];
+  return findMatchingHeader(firstWord, headers);
 }
 
 /**
  * Parse "sort by <column> [asc|desc]" from text.
  */
 export function parseSortFromText(text: string, headers: string[]): SortRequest | null {
-  const match = text.match(/\b(?:sort|order)(?:ed)?\s+by\s+(\w+)(?:\s+(asc|desc|ascending|descending))?/i);
+  // Support multi-word columns: "sort by book status desc"
+  const match = text.match(/\b(?:sort|order)(?:ed)?\s+by\s+(.+?)(?:\s+(asc|desc|ascending|descending)\s*$|\s*$)/i);
   if (!match) return null;
-  const col = findMatchingHeader(match[1], headers);
-  if (!col) return null;
+
+  const rawCol = match[1].trim();
   const dir = match[2];
+
+  // Try the full phrase first
+  let col = findMatchingHeader(rawCol, headers);
+  if (!col) {
+    // Fall back to first word
+    col = findMatchingHeader(rawCol.split(/\s+/)[0], headers);
+  }
+  if (!col) return null;
+
   const direction: 'asc' | 'desc' =
     dir && /desc/i.test(dir) ? 'desc' : dir && /asc/i.test(dir) ? 'asc' : 'desc';
   return { column: col, direction };

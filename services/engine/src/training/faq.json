@@ -63,5 +63,55 @@
     "question": "Show me revenue for this month in Europe",
     "intent": "query.execute",
     "answer": "I can run the revenue query with month and region filters."
+  },
+  {
+    "question": "Group by status",
+    "intent": "followup.group_by",
+    "answer": "I'll group the data by status for you."
+  },
+  {
+    "question": "Sort by date descending",
+    "intent": "followup.sort",
+    "answer": "I'll sort the results by date in descending order."
+  },
+  {
+    "question": "Show me a summary",
+    "intent": "followup.summary",
+    "answer": "Here's a statistical summary of the data."
+  },
+  {
+    "question": "Top 5 by revenue",
+    "intent": "followup.top_n",
+    "answer": "Here are the top 5 results by revenue."
+  },
+  {
+    "question": "What is the average cost",
+    "intent": "followup.aggregation",
+    "answer": "I'll calculate the average cost for you."
+  },
+  {
+    "question": "What is the status of this item",
+    "intent": "followup.data_lookup",
+    "answer": "Let me look up the status for you."
+  },
+  {
+    "question": "Show only APAC records",
+    "intent": "followup.filter",
+    "answer": "I'll filter the results to show only APAC records."
+  },
+  {
+    "question": "Which books are open",
+    "intent": "followup.data_lookup",
+    "answer": "Let me search the data for open books."
+  },
+  {
+    "question": "Break down by region",
+    "intent": "followup.group_by",
+    "answer": "I'll group the data by region for you."
+  },
+  {
+    "question": "How many rows are there",
+    "intent": "followup.aggregation",
+    "answer": "I'll count the rows for you."
   }
 ]

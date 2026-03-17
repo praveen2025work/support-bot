@@ -11,6 +11,13 @@ export const INTENTS = {
   DOCUMENT_ASK: 'document.ask',
   DOCUMENT_LIST: 'document.list',
   QUERY_SEARCH: 'query.search',
+  FOLLOWUP_GROUP_BY: 'followup.group_by',
+  FOLLOWUP_SORT: 'followup.sort',
+  FOLLOWUP_FILTER: 'followup.filter',
+  FOLLOWUP_SUMMARY: 'followup.summary',
+  FOLLOWUP_TOP_N: 'followup.top_n',
+  FOLLOWUP_AGGREGATION: 'followup.aggregation',
+  FOLLOWUP_DATA_LOOKUP: 'followup.data_lookup',
 } as const;
 
 export const NLP_CONFIDENCE_THRESHOLD = 0.65;

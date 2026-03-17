@@ -119,6 +119,20 @@
         "medium": ["medium", "med", "P3", "severity 3"],
         "low": ["low", "P4", "severity 4", "minor"]
       }
+    },
+    "column_name": {
+      "options": {
+        "status": ["status", "state", "condition", "stage"],
+        "region": ["region", "area", "location", "geography", "country"],
+        "category": ["category", "type", "kind", "class", "group"],
+        "priority": ["priority", "severity", "urgency", "importance"],
+        "name": ["name", "title", "label", "identifier"],
+        "date": ["date", "time", "timestamp", "created", "updated", "modified"],
+        "amount": ["amount", "value", "total", "revenue", "cost", "price", "balance"],
+        "count": ["count", "number", "quantity", "volume"],
+        "description": ["description", "desc", "details", "notes", "comment"],
+        "owner": ["owner", "assignee", "assigned", "responsible", "user", "creator"]
+      }
     }
   },
   "data": [
@@ -432,6 +446,162 @@
         "search queries about employees",
         "find queries for support tickets",
         "what do you have about logs"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "followup.group_by",
+      "utterances": [
+        "group by @column_name",
+        "group this by @column_name",
+        "group the data by @column_name",
+        "group by category",
+        "group by status",
+        "group by region",
+        "group by type",
+        "group by name",
+        "grouped by @column_name",
+        "break down by @column_name",
+        "breakdown by @column_name",
+        "can you group this by @column_name",
+        "show me grouped by @column_name",
+        "group the results by @column_name",
+        "categorize by @column_name"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "followup.sort",
+      "utterances": [
+        "sort by @column_name",
+        "sort by @column_name desc",
+        "sort by @column_name ascending",
+        "sort by @column_name descending",
+        "order by @column_name",
+        "order by @column_name desc",
+        "sort this by @column_name",
+        "sort the data by @column_name",
+        "arrange by @column_name",
+        "sort by date",
+        "sort by name",
+        "sort by amount desc",
+        "sort by status",
+        "order by revenue descending",
+        "sort ascending by @column_name"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "followup.filter",
+      "utterances": [
+        "filter by @column_name",
+        "filter by region @region",
+        "filter for @region",
+        "show only @region",
+        "show only APAC",
+        "show only US data",
+        "where status is open",
+        "where @column_name is",
+        "only show open items",
+        "just the US records",
+        "just show APAC",
+        "only critical items",
+        "filter by status open",
+        "show me only the completed ones",
+        "where region equals APAC",
+        "filter for high priority"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "followup.summary",
+      "utterances": [
+        "summarize",
+        "summary",
+        "stats",
+        "statistics",
+        "give me a summary",
+        "describe the data",
+        "show statistics",
+        "show me an overview",
+        "what are the stats",
+        "data overview",
+        "give me stats",
+        "show a summary",
+        "statistical overview",
+        "data summary",
+        "overview of the data"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "followup.top_n",
+      "utterances": [
+        "top 5",
+        "top 10",
+        "top 5 by @column_name",
+        "top 10 by @column_name",
+        "bottom 5",
+        "bottom 10",
+        "bottom 5 by @column_name",
+        "show me the top 3",
+        "show top 5",
+        "show bottom 10",
+        "highest 10 by @column_name",
+        "lowest 5 by @column_name",
+        "top 3 by revenue",
+        "bottom 5 by amount",
+        "show the top 10 results"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "followup.aggregation",
+      "utterances": [
+        "average @column_name",
+        "avg @column_name",
+        "sum of @column_name",
+        "total @column_name",
+        "count",
+        "count rows",
+        "how many rows",
+        "how many records",
+        "maximum @column_name",
+        "minimum @column_name",
+        "calculate avg @column_name",
+        "what is the total",
+        "what is the average",
+        "sum total",
+        "calculate the sum",
+        "max @column_name",
+        "min @column_name",
+        "mean @column_name"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "followup.data_lookup",
+      "utterances": [
+        "what is the status of @query_name",
+        "show me APAC records",
+        "which items are open",
+        "find records for @region",
+        "what books are opened",
+        "show status for @query_name",
+        "what is the @column_name for",
+        "show me details for",
+        "find @region data",
+        "which rows have status open",
+        "what are the open items",
+        "show me completed records",
+        "find all APAC entries",
+        "what records match",
+        "look up status of",
+        "tell me about the APAC books",
+        "what is the current status",
+        "show records where",
+        "which ones are pending",
+        "find US entries"
       ],
       "answers": []
     },

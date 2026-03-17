@@ -43,15 +43,17 @@ export function buildExecuteOptions(
   const hasSortIntent = SORT_PATTERN.test(userText);
 
   if (hasGroupByIntent) {
-    const groupMatch = userText.match(/\bgroup(?:ed)?\s+by\s+(\w+)/i);
-    if (groupMatch) return { groupByColumn: groupMatch[1] };
+    // Support multi-word column names: "group by book status"
+    const groupMatch = userText.match(/\bgroup(?:ed)?\s+by\s+(.+?)(?:\s+(?:asc|desc|ascending|descending|for|where|with|in)\b|$)/i);
+    if (groupMatch) return { groupByColumn: groupMatch[1].trim() };
   }
 
   if (hasSortIntent) {
-    const sortMatch = userText.match(/\b(?:sort|order)(?:ed)?\s+by\s+(\w+)(?:\s+(asc|desc|ascending|descending))?/i);
+    // Support multi-word column names: "sort by book status desc"
+    const sortMatch = userText.match(/\b(?:sort|order)(?:ed)?\s+by\s+(.+?)(?:\s+(asc|desc|ascending|descending)\s*$|\s*$)/i);
     if (sortMatch) {
       const dir = sortMatch[2] && /desc/i.test(sortMatch[2]) ? 'desc' as const : 'asc' as const;
-      return { sortColumn: sortMatch[1], sortDirection: dir };
+      return { sortColumn: sortMatch[1].trim(), sortDirection: dir };
     }
   }
 

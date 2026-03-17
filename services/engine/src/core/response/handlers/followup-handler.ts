@@ -736,7 +736,194 @@ export function handleDataOperation(
   if (compareResult) return compareResult;
   const aggResult = handleAggregationFollowUp(classification, context);
   if (aggResult) return aggResult;
+  // Data-aware lookup: search actual row values for user's question
+  const lookupResult = handleDataLookup(classification, context);
+  if (lookupResult) return lookupResult;
   return null;
+}
+
+/**
+ * Handle data-aware lookup: answer questions by searching actual row values.
+ * Handles patterns like:
+ *   "what is the status of Book X" → find rows where any column contains "Book X", show status
+ *   "APAC books opened" → filter rows matching "APAC" and "opened", show results
+ *   "show me rows for APAC" → filter by data value
+ */
+export function handleDataLookup(
+  classification: ClassificationResult,
+  context: ConversationContext
+): BotResponse | null {
+  if (!context.lastApiResult || !context.lastQueryName) return null;
+
+  const csvData = extractCsvDataFromContext(context);
+  if (!csvData || csvData.rows.length === 0) return null;
+
+  const userText = getLastUserText(context);
+  const lower = userText.toLowerCase().trim();
+
+  // Pattern A: "what is the <column> of <value>" or "status of Book X"
+  const ofMatch = lower.match(
+    /(?:what(?:'s|\s+is|\s+are)?|show(?:\s+me)?|get|tell\s+me)\s+(?:the\s+)?(.+?)\s+(?:of|for)\s+(.+)/i
+  );
+  if (ofMatch) {
+    const colHint = ofMatch[1].trim();
+    const valueHint = ofMatch[2].trim();
+    return lookupByValue(csvData, colHint, valueHint, context);
+  }
+
+  // Pattern B: free-form value search — extract meaningful words and search data
+  // e.g., "APAC books opened", "show opened APAC books"
+  // Skip if it matches other follow-up patterns (group by, sort, etc.)
+  if (GROUP_BY_PATTERN.test(lower) || SORT_PATTERN.test(lower)
+    || SUMMARY_PATTERN.test(lower) || TOP_BOTTOM_PATTERN.test(lower)
+    || AGGREGATION_PATTERN.test(lower) || /\b(filter|where)\s+\w+\s*[=><]/i.test(lower)) {
+    return null;
+  }
+
+  // Extract search terms by removing stop words and common noise
+  const searchStopWords = new Set([
+    'what', 'is', 'are', 'the', 'a', 'an', 'of', 'for', 'from', 'in', 'with',
+    'show', 'me', 'get', 'find', 'tell', 'give', 'list', 'all', 'my', 'about',
+    'how', 'many', 'much', 'does', 'do', 'can', 'you', 'i', 'to', 'it', 'that',
+    'this', 'those', 'these', 'any', 'some', 'where', 'which', 'who', 'whom',
+    'run', 'query', 'data', 'result', 'results', 'please', 'just', 'only',
+  ]);
+  const searchTerms = lower
+    .replace(/[^\w\s]/g, '')
+    .split(/\s+/)
+    .filter((w) => w.length >= 2 && !searchStopWords.has(w));
+
+  if (searchTerms.length === 0) return null;
+
+  // Try to find rows where any column value matches the search terms
+  const matchedRows = csvData.rows.filter((row) => {
+    const rowValues = Object.values(row).map((v) => String(v ?? '').toLowerCase());
+    const rowText = rowValues.join(' ');
+    // Require all search terms to appear somewhere in the row
+    return searchTerms.every((term) => rowText.includes(term));
+  });
+
+  if (matchedRows.length === 0) {
+    // Try partial match: require at least 60% of terms to match
+    const threshold = Math.max(1, Math.ceil(searchTerms.length * 0.6));
+    const partialMatches = csvData.rows.filter((row) => {
+      const rowText = Object.values(row).map((v) => String(v ?? '').toLowerCase()).join(' ');
+      const matchCount = searchTerms.filter((term) => rowText.includes(term)).length;
+      return matchCount >= threshold;
+    });
+
+    if (partialMatches.length === 0) return null;
+    if (partialMatches.length > 20) return null; // Too many results, not specific enough
+
+    logger.info({ query: context.lastQueryName, terms: searchTerms, matched: partialMatches.length }, 'Data lookup: partial match');
+
+    return {
+      text: `Found ${partialMatches.length} matching row(s) in "${context.lastQueryName}" for "${searchTerms.join(' ')}":`,
+      richContent: {
+        type: 'csv_table',
+        data: { headers: csvData.headers, rows: partialMatches, filePath: (context.lastApiResult as Record<string, unknown>)?.filePath, rowCount: partialMatches.length },
+      },
+      suggestions: [
+        'summarize',
+        ...csvData.headers.slice(0, 2).map((h) => `group by ${h}`),
+      ],
+      sessionId: context.sessionId,
+      intent: 'followup.data_lookup',
+      confidence: 1,
+    };
+  }
+
+  if (matchedRows.length > 20) return null; // Too many — not specific enough
+
+  logger.info({ query: context.lastQueryName, terms: searchTerms, matched: matchedRows.length }, 'Data lookup: exact match');
+
+  return {
+    text: `Found ${matchedRows.length} matching row(s) in "${context.lastQueryName}" for "${searchTerms.join(' ')}":`,
+    richContent: {
+      type: 'csv_table',
+      data: { headers: csvData.headers, rows: matchedRows, filePath: (context.lastApiResult as Record<string, unknown>)?.filePath, rowCount: matchedRows.length },
+    },
+    suggestions: [
+      'summarize',
+      ...csvData.headers.slice(0, 2).map((h) => `group by ${h}`),
+    ],
+    sessionId: context.sessionId,
+    intent: 'followup.data_lookup',
+    confidence: 1,
+  };
+}
+
+/**
+ * Look up specific column value(s) for rows matching a search value.
+ * e.g., "what is the status of Book X" → find rows containing "Book X", return their "status" column.
+ */
+function lookupByValue(
+  csvData: CsvData,
+  colHint: string,
+  valueHint: string,
+  context: ConversationContext,
+): BotResponse | null {
+  // Find the target column (e.g., "status")
+  const targetCol = csvData.headers.find((h) => h.toLowerCase() === colHint.toLowerCase())
+    ?? csvData.headers.find((h) => h.toLowerCase().replace(/[_\s]/g, '') === colHint.replace(/[_\s]/g, '').toLowerCase())
+    ?? csvData.headers.find((h) => {
+      const hWords = h.toLowerCase().replace(/([a-z])([A-Z])/g, '$1 $2').split(/[_\s]+/);
+      return hWords.includes(colHint.toLowerCase());
+    })
+    ?? csvData.headers.find((h) => h.toLowerCase().includes(colHint.toLowerCase()));
+
+  // Search for rows containing the value hint in any column
+  const valueLower = valueHint.toLowerCase();
+  const matchedRows = csvData.rows.filter((row) => {
+    return Object.values(row).some((v) =>
+      String(v ?? '').toLowerCase().includes(valueLower)
+    );
+  });
+
+  if (matchedRows.length === 0) {
+    return {
+      text: `No rows found in "${context.lastQueryName}" matching "${valueHint}".`,
+      suggestions: ['summarize', ...csvData.headers.slice(0, 3).map((h) => `group by ${h}`)],
+      sessionId: context.sessionId,
+      intent: 'followup.data_lookup',
+      confidence: 1,
+    };
+  }
+
+  // If we found a target column, show just that column's values
+  if (targetCol && matchedRows.length <= 10) {
+    const values = matchedRows.map((row) => {
+      // Build a label from the first text column that contains the search value
+      const labelCol = csvData.headers.find((h) =>
+        h !== targetCol && String(row[h] ?? '').toLowerCase().includes(valueLower)
+      ) || csvData.headers[0];
+      return `**${row[labelCol]}** → ${targetCol}: **${row[targetCol] ?? 'N/A'}**`;
+    });
+    return {
+      text: `Here is the **${targetCol}** for "${valueHint}" from "${context.lastQueryName}":\n${values.join('\n')}`,
+      suggestions: csvData.headers.filter((h) => h !== targetCol).slice(0, 3).map((h) => `what is ${h} of ${valueHint}`),
+      sessionId: context.sessionId,
+      intent: 'followup.data_lookup',
+      confidence: 1,
+    };
+  }
+
+  // Otherwise show full matching rows as a table
+  const displayRows = matchedRows.slice(0, 20);
+  return {
+    text: `Found ${matchedRows.length} row(s) matching "${valueHint}" in "${context.lastQueryName}":`,
+    richContent: {
+      type: 'csv_table',
+      data: { headers: csvData.headers, rows: displayRows, filePath: (context.lastApiResult as Record<string, unknown>)?.filePath, rowCount: displayRows.length },
+    },
+    suggestions: [
+      'summarize',
+      ...csvData.headers.slice(0, 2).map((h) => `group by ${h}`),
+    ],
+    sessionId: context.sessionId,
+    intent: 'followup.data_lookup',
+    confidence: 1,
+  };
 }
 
 // ── Private helpers ─────────────────────────────────────────────────

@@ -109,7 +109,7 @@ export class NlpService {
     }
   }
 
-  async classify(text: string): Promise<ClassificationResult> {
+  async classify(text: string, hasQueryContext = false): Promise<ClassificationResult> {
     if (!this.nlp) throw new NlpNotInitializedError();
 
     // Apply typo correction before classification
@@ -204,9 +204,40 @@ export class NlpService {
       entities.push(...dateEntities);
     }
 
+    let finalIntent = result.intent || 'None';
+    let finalScore = result.score || 0;
+
+    // Context-aware boosting: when user has active query results, prefer follow-up
+    // intents if they scored close to the top result. This prevents "group by status"
+    // from being classified as query.execute when the user is working with data.
+    if (hasQueryContext && finalIntent !== 'None') {
+      const followupIntents = new Set([
+        'followup.group_by', 'followup.sort', 'followup.filter',
+        'followup.summary', 'followup.top_n', 'followup.aggregation',
+        'followup.data_lookup',
+      ]);
+
+      // If already a follow-up intent, no boosting needed
+      if (!followupIntents.has(finalIntent)) {
+        const classifications: Array<{ intent: string; score: number }> =
+          result.classifications || [];
+        for (const cls of classifications) {
+          if (followupIntents.has(cls.intent) && cls.score >= finalScore - 0.20) {
+            logger.debug(
+              { original: finalIntent, boosted: cls.intent, origScore: finalScore, boostScore: cls.score },
+              'Context-aware boost: preferring follow-up intent'
+            );
+            finalIntent = cls.intent;
+            finalScore = cls.score;
+            break;
+          }
+        }
+      }
+    }
+
     const classificationResult: ClassificationResult = {
-      intent: result.intent || 'None',
-      confidence: result.score || 0,
+      intent: finalIntent,
+      confidence: finalScore,
       entities,
       sentiment: result.sentiment
         ? {

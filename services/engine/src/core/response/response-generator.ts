@@ -1,5 +1,5 @@
 import { INTENTS } from '../constants';
-import { GROUP_BY_PATTERN, SORT_PATTERN, SUMMARY_PATTERN, TOP_BOTTOM_PATTERN, FILTER_FOLLOWUP_PATTERN, VALUE_COMPARE_PATTERN, AGGREGATION_PATTERN } from './constants';
+import { GROUP_BY_PATTERN, SORT_PATTERN, SUMMARY_PATTERN, TOP_BOTTOM_PATTERN, FILTER_FOLLOWUP_PATTERN, VALUE_COMPARE_PATTERN, AGGREGATION_PATTERN, FOLLOWUP_PATTERN } from './constants';
 import { responseTemplates as baseTemplates } from './templates';
 import type { QueryService } from '../api-connector/query-service';
 import type { GroupTemplates } from '@/config/group-config';
@@ -26,6 +26,7 @@ import {
   handleFollowUp,
   handleFilterFollowUp,
   handleDataOperation,
+  handleDataLookup,
 } from './handlers/followup-handler';
 import { handleSemanticSearch } from './handlers/semantic-search-handler';
 
@@ -76,6 +77,9 @@ function isLikelyFollowUp(userText: string): boolean {
     || AGGREGATION_PATTERN.test(userText)) {
     return true;
   }
+  // Data-aware question patterns: "what is X of Y", "status of Book", "show me X for Y"
+  if (FOLLOWUP_PATTERN.test(userText)) return true;
+  if (/\b(?:what|where|which|how|status|state|value)\b/i.test(userText)) return true;
   // Typo-tolerant match: check if any word is within edit distance 2 of a follow-up keyword
   for (const word of words) {
     if (word.length < 3) continue;
@@ -179,6 +183,35 @@ export class ResponseGenerator {
         return handleDocumentList(classification, context, this.groupId);
       case INTENTS.QUERY_SEARCH:
         return handleSemanticSearch(classification, context, this.queryService, this.groupId);
+
+      // Follow-up intents — route to data operation handlers when query context exists
+      case INTENTS.FOLLOWUP_GROUP_BY:
+      case INTENTS.FOLLOWUP_SORT:
+      case INTENTS.FOLLOWUP_SUMMARY:
+      case INTENTS.FOLLOWUP_TOP_N:
+      case INTENTS.FOLLOWUP_AGGREGATION:
+      case INTENTS.FOLLOWUP_DATA_LOOKUP: {
+        if (context.lastQueryName && context.lastApiResult) {
+          const dataOpResult = handleDataOperation(classification, context);
+          if (dataOpResult) return dataOpResult;
+          const followUpResult = handleFollowUp(classification, context);
+          if (followUpResult) return followUpResult;
+          const lookupResult = handleDataLookup(classification, context);
+          if (lookupResult) return lookupResult;
+        }
+        // No query context — fall through to query execution (user might mean "group by region" on a new query)
+        return handleQueryExecute(classification, context, this.queryService, explicitFilters, incomingHeaders, this.groupId);
+      }
+      case INTENTS.FOLLOWUP_FILTER: {
+        if (context.lastQueryName) {
+          const filterResult = await handleFilterFollowUp(classification, context, this.queryService, incomingHeaders);
+          if (filterResult) return filterResult;
+          const dataOpResult = handleDataOperation(classification, context);
+          if (dataOpResult) return dataOpResult;
+        }
+        return handleQueryExecute(classification, context, this.queryService, explicitFilters, incomingHeaders, this.groupId);
+      }
+
       default: {
         // Data operation follow-ups (must come before filter to prevent misclassification)
         const dataOpResult = handleDataOperation(classification, context);
@@ -189,6 +222,9 @@ export class ResponseGenerator {
         // Try to answer follow-up questions about the last query result
         const followUp = handleFollowUp(classification, context);
         if (followUp) return followUp;
+        // Try data-aware lookup: search actual row values for the user's question
+        const dataLookup = handleDataLookup(classification, context);
+        if (dataLookup) return dataLookup;
         // Last-resort: try knowledge search before giving up
         const knowledgeFallback = await handleKnowledgeSearch(classification, context, this.queryService);
         if (knowledgeFallback.richContent || knowledgeFallback.intent === 'knowledge.search') return knowledgeFallback;
