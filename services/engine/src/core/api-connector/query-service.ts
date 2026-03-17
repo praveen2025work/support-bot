@@ -449,7 +449,8 @@ export class QueryService {
     query: Query,
     options?: QueryExecuteOptions
   ): Promise<QueryExecutionResult> {
-    const { content, filePath, format } = await this.readFile(query);
+    const { content: rawContent, filePath, format } = await this.readFile(query);
+    const content = rawContent as string; // documents are always text files
 
     if (options?.searchKeywords && options.searchKeywords.length > 0) {
       const searchResults = searchDocument(content, options.searchKeywords);
@@ -477,7 +478,7 @@ export class QueryService {
     filters?: QueryFilters
   ): Promise<QueryExecutionResult> {
     const { content, filePath } = await this.readFile(query);
-    let csvData = parseCsv(content);
+    let csvData = parseCsv(content, query.sheetName);
 
     // Apply filters: match filter keys against CSV column names (case-insensitive)
     // Rows are Record<string, string|number> objects keyed by header name
@@ -555,7 +556,7 @@ export class QueryService {
     };
   }
 
-  private async readFile(query: Query): Promise<{ content: string; filePath: string; format: string }> {
+  private async readFile(query: Query): Promise<{ content: string | Buffer; filePath: string; format: string }> {
     if (!query.filePath) {
       throw new FileReadError(query.name, 'No file path configured');
     }
@@ -571,8 +572,12 @@ export class QueryService {
     }
 
     try {
-      const content = await fs.readFile(resolved, 'utf-8');
       const format = path.extname(query.filePath).toLowerCase().replace('.', '') || 'txt';
+      // Read binary formats (xlsx, xls) as Buffer; text formats as UTF-8
+      const isBinary = format === 'xlsx' || format === 'xls';
+      const content = isBinary
+        ? await fs.readFile(resolved)
+        : await fs.readFile(resolved, 'utf-8');
       return { content, filePath: query.filePath, format };
     } catch (error) {
       logger.error({ error, filePath: query.filePath }, 'File read failed');

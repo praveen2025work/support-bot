@@ -359,6 +359,75 @@
       }
     },
     {
+      "id": "q22",
+      "name": "employee_compensation",
+      "description": "Employee compensation data with salary, bonus, and ratings by department",
+      "estimatedDuration": 0,
+      "source": "hr_team",
+      "type": "csv",
+      "filePath": "data/employee-compensation.xlsx",
+      "filters": [],
+      "endpoint": "",
+      "baseUrl": "",
+      "method": "",
+      "authType": "none",
+      "bamTokenUrl": "",
+      "columnConfig": {
+        "dateColumns": ["start_date"]
+      }
+    },
+    {
+      "id": "q23",
+      "name": "hr_report_salaries",
+      "description": "HR report — sheet \"Salaries\"",
+      "estimatedDuration": 0,
+      "source": "hr_team",
+      "type": "csv",
+      "filePath": "data/hr-report.xlsx",
+      "sheetName": "Salaries",
+      "filters": [],
+      "endpoint": "",
+      "baseUrl": "",
+      "method": "",
+      "authType": "none",
+      "bamTokenUrl": ""
+    },
+    {
+      "id": "q24",
+      "name": "hr_report_bonuses",
+      "description": "HR report — sheet \"Bonuses\"",
+      "estimatedDuration": 0,
+      "source": "hr_team",
+      "type": "csv",
+      "filePath": "data/hr-report.xlsx",
+      "sheetName": "Bonuses",
+      "filters": [],
+      "endpoint": "",
+      "baseUrl": "",
+      "method": "",
+      "authType": "none",
+      "bamTokenUrl": ""
+    },
+    {
+      "id": "q25",
+      "name": "hr_report_ratings",
+      "description": "HR report — sheet \"Ratings\"",
+      "estimatedDuration": 0,
+      "source": "hr_team",
+      "type": "csv",
+      "filePath": "data/hr-report.xlsx",
+      "sheetName": "Ratings",
+      "filters": [],
+      "endpoint": "",
+      "baseUrl": "",
+      "method": "",
+      "authType": "none",
+      "bamTokenUrl": "",
+      "columnConfig": {
+        "dateColumns": ["review_date"]
+      }
+    },
+    {
       "id": "q19",
       "name": "servicenow_dashboard",
       "description": "ServiceNow ITSM dashboard for incident tracking",

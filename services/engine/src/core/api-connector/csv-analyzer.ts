@@ -25,17 +25,25 @@ export interface AggregationResult {
   topHeaders?: string[];
 }
 
-export function parseCsv(content: string): CsvData {
+export function parseCsv(content: string | Buffer, sheetName?: string): CsvData {
   const XLSX = getXLSX();
-  const wb = XLSX.read(content, { type: 'string' });
-  const sheetName = wb.SheetNames[0];
-  if (!sheetName) return { headers: [], rows: [] };
+  const readType = Buffer.isBuffer(content) ? 'buffer' : 'string';
+  const wb = XLSX.read(content, { type: readType });
+  const targetSheet = sheetName ?? wb.SheetNames[0];
+  if (!targetSheet || !wb.Sheets[targetSheet]) return { headers: [], rows: [] };
 
-  const sheet = wb.Sheets[sheetName];
+  const sheet = wb.Sheets[targetSheet];
   const rows = XLSX.utils.sheet_to_json(sheet) as Record<string, string | number>[];
   const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
 
   return { headers, rows };
+}
+
+/** List all sheet names from an xlsx/xls file buffer. */
+export function listSheets(content: Buffer): string[] {
+  const XLSX = getXLSX();
+  const wb = XLSX.read(content, { type: 'buffer' });
+  return wb.SheetNames as string[];
 }
 
 export function computeAggregation(

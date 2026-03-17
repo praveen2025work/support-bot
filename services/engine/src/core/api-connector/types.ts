@@ -39,6 +39,7 @@ export const QuerySchema = z.object({
     .default('api')
     .transform((val) => (val === 'file' ? 'document' : val) as QueryType),
   filePath: z.string().optional(),
+  sheetName: z.string().optional(),  // For xlsx: which sheet to read (defaults to first sheet)
   endpoint: z.string().optional(),
   // Per-query base URL — overrides group & global API_BASE_URL.
   // Set this when a query calls a different server/port than the default.

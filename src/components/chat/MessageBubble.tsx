@@ -14,7 +14,7 @@ import { AnomalyAlert } from '@/components/dashboard/AnomalyBadge';
 interface QueryListItem {
   name: string;
   description?: string;
-  type: 'api' | 'url' | 'document' | 'csv';
+  type: 'api' | 'url' | 'document' | 'csv' | 'xlsx' | 'xls';
   filters: string[];
   url?: string;
 }
@@ -542,6 +542,8 @@ function RichContentRenderer({
         url: 'bg-green-100 text-green-700',
         document: 'bg-purple-100 text-purple-700',
         csv: 'bg-amber-100 text-amber-700',
+        xlsx: 'bg-emerald-100 text-emerald-700',
+        xls: 'bg-emerald-100 text-emerald-700',
       };
       return (
         <div className="mt-1 space-y-1.5">

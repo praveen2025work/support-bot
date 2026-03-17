@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { promises as fs } from 'fs';
+import path from 'path';
 import { logger } from '@/lib/logger';
 import { withDbLock, readDb } from '@/lib/db';
 import { proxyToEngine } from '@/lib/engine-proxy';
@@ -26,12 +28,36 @@ interface QueryRecord {
   filters: FilterBinding[];
   type: 'api' | 'url' | 'document' | 'csv';
   filePath?: string;
+  sheetName?: string;
   endpoint?: string;
   baseUrl?: string;
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   authType?: 'none' | 'bearer' | 'windows' | 'bam';
   bamTokenUrl?: string;
   columnConfig?: ColumnConfig;
+}
+
+/** Sanitize a sheet name to a valid query name suffix (snake_case). */
+function toSnakeCase(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
+/** Read xlsx sheet names from an engine data file. Returns empty array for non-xlsx files. */
+async function getXlsxSheetNames(filePath: string): Promise<string[]> {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext !== '.xlsx' && ext !== '.xls') return [];
+  try {
+    // Resolve relative to engine data directory
+    const engineDataDir = path.resolve(process.cwd(), 'services/engine');
+    const resolved = path.resolve(engineDataDir, filePath);
+    const buffer = await fs.readFile(resolved);
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const XLSX = require('xlsx');
+    const wb = XLSX.read(buffer, { type: 'buffer' });
+    return wb.SheetNames as string[];
+  } catch {
+    return [];
+  }
 }
 
 /** Notify the engine to clear its in-memory query cache after db.json changes. */
@@ -95,47 +121,99 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'API-type queries require an endpoint' }, { status: 400 });
     }
 
-    const newQuery = await withDbLock<QueryRecord>(async (db) => {
+    // For xlsx files with multiple sheets, auto-register each sheet as a separate query
+    const sheetNames = queryType === 'csv' ? await getXlsxSheetNames(body.filePath) : [];
+    const isMultiSheet = sheetNames.length > 1;
+
+    const createdQueries = await withDbLock<QueryRecord[]>(async (db) => {
       const queries = (db.queries || []) as QueryRecord[];
 
-      // Check duplicate name
-      if (queries.some((q) => q.name === name)) {
-        throw new Error(`DUPLICATE:Query "${name}" already exists`);
-      }
-
       // Generate next ID
-      const maxNum = queries
+      let maxNum = queries
         .map((q) => parseInt(q.id.replace('q', ''), 10))
         .filter((n) => !isNaN(n))
         .reduce((max, n) => Math.max(max, n), 0);
 
-      const query: QueryRecord = {
-        id: `q${maxNum + 1}`,
-        name,
-        description: description || '',
-        estimatedDuration: estimatedDuration || 2000,
-        url: url || '',
-        source,
-        filters: filters || [],
-        type: queryType,
-        filePath: body.filePath || '',
-        endpoint: body.endpoint || '',
-        baseUrl: body.baseUrl || '',
-        method: body.method || '',
-        authType: body.authType || 'none',
-        bamTokenUrl: body.bamTokenUrl || '',
-        ...(body.columnConfig && { columnConfig: body.columnConfig }),
-      };
+      const newQueries: QueryRecord[] = [];
 
-      queries.push(query);
+      if (isMultiSheet) {
+        // Create one query per sheet
+        for (const sheet of sheetNames) {
+          const sheetSuffix = toSnakeCase(sheet);
+          const queryName = `${name}_${sheetSuffix}`;
+
+          if (queries.some((q) => q.name === queryName)) {
+            continue; // skip duplicates
+          }
+
+          maxNum++;
+          const query: QueryRecord = {
+            id: `q${maxNum}`,
+            name: queryName,
+            description: `${description || name} — sheet "${sheet}"`,
+            estimatedDuration: estimatedDuration || 2000,
+            url: url || '',
+            source,
+            filters: filters || [],
+            type: queryType,
+            filePath: body.filePath || '',
+            sheetName: sheet,
+            endpoint: body.endpoint || '',
+            baseUrl: body.baseUrl || '',
+            method: body.method || '',
+            authType: body.authType || 'none',
+            bamTokenUrl: body.bamTokenUrl || '',
+            ...(body.columnConfig && { columnConfig: body.columnConfig }),
+          };
+
+          queries.push(query);
+          newQueries.push(query);
+        }
+
+        if (newQueries.length === 0) {
+          throw new Error(`DUPLICATE:All sheet queries for "${name}" already exist`);
+        }
+      } else {
+        // Single sheet or non-xlsx — create one query as before
+        if (queries.some((q) => q.name === name)) {
+          throw new Error(`DUPLICATE:Query "${name}" already exists`);
+        }
+
+        maxNum++;
+        const query: QueryRecord = {
+          id: `q${maxNum}`,
+          name,
+          description: description || '',
+          estimatedDuration: estimatedDuration || 2000,
+          url: url || '',
+          source,
+          filters: filters || [],
+          type: queryType,
+          filePath: body.filePath || '',
+          ...(body.sheetName && { sheetName: body.sheetName }),
+          endpoint: body.endpoint || '',
+          baseUrl: body.baseUrl || '',
+          method: body.method || '',
+          authType: body.authType || 'none',
+          bamTokenUrl: body.bamTokenUrl || '',
+          ...(body.columnConfig && { columnConfig: body.columnConfig }),
+        };
+
+        queries.push(query);
+        newQueries.push(query);
+      }
+
       db.queries = queries;
-      return { result: query, save: true };
+      return { result: newQueries, save: true };
     });
 
     // Notify engine to clear query cache + reload mock API in-memory db
     await Promise.all([notifyEngineCacheClear(), reloadMockApi()]);
 
-    return NextResponse.json(newQuery, { status: 201 });
+    return NextResponse.json(
+      isMultiSheet ? { queries: createdQueries, sheetsRegistered: sheetNames.length } : createdQueries[0],
+      { status: 201 }
+    );
   } catch (error) {
     const msg = (error as Error).message || '';
     if (msg.startsWith('DUPLICATE:')) {
@@ -173,6 +251,7 @@ export async function PATCH(request: NextRequest) {
       if (updates.estimatedDuration !== undefined) query.estimatedDuration = updates.estimatedDuration;
       if (updates.type !== undefined) query.type = updates.type;
       if (updates.filePath !== undefined) query.filePath = updates.filePath;
+      if (updates.sheetName !== undefined) query.sheetName = updates.sheetName || undefined;
       if (updates.endpoint !== undefined) query.endpoint = updates.endpoint;
       if (updates.baseUrl !== undefined) query.baseUrl = updates.baseUrl;
       if (updates.method !== undefined) query.method = updates.method;
