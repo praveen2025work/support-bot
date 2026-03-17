@@ -1,5 +1,5 @@
 import { INTENTS } from '../constants';
-import { GROUP_BY_PATTERN, SORT_PATTERN, SUMMARY_PATTERN, TOP_BOTTOM_PATTERN, FILTER_FOLLOWUP_PATTERN, VALUE_COMPARE_PATTERN } from './constants';
+import { GROUP_BY_PATTERN, SORT_PATTERN, SUMMARY_PATTERN, TOP_BOTTOM_PATTERN, FILTER_FOLLOWUP_PATTERN, VALUE_COMPARE_PATTERN, AGGREGATION_PATTERN } from './constants';
 import { responseTemplates as baseTemplates } from './templates';
 import type { QueryService } from '../api-connector/query-service';
 import type { GroupTemplates } from '@/config/group-config';
@@ -58,6 +58,9 @@ const FOLLOWUP_KEYWORDS: Record<string, string> = {
   greater: 'compare', above: 'compare', over: 'compare', more: 'compare',
   less: 'compare', below: 'compare', under: 'compare',
   refresh: 'refresh', rerun: 'refresh',
+  avg: 'aggregate', average: 'aggregate', sum: 'aggregate', total: 'aggregate',
+  min: 'aggregate', max: 'aggregate', mean: 'aggregate', calculate: 'aggregate',
+  count: 'aggregate', minimum: 'aggregate', maximum: 'aggregate',
 };
 
 /**
@@ -69,7 +72,8 @@ function isLikelyFollowUp(userText: string): boolean {
   // Direct pattern match
   if (GROUP_BY_PATTERN.test(userText) || SORT_PATTERN.test(userText)
     || SUMMARY_PATTERN.test(userText) || TOP_BOTTOM_PATTERN.test(userText)
-    || FILTER_FOLLOWUP_PATTERN.test(userText) || VALUE_COMPARE_PATTERN.test(userText)) {
+    || FILTER_FOLLOWUP_PATTERN.test(userText) || VALUE_COMPARE_PATTERN.test(userText)
+    || AGGREGATION_PATTERN.test(userText)) {
     return true;
   }
   // Typo-tolerant match: check if any word is within edit distance 2 of a follow-up keyword

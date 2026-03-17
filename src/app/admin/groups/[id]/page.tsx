@@ -32,6 +32,14 @@ interface FilterConfig {
   type: string;
 }
 
+interface ColumnConfigData {
+  idColumns?: string[];
+  dateColumns?: string[];
+  labelColumns?: string[];
+  valueColumns?: string[];
+  ignoreColumns?: string[];
+}
+
 interface QueryRecord {
   id: string;
   name: string;
@@ -47,6 +55,7 @@ interface QueryRecord {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   authType?: 'none' | 'bearer' | 'windows' | 'bam';
   bamTokenUrl?: string;
+  columnConfig?: ColumnConfigData;
 }
 
 export default function GroupDetailPage() {
@@ -91,6 +100,15 @@ export default function GroupDetailPage() {
   const [qMethod, setQMethod] = useState<'' | 'GET' | 'POST' | 'PUT' | 'DELETE'>('');
   const [qAuthType, setQAuthType] = useState<'none' | 'bearer' | 'windows' | 'bam'>('none');
   const [qBamTokenUrl, setQBamTokenUrl] = useState('');
+  const [qColIdColumns, setQColIdColumns] = useState('');
+  const [qColDateColumns, setQColDateColumns] = useState('');
+  const [qColLabelColumns, setQColLabelColumns] = useState('');
+  const [qColValueColumns, setQColValueColumns] = useState('');
+  const [qColIgnoreColumns, setQColIgnoreColumns] = useState('');
+  const [showColumnConfig, setShowColumnConfig] = useState(false);
+  const [discoveredColumns, setDiscoveredColumns] = useState<string[]>([]);
+  const [fetchingColumns, setFetchingColumns] = useState(false);
+  const [fetchColumnsError, setFetchColumnsError] = useState('');
   const [customFilterKey, setCustomFilterKey] = useState('');
   const [customFilterBinding, setCustomFilterBinding] = useState<'body' | 'query_param' | 'path'>('body');
 
@@ -208,6 +226,14 @@ export default function GroupDetailPage() {
     setQAuthType('none');
     setQBamTokenUrl('');
     setQFilterBindings([]);
+    setQColIdColumns('');
+    setQColDateColumns('');
+    setQColLabelColumns('');
+    setQColValueColumns('');
+    setQColIgnoreColumns('');
+    setShowColumnConfig(false);
+    setDiscoveredColumns([]);
+    setFetchColumnsError('');
     setCustomFilterKey('');
     setCustomFilterBinding('body');
     setShowAddQuery(false);
@@ -229,6 +255,14 @@ export default function GroupDetailPage() {
     setQAuthType(q.authType || 'none');
     setQBamTokenUrl(q.bamTokenUrl || '');
     setQFilterBindings((q.filters || []).map((f) => ({ ...f })));
+    setQColIdColumns(q.columnConfig?.idColumns?.join(', ') || '');
+    setQColDateColumns(q.columnConfig?.dateColumns?.join(', ') || '');
+    setQColLabelColumns(q.columnConfig?.labelColumns?.join(', ') || '');
+    setQColValueColumns(q.columnConfig?.valueColumns?.join(', ') || '');
+    setQColIgnoreColumns(q.columnConfig?.ignoreColumns?.join(', ') || '');
+    setShowColumnConfig(!!(q.columnConfig && Object.values(q.columnConfig).some((v) => v && v.length > 0)));
+    setDiscoveredColumns([]);
+    setFetchColumnsError('');
     setEditingQueryId(q.id);
     setSelectedQueryId(q.id);
     setShowAddQuery(true);
@@ -249,6 +283,14 @@ export default function GroupDetailPage() {
     setQAuthType('none');
     setQBamTokenUrl('');
     setQFilterBindings([]);
+    setQColIdColumns('');
+    setQColDateColumns('');
+    setQColLabelColumns('');
+    setQColValueColumns('');
+    setQColIgnoreColumns('');
+    setShowColumnConfig(false);
+    setDiscoveredColumns([]);
+    setFetchColumnsError('');
     setCustomFilterKey('');
     setCustomFilterBinding('body');
     setEditingQueryId(null);
@@ -279,6 +321,14 @@ export default function GroupDetailPage() {
     setQAuthType(q.authType || 'none');
     setQBamTokenUrl(q.bamTokenUrl || '');
     setQFilterBindings((q.filters || []).map((f) => ({ ...f })));
+    setQColIdColumns(q.columnConfig?.idColumns?.join(', ') || '');
+    setQColDateColumns(q.columnConfig?.dateColumns?.join(', ') || '');
+    setQColLabelColumns(q.columnConfig?.labelColumns?.join(', ') || '');
+    setQColValueColumns(q.columnConfig?.valueColumns?.join(', ') || '');
+    setQColIgnoreColumns(q.columnConfig?.ignoreColumns?.join(', ') || '');
+    setShowColumnConfig(!!(q.columnConfig && Object.values(q.columnConfig).some((v) => v && v.length > 0)));
+    setDiscoveredColumns([]);
+    setFetchColumnsError('');
     setEditingQueryId(null); // null = create new
     setSelectedQueryId(null);
     setShowAddQuery(true);
@@ -310,6 +360,73 @@ export default function GroupDetailPage() {
 
   const removeFilter = (key: string) => {
     setQFilterBindings((prev) => prev.filter((f) => f.key !== key));
+  };
+
+  const fetchColumns = async () => {
+    const queryName = (qName || '').trim();
+    if (!queryName) {
+      setFetchColumnsError('Save the query first, then fetch columns.');
+      return;
+    }
+    setFetchingColumns(true);
+    setFetchColumnsError('');
+    try {
+      const res = await fetch('/api/admin/queries/columns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
+        body: JSON.stringify({ queryName, groupId: id }),
+      });
+      if (!res.ok) {
+        setFetchColumnsError('Failed to fetch columns. Ensure the query is saved and executable.');
+        return;
+      }
+      const data = await res.json();
+      if (data.columns?.length > 0) {
+        setDiscoveredColumns(data.columns);
+      } else {
+        setFetchColumnsError('No columns found. The query may not return tabular data.');
+      }
+    } catch {
+      setFetchColumnsError('Failed to connect to the server.');
+    } finally {
+      setFetchingColumns(false);
+    }
+  };
+
+  type ColumnRole = 'id' | 'date' | 'label' | 'value' | 'ignore' | 'none';
+
+  const getColumnRole = (col: string): ColumnRole => {
+    const inList = (csv: string) => csv.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean).includes(col.toLowerCase());
+    if (inList(qColIdColumns)) return 'id';
+    if (inList(qColDateColumns)) return 'date';
+    if (inList(qColLabelColumns)) return 'label';
+    if (inList(qColValueColumns)) return 'value';
+    if (inList(qColIgnoreColumns)) return 'ignore';
+    return 'none';
+  };
+
+  const setColumnRole = (col: string, role: ColumnRole) => {
+    const removeFrom = (csv: string) =>
+      csv.split(',').map((s) => s.trim()).filter((s) => s.toLowerCase() !== col.toLowerCase()).join(', ');
+    const addTo = (csv: string) => {
+      const existing = csv.split(',').map((s) => s.trim()).filter(Boolean);
+      if (!existing.some((s) => s.toLowerCase() === col.toLowerCase())) existing.push(col);
+      return existing.join(', ');
+    };
+
+    // Remove from all lists first
+    setQColIdColumns((v) => removeFrom(v));
+    setQColDateColumns((v) => removeFrom(v));
+    setQColLabelColumns((v) => removeFrom(v));
+    setQColValueColumns((v) => removeFrom(v));
+    setQColIgnoreColumns((v) => removeFrom(v));
+
+    // Add to the selected role
+    if (role === 'id') setQColIdColumns((v) => addTo(v));
+    else if (role === 'date') setQColDateColumns((v) => addTo(v));
+    else if (role === 'label') setQColLabelColumns((v) => addTo(v));
+    else if (role === 'value') setQColValueColumns((v) => addTo(v));
+    else if (role === 'ignore') setQColIgnoreColumns((v) => addTo(v));
   };
 
   const handleSaveQuery = async () => {
@@ -349,6 +466,16 @@ export default function GroupDetailPage() {
         method: qType === 'api' && qMethod ? qMethod : '',
         authType: qType === 'api' ? qAuthType : 'none',
         bamTokenUrl: qAuthType === 'bam' ? (qBamTokenUrl || '').trim() : '',
+        columnConfig: (qType === 'api' || qType === 'csv') ? (() => {
+          const parseList = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
+          const cc: ColumnConfigData = {};
+          const id = parseList(qColIdColumns); if (id.length) cc.idColumns = id;
+          const dt = parseList(qColDateColumns); if (dt.length) cc.dateColumns = dt;
+          const lb = parseList(qColLabelColumns); if (lb.length) cc.labelColumns = lb;
+          const vl = parseList(qColValueColumns); if (vl.length) cc.valueColumns = vl;
+          const ig = parseList(qColIgnoreColumns); if (ig.length) cc.ignoreColumns = ig;
+          return Object.keys(cc).length > 0 ? cc : undefined;
+        })() : undefined,
       };
 
       if (editingQueryId) {
@@ -899,6 +1026,155 @@ export default function GroupDetailPage() {
                             Add
                           </button>
                         </div>
+                      </div>
+                    )}
+
+                    {/* Column Roles — for API and CSV types */}
+                    {(qType === 'api' || qType === 'csv') && (
+                      <div className="mb-3">
+                        <button
+                          type="button"
+                          onClick={() => setShowColumnConfig(!showColumnConfig)}
+                          className="flex items-center gap-1 text-xs font-semibold text-gray-600 mb-2 hover:text-gray-800"
+                        >
+                          <span className={`transition-transform ${showColumnConfig ? 'rotate-90' : ''}`}>&#9654;</span>
+                          Column Roles <span className="font-normal text-gray-400">(optional)</span>
+                        </button>
+                        {showColumnConfig && (
+                          <div className="space-y-3 pl-3 border-l-2 border-gray-200">
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={fetchColumns}
+                                disabled={fetchingColumns}
+                                className="px-3 py-1 text-xs bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 disabled:opacity-50 font-medium"
+                              >
+                                {fetchingColumns ? 'Fetching...' : 'Fetch Columns'}
+                              </button>
+                              <span className="text-[10px] text-gray-400">
+                                Discover columns by executing the query
+                              </span>
+                            </div>
+                            {fetchColumnsError && (
+                              <p className="text-[11px] text-red-500">{fetchColumnsError}</p>
+                            )}
+
+                            {discoveredColumns.length > 0 ? (
+                              <div className="overflow-x-auto">
+                                <table className="min-w-full text-xs border border-gray-200 rounded">
+                                  <thead>
+                                    <tr className="bg-gray-50">
+                                      <th className="px-2 py-1.5 text-left font-medium text-gray-600 border-b">Column</th>
+                                      <th className="px-2 py-1.5 text-center font-medium text-gray-600 border-b whitespace-nowrap">
+                                        <span className="block text-[11px]">ID</span>
+                                        <span className="block text-[9px] text-gray-400 font-normal">No aggregation</span>
+                                      </th>
+                                      <th className="px-2 py-1.5 text-center font-medium text-gray-600 border-b whitespace-nowrap">
+                                        <span className="block text-[11px]">Date</span>
+                                        <span className="block text-[9px] text-gray-400 font-normal">No numeric calc</span>
+                                      </th>
+                                      <th className="px-2 py-1.5 text-center font-medium text-gray-600 border-b whitespace-nowrap">
+                                        <span className="block text-[11px]">Label (x)</span>
+                                        <span className="block text-[9px] text-gray-400 font-normal">Chart x-axis</span>
+                                      </th>
+                                      <th className="px-2 py-1.5 text-center font-medium text-gray-600 border-b whitespace-nowrap">
+                                        <span className="block text-[11px]">Value (y)</span>
+                                        <span className="block text-[9px] text-gray-400 font-normal">Chart y-axis</span>
+                                      </th>
+                                      <th className="px-2 py-1.5 text-center font-medium text-gray-600 border-b whitespace-nowrap">
+                                        <span className="block text-[11px]">Ignore</span>
+                                        <span className="block text-[9px] text-gray-400 font-normal">Skip entirely</span>
+                                      </th>
+                                      <th className="px-2 py-1.5 text-center font-medium text-gray-600 border-b whitespace-nowrap">
+                                        <span className="block text-[11px]">Auto</span>
+                                        <span className="block text-[9px] text-gray-400 font-normal">Auto-detect</span>
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {discoveredColumns.map((col, i) => {
+                                      const role = getColumnRole(col);
+                                      return (
+                                        <tr key={col} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                          <td className="px-2 py-1 border-b border-gray-100 font-mono text-[11px] text-gray-700">{col}</td>
+                                          {(['id', 'date', 'label', 'value', 'ignore', 'none'] as ColumnRole[]).map((r) => (
+                                            <td key={r} className="px-2 py-1 border-b border-gray-100 text-center">
+                                              <input
+                                                type="radio"
+                                                name={`col-role-${col}`}
+                                                checked={role === r}
+                                                onChange={() => setColumnRole(col, r)}
+                                                className="w-3.5 h-3.5 accent-blue-600 cursor-pointer"
+                                              />
+                                            </td>
+                                          ))}
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <p className="text-[11px] text-gray-400">
+                                Click &quot;Fetch Columns&quot; to discover columns, or type column names manually below.
+                              </p>
+                            )}
+
+                            {/* Manual fallback inputs (collapsed when grid is shown) */}
+                            <details className={discoveredColumns.length > 0 ? '' : 'open'}>
+                              <summary className="text-[11px] text-gray-500 cursor-pointer hover:text-gray-700">
+                                Manual column entry
+                              </summary>
+                              <div className="grid grid-cols-2 gap-2 mt-2">
+                                <div>
+                                  <label className="block text-[11px] font-medium text-gray-500 mb-0.5">ID Columns</label>
+                                  <input
+                                    value={qColIdColumns}
+                                    onChange={(e) => setQColIdColumns(e.target.value)}
+                                    placeholder="e.g. stageid, workflowprocessid"
+                                    className="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[11px] font-medium text-gray-500 mb-0.5">Date Columns</label>
+                                  <input
+                                    value={qColDateColumns}
+                                    onChange={(e) => setQColDateColumns(e.target.value)}
+                                    placeholder="e.g. businessdate, created_at"
+                                    className="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[11px] font-medium text-gray-500 mb-0.5">Label Columns (x-axis)</label>
+                                  <input
+                                    value={qColLabelColumns}
+                                    onChange={(e) => setQColLabelColumns(e.target.value)}
+                                    placeholder="e.g. region, department"
+                                    className="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[11px] font-medium text-gray-500 mb-0.5">Value Columns (y-axis)</label>
+                                  <input
+                                    value={qColValueColumns}
+                                    onChange={(e) => setQColValueColumns(e.target.value)}
+                                    placeholder="e.g. count, revenue, total"
+                                    className="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  />
+                                </div>
+                              </div>
+                              <div className="mt-2">
+                                <label className="block text-[11px] font-medium text-gray-500 mb-0.5">Ignore Columns</label>
+                                <input
+                                  value={qColIgnoreColumns}
+                                  onChange={(e) => setQColIgnoreColumns(e.target.value)}
+                                  placeholder="e.g. internal_key, debug_field"
+                                  className="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                />
+                              </div>
+                            </details>
+                          </div>
+                        )}
                       </div>
                     )}
 

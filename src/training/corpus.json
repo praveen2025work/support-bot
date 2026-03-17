@@ -21,6 +21,7 @@
         "incident_report": ["incident_report", "incident report", "outage report", "post mortem", "incident post mortem"],
         "deployment_runbook": ["deployment_runbook", "deployment runbook", "deploy runbook", "deployment guide", "release runbook"],
         "support_tickets": ["support_tickets", "support tickets", "tickets", "support data", "ticket data"],
+        "pnl_availability": ["pnl_availability", "pnl availability", "pnl dashboard", "p&l availability", "p&l delivery", "pnl delivery"],
         "employee_metrics": ["employee_metrics", "employee metrics", "employee data", "staff metrics", "workforce data"],
         "servicenow_dashboard": ["servicenow_dashboard", "servicenow dashboard", "servicenow", "itsm dashboard", "incident tracking"],
         "architecture_wiki": ["architecture_wiki", "architecture wiki", "system architecture", "architecture docs", "architecture documentation"],

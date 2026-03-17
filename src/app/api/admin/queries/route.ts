@@ -8,6 +8,14 @@ interface FilterBinding {
   binding: 'body' | 'query_param' | 'path';
 }
 
+interface ColumnConfig {
+  idColumns?: string[];
+  dateColumns?: string[];
+  labelColumns?: string[];
+  valueColumns?: string[];
+  ignoreColumns?: string[];
+}
+
 interface QueryRecord {
   id: string;
   name: string;
@@ -23,6 +31,7 @@ interface QueryRecord {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   authType?: 'none' | 'bearer' | 'windows' | 'bam';
   bamTokenUrl?: string;
+  columnConfig?: ColumnConfig;
 }
 
 /** Notify the engine to clear its in-memory query cache after db.json changes. */
@@ -115,6 +124,7 @@ export async function POST(request: NextRequest) {
         method: body.method || '',
         authType: body.authType || 'none',
         bamTokenUrl: body.bamTokenUrl || '',
+        ...(body.columnConfig && { columnConfig: body.columnConfig }),
       };
 
       queries.push(query);
@@ -168,6 +178,7 @@ export async function PATCH(request: NextRequest) {
       if (updates.method !== undefined) query.method = updates.method;
       if (updates.authType !== undefined) query.authType = updates.authType;
       if (updates.bamTokenUrl !== undefined) query.bamTokenUrl = updates.bamTokenUrl;
+      if (updates.columnConfig !== undefined) query.columnConfig = updates.columnConfig || undefined;
 
       queries[idx] = query;
       db.queries = queries;

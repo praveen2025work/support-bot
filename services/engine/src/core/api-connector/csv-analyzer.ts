@@ -206,17 +206,38 @@ const ID_COLUMN_PATTERN = /(?:_|^)(id|key|code|index|seq|sequence|ref|reference|
 // Matches: businessdate, business_date, created_at, timestamp, effective_date, etc.
 const DATE_COLUMN_PATTERN = /(?:_|^)(date|time|timestamp|datetime|created|updated|modified|period|asof|effective)$|date$|time$/i;
 
+/** Column role configuration — explicit overrides for auto-detection */
+interface ColumnConfig {
+  idColumns?: string[];
+  dateColumns?: string[];
+  labelColumns?: string[];
+  valueColumns?: string[];
+  ignoreColumns?: string[];
+}
+
 /**
  * Check if a column is an ID/key column (numeric but not aggregatable).
- * Uses both name patterns and value analysis (e.g., all unique integers = likely an ID).
+ * Uses columnConfig first (if provided), then name patterns and value analysis.
  */
-function isIdentityColumn(header: string, rows: Record<string, string | number>[]): boolean {
+function isIdentityColumn(header: string, rows: Record<string, string | number>[], columnConfig?: ColumnConfig): boolean {
+  // Explicit config takes priority
+  if (columnConfig) {
+    const lowerHeader = header.toLowerCase();
+    if (columnConfig.idColumns?.some((c) => c.toLowerCase() === lowerHeader)) return true;
+    if (columnConfig.dateColumns?.some((c) => c.toLowerCase() === lowerHeader)) return true;
+    if (columnConfig.ignoreColumns?.some((c) => c.toLowerCase() === lowerHeader)) return true;
+    // If valueColumns is set and this column is in it, it's NOT an identity column
+    if (columnConfig.valueColumns?.some((c) => c.toLowerCase() === lowerHeader)) return false;
+  }
+
   // Name-based detection
   if (ID_COLUMN_PATTERN.test(header)) return true;
   if (DATE_COLUMN_PATTERN.test(header)) return true;
 
   // Value-based detection: if all values are unique integers, likely an ID
-  if (rows.length >= 3) {
+  // But skip if the column name suggests it's a measure/metric
+  const MEASURE_NAME_PATTERN = /(?:_|^)(count|total|sum|avg|average|amount|balance|revenue|sales|active|volume|rate|ratio|score|pct|percent|quantity|qty|profit|loss|cost|price|fee|salary|wage|income|expense)/i;
+  if (rows.length >= 3 && !MEASURE_NAME_PATTERN.test(header)) {
     const values = rows.map((r) => r[header]).filter((v) => v !== undefined && v !== null && v !== '');
     const uniqueRatio = new Set(values.map(String)).size / values.length;
     const allIntegers = values.every((v) => {
@@ -230,11 +251,22 @@ function isIdentityColumn(header: string, rows: Record<string, string | number>[
   return false;
 }
 
-function getNumericColumns(data: CsvData): string[] {
+function getNumericColumns(data: CsvData, columnConfig?: ColumnConfig): string[] {
+  // If explicit valueColumns provided, use those directly (validate they exist in headers)
+  if (columnConfig?.valueColumns && columnConfig.valueColumns.length > 0) {
+    const headerLower = data.headers.map((h) => h.toLowerCase());
+    return columnConfig.valueColumns.filter((vc) =>
+      headerLower.includes(vc.toLowerCase())
+    ).map((vc) => {
+      const idx = headerLower.indexOf(vc.toLowerCase());
+      return data.headers[idx]; // return original case
+    });
+  }
+
   return data.headers.filter((h) => {
     if (data.rows.length === 0) return false;
-    // Skip ID and date columns — they're numeric but not meaningful to aggregate
-    if (isIdentityColumn(h, data.rows)) return false;
+    // Skip ID, date, and ignored columns
+    if (isIdentityColumn(h, data.rows, columnConfig)) return false;
     let numCount = 0;
     for (const row of data.rows) {
       const v = row[h];
@@ -321,6 +353,150 @@ export function sortData(data: CsvData, request: SortRequest): CsvData {
   return { headers: data.headers, rows: sorted };
 }
 
+// ── Column Type Detection ────────────────────────────────────────────
+
+export interface DetectedColumnMeta {
+  column: string;
+  detectedType: 'date' | 'integer' | 'decimal' | 'id' | 'string';
+  format?: string;
+}
+
+const MONTH_NAMES = /^(jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|jun(e)?|jul(y)?|aug(ust)?|sep(tember)?|oct(ober)?|nov(ember)?|dec(ember)?)$/i;
+const MONTH_ABBR = /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)$/i;
+
+interface DatePattern {
+  regex: RegExp;
+  format: string;
+}
+
+const DATE_PATTERNS: DatePattern[] = [
+  // ISO datetime: 2026-03-15T14:30:00
+  { regex: /^\d{4}[-/]\d{2}[-/]\d{2}T\d{2}:\d{2}/, format: 'YYYY-MM-DDTHH:mm:ss' },
+  // ISO date: 2026-03-15 or 2026/03/15
+  { regex: /^\d{4}[-/]\d{2}[-/]\d{2}$/, format: 'YYYY-MM-DD' },
+  // US date: 03/15/2026 or 03-15-2026
+  { regex: /^\d{2}[-/]\d{2}[-/]\d{4}$/, format: 'MM/DD/YYYY' },
+  // DD-Mon-YYYY or DD Mon YYYY: 15-Mar-2026, 15 Mar 2026
+  { regex: /^\d{1,2}[-\s](jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[-\s]\d{4}$/i, format: 'DD-Mon-YYYY' },
+  // Mon YYYY or Mon-YYYY: Mar 2026, Mar-2026
+  { regex: /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[-\s]\d{4}$/i, format: 'Mon YYYY' },
+  // YYYY-Mon or YYYY Mon: 2026-Mar, 2026 Mar
+  { regex: /^\d{4}[-\s](jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*$/i, format: 'YYYY-Mon' },
+];
+
+function detectDateFormat(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  // Full or abbreviated month name alone
+  if (MONTH_NAMES.test(trimmed)) return 'month_name';
+  for (const { regex, format } of DATE_PATTERNS) {
+    if (regex.test(trimmed)) return format;
+  }
+  return null;
+}
+
+/**
+ * Analyze actual data values to detect column types.
+ * Samples up to 20 rows; requires >80% match for a type classification.
+ * Explicit columnConfig overrides always win.
+ */
+export function detectColumnTypes(
+  headers: string[],
+  rows: Record<string, string | number>[],
+  columnConfig?: ColumnConfig
+): DetectedColumnMeta[] {
+  const sampleRows = rows.slice(0, 20);
+  const result: DetectedColumnMeta[] = [];
+
+  for (const header of headers) {
+    const lowerHeader = header.toLowerCase();
+
+    // Explicit columnConfig overrides
+    if (columnConfig?.dateColumns?.some((c) => c.toLowerCase() === lowerHeader)) {
+      result.push({ column: header, detectedType: 'date' });
+      continue;
+    }
+    if (columnConfig?.idColumns?.some((c) => c.toLowerCase() === lowerHeader)) {
+      result.push({ column: header, detectedType: 'id' });
+      continue;
+    }
+    if (columnConfig?.ignoreColumns?.some((c) => c.toLowerCase() === lowerHeader)) {
+      result.push({ column: header, detectedType: 'string' });
+      continue;
+    }
+    if (columnConfig?.valueColumns?.some((c) => c.toLowerCase() === lowerHeader)) {
+      // Determine integer vs decimal for explicit value columns
+      const vals = sampleRows.map((r) => r[header]).filter((v) => v !== undefined && v !== null && v !== '');
+      const hasDecimal = vals.some((v) => {
+        const s = String(v);
+        return s.includes('.') && !isNaN(parseFloat(s));
+      });
+      result.push({ column: header, detectedType: hasDecimal ? 'decimal' : 'integer' });
+      continue;
+    }
+
+    // Value-based detection
+    const values = sampleRows
+      .map((r) => r[header])
+      .filter((v) => v !== undefined && v !== null && v !== '');
+
+    if (values.length === 0) {
+      result.push({ column: header, detectedType: 'string' });
+      continue;
+    }
+
+    // Check for dates first (before numeric, since some date formats are numeric-looking)
+    let dateCount = 0;
+    let lastDateFormat: string | null = null;
+    for (const v of values) {
+      const fmt = detectDateFormat(String(v));
+      if (fmt) {
+        dateCount++;
+        lastDateFormat = fmt;
+      }
+    }
+    // Also check column name pattern as a boost
+    const nameIsDate = DATE_COLUMN_PATTERN.test(header);
+    if (dateCount / values.length > 0.8 || (nameIsDate && dateCount > 0)) {
+      result.push({ column: header, detectedType: 'date', format: lastDateFormat ?? undefined });
+      continue;
+    }
+    // If name strongly suggests date but values are numeric (e.g. Excel serial dates),
+    // still classify as date
+    if (nameIsDate) {
+      result.push({ column: header, detectedType: 'date', format: 'excel_serial' });
+      continue;
+    }
+
+    // Check if it's an ID column (name pattern + value uniqueness)
+    if (isIdentityColumn(header, rows, columnConfig)) {
+      result.push({ column: header, detectedType: 'id' });
+      continue;
+    }
+
+    // Check for numeric (integer vs decimal)
+    let numericCount = 0;
+    let hasDecimal = false;
+    for (const v of values) {
+      const s = String(v);
+      const n = typeof v === 'number' ? v : parseFloat(s);
+      if (!isNaN(n)) {
+        numericCount++;
+        if (s.includes('.')) hasDecimal = true;
+      }
+    }
+    if (numericCount / values.length > 0.8) {
+      result.push({ column: header, detectedType: hasDecimal ? 'decimal' : 'integer' });
+      continue;
+    }
+
+    // Default: string
+    result.push({ column: header, detectedType: 'string' });
+  }
+
+  return result;
+}
+
 // ── Summary / Stats ──────────────────────────────────────────────────
 
 export interface SummaryResult {
@@ -330,7 +506,9 @@ export interface SummaryResult {
 
 export interface ColumnSummary {
   column: string;
-  type: 'numeric' | 'categorical';
+  type: 'numeric' | 'categorical' | 'date';
+  numericSubtype?: 'integer' | 'decimal';
+  dateFormat?: string;
   sum?: number;
   avg?: number;
   min?: number;
@@ -344,10 +522,31 @@ export interface ColumnSummary {
  */
 export function computeSummary(data: CsvData): SummaryResult {
   const numericCols = new Set(getNumericColumns(data));
+  const detectedTypes = detectColumnTypes(data.headers, data.rows);
+  const detectedMap = new Map(detectedTypes.map((d) => [d.column, d]));
   const columns: ColumnSummary[] = [];
 
   for (const header of data.headers) {
-    if (numericCols.has(header)) {
+    const detected = detectedMap.get(header);
+
+    if (detected?.detectedType === 'date') {
+      const freq = new Map<string, number>();
+      for (const row of data.rows) {
+        const v = String(row[header] ?? '');
+        freq.set(v, (freq.get(v) ?? 0) + 1);
+      }
+      const topValues: { value: string; count: number }[] = [];
+      freq.forEach((count, value) => topValues.push({ value, count }));
+      topValues.sort((a, b) => b.count - a.count);
+      topValues.splice(5);
+      columns.push({
+        column: header,
+        type: 'date',
+        dateFormat: detected.format,
+        uniqueValues: freq.size,
+        topValues,
+      });
+    } else if (numericCols.has(header)) {
       const values: number[] = [];
       for (const row of data.rows) {
         const v = row[header];
@@ -358,6 +557,7 @@ export function computeSummary(data: CsvData): SummaryResult {
       columns.push({
         column: header,
         type: 'numeric',
+        numericSubtype: detected?.detectedType === 'decimal' ? 'decimal' : 'integer',
         sum: Math.round(sum * 100) / 100,
         avg: values.length > 0 ? Math.round((sum / values.length) * 100) / 100 : 0,
         min: values.length > 0 ? Math.min(...values) : 0,

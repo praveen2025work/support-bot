@@ -2,6 +2,8 @@ import { logger } from '@/lib/logger';
 import type { QueryService, QueryExecuteOptions } from '../../api-connector/query-service';
 import type { ClassificationResult, BotResponse, ConversationContext } from '../../types';
 import { STOP_WORDS, GROUP_BY_PATTERN, SORT_PATTERN, SUMMARY_PATTERN, TOP_BOTTOM_PATTERN } from '../constants';
+import { detectColumnTypes, type DetectedColumnMeta } from '../../api-connector/csv-analyzer';
+import type { ColumnConfig } from '../../types';
 import { extractFilters, formatFilters, parseFilterFromText, mergeFilters } from './filter-utils';
 import { handleGroupByFollowUp, handleSortFollowUp, handleSummaryFollowUp, handleTopNFollowUp } from './followup-handler';
 import { getAnomalyDetector } from '../../anomaly/anomaly-detector';
@@ -285,9 +287,10 @@ export async function handleQueryExecute(
 
     const execMs = result.durationMs;
 
-    // Look up reference URL and chartConfig for this query
+    // Look up reference URL, chartConfig, and columnConfig for this query
     let referenceUrl: string | undefined;
     let chartConfig: Record<string, unknown> | undefined;
+    let columnConfig: Record<string, unknown> | undefined;
     try {
       const allQueries = await queryService.getQueries();
       const queryDef = allQueries.find(
@@ -298,6 +301,9 @@ export async function handleQueryExecute(
       }
       if (queryDef?.chartConfig) {
         chartConfig = queryDef.chartConfig as Record<string, unknown>;
+      }
+      if (queryDef?.columnConfig) {
+        columnConfig = queryDef.columnConfig as Record<string, unknown>;
       }
     } catch { /* ignore */ }
 
@@ -335,6 +341,20 @@ export async function handleQueryExecute(
         if (detected.length > 0) anomalies = detected;
       }
     } catch { /* anomaly detection is non-critical */ }
+
+    // Auto-detect column types from actual data values
+    let columnMetadata: DetectedColumnMeta[] | undefined;
+    try {
+      const detectRows = result.type === 'api'
+        ? (result.apiResult as { data?: Record<string, string | number>[] })?.data
+        : result.type === 'csv'
+        ? (result.csvResult as { rows?: Record<string, string | number>[] })?.rows
+        : undefined;
+      if (detectRows && detectRows.length > 0) {
+        const detectHeaders = Object.keys(detectRows[0]);
+        columnMetadata = detectColumnTypes(detectHeaders, detectRows, columnConfig as ColumnConfig | undefined);
+      }
+    } catch { /* column detection is non-critical */ }
 
     switch (result.type) {
       case 'url':
@@ -413,7 +433,7 @@ export async function handleQueryExecute(
         }
         return {
           text: `Here is the data from "${queryNameEntity.value}" (${csv.rowCount} rows):`,
-          richContent: { type: 'csv_table', data: chartConfig ? { ...csv, chartConfig } : csv },
+          richContent: { type: 'csv_table', data: { ...csv, ...(chartConfig && { chartConfig }), ...(columnConfig && { columnConfig }), ...(columnMetadata && { columnMetadata }) } },
           sessionId: context.sessionId,
           intent: classification.intent,
           confidence: classification.confidence,
@@ -426,8 +446,9 @@ export async function handleQueryExecute(
 
       case 'api':
       default: {
-        const apiData = chartConfig
-          ? { ...(result.apiResult as Record<string, unknown>), chartConfig }
+        const extraConfig = { ...(chartConfig && { chartConfig }), ...(columnConfig && { columnConfig }), ...(columnMetadata && { columnMetadata }) };
+        const apiData = Object.keys(extraConfig).length > 0
+          ? { ...(result.apiResult as Record<string, unknown>), ...extraConfig }
           : result.apiResult;
         return {
           text: `Here are the results for "${queryNameEntity.value}"${filterLabel}:`,

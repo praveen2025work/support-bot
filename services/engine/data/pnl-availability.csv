@@ -1,0 +1,21 @@
+pnl_name,sla,books_open,open_since,toro_date,availability_status,submission_date,region,priority
+Alpha Conduit Revenue,10:00 BST,13-Mar-2026 09:26 BST,01 Day(s) 05:56:00,14-Mar-2026,on_time,14-Mar-2026,US,high
+Beta Trading Book,10:00 BST,13-Mar-2026 01:08 BST,01 Day(s) 08:12:00,14-Mar-2026,on_time,14-Mar-2026,EU,high
+Gamma Advisory Fund,09:00 BST,13-Mar-2026 14:30 BST,02 Day(s) 03:45:00,16-Mar-2026,delayed,15-Mar-2026,US,critical
+Delta CMBS Portfolio,10:00 BST,14-Mar-2026 11:21 BST,07:17:00,15-Mar-2026,on_time,15-Mar-2026,APAC,medium
+Epsilon RMBS Trust,10:00 BST,14-Mar-2026 08:15 BST,01 Day(s) 02:30:00,15-Mar-2026,on_time,15-Mar-2026,US,high
+Zeta ETD Cash PnL,09:30 BST,14-Mar-2026 04:21 BST,01 Day(s) 18:45:00,16-Mar-2026,delayed,16-Mar-2026,EU,medium
+Eta Synthetics Book,10:00 BST,14-Mar-2026 20:00 BST,04:22:00,15-Mar-2026,on_time,15-Mar-2026,US,high
+Theta AFS Trading,09:00 BST,14-Mar-2026 05:16 BST,03 Day(s) 01:10:00,17-Mar-2026,late,17-Mar-2026,APAC,critical
+Iota Structured Notes,10:00 BST,15-Mar-2026 01:00 BST,09:44:00,16-Mar-2026,on_time,16-Mar-2026,US,medium
+Kappa Formal PnL APAC,09:00 BST,14-Mar-2026 20:17 BST,01 Day(s) 11:30:00,16-Mar-2026,delayed,16-Mar-2026,APAC,high
+Lambda Formal PnL AMER,09:30 BST,14-Mar-2026 20:17 BST,01 Day(s) 04:15:00,16-Mar-2026,on_time,15-Mar-2026,US,high
+Mu CDO Portfolio,10:00 BST,14-Mar-2026 22:15 BST,01 Day(s) 22:00:00,16-Mar-2026,on_time,16-Mar-2026,EU,medium
+Nu Credit Derivatives,10:00 BST,15-Mar-2026 06:30 BST,06:48:00,15-Mar-2026,on_time,15-Mar-2026,US,high
+Xi Equity Options,09:30 BST,15-Mar-2026 10:45 BST,01 Day(s) 14:20:00,16-Mar-2026,delayed,16-Mar-2026,EU,medium
+Omicron FX Forwards,10:00 BST,13-Mar-2026 22:00 BST,01 Day(s) 00:35:00,15-Mar-2026,on_time,14-Mar-2026,US,high
+Pi Rates Swaps,09:00 BST,14-Mar-2026 03:30 BST,01 Day(s) 16:50:00,15-Mar-2026,on_time,15-Mar-2026,EU,critical
+Rho Commodity Futures,10:00 BST,15-Mar-2026 12:00 BST,02 Day(s) 09:15:00,17-Mar-2026,late,17-Mar-2026,APAC,medium
+Sigma Mortgage Book,09:30 BST,14-Mar-2026 07:45 BST,01 Day(s) 10:22:00,15-Mar-2026,delayed,15-Mar-2026,US,high
+Tau CLO Warehouse,10:00 BST,15-Mar-2026 15:20 BST,03:40:00,15-Mar-2026,on_time,15-Mar-2026,EU,low
+Upsilon EM Bonds,09:00 BST,14-Mar-2026 18:00 BST,01 Day(s) 19:05:00,16-Mar-2026,delayed,16-Mar-2026,APAC,high

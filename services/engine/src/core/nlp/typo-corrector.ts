@@ -13,8 +13,11 @@ const COMMON_WORDS = new Set([
   'please', 'can', 'could', 'would', 'want', 'need', 'give', 'tell',
   // Domain
   'revenue', 'sales', 'users', 'active', 'performance', 'metrics',
-  'status', 'summary', 'total', 'average', 'count', 'top', 'bottom',
+  'status', 'summary', 'total', 'average', 'avg', 'count', 'top', 'bottom',
+  'sum', 'min', 'max', 'mean', 'minimum', 'maximum', 'highest', 'lowest',
   'compare', 'comparison', 'trend', 'trends', 'growth',
+  // Data operations
+  'sort', 'sorted', 'group', 'grouped', 'calculate', 'aggregate',
   // Regions/filters
   'region', 'environment', 'team', 'production', 'staging', 'development',
   'engineering', 'marketing', 'finance', 'analytics',

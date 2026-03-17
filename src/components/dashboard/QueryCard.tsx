@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { MessageBubble } from '@/components/chat/MessageBubble';
+import { useDashboardContext } from '@/contexts/DashboardContext';
 import type { Message } from '@/hooks/useChat';
 
 interface CardMessage {
@@ -12,6 +13,8 @@ interface CardMessage {
   executionMs?: number;
   isError?: boolean;
   timestamp: Date;
+  originalQuery?: string;
+  suggestions?: string[];
 }
 
 interface FilterOptionConfig {
@@ -65,6 +68,17 @@ export function QueryCard({
   const sessionIdRef = useRef(`dashboard_${userName}_${queryName}_${Date.now()}`);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const autoExecutedRef = useRef(false);
+  const cardId = useRef(`${queryName}_${favoriteId || Date.now()}`).current;
+
+  // Dashboard context for shared state
+  const { businessDate, sharedFilters, setSharedFilter, linkedSelection, setLinkedSelection } = useDashboardContext();
+
+  // Merge current filters with shared filters and business date
+  const mergedFilters = useMemo(() => {
+    const merged = { ...sharedFilters, ...currentFilters };
+    if (businessDate) merged.business_date = businessDate;
+    return merged;
+  }, [currentFilters, sharedFilters, businessDate]);
 
   // Derive filter keys from queryFilters or defaultFilters keys
   const filterKeys: string[] = queryFilters
@@ -136,6 +150,8 @@ export function QueryCard({
         richContent: data.richContent,
         executionMs: data.executionMs,
         timestamp: new Date(),
+        originalQuery: text,
+        suggestions: data.suggestions as string[] | undefined,
       };
       setMessages((prev) => [...prev, botMsg]);
     } catch {
@@ -156,14 +172,26 @@ export function QueryCard({
     if (autoExecute && !autoExecutedRef.current) {
       autoExecutedRef.current = true;
       setHasRun(true);
-      sendMessage(`run ${queryName}`, currentFilters);
+      sendMessage(`run ${queryName}`, mergedFilters);
     }
-  }, [autoExecute, queryName, currentFilters, sendMessage]);
+  }, [autoExecute, queryName, mergedFilters, sendMessage]);
+
+  // Auto-rerun when business date changes (debounced)
+  const businessDateRef = useRef(businessDate);
+  useEffect(() => {
+    if (businessDateRef.current === businessDate) return;
+    businessDateRef.current = businessDate;
+    if (!hasRun) return;
+    const timer = setTimeout(() => {
+      sendMessage(`run ${queryName}`, mergedFilters);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [businessDate, hasRun, queryName, mergedFilters, sendMessage]);
 
   const handleRun = () => {
     setHasRun(true);
     setEditingFilters(false);
-    sendMessage(`run ${queryName}`, currentFilters);
+    sendMessage(`run ${queryName}`, mergedFilters);
   };
 
   const handleFollowUp = (e: React.FormEvent) => {
@@ -183,6 +211,8 @@ export function QueryCard({
 
   const handleFilterChange = (key: string, value: string) => {
     setCurrentFilters((prev) => ({ ...prev, [key]: value }));
+    // Propagate to shared filters so other cards can pick it up
+    setSharedFilter(key, value);
   };
 
   const handleResetFilters = () => {
@@ -206,10 +236,14 @@ export function QueryCard({
   const activeFilterEntries = Object.entries(currentFilters).filter(([, v]) => v);
   const hasFilters = filterKeys.length > 0;
 
+  const handleRerun = useCallback((originalQuery: string) => {
+    sendMessage(originalQuery, mergedFilters);
+  }, [sendMessage, mergedFilters]);
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col resize flex-shrink-0" style={{ minHeight: 360, height: 480, minWidth: 320, width: 380, maxWidth: '100%' }}>
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+      <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2 shrink-0">
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-gray-900 truncate">{label}</h3>
           <p className="text-xs text-gray-400 truncate">{queryName}</p>
@@ -234,7 +268,7 @@ export function QueryCard({
 
       {/* Filter pills (compact view when not editing) */}
       {activeFilterEntries.length > 0 && !editingFilters && (
-        <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex flex-wrap gap-1">
+        <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex flex-wrap gap-1 shrink-0">
           {activeFilterEntries.map(([key, value]) => (
             <span key={key} className="inline-flex items-center rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] text-blue-700">
               {key}: {value}
@@ -245,7 +279,7 @@ export function QueryCard({
 
       {/* Editable filter panel */}
       {editingFilters && (
-        <div className="px-4 py-3 bg-blue-50/50 border-b border-blue-100 space-y-2">
+        <div className="px-4 py-3 bg-blue-50/50 border-b border-blue-100 space-y-2 shrink-0 overflow-y-auto max-h-48">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-medium text-gray-600">Query Filters</span>
             {Object.keys(defaultFilters || {}).length > 0 && (
@@ -335,7 +369,7 @@ export function QueryCard({
       )}
 
       {/* Content area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0">
         {!hasRun ? (
           <div className="px-4 py-3">
             <button
@@ -346,77 +380,118 @@ export function QueryCard({
             </button>
           </div>
         ) : (
-          <>
-            {/* Message thread */}
-            <div ref={scrollContainerRef} className="flex-1 max-h-96 overflow-y-auto px-3 py-2 space-y-1">
-              {messages.map((msg) => (
+          /* Message thread */
+          <div ref={scrollContainerRef} className="flex-1 overflow-y-scroll overflow-x-hidden px-3 py-2 space-y-1 min-h-0">
+            {messages.map((msg) => (
+              <div key={msg.id}>
                 <MessageBubble
-                  key={msg.id}
                   message={{
                     ...msg,
                     suggestions: undefined,
                     referenceUrl: undefined,
                     retryText: undefined,
                   }}
+                  cardId={cardId}
+                  linkedSelection={linkedSelection}
+                  onCellClick={(column, value) => setLinkedSelection(cardId, column, String(value))}
                 />
-              ))}
-              {isLoading && (
-                <div className="flex justify-start mb-3">
-                  <div className="bg-gray-100 rounded-2xl px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </div>
+                {msg.role === 'bot' && msg.originalQuery && (
+                  <div className="flex justify-start mb-1 -mt-1 ml-1">
+                    <button
+                      onClick={() => handleRerun(msg.originalQuery!)}
+                      disabled={isLoading}
+                      className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-0.5 text-[10px] text-gray-500 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                      title="Re-run this query for latest data"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Rerun
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start mb-3">
+                <div className="bg-gray-100 rounded-2xl px-4 py-3">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
                 </div>
-              )}
-              <div />
-            </div>
-
-            {/* Follow-up input */}
-            <div className="border-t border-gray-100 px-3 py-2">
-              <form onSubmit={handleFollowUp} className="flex gap-2">
-                <input
-                  type="text"
-                  value={followUpText}
-                  onChange={(e) => setFollowUpText(e.target.value)}
-                  placeholder="Ask a follow-up..."
-                  disabled={isLoading}
-                  className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
-                />
-                <button
-                  type="submit"
-                  disabled={isLoading || !followUpText.trim()}
-                  className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
-                  Send
-                </button>
-              </form>
-              <div className="flex gap-2 mt-1.5">
-                <button
-                  onClick={() => sendMessage(`run ${queryName}`, currentFilters)}
-                  disabled={isLoading}
-                  className="text-[10px] text-blue-600 hover:underline disabled:opacity-50"
-                >
-                  Refresh
-                </button>
-                <button
-                  onClick={handleClear}
-                  className="text-[10px] text-gray-400 hover:underline"
-                >
-                  Clear
-                </button>
-                <a
-                  href={`/?group=${encodeURIComponent(groupId)}`}
-                  className="text-[10px] text-gray-400 hover:underline ml-auto"
-                >
-                  Open in Chat
-                </a>
               </div>
-            </div>
-          </>
+            )}
+            <div />
+          </div>
         )}
+      </div>
+
+      {/* Suggestion chips from last bot response */}
+      {(() => {
+        const lastBot = [...messages].reverse().find((m) => m.role === 'bot');
+        const chips = lastBot?.suggestions;
+        if (!chips || chips.length === 0 || isLoading) return null;
+        return (
+          <div className="flex flex-wrap gap-1.5 px-3 py-1.5 border-t border-gray-100 shrink-0">
+            {chips.map((chip: string, i: number) => (
+              <button
+                key={i}
+                onClick={() => {
+                  setFollowUpText('');
+                  sendMessage(chip);
+                }}
+                className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[10px] text-blue-600 hover:bg-blue-100 transition-colors"
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* Always-visible toolbar */}
+      <div className="border-t border-gray-100 px-3 py-2 shrink-0">
+        <form onSubmit={handleFollowUp} className="flex gap-2">
+          <input
+            type="text"
+            value={followUpText}
+            onChange={(e) => setFollowUpText(e.target.value)}
+            placeholder="Ask a follow-up..."
+            disabled={isLoading || !hasRun}
+            className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+          />
+          <button
+            type="submit"
+            disabled={isLoading || !followUpText.trim() || !hasRun}
+            className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+          >
+            Send
+          </button>
+        </form>
+        <div className="flex gap-2 mt-1.5">
+          <button
+            onClick={() => sendMessage(`run ${queryName}`, mergedFilters)}
+            disabled={isLoading || !hasRun}
+            className="text-[10px] text-blue-600 hover:underline disabled:opacity-50"
+          >
+            Refresh
+          </button>
+          <button
+            onClick={handleClear}
+            disabled={!hasRun}
+            className="text-[10px] text-gray-400 hover:underline disabled:opacity-50"
+          >
+            Clear
+          </button>
+          <a
+            href={`/?group=${encodeURIComponent(groupId)}`}
+            className="text-[10px] text-gray-400 hover:underline ml-auto"
+          >
+            Open in Chat
+          </a>
+        </div>
       </div>
     </div>
   );

@@ -18,6 +18,7 @@ import {
   SUMMARY_PATTERN,
   TOP_BOTTOM_PATTERN,
   VALUE_COMPARE_PATTERN,
+  AGGREGATION_PATTERN,
   STOP_WORDS,
 } from '../constants';
 import { extractFilters, parseFilterFromText, mergeFilters } from './filter-utils';
@@ -389,6 +390,241 @@ export function handleValueCompareFollowUp(
 }
 
 /**
+ * Parse a duration string into a numeric value in hours.
+ * Handles formats:
+ *   - "01 Day(s) 05:56:00" (days + HH:MM:SS)
+ *   - "07:17:00" (HH:MM:SS, under one day)
+ *   - "1 day(s) 4 hours", "2h 30m", "3 days", "45 minutes"
+ *   - "1d 2h 30m", "1.5 hours", "90 min"
+ * Returns NaN if the string is not a recognizable duration.
+ */
+function parseDurationToHours(raw: string): number {
+  const s = String(raw).trim().toLowerCase();
+
+  // Already a plain number — return as-is
+  const plain = parseFloat(s.replace(/[%$,]/g, ''));
+  if (!isNaN(plain) && /^[\d.,\-$%\s]+$/.test(s)) return plain;
+
+  let totalHours = 0;
+  let matched = false;
+
+  // Format: "01 Day(s) 05:56:00" or "02 Day(s) 03:45:00"
+  const dayHmsMatch = s.match(/(\d+)\s*day\(?s?\)?\s+(\d{1,2}):(\d{2}):(\d{2})/);
+  if (dayHmsMatch) {
+    totalHours += parseInt(dayHmsMatch[1], 10) * 24;
+    totalHours += parseInt(dayHmsMatch[2], 10);
+    totalHours += parseInt(dayHmsMatch[3], 10) / 60;
+    totalHours += parseInt(dayHmsMatch[4], 10) / 3600;
+    return totalHours;
+  }
+
+  // Format: "07:17:00" (HH:MM:SS only, no day prefix)
+  const hmsOnly = s.match(/^(\d{1,2}):(\d{2}):(\d{2})$/);
+  if (hmsOnly) {
+    totalHours += parseInt(hmsOnly[1], 10);
+    totalHours += parseInt(hmsOnly[2], 10) / 60;
+    totalHours += parseInt(hmsOnly[3], 10) / 3600;
+    return totalHours;
+  }
+
+  // Match days: "1 day", "2 day(s)", "3d", "1.5 days"
+  const dayMatch = s.match(/([\d.]+)\s*(?:day\(?s?\)?|d\b)/);
+  if (dayMatch) { totalHours += parseFloat(dayMatch[1]) * 24; matched = true; }
+
+  // Match hours: "4 hours", "2h", "1.5 hour(s)", "4 hr(s)"
+  const hourMatch = s.match(/([\d.]+)\s*(?:hour\(?s?\)?|hr\(?s?\)?|h\b)/);
+  if (hourMatch) { totalHours += parseFloat(hourMatch[1]); matched = true; }
+
+  // Match minutes: "30 minutes", "45m", "30 min(s)"
+  const minMatch = s.match(/([\d.]+)\s*(?:minute\(?s?\)?|min\(?s?\)?|m\b)/);
+  if (minMatch) { totalHours += parseFloat(minMatch[1]) / 60; matched = true; }
+
+  // Match seconds: "30 seconds", "45s", "30 sec(s)"
+  const secMatch = s.match(/([\d.]+)\s*(?:second\(?s?\)?|sec\(?s?\)?|s\b)/);
+  if (secMatch) { totalHours += parseFloat(secMatch[1]) / 3600; matched = true; }
+
+  return matched ? totalHours : NaN;
+}
+
+/**
+ * Format hours back into a human-readable duration string.
+ */
+function formatDuration(hours: number): string {
+  if (hours < 1) {
+    const mins = Math.round(hours * 60);
+    return mins === 1 ? '1 minute' : `${mins} minutes`;
+  }
+  const d = Math.floor(hours / 24);
+  const remaining = hours - d * 24;
+  const h = Math.floor(remaining);
+  const m = Math.round((remaining - h) * 60);
+  const parts: string[] = [];
+  if (d > 0) parts.push(`${d} day${d !== 1 ? 's' : ''}`);
+  if (h > 0 || (d > 0 && m > 0)) parts.push(`${h}h`);
+  if (m > 0) parts.push(`${m}m`);
+  return parts.length > 0 ? parts.join(' ') : `${hours.toFixed(2)} hours`;
+}
+
+/**
+ * Detect whether a column contains duration strings (vs plain numbers).
+ * Checks first few non-empty values.
+ */
+function isDurationColumn(rows: Record<string, string | number>[], column: string): boolean {
+  let durationCount = 0;
+  const sample = rows.slice(0, 10);
+  for (const row of sample) {
+    const val = String(row[column] ?? '').trim();
+    if (!val) continue;
+    // Match: "Day(s)", "hours", "min", etc. OR HH:MM:SS patterns OR "2d", "3h"
+    if (/(?:day|hour|minute|second|min|sec|hr)\(?s?\)?|(?:\d+\s*[dhms]\b)|^\d{1,2}:\d{2}:\d{2}$/i.test(val)) {
+      durationCount++;
+    }
+  }
+  return durationCount >= Math.min(3, sample.length * 0.5);
+}
+
+/**
+ * Parse aggregation operation and column from user text.
+ * Supports: "avg resolution_hours", "calculate sum revenue", "max of priority", "count tickets"
+ */
+function parseAggregation(text: string): { op: string; columnHint: string | null } | null {
+  const m = text.match(/\b(?:calculate\s+)?(avg|average|sum|total|min|max|mean|minimum|maximum|count)\b(?:\s+(?:of\s+)?([\w_]+))?/i);
+  if (!m) return null;
+  const rawOp = m[1].toLowerCase();
+  const opMap: Record<string, string> = {
+    avg: 'avg', average: 'avg', mean: 'avg',
+    sum: 'sum', total: 'sum',
+    min: 'min', minimum: 'min',
+    max: 'max', maximum: 'max',
+    count: 'count',
+  };
+  return { op: opMap[rawOp] ?? rawOp, columnHint: m[2] ?? null };
+}
+
+/**
+ * Handle aggregation follow-ups: "avg resolution_hours", "calculate sum revenue", "max priority"
+ */
+export function handleAggregationFollowUp(
+  classification: ClassificationResult,
+  context: ConversationContext
+): BotResponse | null {
+  if (!context.lastApiResult || !context.lastQueryName) return null;
+  const userText = getLastUserText(context);
+  if (!AGGREGATION_PATTERN.test(userText)) return null;
+
+  const parsed = parseAggregation(userText);
+  if (!parsed) return null;
+
+  const csvData = extractCsvDataFromContext(context);
+  if (!csvData) return null;
+
+  // For count without a column, return row count
+  if (parsed.op === 'count' && !parsed.columnHint) {
+    return {
+      text: `**Count** of rows in "${context.lastQueryName}": **${csvData.rows.length}**`,
+      suggestions: ['summarize', ...csvData.headers.slice(0, 3).map((h) => `avg ${h}`)],
+      sessionId: context.sessionId,
+      intent: 'followup.aggregation',
+      confidence: 1,
+    };
+  }
+
+  // Match column
+  let column: string | null = null;
+  if (parsed.columnHint) {
+    const hint = parsed.columnHint.toLowerCase();
+    column = csvData.headers.find((h) => h.toLowerCase() === hint) ?? null;
+    if (!column) column = csvData.headers.find((h) => h.toLowerCase().replace(/_/g, '') === hint.replace(/_/g, '')) ?? null;
+    if (!column) column = csvData.headers.find((h) => h.toLowerCase().includes(hint) || hint.includes(h.toLowerCase())) ?? null;
+  }
+
+  if (!column) {
+    const numericHeaders = csvData.headers.filter((h) => {
+      const val = csvData.rows[0]?.[h];
+      return typeof val === 'number' || (typeof val === 'string' && !isNaN(parseFloat(val)));
+    });
+    return {
+      text: `Which column should I calculate the ${parsed.op} of? Available numeric columns: **${numericHeaders.join(', ')}**`,
+      suggestions: numericHeaders.slice(0, 4).map((h) => `${parsed.op} ${h}`),
+      sessionId: context.sessionId,
+      intent: 'followup.aggregation',
+      confidence: 1,
+    };
+  }
+
+  // Detect if column contains duration strings
+  const hasDurations = isDurationColumn(csvData.rows, column);
+
+  // Compute aggregation — use duration parser if column has duration values
+  const values = csvData.rows
+    .map((r) => {
+      const raw = r[column!];
+      if (typeof raw === 'number') return raw;
+      return hasDurations ? parseDurationToHours(String(raw)) : parseFloat(String(raw).replace(/[%$,]/g, ''));
+    })
+    .filter((v) => !isNaN(v));
+
+  if (values.length === 0) {
+    return {
+      text: `Column **${column}** has no numeric values to aggregate.`,
+      suggestions: csvData.headers.slice(0, 4).map((h) => `${parsed.op} ${h}`),
+      sessionId: context.sessionId,
+      intent: 'followup.aggregation',
+      confidence: 1,
+    };
+  }
+
+  let result: number;
+  let opLabel: string;
+  switch (parsed.op) {
+    case 'avg':
+      result = values.reduce((a, b) => a + b, 0) / values.length;
+      opLabel = 'Average';
+      break;
+    case 'sum':
+      result = values.reduce((a, b) => a + b, 0);
+      opLabel = 'Sum';
+      break;
+    case 'min':
+      result = Math.min(...values);
+      opLabel = 'Min';
+      break;
+    case 'max':
+      result = Math.max(...values);
+      opLabel = 'Max';
+      break;
+    case 'count':
+      result = values.length;
+      opLabel = 'Count';
+      break;
+    default:
+      return null;
+  }
+
+  // Format result: use duration format for duration columns, numeric otherwise
+  const formatted = parsed.op === 'count'
+    ? result.toString()
+    : hasDurations
+    ? `${formatDuration(result)} (${result.toFixed(2)} hrs)`
+    : Number.isInteger(result) ? result.toString() : result.toFixed(2);
+  logger.info({ query: context.lastQueryName, op: parsed.op, column, result }, 'Aggregation follow-up');
+
+  const otherOps = ['avg', 'sum', 'min', 'max'].filter((o) => o !== parsed.op);
+
+  return {
+    text: `**${opLabel}** of **${column}** in "${context.lastQueryName}" (${values.length} values): **${formatted}**`,
+    suggestions: [
+      ...otherOps.slice(0, 2).map((o) => `${o} ${column}`),
+      'summarize',
+      `sort by ${column} desc`,
+    ],
+    sessionId: context.sessionId,
+    intent: 'followup.aggregation',
+    confidence: 1,
+  };
+}
+
+/**
  * Handle follow-up questions about specific fields from the last query result.
  */
 export function handleFollowUp(
@@ -498,6 +734,8 @@ export function handleDataOperation(
   if (topNResult) return topNResult;
   const compareResult = handleValueCompareFollowUp(classification, context);
   if (compareResult) return compareResult;
+  const aggResult = handleAggregationFollowUp(classification, context);
+  if (aggResult) return aggResult;
   return null;
 }
 

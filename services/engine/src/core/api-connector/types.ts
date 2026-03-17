@@ -66,6 +66,14 @@ export const QuerySchema = z.object({
     stacked: z.boolean().optional(),
     showLegend: z.boolean().optional(),
   }).optional(),
+  // Column role configuration — explicit column roles override regex-based auto-detection
+  columnConfig: z.object({
+    idColumns: z.array(z.string()).optional(),      // columns to treat as IDs (excluded from aggregation)
+    dateColumns: z.array(z.string()).optional(),     // columns to treat as dates (excluded from numeric calc)
+    labelColumns: z.array(z.string()).optional(),    // columns for chart x-axis / group-by labels
+    valueColumns: z.array(z.string()).optional(),    // columns for calculation / chart y-axis
+    ignoreColumns: z.array(z.string()).optional(),   // columns to skip entirely
+  }).optional(),
 });
 
 export const QueryResultSchema = z.object({

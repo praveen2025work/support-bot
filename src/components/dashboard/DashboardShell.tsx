@@ -7,6 +7,7 @@ import { FavoritesPanel } from './FavoritesPanel';
 import { RecentQueriesPanel } from './RecentQueriesPanel';
 import { AddFavoriteModal } from './AddFavoriteModal';
 import { SearchBar } from './SearchBar';
+import { DashboardProvider, useDashboardContext } from '@/contexts/DashboardContext';
 import type { QueryInfo } from '@/types/dashboard';
 
 interface GroupInfo {
@@ -49,6 +50,55 @@ export function DashboardShell({
   const isEmpty = !hasFavorites && !hasRecents;
 
   return (
+    <DashboardProvider>
+      <DashboardShellInner
+        userName={userName}
+        userId={userId}
+        groupId={groupId}
+        groups={groups}
+        availableQueries={availableQueries}
+        dashboard={dashboard}
+        isEmpty={isEmpty}
+        hasFavorites={hasFavorites}
+        hasRecents={hasRecents}
+        showAddFavorite={showAddFavorite}
+        setShowAddFavorite={setShowAddFavorite}
+        setGroupId={setGroupId}
+      />
+    </DashboardProvider>
+  );
+}
+
+function DashboardShellInner({
+  userName,
+  userId,
+  groupId,
+  groups,
+  availableQueries,
+  dashboard,
+  isEmpty,
+  hasFavorites,
+  hasRecents,
+  showAddFavorite,
+  setShowAddFavorite,
+  setGroupId,
+}: {
+  userName?: string;
+  userId?: string;
+  groupId: string;
+  groups: GroupInfo[];
+  availableQueries: QueryInfo[];
+  dashboard: ReturnType<typeof useDashboard>;
+  isEmpty: boolean;
+  hasFavorites: boolean;
+  hasRecents: boolean;
+  showAddFavorite: boolean;
+  setShowAddFavorite: (v: boolean) => void;
+  setGroupId: (v: string) => void;
+}) {
+  const { businessDate, setBusinessDate, linkedSelection, clearLinkedSelection, sharedFilters, clearSharedFilters } = useDashboardContext();
+
+  return (
     <div className="min-h-screen bg-gray-50">
       <DashboardHeader
         userName={userName}
@@ -58,13 +108,55 @@ export function DashboardShell({
         onAddFavorite={() => setShowAddFavorite(true)}
       />
 
-      <div className="px-6 pt-4 pb-2">
-        <SearchBar
-          groupId={groupId}
-          onSelect={(queryName) => {
-            window.location.href = `/?q=run+${encodeURIComponent(queryName)}`;
-          }}
-        />
+      <div className="px-6 pt-4 pb-2 flex flex-wrap items-center gap-3">
+        <div className="flex-1 min-w-[200px]">
+          <SearchBar
+            groupId={groupId}
+            onSelect={(queryName) => {
+              window.location.href = `/?q=run+${encodeURIComponent(queryName)}`;
+            }}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-500 whitespace-nowrap">Business Date:</label>
+          <input
+            type="date"
+            value={businessDate || ''}
+            onChange={(e) => setBusinessDate(e.target.value || null)}
+            className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          {businessDate && (
+            <button
+              onClick={() => setBusinessDate(null)}
+              className="text-[10px] text-gray-400 hover:text-gray-600"
+              title="Clear date filter"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        {linkedSelection.value && (
+          <button
+            onClick={clearLinkedSelection}
+            className="inline-flex items-center gap-1 rounded-full bg-yellow-50 border border-yellow-300 px-2.5 py-1 text-[11px] text-yellow-700 hover:bg-yellow-100 transition-colors"
+          >
+            Linked: {linkedSelection.column}={linkedSelection.value}
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+        {Object.keys(sharedFilters).length > 0 && (
+          <button
+            onClick={clearSharedFilters}
+            className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2.5 py-1 text-[11px] text-blue-600 hover:bg-blue-100 transition-colors"
+          >
+            Clear shared filters ({Object.keys(sharedFilters).length})
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       <div className="px-6 py-6 space-y-6">

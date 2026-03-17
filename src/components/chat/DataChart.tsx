@@ -41,6 +41,20 @@ export interface ChartConfig {
   showLegend?: boolean;
 }
 
+export interface ColumnConfig {
+  idColumns?: string[];
+  dateColumns?: string[];
+  labelColumns?: string[];
+  valueColumns?: string[];
+  ignoreColumns?: string[];
+}
+
+export interface DetectedColumnMeta {
+  column: string;
+  detectedType: 'date' | 'integer' | 'decimal' | 'id' | 'string';
+  format?: string;
+}
+
 interface ChartDetection {
   type: ChartType;
   labelKey: string;
@@ -72,21 +86,51 @@ function isDateColumn(key: string, data: Record<string, unknown>[]): boolean {
 function detectChartType(
   data: Record<string, unknown>[],
   headers?: string[],
-  config?: ChartConfig
+  config?: ChartConfig,
+  columnConfig?: ColumnConfig,
+  columnMetadata?: DetectedColumnMeta[]
 ): ChartDetection {
   if (!data || data.length < 2)
     return { type: 'none', labelKey: '', numericKeys: [] };
 
   const keys = headers ?? Object.keys(data[0]);
 
-  // If config specifies labelKey and valueKeys, use them directly
-  const configLabelKey = config?.labelKey && keys.includes(config.labelKey) ? config.labelKey : undefined;
-  const configValueKeys = config?.valueKeys?.filter((k) => keys.includes(k));
+  // Build lookup from engine-detected column metadata
+  const metaMap = new Map<string, DetectedColumnMeta>();
+  if (columnMetadata) {
+    for (const m of columnMetadata) metaMap.set(m.column.toLowerCase(), m);
+  }
 
-  const numericKeys = configValueKeys && configValueKeys.length > 0
-    ? configValueKeys
+  // Build exclusion sets from columnConfig
+  const idSet = new Set((columnConfig?.idColumns || []).map((c) => c.toLowerCase()));
+  const dateExcludeSet = new Set((columnConfig?.dateColumns || []).map((c) => c.toLowerCase()));
+  const ignoreSet = new Set((columnConfig?.ignoreColumns || []).map((c) => c.toLowerCase()));
+
+  // If columnConfig specifies labelColumns, use first; else fall back to chartConfig
+  const configLabelKey = columnConfig?.labelColumns?.[0]
+    ? keys.find((k) => k.toLowerCase() === columnConfig.labelColumns![0].toLowerCase())
+    : config?.labelKey && keys.includes(config.labelKey) ? config.labelKey : undefined;
+
+  // If columnConfig specifies valueColumns, use those; else fall back to chartConfig
+  const explicitValueKeys = columnConfig?.valueColumns && columnConfig.valueColumns.length > 0
+    ? columnConfig.valueColumns.map((vc) => keys.find((k) => k.toLowerCase() === vc.toLowerCase())).filter(Boolean) as string[]
+    : config?.valueKeys?.filter((k) => keys.includes(k));
+
+  const numericKeys = explicitValueKeys && explicitValueKeys.length > 0
+    ? explicitValueKeys
     : keys.filter((key) => {
-        // Skip ID and date/timestamp columns — they're numeric but not meaningful to chart
+        const keyLower = key.toLowerCase();
+        // Skip columns marked as ID, date, or ignored via columnConfig
+        if (idSet.has(keyLower) || dateExcludeSet.has(keyLower) || ignoreSet.has(keyLower)) return false;
+        // Use engine-detected metadata if available
+        const meta = metaMap.get(keyLower);
+        if (meta) {
+          // Skip date, id, and string columns from numeric keys
+          if (meta.detectedType === 'date' || meta.detectedType === 'id' || meta.detectedType === 'string') return false;
+          // integer and decimal are numeric
+          if (meta.detectedType === 'integer' || meta.detectedType === 'decimal') return true;
+        }
+        // Fallback: name-based and value-based detection
         if (ID_NAME_PATTERN.test(key)) return false;
         if (DATE_EXCLUDE_PATTERN.test(key)) return false;
         const numericCount = data.filter((row) => {
@@ -102,16 +146,30 @@ function detectChartType(
     return { type: 'none', labelKey: '', numericKeys: [] };
 
   const nonNumericKeys = keys.filter((k) => !numericKeys.includes(k));
-  const labelKey = configLabelKey || nonNumericKeys[0] || keys[0];
+
+  // If no explicit label key, prefer date columns from metadata as the label
+  let autoLabelKey: string | undefined;
+  if (!configLabelKey && columnMetadata) {
+    const dateCol = keys.find((k) => {
+      const meta = metaMap.get(k.toLowerCase());
+      return meta?.detectedType === 'date' && !numericKeys.includes(k);
+    });
+    if (dateCol) autoLabelKey = dateCol;
+  }
+
+  const labelKey = configLabelKey || autoLabelKey || nonNumericKeys[0] || keys[0];
 
   // If config specifies a default type, use it
   if (config?.defaultType && config.defaultType !== 'none') {
     return { type: config.defaultType, labelKey, numericKeys: numericKeys.slice(0, 3) };
   }
 
-  // Auto-detection fallback
+  // Auto-detection: check if label is a date column (metadata first, then fallback)
+  const labelMeta = metaMap.get(labelKey.toLowerCase());
+  const labelIsDate = labelMeta?.detectedType === 'date' || isDateColumn(labelKey, data);
+
   // Date label + numeric columns -> LineChart
-  if (isDateColumn(labelKey, data) && numericKeys.length >= 1) {
+  if (labelIsDate && numericKeys.length >= 1) {
     return { type: 'line', labelKey, numericKeys: numericKeys.slice(0, 3) };
   }
 
@@ -150,7 +208,7 @@ function ChartToolbar({
   onTypeChange: (type: ChartType) => void;
 }) {
   return (
-    <div className="flex items-center gap-1 mb-1">
+    <div className="flex flex-wrap items-center gap-1 mb-1">
       <span className="text-[10px] text-gray-400 mr-1">Chart:</span>
       {CHART_TYPE_ICONS.map(({ type, label, icon }) => (
         <button
@@ -175,12 +233,16 @@ export function DataChart({
   data,
   headers,
   chartConfig,
+  columnConfig,
+  columnMetadata,
 }: {
   data: Record<string, unknown>[];
   headers?: string[];
   chartConfig?: ChartConfig;
+  columnConfig?: ColumnConfig;
+  columnMetadata?: DetectedColumnMeta[];
 }) {
-  const detection = useMemo(() => detectChartType(data, headers, chartConfig), [data, headers, chartConfig]);
+  const detection = useMemo(() => detectChartType(data, headers, chartConfig, columnConfig, columnMetadata), [data, headers, chartConfig, columnConfig, columnMetadata]);
   const [overrideType, setOverrideType] = useState<ChartType | null>(null);
 
   const activeType = overrideType ?? detection.type;

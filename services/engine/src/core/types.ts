@@ -84,6 +84,14 @@ export interface QueryChartConfig {
   showLegend?: boolean;
 }
 
+export interface ColumnConfig {
+  idColumns?: string[];
+  dateColumns?: string[];
+  labelColumns?: string[];
+  valueColumns?: string[];
+  ignoreColumns?: string[];
+}
+
 export interface ConversationContext {
   sessionId: string;
   history: Array<{ role: 'user' | 'bot'; text: string; timestamp: Date }>;

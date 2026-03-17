@@ -22,8 +22,20 @@
       "chartConfig": {
         "defaultType": "line",
         "labelKey": "month",
-        "valueKeys": ["revenue", "target"],
+        "valueKeys": [
+          "revenue",
+          "target"
+        ],
         "showLegend": true
+      },
+      "columnConfig": {
+        "labelColumns": [
+          "month"
+        ],
+        "valueColumns": [
+          "revenue",
+          "target"
+        ]
       }
     },
     {
@@ -44,7 +56,10 @@
       "chartConfig": {
         "defaultType": "area",
         "labelKey": "date",
-        "valueKeys": ["dau", "mau"],
+        "valueKeys": [
+          "dau",
+          "mau"
+        ],
         "showLegend": true
       }
     },
@@ -70,9 +85,30 @@
       "chartConfig": {
         "defaultType": "bar",
         "labelKey": "service",
-        "valueKeys": ["error_count", "error_rate"],
+        "valueKeys": [
+          "error_count",
+          "error_rate"
+        ],
         "showLegend": true
-      }
+      },
+      "columnConfig": {
+        "idColumns": [
+          "serviceid"
+        ],
+        "labelColumns": [
+          "service"
+        ],
+        "valueColumns": [
+          "error_count",
+          "error_rate",
+          "errors"
+        ]
+      },
+      "filePath": "",
+      "baseUrl": "",
+      "method": "",
+      "authType": "none",
+      "bamTokenUrl": ""
     },
     {
       "id": "q4",
@@ -227,7 +263,12 @@
       "source": "finance",
       "type": "csv",
       "filePath": "data/sales-data.csv",
-      "filters": []
+      "filters": [],
+      "endpoint": "",
+      "baseUrl": "",
+      "method": "",
+      "authType": "none",
+      "bamTokenUrl": ""
     },
     {
       "id": "q14",
@@ -271,7 +312,21 @@
       "source": "analytics",
       "type": "csv",
       "filePath": "data/support-tickets.csv",
-      "filters": []
+      "filters": [],
+      "endpoint": "",
+      "baseUrl": "",
+      "method": "",
+      "authType": "none",
+      "bamTokenUrl": "",
+      "columnConfig": {
+        "idColumns": [
+          "ticket_id"
+        ],
+        "dateColumns": [
+          "created_date",
+          "resolved_date"
+        ]
+      }
     },
     {
       "id": "q18",
@@ -283,6 +338,25 @@
       "type": "csv",
       "filePath": "data/employee-metrics.csv",
       "filters": []
+    },
+    {
+      "id": "q21",
+      "name": "pnl_availability",
+      "description": "P&L availability and delivery dashboard with SLA targets and delivery times",
+      "estimatedDuration": 0,
+      "url": "https://confluence.example.com/wiki/finance/pnl-availability-guide",
+      "source": "finance",
+      "type": "csv",
+      "filePath": "data/pnl-availability.csv",
+      "filters": [],
+      "endpoint": "",
+      "baseUrl": "",
+      "method": "",
+      "authType": "none",
+      "bamTokenUrl": "",
+      "columnConfig": {
+        "dateColumns": ["books_open", "toro_date", "submission_date"]
+      }
     },
     {
       "id": "q19",

@@ -67,16 +67,28 @@ function renderMarkdownText(
   });
 }
 
+interface LinkedSelection {
+  sourceCardId: string | null;
+  column: string | null;
+  value: string | null;
+}
+
 export function MessageBubble({
   message,
   onAction,
   onExecuteQuery,
   onRetry,
+  cardId,
+  linkedSelection,
+  onCellClick,
 }: {
   message: Message;
   onAction?: (text: string) => void;
   onExecuteQuery?: (queryName: string, filters: Record<string, string>) => void;
   onRetry?: (text: string) => void;
+  cardId?: string;
+  linkedSelection?: LinkedSelection;
+  onCellClick?: (column: string, value: unknown) => void;
 }) {
   const isUser = message.role === 'user';
 
@@ -98,7 +110,7 @@ export function MessageBubble({
         </p>
         {message.richContent && (
           <div className="mt-2">
-            <RichContentRenderer richContent={message.richContent} onExecuteQuery={onExecuteQuery} onAction={onAction} />
+            <RichContentRenderer richContent={message.richContent} onExecuteQuery={onExecuteQuery} onAction={onAction} cardId={cardId} linkedSelection={linkedSelection} onCellClick={onCellClick} />
           </div>
         )}
         {/* Anomaly alerts */}
@@ -151,10 +163,16 @@ function RichContentRenderer({
   richContent,
   onExecuteQuery,
   onAction,
+  cardId,
+  linkedSelection,
+  onCellClick,
 }: {
   richContent: NonNullable<Message['richContent']>;
   onExecuteQuery?: (queryName: string, filters: Record<string, string>) => void;
   onAction?: (text: string) => void;
+  cardId?: string;
+  linkedSelection?: LinkedSelection;
+  onCellClick?: (column: string, value: unknown) => void;
 }) {
   switch (richContent.type) {
     case 'url_list': {
@@ -178,7 +196,7 @@ function RichContentRenderer({
     }
     case 'query_result': {
       const result = richContent.data as QueryResultData;
-      return <QueryResultTable result={result} />;
+      return <QueryResultTable result={result} cardId={cardId} linkedSelection={linkedSelection} onCellClick={onCellClick} />;
     }
     case 'multi_query_result': {
       const results = richContent.data as MultiQueryResultItem[];
@@ -189,7 +207,7 @@ function RichContentRenderer({
               <h4 className="text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
                 {item.queryName}
               </h4>
-              <QueryResultTable result={item.result} />
+              <QueryResultTable result={item.result} cardId={cardId} linkedSelection={linkedSelection} onCellClick={onCellClick} />
             </div>
           ))}
         </div>
@@ -283,7 +301,7 @@ function RichContentRenderer({
                 )}
               </div>
               <Suspense fallback={<div className="h-64 flex items-center justify-center text-[var(--text-muted)]">Loading chart…</div>}>
-                <DataChart data={csvData.rows as Record<string, unknown>[]} headers={csvData.headers} chartConfig={(csvData as Record<string, unknown>).chartConfig as Record<string, unknown> | undefined} />
+                <DataChart data={csvData.rows as Record<string, unknown>[]} headers={csvData.headers} chartConfig={(csvData as Record<string, unknown>).chartConfig as Record<string, unknown> | undefined} columnConfig={(csvData as Record<string, unknown>).columnConfig as Record<string, unknown> | undefined} columnMetadata={(csvData as Record<string, unknown>).columnMetadata as Record<string, unknown>[] | undefined} />
               </Suspense>
             </>
           )}
@@ -680,9 +698,29 @@ function RichContentRenderer({
   }
 }
 
-function QueryResultTable({ result }: { result: QueryResultData & { chartConfig?: Record<string, unknown> } }) {
+function QueryResultTable({
+  result,
+  cardId,
+  linkedSelection,
+  onCellClick,
+}: {
+  result: QueryResultData & { chartConfig?: Record<string, unknown>; columnConfig?: Record<string, unknown>; columnMetadata?: Record<string, unknown>[] };
+  cardId?: string;
+  linkedSelection?: LinkedSelection;
+  onCellClick?: (column: string, value: unknown) => void;
+}) {
   const [pageRange, setPageRange] = useState({ start: 0, end: 10 });
   const pagedData = result.data.slice(pageRange.start, pageRange.end);
+
+  // Determine if this card should highlight rows (linked selection from another card)
+  const highlightValue = linkedSelection?.value;
+  const isSourceCard = linkedSelection?.sourceCardId === cardId;
+  const shouldHighlight = !!highlightValue && !isSourceCard && !!cardId;
+
+  const isRowHighlighted = (row: Record<string, unknown>) => {
+    if (!shouldHighlight) return false;
+    return Object.values(row).some((v) => String(v) === highlightValue);
+  };
 
   return (
     <div className="mt-1 text-xs">
@@ -706,15 +744,24 @@ function QueryResultTable({ result }: { result: QueryResultData & { chartConfig?
                 </tr>
               </thead>
               <tbody>
-                {pagedData.map((row, i) => (
-                  <tr key={i} className="border-b border-gray-100">
-                    {Object.values(row).map((val, j) => (
-                      <td key={j} className="px-2 py-1">
-                        {String(val)}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                {pagedData.map((row, i) => {
+                  const highlighted = isRowHighlighted(row);
+                  return (
+                    <tr key={i} className={`border-b border-gray-100 ${highlighted ? 'bg-yellow-50' : ''}`}>
+                      {Object.entries(row).map(([key, val], j) => (
+                        <td
+                          key={j}
+                          className={`px-2 py-1 ${onCellClick && cardId ? 'cursor-pointer hover:bg-blue-50' : ''} ${
+                            highlighted && String(val) === highlightValue ? 'bg-yellow-100 font-semibold' : ''
+                          }`}
+                          onClick={onCellClick && cardId ? () => onCellClick(key, val) : undefined}
+                        >
+                          {String(val)}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -726,7 +773,7 @@ function QueryResultTable({ result }: { result: QueryResultData & { chartConfig?
             />
           )}
           <Suspense fallback={<div className="h-64 flex items-center justify-center text-[var(--text-muted)]">Loading chart…</div>}>
-            <DataChart data={result.data} chartConfig={result.chartConfig} />
+            <DataChart data={result.data} chartConfig={result.chartConfig} columnConfig={result.columnConfig} columnMetadata={result.columnMetadata} />
           </Suspense>
         </>
       )}

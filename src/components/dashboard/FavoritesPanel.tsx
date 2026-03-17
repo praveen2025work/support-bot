@@ -28,7 +28,7 @@ export function FavoritesPanel({
         <h2 className="text-sm font-semibold text-gray-700">Favorites</h2>
         <span className="text-xs text-gray-400">{favorites.length}</span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+      <div className="flex flex-wrap gap-4 items-start">
         {favorites.map((fav) => (
           <QueryCard
             key={fav.id}

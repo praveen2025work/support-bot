@@ -26,7 +26,7 @@ export function SubscriptionsPanel({
         <h2 className="text-sm font-semibold text-gray-700">Subscriptions</h2>
         <span className="text-xs text-gray-400">Auto-refresh on load</span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="flex flex-wrap gap-4 items-start">
         {subscriptions.map((sub) => (
           <QueryCard
             key={sub.id}
