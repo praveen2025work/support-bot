@@ -782,7 +782,7 @@ export default function GroupDetailPage() {
                         <option value="api">API (REST endpoint)</option>
                         <option value="url">URL (return link)</option>
                         <option value="document">Document (BRD / feature doc)</option>
-                        <option value="csv">CSV (data analysis)</option>
+                        <option value="csv">CSV / Excel (data analysis)</option>
                       </select>
                     </div>
 
@@ -824,7 +824,7 @@ export default function GroupDetailPage() {
                         <input
                           value={qFilePath}
                           onChange={(e) => setQFilePath(e.target.value)}
-                          placeholder={qType === 'csv' ? 'CSV file path (e.g. data/sales-data.csv)' : 'Document path (e.g. data/knowledge/brd.md)'}
+                          placeholder={qType === 'csv' ? 'File path (e.g. data/sales.csv or data/report.xlsx)' : 'Document path (e.g. data/knowledge/brd.md)'}
                           className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                       )}
