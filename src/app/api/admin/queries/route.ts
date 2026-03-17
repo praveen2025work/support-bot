@@ -26,8 +26,9 @@ interface QueryRecord {
   url: string;
   source: string;
   filters: FilterBinding[];
-  type: 'api' | 'url' | 'document' | 'csv';
+  type: 'api' | 'url' | 'document' | 'csv' | 'xlsx';
   filePath?: string;
+  fileBaseDir?: string;
   sheetName?: string;
   endpoint?: string;
   baseUrl?: string;
@@ -43,13 +44,14 @@ function toSnakeCase(s: string): string {
 }
 
 /** Read xlsx sheet names from an engine data file. Returns empty array for non-xlsx files. */
-async function getXlsxSheetNames(filePath: string): Promise<string[]> {
+async function getXlsxSheetNames(filePath: string, queryFileBaseDir?: string): Promise<string[]> {
   const ext = path.extname(filePath).toLowerCase();
   if (ext !== '.xlsx' && ext !== '.xls') return [];
   try {
-    // Resolve relative to engine data directory
-    const engineDataDir = path.resolve(process.cwd(), 'services/engine');
-    const resolved = path.resolve(engineDataDir, filePath);
+    // Priority: per-query fileBaseDir → global FILE_BASE_DIR → services/engine
+    const externalBase = queryFileBaseDir || process.env.FILE_BASE_DIR || '';
+    const baseDir = externalBase || path.resolve(process.cwd(), 'services/engine');
+    const resolved = path.resolve(baseDir, filePath);
     const buffer = await fs.readFile(resolved);
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const XLSX = require('xlsx');
@@ -114,15 +116,15 @@ export async function POST(request: NextRequest) {
     if (queryType === 'url' && !url) {
       return NextResponse.json({ error: 'URL-type queries require a url' }, { status: 400 });
     }
-    if ((queryType === 'document' || queryType === 'csv') && !body.filePath) {
-      return NextResponse.json({ error: 'Document/CSV-type queries require a filePath' }, { status: 400 });
+    if ((queryType === 'document' || queryType === 'csv' || queryType === 'xlsx') && !body.filePath) {
+      return NextResponse.json({ error: 'Document/CSV/XLSX-type queries require a filePath' }, { status: 400 });
     }
     if (queryType === 'api' && !body.endpoint) {
       return NextResponse.json({ error: 'API-type queries require an endpoint' }, { status: 400 });
     }
 
     // For xlsx files with multiple sheets, auto-register each sheet as a separate query
-    const sheetNames = queryType === 'csv' ? await getXlsxSheetNames(body.filePath) : [];
+    const sheetNames = (queryType === 'csv' || queryType === 'xlsx') ? await getXlsxSheetNames(body.filePath, body.fileBaseDir) : [];
     const isMultiSheet = sheetNames.length > 1;
 
     const createdQueries = await withDbLock<QueryRecord[]>(async (db) => {
@@ -157,6 +159,7 @@ export async function POST(request: NextRequest) {
             filters: filters || [],
             type: queryType,
             filePath: body.filePath || '',
+            ...(body.fileBaseDir && { fileBaseDir: body.fileBaseDir }),
             sheetName: sheet,
             endpoint: body.endpoint || '',
             baseUrl: body.baseUrl || '',
@@ -190,6 +193,7 @@ export async function POST(request: NextRequest) {
           filters: filters || [],
           type: queryType,
           filePath: body.filePath || '',
+          ...(body.fileBaseDir && { fileBaseDir: body.fileBaseDir }),
           ...(body.sheetName && { sheetName: body.sheetName }),
           endpoint: body.endpoint || '',
           baseUrl: body.baseUrl || '',
@@ -251,6 +255,7 @@ export async function PATCH(request: NextRequest) {
       if (updates.estimatedDuration !== undefined) query.estimatedDuration = updates.estimatedDuration;
       if (updates.type !== undefined) query.type = updates.type;
       if (updates.filePath !== undefined) query.filePath = updates.filePath;
+      if (updates.fileBaseDir !== undefined) query.fileBaseDir = updates.fileBaseDir || undefined;
       if (updates.sheetName !== undefined) query.sheetName = updates.sheetName || undefined;
       if (updates.endpoint !== undefined) query.endpoint = updates.endpoint;
       if (updates.baseUrl !== undefined) query.baseUrl = updates.baseUrl;

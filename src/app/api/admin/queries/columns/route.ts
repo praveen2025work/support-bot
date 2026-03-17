@@ -9,11 +9,15 @@ import { logger } from '@/lib/logger';
  * Read columns directly from a csv/xlsx file on disk.
  * Used as a fallback when engine query execution doesn't return columns.
  */
-async function readColumnsFromFile(filePath: string, sheetName?: string): Promise<string[]> {
+async function readColumnsFromFile(filePath: string, sheetName?: string, queryFileBaseDir?: string): Promise<string[]> {
   try {
-    const engineDir = path.resolve(process.cwd(), 'services/engine');
-    const resolved = path.resolve(engineDir, filePath);
+    // Priority: per-query fileBaseDir → global FILE_BASE_DIR → services/engine
+    const externalBase = queryFileBaseDir || process.env.FILE_BASE_DIR || '';
+    const baseDir = externalBase || path.resolve(process.cwd(), 'services/engine');
+    const resolved = path.resolve(baseDir, filePath);
     const ext = path.extname(filePath).toLowerCase();
+    logger.info({ resolved, ext }, 'Column discovery: reading file directly');
+
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const XLSX = require('xlsx');
 
@@ -22,16 +26,23 @@ async function readColumnsFromFile(filePath: string, sheetName?: string): Promis
       const buffer = await fs.readFile(resolved);
       wb = XLSX.read(buffer, { type: 'buffer' });
     } else {
-      const content = await fs.readFile(resolved, 'utf-8');
-      wb = XLSX.read(content, { type: 'string' });
+      // CSV/TSV — read as buffer to let SheetJS auto-detect encoding & delimiter
+      const buffer = await fs.readFile(resolved);
+      wb = XLSX.read(buffer, { type: 'buffer' });
     }
 
     const targetSheet = sheetName ?? wb.SheetNames[0];
-    if (!targetSheet || !wb.Sheets[targetSheet]) return [];
+    if (!targetSheet || !wb.Sheets[targetSheet]) {
+      logger.warn({ filePath, sheetName, sheets: wb.SheetNames }, 'Column discovery: no matching sheet');
+      return [];
+    }
 
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[targetSheet]) as Record<string, unknown>[];
-    return rows.length > 0 ? Object.keys(rows[0]) : [];
-  } catch {
+    const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+    logger.info({ filePath, columnCount: columns.length, columns }, 'Column discovery: found columns');
+    return columns;
+  } catch (error) {
+    logger.error({ error, filePath }, 'Column discovery: failed to read file');
     return [];
   }
 }
@@ -84,10 +95,10 @@ export async function POST(request: NextRequest) {
     if (columns.length === 0) {
       try {
         const db = await readDb();
-        const queries = (db.queries || []) as { name: string; type?: string; filePath?: string; sheetName?: string }[];
+        const queries = (db.queries || []) as { name: string; type?: string; filePath?: string; fileBaseDir?: string; sheetName?: string }[];
         const query = queries.find((q) => q.name === queryName);
-        if (query?.filePath && (query.type === 'csv' || !query.type)) {
-          columns = await readColumnsFromFile(query.filePath, query.sheetName);
+        if (query?.filePath && (query.type === 'csv' || query.type === 'xlsx' || !query.type)) {
+          columns = await readColumnsFromFile(query.filePath, query.sheetName, query.fileBaseDir);
         }
       } catch {
         // Fallback failed — return empty

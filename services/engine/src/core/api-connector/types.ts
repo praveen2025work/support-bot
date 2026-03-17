@@ -23,7 +23,7 @@ const FiltersField = z
     );
   });
 
-export type QueryType = 'api' | 'url' | 'document' | 'csv';
+export type QueryType = 'api' | 'url' | 'document' | 'csv' | 'xlsx';
 export type QueryAuthType = 'none' | 'bearer' | 'windows' | 'bam';
 
 export const QuerySchema = z.object({
@@ -35,10 +35,18 @@ export const QuerySchema = z.object({
   source: z.string().optional(),
   filters: FiltersField,
   type: z
-    .enum(['api', 'url', 'file', 'document', 'csv'])
+    .enum(['api', 'url', 'file', 'document', 'csv', 'xlsx', 'xls'])
     .default('api')
-    .transform((val) => (val === 'file' ? 'document' : val) as QueryType),
+    .transform((val) => {
+      if (val === 'file') return 'document' as QueryType;
+      if (val === 'xls') return 'xlsx' as QueryType;
+      return val as QueryType;
+    }),
   filePath: z.string().optional(),
+  // Per-query base directory for resolving filePath.
+  // When set (e.g., "//server/shared/reports"), filePath resolves against this dir.
+  // Falls back to FILE_BASE_DIR env var → engine CWD.
+  fileBaseDir: z.string().optional(),
   sheetName: z.string().optional(),  // For xlsx: which sheet to read (defaults to first sheet)
   endpoint: z.string().optional(),
   // Per-query base URL — overrides group & global API_BASE_URL.

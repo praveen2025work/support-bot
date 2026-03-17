@@ -156,16 +156,10 @@ export async function handleQueryList(
     }
 
     const queryItems = queries.map((q) => {
-      // Show actual file format (xlsx, xls) instead of generic "csv" for spreadsheet files
-      let displayType = (q.type ?? 'api') as string;
-      if (displayType === 'csv' && q.filePath) {
-        const ext = q.filePath.split('.').pop()?.toLowerCase();
-        if (ext === 'xlsx' || ext === 'xls') displayType = ext;
-      }
       return {
         name: q.name,
         description: q.description,
-        type: displayType,
+        type: (q.type ?? 'api') as string,
         filters: (q.filters ?? []).map((f) => f.key),
         url: q.type === 'url' ? q.url : undefined,
       };

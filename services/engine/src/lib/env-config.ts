@@ -50,6 +50,14 @@ export const DOCS_DIR = process.env.DOCS_DIR || join(CWD, 'docs');
 /** Response templates directory */
 export const TEMPLATES_DIR = process.env.TEMPLATES_DIR || join(CWD, 'src/core/response');
 
+/**
+ * Base directory for CSV/XLSX/document file paths used by queries.
+ * When set, query `filePath` values resolve against this directory instead of engine CWD.
+ * Example: FILE_BASE_DIR=/mnt/shared/reports  →  filePath "q1.csv" resolves to /mnt/shared/reports/q1.csv
+ * When empty (default), paths resolve relative to the engine directory (backward compatible).
+ */
+export const FILE_BASE_DIR = process.env.FILE_BASE_DIR || '';
+
 /** Mock API db.json */
 export const DB_JSON_PATH = process.env.DB_JSON_PATH || process.env.MOCK_API_DB_PATH || join(CWD, '..', 'mock-api', 'db.json');
 

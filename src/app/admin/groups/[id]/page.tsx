@@ -48,8 +48,9 @@ interface QueryRecord {
   url: string;
   filters: FilterBinding[];
   estimatedDuration: number;
-  type: 'api' | 'url' | 'document' | 'csv';
+  type: 'api' | 'url' | 'document' | 'csv' | 'xlsx';
   filePath?: string;
+  fileBaseDir?: string;
   endpoint?: string;
   baseUrl?: string;
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -95,6 +96,7 @@ export default function GroupDetailPage() {
   const [deletingQueryId, setDeletingQueryId] = useState<string | null>(null);
   const [qType, setQType] = useState<'api' | 'url' | 'document' | 'csv'>('api');
   const [qFilePath, setQFilePath] = useState('');
+  const [qFileBaseDir, setQFileBaseDir] = useState('');
   const [qEndpoint, setQEndpoint] = useState('');
   const [qBaseUrl, setQBaseUrl] = useState('');
   const [qMethod, setQMethod] = useState<'' | 'GET' | 'POST' | 'PUT' | 'DELETE'>('');
@@ -220,6 +222,7 @@ export default function GroupDetailPage() {
     setQUrl('');
     setQType('api');
     setQFilePath('');
+    setQFileBaseDir('');
     setQEndpoint('');
     setQBaseUrl('');
     setQMethod('');
@@ -249,6 +252,7 @@ export default function GroupDetailPage() {
     setQUrl(q.url || '');
     setQType(q.type || 'api');
     setQFilePath(q.filePath || '');
+    setQFileBaseDir(q.fileBaseDir || '');
     setQEndpoint(q.endpoint || '');
     setQBaseUrl(q.baseUrl || '');
     setQMethod((q.method as '' | 'GET' | 'POST' | 'PUT' | 'DELETE') || '');
@@ -277,6 +281,7 @@ export default function GroupDetailPage() {
     setQUrl('');
     setQType('api');
     setQFilePath('');
+    setQFileBaseDir('');
     setQEndpoint('');
     setQBaseUrl('');
     setQMethod('');
@@ -315,6 +320,7 @@ export default function GroupDetailPage() {
     setQUrl(q.url || '');
     setQType(q.type || 'api');
     setQFilePath(q.filePath || '');
+    setQFileBaseDir(q.fileBaseDir || '');
     setQEndpoint(q.endpoint || '');
     setQBaseUrl(q.baseUrl || '');
     setQMethod((q.method as '' | 'GET' | 'POST' | 'PUT' | 'DELETE') || '');
@@ -438,8 +444,8 @@ export default function GroupDetailPage() {
       setQError('URL is required for URL-type queries.');
       return;
     }
-    if ((qType === 'document' || qType === 'csv') && !(qFilePath || '').trim()) {
-      setQError('File path is required for Document/CSV-type queries.');
+    if ((qType === 'document' || qType === 'csv' || qType === 'xlsx') && !(qFilePath || '').trim()) {
+      setQError('File path is required for Document/CSV/XLSX-type queries.');
       return;
     }
     if (qType === 'api' && !(qEndpoint || '').trim()) {
@@ -460,13 +466,14 @@ export default function GroupDetailPage() {
         url: (qUrl || '').trim(),
         filters: qType === 'api' ? qFilterBindings : [],
         type: qType,
-        filePath: (qType === 'document' || qType === 'csv') ? (qFilePath || '').trim() : '',
+        filePath: (qType === 'document' || qType === 'csv' || qType === 'xlsx') ? (qFilePath || '').trim() : '',
+        fileBaseDir: (qType === 'csv' || qType === 'xlsx') ? (qFileBaseDir || '').trim() : '',
         endpoint: qType === 'api' ? (qEndpoint || '').trim() : '',
         baseUrl: qType === 'api' ? (qBaseUrl || '').trim() : '',
         method: qType === 'api' && qMethod ? qMethod : '',
         authType: qType === 'api' ? qAuthType : 'none',
         bamTokenUrl: qAuthType === 'bam' ? (qBamTokenUrl || '').trim() : '',
-        columnConfig: (qType === 'api' || qType === 'csv') ? (() => {
+        columnConfig: (qType === 'api' || qType === 'csv' || qType === 'xlsx') ? (() => {
           const parseList = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
           const cc: ColumnConfigData = {};
           const id = parseList(qColIdColumns); if (id.length) cc.idColumns = id;
@@ -550,6 +557,7 @@ export default function GroupDetailPage() {
     url: 'bg-green-100 text-green-700',
     document: 'bg-amber-100 text-amber-700',
     csv: 'bg-teal-100 text-teal-700',
+    xlsx: 'bg-emerald-100 text-emerald-700',
   };
 
   return (
@@ -782,7 +790,8 @@ export default function GroupDetailPage() {
                         <option value="api">API (REST endpoint)</option>
                         <option value="url">URL (return link)</option>
                         <option value="document">Document (BRD / feature doc)</option>
-                        <option value="csv">CSV / Excel (data analysis)</option>
+                        <option value="csv">CSV (comma-delimited data)</option>
+                        <option value="xlsx">Excel / XLSX (spreadsheet)</option>
                       </select>
                     </div>
 
@@ -820,15 +829,33 @@ export default function GroupDetailPage() {
                           className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                       )}
-                      {(qType === 'document' || qType === 'csv') && (
+                      {(qType === 'document' || qType === 'csv' || qType === 'xlsx') && (
                         <input
                           value={qFilePath}
                           onChange={(e) => setQFilePath(e.target.value)}
-                          placeholder={qType === 'csv' ? 'File path (e.g. data/sales.csv or data/report.xlsx)' : 'Document path (e.g. data/knowledge/brd.md)'}
+                          placeholder={qType === 'xlsx' ? 'File path (e.g. report.xlsx)' : qType === 'csv' ? 'File path (e.g. sales.csv)' : 'Document path (e.g. data/knowledge/brd.md)'}
                           className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                       )}
                     </div>
+
+                    {/* File Base Directory — for CSV/XLSX types */}
+                    {(qType === 'csv' || qType === 'xlsx') && (
+                      <div className="mb-3">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          File Base Directory <span className="text-gray-400 font-normal">(optional — shared folder path)</span>
+                        </label>
+                        <input
+                          value={qFileBaseDir}
+                          onChange={(e) => setQFileBaseDir(e.target.value)}
+                          placeholder="e.g. //server/shared/reports or /mnt/data"
+                          className="text-sm border border-gray-300 rounded px-2 py-1.5 w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          When set, file path resolves against this directory. Leave empty to use default engine directory.
+                        </p>
+                      </div>
+                    )}
 
                     {/* API Endpoint — only for API type */}
                     {qType === 'api' && (
@@ -1030,7 +1057,7 @@ export default function GroupDetailPage() {
                     )}
 
                     {/* Column Roles — for API and CSV types */}
-                    {(qType === 'api' || qType === 'csv') && (
+                    {(qType === 'api' || qType === 'csv' || qType === 'xlsx') && (
                       <div className="mb-3">
                         <button
                           type="button"

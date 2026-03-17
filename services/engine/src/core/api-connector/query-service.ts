@@ -3,8 +3,7 @@ import path from 'path';
 import { ApiClient } from './api-client';
 import { QuerySchema, QueryResultSchema } from './types';
 import { fetchBamToken } from './bam-auth';
-// Note: DATA_DIR from env-config is used for shared NAS storage paths.
-// File-based queries (csv/document) use filePath relative to CWD (engine root).
+import { FILE_BASE_DIR } from '@/lib/env-config';
 import { QueryNotFoundError, FileReadError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 import { resolveDateRange, isDatePreset } from '@/lib/date-resolver';
@@ -15,7 +14,7 @@ import filterConfig from '@/config/filter-config.json';
 import type { Query, QueryResult, QueryFilters, FilterBinding } from './types';
 
 export interface QueryExecutionResult {
-  type: 'api' | 'url' | 'document' | 'csv';
+  type: 'api' | 'url' | 'document' | 'csv' | 'xlsx';
   durationMs?: number;
   apiResult?: QueryResult;
   urlResult?: { title: string; url: string };
@@ -113,6 +112,7 @@ export class QueryService {
         result = await this.executeDocumentQuery(query, options);
         break;
       case 'csv':
+      case 'xlsx':
         result = await this.executeCsvQuery(query, options, filters);
         break;
       case 'api':
@@ -561,26 +561,31 @@ export class QueryService {
       throw new FileReadError(query.name, 'No file path configured');
     }
 
-    // filePath in query config is relative to the engine project root (CWD),
-    // e.g., "data/sales-data.csv" or "data/knowledge/api-changelog.md".
-    // Resolve against CWD (not DATA_DIR) to avoid double-nesting.
-    const cwd = process.cwd();
-    const resolved = path.resolve(cwd, query.filePath);
-    const relative = path.relative(cwd, resolved);
-    if (relative.startsWith('..') || path.isAbsolute(relative)) {
-      throw new FileReadError(query.filePath, 'Path outside project directory');
+    // Priority: per-query fileBaseDir → global FILE_BASE_DIR → engine CWD
+    const externalBase = query.fileBaseDir || FILE_BASE_DIR;
+    const baseDir = externalBase || process.cwd();
+    const resolved = path.resolve(baseDir, query.filePath);
+
+    // Security: when using default CWD (no external base), prevent path traversal
+    if (!externalBase) {
+      const relative = path.relative(baseDir, resolved);
+      if (relative.startsWith('..') || path.isAbsolute(relative)) {
+        throw new FileReadError(query.filePath, 'Path outside project directory');
+      }
     }
 
     try {
       const format = path.extname(query.filePath).toLowerCase().replace('.', '') || 'txt';
-      // Read binary formats (xlsx, xls) as Buffer; text formats as UTF-8
-      const isBinary = format === 'xlsx' || format === 'xls';
-      const content = isBinary
+      // Read spreadsheet formats (xlsx, xls, csv, tsv) as Buffer so SheetJS
+      // can auto-detect encoding, BOM, and delimiters reliably.
+      // Only text document formats (md, txt, etc.) are read as UTF-8.
+      const isSpreadsheet = ['xlsx', 'xls', 'csv', 'tsv'].includes(format);
+      const content = isSpreadsheet
         ? await fs.readFile(resolved)
         : await fs.readFile(resolved, 'utf-8');
       return { content, filePath: query.filePath, format };
     } catch (error) {
-      logger.error({ error, filePath: query.filePath }, 'File read failed');
+      logger.error({ error, filePath: query.filePath, resolved }, 'File read failed');
       throw new FileReadError(query.filePath, 'File not found or unreadable');
     }
   }
