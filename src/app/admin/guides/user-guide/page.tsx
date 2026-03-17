@@ -122,7 +122,7 @@ export default function UserGuidePage() {
           <div className="mt-4 p-3 bg-gray-50 rounded-lg">
             <div className="text-xs font-medium text-gray-500 mb-2">Data Display Types</div>
             <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-              <div><span className="font-medium">Table</span> — API and CSV query results shown as data tables</div>
+              <div><span className="font-medium">Table</span> — API, CSV, and XLSX query results shown as data tables</div>
               <div><span className="font-medium">Charts</span> — Numeric data visualized as bar/line charts</div>
               <div><span className="font-medium">Document</span> — Matching sections from BRD/SOP files</div>
               <div><span className="font-medium">URL</span> — Direct links to dashboards and tools</div>
@@ -193,8 +193,13 @@ export default function UserGuidePage() {
                 </tr>
                 <tr className="border-t border-gray-100">
                   <td className="px-3 py-2 font-medium">CSV</td>
-                  <td className="px-3 py-2">Parses CSV files with aggregation (sum, avg, count)</td>
+                  <td className="px-3 py-2">Parses CSV/TSV files (comma, tab, semicolon, pipe delimiters) with aggregation</td>
                   <td className="px-3 py-2 font-mono text-xs">&quot;average revenue in sales data&quot;</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">XLSX</td>
+                  <td className="px-3 py-2">Reads Excel spreadsheets with multi-sheet support and aggregation</td>
+                  <td className="px-3 py-2 font-mono text-xs">&quot;run employee_compensation&quot;</td>
                 </tr>
                 <tr className="border-t border-gray-100">
                   <td className="px-3 py-2 font-medium">URL</td>
@@ -239,6 +244,14 @@ export default function UserGuidePage() {
             <li className="flex gap-2">
               <span className="text-blue-500 shrink-0">&#x2022;</span>
               Star your favorite queries from the dashboard for one-click access.
+            </li>
+            <li className="flex gap-2">
+              <span className="text-blue-500 shrink-0">&#x2022;</span>
+              CSV files support multiple delimiters: comma, tab, semicolon, and pipe — auto-detected by the engine.
+            </li>
+            <li className="flex gap-2">
+              <span className="text-blue-500 shrink-0">&#x2022;</span>
+              XLSX files with multiple sheets are auto-registered as separate queries (one per sheet).
             </li>
           </ul>
         </Section>

@@ -796,46 +796,71 @@ export default function GroupDetailPage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 mb-3">
-                      <input
-                        value={qName}
-                        onChange={(e) => setQName(e.target.value)}
-                        placeholder="Query name (e.g. monthly_revenue)"
-                        className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      />
-                      <input
-                        value={qDesc}
-                        onChange={(e) => setQDesc(e.target.value)}
-                        placeholder="Description"
-                        className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      />
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Query Name <span className="text-red-400 font-normal">*</span>
+                        </label>
+                        <input
+                          value={qName}
+                          onChange={(e) => setQName(e.target.value)}
+                          placeholder="e.g. monthly_revenue"
+                          className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Description
+                        </label>
+                        <input
+                          value={qDesc}
+                          onChange={(e) => setQDesc(e.target.value)}
+                          placeholder="Brief description of this query"
+                          className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 mb-3">
-                      <select
-                        value={qSource}
-                        onChange={(e) => setQSource(e.target.value)}
-                        className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      >
-                        <option value="">Select source...</option>
-                        {(group?.sources || []).map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Source <span className="text-red-400 font-normal">*</span>
+                        </label>
+                        <select
+                          value={qSource}
+                          onChange={(e) => setQSource(e.target.value)}
+                          className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        >
+                          <option value="">Select source...</option>
+                          {(group?.sources || []).map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </div>
                       {qType === 'url' && (
-                        <input
-                          value={qUrl}
-                          onChange={(e) => setQUrl(e.target.value)}
-                          placeholder="URL to return (required)"
-                          className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            URL <span className="text-red-400 font-normal">*</span>
+                          </label>
+                          <input
+                            value={qUrl}
+                            onChange={(e) => setQUrl(e.target.value)}
+                            placeholder="URL to return (required)"
+                            className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </div>
                       )}
                       {(qType === 'document' || qType === 'csv' || qType === 'xlsx') && (
-                        <input
-                          value={qFilePath}
-                          onChange={(e) => setQFilePath(e.target.value)}
-                          placeholder={qType === 'xlsx' ? 'File path (e.g. report.xlsx)' : qType === 'csv' ? 'File path (e.g. sales.csv)' : 'Document path (e.g. data/knowledge/brd.md)'}
-                          className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            File Path <span className="text-red-400 font-normal">*</span>
+                          </label>
+                          <input
+                            value={qFilePath}
+                            onChange={(e) => setQFilePath(e.target.value)}
+                            placeholder={qType === 'xlsx' ? 'e.g. report.xlsx' : qType === 'csv' ? 'e.g. sales.csv' : 'e.g. data/knowledge/brd.md'}
+                            className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </div>
                       )}
                     </div>
 

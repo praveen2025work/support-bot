@@ -312,6 +312,7 @@ npm run storybook      # Storybook component docs (port 6006)`}</pre>
                 <tr className="bg-gray-50"><td className="px-3 py-1.5 border-b font-mono">API_TOKEN</td><td className="px-3 py-1.5 border-b">Engine</td><td className="px-3 py-1.5 border-b"><em>empty</em></td><td className="px-3 py-1.5 border-b">Global bearer token (not needed for mock)</td></tr>
                 <tr><td className="px-3 py-1.5 border-b font-mono">USER_INFO_URL</td><td className="px-3 py-1.5 border-b">Engine</td><td className="px-3 py-1.5 border-b"><em>empty</em></td><td className="px-3 py-1.5 border-b">Empty = mock user &quot;Local Developer&quot;</td></tr>
                 <tr className="bg-gray-50"><td className="px-3 py-1.5 border-b font-mono">UI_ORIGIN</td><td className="px-3 py-1.5 border-b">Engine</td><td className="px-3 py-1.5 border-b">http://localhost:3001</td><td className="px-3 py-1.5 border-b">CORS allowed origin</td></tr>
+                <tr><td className="px-3 py-1.5 border-b font-mono">FILE_BASE_DIR</td><td className="px-3 py-1.5 border-b">Engine</td><td className="px-3 py-1.5 border-b"><em>empty</em></td><td className="px-3 py-1.5 border-b">Base dir for CSV/XLSX file paths. Leave empty to use engine data/ folder.</td></tr>
               </tbody>
             </table>
           </div>

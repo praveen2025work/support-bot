@@ -102,6 +102,7 @@ cp .env.example .env.prod`}</CmdBlock>
                   <tr><td className="px-3 py-1 font-mono">API_TOKEN</td><td className="px-3 py-1">your-prod-api-token</td><td className="px-3 py-1">Global bearer token for APIs using bearer auth</td></tr>
                   <tr className="bg-red-50/50"><td className="px-3 py-1 font-mono">ENGINE_API_KEY</td><td className="px-3 py-1">your-secure-random-key</td><td className="px-3 py-1"><strong>Required:</strong> Secures the Engine admin API endpoints</td></tr>
                   <tr><td className="px-3 py-1 font-mono">UI_ORIGIN</td><td className="px-3 py-1">https://chatbot.your-company.com</td><td className="px-3 py-1">CORS allowed origin for Engine</td></tr>
+                  <tr className="bg-red-50/50"><td className="px-3 py-1 font-mono">FILE_BASE_DIR</td><td className="px-3 py-1">//server/shared/reports</td><td className="px-3 py-1">Base directory for CSV/XLSX file paths (shared network folder)</td></tr>
                 </tbody>
               </table>
             </div>

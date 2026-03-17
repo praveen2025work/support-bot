@@ -72,12 +72,21 @@ Examples:
 - "what does incident_report say about root cause?" — searches for specific content
 
 ### CSV Queries
-Analyze CSV data files with tables, charts, and aggregations.
+Analyze CSV data files with tables, charts, and aggregations. Supports multiple delimiters: comma, tab, semicolon, and pipe — auto-detected by the engine. CSV files saved from Excel (with BOM encoding) are handled automatically.
 
 Examples:
 - "run sales_data" — shows the full table with a chart
 - "average resolution_hours in support_tickets" — computes an aggregation
 - "count rows in employee_metrics" — counts entries
+
+### XLSX / Excel Queries
+Read Excel spreadsheet files directly. Multi-sheet workbooks are auto-registered as separate queries (one per sheet). Supports the same aggregation features as CSV.
+
+Examples:
+- "run employee_compensation" — shows Excel data as a table with charts
+- "average salary in employee_compensation" — computes aggregation on Excel data
+
+Files can be in the engine's data directory or on a shared network folder (configured via `fileBaseDir` per query or `FILE_BASE_DIR` globally).
 
 ### URL Queries
 Open external tools and dashboards in a new browser tab.
@@ -164,18 +173,24 @@ Anomaly badges appear on query result cards. Baselines are built automatically a
    - "sum of revenue in sales_data"
    - "count critical tickets in support_tickets"
 
-3. **Multi-query comparison**: Run two queries at once to see side-by-side results:
+3. **CSV delimiter support**: The engine auto-detects delimiters in CSV files — comma, tab, semicolon, and pipe all work. CSV files saved from Excel (UTF-8 with BOM) are handled automatically.
+
+4. **XLSX multi-sheet support**: When you register an XLSX file with multiple sheets, each sheet becomes a separate query automatically (e.g., `sales_data_sheet1`, `sales_data_sheet2`).
+
+5. **Shared folder files**: CSV/XLSX queries can reference files on shared network folders. Set the `fileBaseDir` per query in Admin, or configure `FILE_BASE_DIR` globally.
+
+6. **Multi-query comparison**: Run two queries at once to see side-by-side results:
    - "compare error_rate and performance"
    - "show me active_users and customer_churn"
 
-4. **Document search**: Ask questions about document content:
+7. **Document search**: Ask questions about document content:
    - "what does the auth spec say about MFA?"
    - "find rollback steps in deployment_runbook"
 
-5. **Quick suggestions**: After each response, look for clickable suggestion buttons to quickly follow up.
+8. **Quick suggestions**: After each response, look for clickable suggestion buttons to quickly follow up.
 
-6. **Semantic search**: Don't remember the query name? Use the dashboard search bar or type naturally — "find revenue data" works even if the query is named `monthly_revenue`.
+9. **Semantic search**: Don't remember the query name? Use the dashboard search bar or type naturally — "find revenue data" works even if the query is named `monthly_revenue`.
 
-7. **Anomaly alerts**: Watch for yellow/red badges on results — they indicate unusual values compared to historical baselines.
+10. **Anomaly alerts**: Watch for yellow/red badges on results — they indicate unusual values compared to historical baselines.
 
-8. **Favorites**: Star frequently-used queries from the dashboard to access them with one click.
+11. **Favorites**: Star frequently-used queries from the dashboard to access them with one click.

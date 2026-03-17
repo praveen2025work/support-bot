@@ -148,7 +148,8 @@ copy .env.example .env.mock
 # API_BASE_URL=https://api.your-company.com/api
 # API_TOKEN=your-prod-api-token
 # ENGINE_API_KEY=your-secure-engine-key
-# UI_ORIGIN=https://chatbot.your-company.com`}</CmdBlock>
+# UI_ORIGIN=https://chatbot.your-company.com
+# FILE_BASE_DIR=\\\\server\\shared\\reports   # (optional) shared folder for CSV/XLSX files`}</CmdBlock>
             </div>
           </div>
 
@@ -162,7 +163,8 @@ copy .env.example .env.mock
 [System.Environment]::SetEnvironmentVariable("USER_INFO_URL", "https://sso.corp.com/api/userinfo", "Machine")
 [System.Environment]::SetEnvironmentVariable("ENGINE_URL", "http://localhost:4001", "Machine")
 [System.Environment]::SetEnvironmentVariable("ENGINE_API_KEY", "your-secure-key", "Machine")
-[System.Environment]::SetEnvironmentVariable("UI_ORIGIN", "https://chatbot.corp.com", "Machine")`}</CmdBlock>
+[System.Environment]::SetEnvironmentVariable("UI_ORIGIN", "https://chatbot.corp.com", "Machine")
+[System.Environment]::SetEnvironmentVariable("FILE_BASE_DIR", "\\\\server\\shared\\reports", "Machine")`}</CmdBlock>
         </Section>
 
         <Section title="5. Per-Query Authentication">
@@ -428,6 +430,13 @@ pm2 stop chatbot-engine`}</CmdBlock>
               <div className="text-xs text-gray-600 mt-1">
                 If using <Code>.env.prod</Code> file, ensure PM2 is started from the project root directory.
                 If using system env vars, restart the PowerShell session after setting them.
+              </div>
+            </div>
+            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+              <div className="text-xs font-semibold text-red-700">CSV/XLSX file not found or columns not loading</div>
+              <div className="text-xs text-gray-600 mt-1">
+                Verify the file exists at the resolved path. If using <Code>FILE_BASE_DIR</Code> or per-query <Code>fileBaseDir</Code>, check the full path: baseDir + filePath.
+                For CSV files saved from Excel, the engine auto-handles BOM encoding and delimiters (comma, tab, semicolon, pipe).
               </div>
             </div>
           </div>

@@ -144,6 +144,12 @@ export default function ConfigGuidePage() {
                   <td className="px-3 py-2">http://localhost:3001</td>
                   <td className="px-3 py-2">Your prod domain</td>
                 </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">FILE_BASE_DIR</td>
+                  <td className="px-3 py-2">Base directory for CSV/XLSX file paths</td>
+                  <td className="px-3 py-2"><em>empty</em></td>
+                  <td className="px-3 py-2">//server/shared/reports</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -330,7 +336,11 @@ npm run start:prod     # Production build, real APIs`}</pre>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
               <div className="font-medium text-gray-700 mb-1">CSV Query</div>
-              <div>Set <Code>type: &quot;csv&quot;</Code> and provide <Code>file</Code> path in <Code>data/</Code>. Supports aggregation.</div>
+              <div>Set <Code>type: &quot;csv&quot;</Code> and provide <Code>filePath</Code>. Auto-detects delimiter (comma, tab, semicolon, pipe). Supports aggregation.</div>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="font-medium text-gray-700 mb-1">XLSX Query</div>
+              <div>Set <Code>type: &quot;xlsx&quot;</Code> and provide <Code>filePath</Code>. Multi-sheet workbooks auto-register as separate queries. Optional <Code>fileBaseDir</Code> for shared folders.</div>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
               <div className="font-medium text-gray-700 mb-1">URL Query</div>
