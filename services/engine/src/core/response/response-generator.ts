@@ -1,5 +1,5 @@
 import { INTENTS } from '../constants';
-import { GROUP_BY_PATTERN, SORT_PATTERN, SUMMARY_PATTERN, TOP_BOTTOM_PATTERN, FILTER_FOLLOWUP_PATTERN, VALUE_COMPARE_PATTERN, AGGREGATION_PATTERN, FOLLOWUP_PATTERN } from './constants';
+import { GROUP_BY_PATTERN, SORT_PATTERN, SUMMARY_PATTERN, TOP_BOTTOM_PATTERN, FILTER_FOLLOWUP_PATTERN, VALUE_COMPARE_PATTERN, AGGREGATION_PATTERN, FOLLOWUP_PATTERN, ANALYSIS_PATTERN } from './constants';
 import { responseTemplates as baseTemplates } from './templates';
 import type { QueryService } from '../api-connector/query-service';
 import type { GroupTemplates } from '@/config/group-config';
@@ -29,6 +29,7 @@ import {
   handleDataLookup,
 } from './handlers/followup-handler';
 import { handleSemanticSearch } from './handlers/semantic-search-handler';
+import { handleAnalysis } from './handlers/analysis-handler';
 
 /**
  * Simple Levenshtein distance for typo tolerance on short keywords.
@@ -62,6 +63,14 @@ const FOLLOWUP_KEYWORDS: Record<string, string> = {
   avg: 'aggregate', average: 'aggregate', sum: 'aggregate', total: 'aggregate',
   min: 'aggregate', max: 'aggregate', mean: 'aggregate', calculate: 'aggregate',
   count: 'aggregate', minimum: 'aggregate', maximum: 'aggregate',
+  // Analysis/ML keywords
+  profile: 'analysis', correlations: 'analysis', correlation: 'analysis',
+  heatmap: 'analysis', histogram: 'analysis', distribution: 'analysis',
+  outliers: 'analysis', anomalies: 'analysis', trend: 'analysis',
+  duplicates: 'analysis', missing: 'analysis', cluster: 'analysis',
+  clustering: 'analysis', forecast: 'analysis', predict: 'analysis',
+  pca: 'analysis', report: 'analysis', insights: 'analysis',
+  segment: 'analysis', classify: 'analysis',
 };
 
 /**
@@ -74,7 +83,8 @@ function isLikelyFollowUp(userText: string): boolean {
   if (GROUP_BY_PATTERN.test(userText) || SORT_PATTERN.test(userText)
     || SUMMARY_PATTERN.test(userText) || TOP_BOTTOM_PATTERN.test(userText)
     || FILTER_FOLLOWUP_PATTERN.test(userText) || VALUE_COMPARE_PATTERN.test(userText)
-    || AGGREGATION_PATTERN.test(userText)) {
+    || AGGREGATION_PATTERN.test(userText)
+    || ANALYSIS_PATTERN.test(userText)) {
     return true;
   }
   // Data-aware question patterns: "what is X of Y", "status of Book", "show me X for Y"
@@ -212,6 +222,33 @@ export class ResponseGenerator {
         return handleQueryExecute(classification, context, this.queryService, explicitFilters, incomingHeaders, this.groupId);
       }
 
+      // Analysis/ML intents — route to analysis handler when query context exists
+      case INTENTS.ANALYSIS_PROFILE:
+      case INTENTS.ANALYSIS_SMART_SUMMARY:
+      case INTENTS.ANALYSIS_CORRELATION:
+      case INTENTS.ANALYSIS_DISTRIBUTION:
+      case INTENTS.ANALYSIS_ANOMALY:
+      case INTENTS.ANALYSIS_TREND:
+      case INTENTS.ANALYSIS_DUPLICATES:
+      case INTENTS.ANALYSIS_MISSING:
+      case INTENTS.ANALYSIS_CLUSTER:
+      case INTENTS.ANALYSIS_DECISION_TREE:
+      case INTENTS.ANALYSIS_FORECAST:
+      case INTENTS.ANALYSIS_PCA:
+      case INTENTS.ANALYSIS_REPORT: {
+        if (context.lastQueryName && context.lastApiResult) {
+          const analysisResult = await handleAnalysis(classification, context);
+          if (analysisResult) return analysisResult;
+        }
+        return {
+          text: 'Please run a query first to load data before running analysis. Try "list queries" to see available data sources.',
+          suggestions: ['List queries', 'Help'],
+          sessionId: context.sessionId,
+          intent: classification.intent,
+          confidence: classification.confidence,
+        };
+      }
+
       default: {
         // Data operation follow-ups (must come before filter to prevent misclassification)
         const dataOpResult = handleDataOperation(classification, context);
@@ -225,6 +262,11 @@ export class ResponseGenerator {
         // Try data-aware lookup: search actual row values for the user's question
         const dataLookup = handleDataLookup(classification, context);
         if (dataLookup) return dataLookup;
+        // Try analysis if user text matches analysis patterns and has data context
+        if (context.lastQueryName && context.lastApiResult && ANALYSIS_PATTERN.test(getLastUserText(context))) {
+          const analysisResult = await handleAnalysis(classification, context);
+          if (analysisResult) return analysisResult;
+        }
         // Last-resort: try knowledge search before giving up
         const knowledgeFallback = await handleKnowledgeSearch(classification, context, this.queryService);
         if (knowledgeFallback.richContent || knowledgeFallback.intent === 'knowledge.search') return knowledgeFallback;

@@ -42,10 +42,25 @@ export interface BotResponse {
   confidence: number;
   executionMs?: number;
   referenceUrl?: string;
+  queryName?: string;
+  recommendations?: Array<{ type: string; name: string; reason: string }>;
+  anomalies?: Array<{
+    queryName: string;
+    columnName: string;
+    currentValue: number;
+    expectedMean: number;
+    zScore: number;
+    severity: 'info' | 'warning' | 'critical';
+    direction: 'spike' | 'drop';
+    message: string;
+  }>;
 }
 
 export interface RichContent {
-  type: 'url_list' | 'query_result' | 'multi_query_result' | 'estimation' | 'error' | 'file_content' | 'document_search' | 'csv_table' | 'csv_aggregation' | 'csv_group_by' | 'csv_summary' | 'document_summary' | 'knowledge_search' | 'query_list';
+  type: 'url_list' | 'query_result' | 'multi_query_result' | 'estimation' | 'error' | 'query_filter_form' | 'file_content' | 'document_search' | 'csv_table' | 'csv_aggregation' | 'csv_group_by' | 'csv_summary' | 'document_summary' | 'knowledge_search' | 'query_list' | 'document_answer' | 'document_upload_result' | 'recommendations'
+    | 'column_profile' | 'smart_summary' | 'correlation_heatmap' | 'distribution_histogram'
+    | 'anomaly_table' | 'trend_analysis' | 'duplicate_rows' | 'missing_heatmap'
+    | 'clustering_result' | 'decision_tree_result' | 'forecast_result' | 'pca_result' | 'insight_report';
   data: unknown;
 }
 

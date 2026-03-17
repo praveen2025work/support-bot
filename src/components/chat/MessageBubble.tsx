@@ -9,6 +9,13 @@ import { TablePagination, exportToCsv } from './TablePagination';
 const DataChart = lazy(() =>
   import('./DataChart').then((m) => ({ default: m.DataChart }))
 );
+// Lazy-load ML chart components
+const HeatmapChart = lazy(() => import('./HeatmapChart'));
+const HistogramChart = lazy(() => import('./HistogramChart'));
+const ScatterPlot = lazy(() => import('./ScatterPlot'));
+const ForecastChart = lazy(() => import('./ForecastChart'));
+const TrendChart = lazy(() => import('./TrendChart'));
+const DecisionTreeViz = lazy(() => import('./DecisionTreeViz'));
 import { AnomalyAlert } from '@/components/dashboard/AnomalyBadge';
 
 interface QueryListItem {
@@ -690,6 +697,285 @@ function RichContentRenderer({
               <span className="text-[10px] text-gray-400">{rec.reason}</span>
             </button>
           ))}
+        </div>
+      );
+    }
+    // ── ML Analysis richContent types ──────────────────────────────
+    case 'column_profile': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const profiles = richContent.data as any[];
+      return (
+        <div className="mt-1 text-xs">
+          <div className="overflow-x-auto max-h-80 overflow-y-auto">
+            <table className="min-w-full text-xs border border-blue-200 rounded">
+              <thead>
+                <tr className="bg-blue-50">
+                  <th className="px-2 py-1 text-left font-medium text-blue-800 border-b border-blue-200">Column</th>
+                  <th className="px-2 py-1 text-left font-medium text-blue-700 border-b border-blue-200">Type</th>
+                  <th className="px-2 py-1 text-left font-medium text-blue-700 border-b border-blue-200">Null %</th>
+                  <th className="px-2 py-1 text-left font-medium text-blue-700 border-b border-blue-200">Unique</th>
+                  <th className="px-2 py-1 text-left font-medium text-blue-700 border-b border-blue-200">Stats</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {profiles.map((p: any, i: number) => (
+                  <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-blue-50/30'}>
+                    <td className="px-2 py-1 border-b border-gray-100 font-semibold text-blue-800">{p.column}</td>
+                    <td className="px-2 py-1 border-b border-gray-100">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-gray-100 text-gray-600">{p.type}</span>
+                    </td>
+                    <td className="px-2 py-1 border-b border-gray-100">{p.nullPercent.toFixed(1)}%</td>
+                    <td className="px-2 py-1 border-b border-gray-100">{p.cardinality}</td>
+                    <td className="px-2 py-1 border-b border-gray-100 text-[10px] text-gray-500">
+                      {p.stats ? `mean=${p.stats.mean?.toFixed(1)}, std=${p.stats.stdDev?.toFixed(1)}` : p.topValues?.slice(0, 3).join(', ')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
+    case 'smart_summary': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const summary = richContent.data as any;
+      const severityColors: Record<string, string> = { info: 'border-blue-300 bg-blue-50', notable: 'border-amber-300 bg-amber-50', critical: 'border-red-300 bg-red-50' };
+      return (
+        <div className="mt-1 space-y-1.5">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {(summary.highlights || []).map((h: any, i: number) => (
+            <div key={i} className={`text-xs rounded-md border-l-4 px-3 py-2 ${severityColors[h.severity] || 'border-gray-300 bg-gray-50'}`}>
+              <span className="font-medium text-gray-700">{h.column}:</span>{' '}
+              <span className="text-gray-600">{h.insight}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    case 'correlation_heatmap': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const corrData = richContent.data as any;
+      return (
+        <div className="mt-1">
+          <Suspense fallback={<div className="text-xs text-gray-400">Loading heatmap...</div>}>
+            <HeatmapChart matrix={corrData.matrix} rowLabels={corrData.columns} colLabels={corrData.columns} colorScale="diverging" title="Correlation Matrix" />
+          </Suspense>
+        </div>
+      );
+    }
+    case 'distribution_histogram': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const histData = richContent.data as any;
+      return (
+        <div className="mt-1">
+          <Suspense fallback={<div className="text-xs text-gray-400">Loading histogram...</div>}>
+            <HistogramChart bins={histData.bins} stats={histData.stats} column={histData.column} />
+          </Suspense>
+        </div>
+      );
+    }
+    case 'anomaly_table': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const anomalyData = richContent.data as any;
+      return (
+        <div className="mt-1 text-xs">
+          <div className="overflow-x-auto max-h-80 overflow-y-auto">
+            <table className="min-w-full text-xs border border-red-200 rounded">
+              <thead>
+                <tr className="bg-red-50">
+                  <th className="px-2 py-1 text-left font-medium text-red-800 border-b border-red-200">Row</th>
+                  {anomalyData.headers.slice(0, 6).map((h: string) => (
+                    <th key={h} className="px-2 py-1 text-left font-medium text-red-700 border-b border-red-200">{h}</th>
+                  ))}
+                  <th className="px-2 py-1 text-left font-medium text-red-700 border-b border-red-200">Outlier Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {anomalyData.outlierRows.slice(0, 30).map((o: any, i: number) => (
+                  <tr key={i} className="bg-red-50/40">
+                    <td className="px-2 py-1 border-b border-gray-100 font-semibold text-red-800">#{o.rowIndex}</td>
+                    {anomalyData.headers.slice(0, 6).map((h: string) => (
+                      <td key={h} className={`px-2 py-1 border-b border-gray-100 ${
+                        o.outlierColumns.some((oc: {column: string}) => oc.column === h) ? 'bg-red-100 font-semibold text-red-700' : ''
+                      }`}>{String(o.row[h] ?? '')}</td>
+                    ))}
+                    <td className="px-2 py-1 border-b border-gray-100 text-[10px] text-red-600">
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {o.outlierColumns.map((oc: any) => `${oc.column}: z=${oc.zScore} (${oc.method})`).join('; ')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {anomalyData.totalOutliers > 30 && (
+            <p className="text-[10px] text-gray-400 mt-1">Showing 30 of {anomalyData.totalOutliers} outlier rows</p>
+          )}
+        </div>
+      );
+    }
+    case 'trend_analysis': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const trendData = richContent.data as any;
+      return (
+        <div className="mt-1">
+          <Suspense fallback={<div className="text-xs text-gray-400">Loading trend chart...</div>}>
+            <TrendChart
+              dataPoints={trendData.dataPoints}
+              trendLine={trendData.trendLine}
+              slope={trendData.slope}
+              rSquared={trendData.rSquared}
+              direction={trendData.direction}
+            />
+          </Suspense>
+        </div>
+      );
+    }
+    case 'duplicate_rows': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dupData = richContent.data as any;
+      return (
+        <div className="mt-1 text-xs space-y-2">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {dupData.groups.slice(0, 10).map((group: any, gi: number) => (
+            <div key={gi} className="border border-amber-200 rounded p-2 bg-amber-50/30">
+              <div className="font-medium text-amber-800 mb-1">Group {gi + 1} ({group.duplicates.length + 1} rows, similarity: {(group.similarity * 100).toFixed(0)}%)</div>
+              <div className="text-[10px] text-gray-600">
+                <div className="font-medium">Original: {JSON.stringify(group.canonical).slice(0, 120)}...</div>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {group.duplicates.slice(0, 3).map((d: any, di: number) => (
+                  <div key={di} className="text-amber-700 ml-3">Dup: {JSON.stringify(d).slice(0, 120)}...</div>
+                ))}
+              </div>
+            </div>
+          ))}
+          {dupData.groups.length > 10 && (
+            <p className="text-[10px] text-gray-400">Showing 10 of {dupData.groups.length} duplicate groups</p>
+          )}
+        </div>
+      );
+    }
+    case 'missing_heatmap': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const missingData = richContent.data as any;
+      const missingCols = missingData.columns.filter((c: {nullPercent: number}) => c.nullPercent > 0);
+      return (
+        <div className="mt-1 text-xs">
+          <div className="space-y-1">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {missingCols.map((c: any, i: number) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="w-24 truncate font-medium text-gray-700">{c.column}</span>
+                <div className="flex-1 h-3 bg-gray-100 rounded overflow-hidden">
+                  <div className="h-full bg-red-400 rounded" style={{ width: `${Math.min(c.nullPercent, 100)}%` }} />
+                </div>
+                <span className="w-12 text-right text-gray-500">{c.nullPercent.toFixed(1)}%</span>
+              </div>
+            ))}
+          </div>
+          {missingCols.length === 0 && <p className="text-gray-400">No missing values found</p>}
+        </div>
+      );
+    }
+    case 'clustering_result': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const clusterData = richContent.data as any;
+      return (
+        <div className="mt-1">
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {clusterData.clusters.map((c: any, i: number) => (
+              <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                Cluster {i + 1}: {c.size} rows — {c.label}
+              </span>
+            ))}
+          </div>
+          <Suspense fallback={<div className="text-xs text-gray-400">Loading scatter plot...</div>}>
+            <ScatterPlot points={clusterData.points} xLabel={clusterData.columns?.[0]} yLabel={clusterData.columns?.[1]} title={`K-Means (k=${clusterData.k})`} />
+          </Suspense>
+        </div>
+      );
+    }
+    case 'decision_tree_result': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dtData = richContent.data as any;
+      return (
+        <div className="mt-1">
+          <Suspense fallback={<div className="text-xs text-gray-400">Loading decision tree...</div>}>
+            <DecisionTreeViz tree={dtData.tree} accuracy={dtData.accuracy} featureImportance={dtData.featureImportance} targetColumn={dtData.targetColumn} />
+          </Suspense>
+        </div>
+      );
+    }
+    case 'forecast_result': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fcData = richContent.data as any;
+      return (
+        <div className="mt-1">
+          <Suspense fallback={<div className="text-xs text-gray-400">Loading forecast chart...</div>}>
+            <ForecastChart historical={fcData.historical} predicted={fcData.predicted} valueLabel={fcData.valueColumn} />
+          </Suspense>
+        </div>
+      );
+    }
+    case 'pca_result': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pcaData = richContent.data as any;
+      return (
+        <div className="mt-1">
+          <div className="flex gap-2 mb-2">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+              PC1: {((pcaData.varianceExplained?.[0] ?? 0) * 100).toFixed(1)}% variance
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+              PC2: {((pcaData.varianceExplained?.[1] ?? 0) * 100).toFixed(1)}% variance
+            </span>
+          </div>
+          <Suspense fallback={<div className="text-xs text-gray-400">Loading PCA scatter...</div>}>
+            <ScatterPlot points={pcaData.points} xLabel="PC1" yLabel="PC2" title="PCA Projection" />
+          </Suspense>
+        </div>
+      );
+    }
+    case 'insight_report': {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const reportData = richContent.data as any;
+      return (
+        <div className="mt-1 text-xs">
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {reportData.sections?.map((s: string, i: number) => (
+              <span key={i} className="px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200 text-[10px]">{s}</span>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                const blob = new Blob([reportData.html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'analysis-report.html'; a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs text-blue-700 hover:bg-blue-100 transition-colors"
+            >
+              Download HTML Report
+            </button>
+            <button
+              onClick={() => {
+                const blob = new Blob([reportData.csvSummary], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'analysis-summary.csv'; a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="inline-flex items-center gap-1 rounded border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              Download CSV Summary
+            </button>
+          </div>
         </div>
       );
     }

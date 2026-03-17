@@ -215,6 +215,12 @@ export class NlpService {
         'followup.group_by', 'followup.sort', 'followup.filter',
         'followup.summary', 'followup.top_n', 'followup.aggregation',
         'followup.data_lookup',
+        // Analysis intents also get context-aware boosting
+        'analysis.profile', 'analysis.smart_summary', 'analysis.correlation',
+        'analysis.distribution', 'analysis.anomaly', 'analysis.trend',
+        'analysis.duplicates', 'analysis.missing', 'analysis.cluster',
+        'analysis.decision_tree', 'analysis.forecast', 'analysis.pca',
+        'analysis.report',
       ]);
 
       // If already a follow-up intent, no boosting needed

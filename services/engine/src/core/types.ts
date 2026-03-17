@@ -62,7 +62,10 @@ export interface BotResponse {
 }
 
 export interface RichContent {
-  type: 'url_list' | 'query_result' | 'multi_query_result' | 'estimation' | 'error' | 'file_content' | 'document_search' | 'csv_table' | 'csv_aggregation' | 'csv_group_by' | 'csv_summary' | 'document_summary' | 'knowledge_search' | 'query_list' | 'document_answer' | 'document_upload_result' | 'recommendations';
+  type: 'url_list' | 'query_result' | 'multi_query_result' | 'estimation' | 'error' | 'file_content' | 'document_search' | 'csv_table' | 'csv_aggregation' | 'csv_group_by' | 'csv_summary' | 'document_summary' | 'knowledge_search' | 'query_list' | 'document_answer' | 'document_upload_result' | 'recommendations'
+    | 'column_profile' | 'smart_summary' | 'correlation_heatmap' | 'distribution_histogram'
+    | 'anomaly_table' | 'trend_analysis' | 'duplicate_rows' | 'missing_heatmap'
+    | 'clustering_result' | 'decision_tree_result' | 'forecast_result' | 'pca_result' | 'insight_report';
   data: unknown;
 }
 

@@ -615,6 +615,139 @@
         "Goodbye! Feel free to come back to MITR AI anytime.",
         "See you later! Let me know if you need anything else."
       ]
+    },
+    {
+      "intent": "analysis.profile",
+      "utterances": [
+        "profile the data", "describe columns", "column profiler", "show column info",
+        "data profile", "what types are the columns", "column details",
+        "tell me about the columns", "data overview", "inspect columns",
+        "show me column types", "analyze the columns", "column analysis"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "analysis.smart_summary",
+      "utterances": [
+        "smart summary", "give me insights", "key insights", "intelligent summary",
+        "what are the key takeaways", "analyze this data", "data insights",
+        "summarize with insights", "what stands out", "notable patterns",
+        "deep analysis", "what should I know about this data"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "analysis.correlation",
+      "utterances": [
+        "show correlations", "correlation matrix", "correlation heatmap",
+        "how are columns correlated", "which columns are related",
+        "find relationships", "column relationships", "pearson correlation",
+        "show me the correlation", "are these columns related",
+        "what correlates with @column_name", "correlation analysis"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "analysis.distribution",
+      "utterances": [
+        "show distribution of @column_name", "histogram of @column_name",
+        "distribution of @column_name", "plot distribution",
+        "show histogram", "frequency distribution", "value distribution",
+        "how is @column_name distributed", "distribution chart",
+        "show me the spread of @column_name", "histogram", "data spread"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "analysis.anomaly",
+      "utterances": [
+        "find outliers", "show outliers", "detect anomalies", "flag anomalous rows",
+        "which rows are unusual", "any outliers", "outlier detection",
+        "show me unusual values", "find anomalies", "detect unusual data",
+        "are there any outliers", "flag outliers in @column_name",
+        "z-score analysis", "iqr outliers"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "analysis.trend",
+      "utterances": [
+        "find trends", "show trend", "trend analysis", "is there a trend",
+        "trending up or down", "detect trend", "show me the trend",
+        "revenue trend", "is @column_name trending", "trend detection",
+        "linear trend", "how is it trending", "trend line"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "analysis.duplicates",
+      "utterances": [
+        "find duplicates", "duplicate rows", "show duplicates",
+        "any duplicate records", "deduplicate", "near duplicates",
+        "find similar rows", "duplicate detection", "remove duplicates",
+        "are there duplicates", "find repeated entries", "fuzzy duplicates"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "analysis.missing",
+      "utterances": [
+        "show missing values", "missing data", "null values", "where are the gaps",
+        "missing value heatmap", "check for nulls", "missing data analysis",
+        "which columns have nulls", "data completeness", "find empty values",
+        "show me missing entries", "null analysis", "data quality check"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "analysis.cluster",
+      "utterances": [
+        "cluster the data", "find groups", "k-means", "segment the data",
+        "group similar rows", "find clusters", "clustering analysis",
+        "how many groups", "segment by similarity", "k means clustering",
+        "find natural groups", "cluster analysis", "unsupervised grouping"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "analysis.decision_tree",
+      "utterances": [
+        "predict @column_name", "classify by @column_name", "decision tree",
+        "predict target", "build classifier", "classification model",
+        "train a model", "predict values", "which features matter",
+        "feature importance", "decision tree analysis", "classify rows"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "analysis.forecast",
+      "utterances": [
+        "forecast @column_name", "predict future", "time series forecast",
+        "forecast next 5", "project forward", "forecast trend",
+        "predict next month", "future predictions", "forecast ahead",
+        "sales forecast", "revenue forecast", "predict upcoming values"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "analysis.pca",
+      "utterances": [
+        "reduce dimensions", "PCA", "dimension reduction", "principal components",
+        "2D scatter", "pca analysis", "reduce to 2 dimensions",
+        "show principal components", "dimensionality reduction",
+        "visualize in 2D", "scatter plot of data", "pca scatter"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "analysis.report",
+      "utterances": [
+        "generate report", "export insights", "create analysis report",
+        "download report", "compile analysis", "export analysis",
+        "give me a report", "insight report", "full analysis report",
+        "create summary report", "export data analysis", "downloadable report"
+      ],
+      "answers": []
     }
   ]
 }

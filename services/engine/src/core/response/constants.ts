@@ -26,3 +26,6 @@ export const VALUE_COMPARE_PATTERN = /\b(\w+)\s+(?:(?:greater\s+than\s+(?:or\s+)
 
 // Aggregation follow-up pattern: "avg resolution_hours", "calculate avg resolution_hours", "sum of revenue", "max priority"
 export const AGGREGATION_PATTERN = /\b(?:calculate\s+)?(?:avg|average|sum|total|min|max|mean|minimum|maximum|count)\b(?:\s+(?:of\s+)?[\w_]+)?/i;
+
+// Analysis/ML pattern: triggers statistical analysis handlers when query context exists
+export const ANALYSIS_PATTERN = /\b(profil|correlat|heatmap|histogram|distribut|outlier|anomal|trend|duplicat|missing|cluster|k-?means|decision\s*tree|classif|forecast|predict|pca|dimension|report|insight|segment)\b/i;

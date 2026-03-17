@@ -18,6 +18,21 @@ export const INTENTS = {
   FOLLOWUP_TOP_N: 'followup.top_n',
   FOLLOWUP_AGGREGATION: 'followup.aggregation',
   FOLLOWUP_DATA_LOOKUP: 'followup.data_lookup',
+
+  // Analysis intents (ML/statistical)
+  ANALYSIS_PROFILE: 'analysis.profile',
+  ANALYSIS_SMART_SUMMARY: 'analysis.smart_summary',
+  ANALYSIS_CORRELATION: 'analysis.correlation',
+  ANALYSIS_DISTRIBUTION: 'analysis.distribution',
+  ANALYSIS_ANOMALY: 'analysis.anomaly',
+  ANALYSIS_TREND: 'analysis.trend',
+  ANALYSIS_DUPLICATES: 'analysis.duplicates',
+  ANALYSIS_MISSING: 'analysis.missing',
+  ANALYSIS_CLUSTER: 'analysis.cluster',
+  ANALYSIS_DECISION_TREE: 'analysis.decision_tree',
+  ANALYSIS_FORECAST: 'analysis.forecast',
+  ANALYSIS_PCA: 'analysis.pca',
+  ANALYSIS_REPORT: 'analysis.report',
 } as const;
 
 export const NLP_CONFIDENCE_THRESHOLD = 0.65;
