@@ -57,6 +57,15 @@ export const QuerySchema = z.object({
     z.enum(['none', 'bearer', 'windows', 'bam']).default('none')
   ),
   bamTokenUrl: z.string().optional(),  // BAM: URL to fetch BAM token from
+  // Chart configuration for frontend visualization
+  chartConfig: z.object({
+    defaultType: z.enum(['line', 'bar', 'pie', 'area', 'stacked-bar', 'stacked-area', 'none']),
+    labelKey: z.string().optional(),
+    valueKeys: z.array(z.string()).optional(),
+    height: z.number().optional(),
+    stacked: z.boolean().optional(),
+    showLegend: z.boolean().optional(),
+  }).optional(),
 });
 
 export const QueryResultSchema = z.object({

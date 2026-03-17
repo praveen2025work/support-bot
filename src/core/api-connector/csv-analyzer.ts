@@ -195,10 +195,34 @@ export interface GroupRow {
   aggregations: Record<string, number>;
 }
 
-/** Identify columns where >80% of values are numeric */
+/**
+ * Patterns that identify ID/key columns — numeric but not meaningful to sum/aggregate.
+ */
+// Matches: stageid, stage_id, substageid, workflowprocessid, user_key, etc.
+const ID_COLUMN_PATTERN = /(?:_|^)(id|key|code|index|seq|sequence|ref|reference|pk|fk)$|id$|key$/i;
+// Matches: businessdate, business_date, created_at, timestamp, effective_date, etc.
+const DATE_COLUMN_PATTERN = /(?:_|^)(date|time|timestamp|datetime|created|updated|modified|period|asof|effective)$|date$|time$/i;
+
+function isIdentityColumn(header: string, rows: Record<string, string | number>[]): boolean {
+  if (ID_COLUMN_PATTERN.test(header)) return true;
+  if (DATE_COLUMN_PATTERN.test(header)) return true;
+  if (rows.length >= 3) {
+    const values = rows.map((r) => r[header]).filter((v) => v !== undefined && v !== null && v !== '');
+    const uniqueRatio = new Set(values.map(String)).size / values.length;
+    const allIntegers = values.every((v) => {
+      const n = typeof v === 'number' ? v : parseFloat(String(v));
+      return !isNaN(n) && Number.isInteger(n);
+    });
+    if (allIntegers && uniqueRatio > 0.95 && values.length > 5) return true;
+  }
+  return false;
+}
+
+/** Identify columns where >80% of values are numeric (excluding ID/date columns) */
 function getNumericColumns(data: CsvData): string[] {
   return data.headers.filter((h) => {
     if (data.rows.length === 0) return false;
+    if (isIdentityColumn(h, data.rows)) return false;
     let numCount = 0;
     for (const row of data.rows) {
       const v = row[h];

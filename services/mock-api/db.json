@@ -18,7 +18,13 @@
           "key": "region",
           "binding": "path"
         }
-      ]
+      ],
+      "chartConfig": {
+        "defaultType": "line",
+        "labelKey": "month",
+        "valueKeys": ["revenue", "target"],
+        "showLegend": true
+      }
     },
     {
       "id": "q2",
@@ -34,7 +40,13 @@
           "key": "date_range",
           "binding": "query_param"
         }
-      ]
+      ],
+      "chartConfig": {
+        "defaultType": "area",
+        "labelKey": "date",
+        "valueKeys": ["dau", "mau"],
+        "showLegend": true
+      }
     },
     {
       "id": "q3",
@@ -54,7 +66,13 @@
           "key": "environment",
           "binding": "path"
         }
-      ]
+      ],
+      "chartConfig": {
+        "defaultType": "bar",
+        "labelKey": "service",
+        "valueKeys": ["error_count", "error_rate"],
+        "showLegend": true
+      }
     },
     {
       "id": "q4",
@@ -971,6 +989,27 @@
           "binding": "body"
         }
       ]
+    },
+    {
+      "id": "q59",
+      "name": "customer_churn_copy",
+      "description": "Customer churn rate analysis with cohort breakdown",
+      "estimatedDuration": 2000,
+      "url": "https://confluence.example.com/wiki/analytics/customer-churn-analysis",
+      "source": "analytics",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
+      ],
+      "type": "api",
+      "filePath": "",
+      "endpoint": "/analytics/churn",
+      "baseUrl": "",
+      "method": "",
+      "authType": "none",
+      "bamTokenUrl": ""
     }
   ],
   "queryStats": [

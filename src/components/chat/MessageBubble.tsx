@@ -80,10 +80,12 @@ export function MessageBubble({
 }) {
   const isUser = message.role === 'user';
 
+  const hasRichContent = !isUser && message.richContent;
+
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-3`}>
       <div
-        className={`${isUser ? 'max-w-[80%]' : 'max-w-[95%]'} rounded-2xl px-4 py-3 ${
+        className={`${isUser ? 'max-w-[80%]' : hasRichContent ? 'max-w-[98%] w-full' : 'max-w-[85%]'} rounded-2xl px-4 py-3 ${
           isUser
             ? 'bg-blue-600 text-white'
             : message.isError
@@ -281,7 +283,7 @@ function RichContentRenderer({
                 )}
               </div>
               <Suspense fallback={<div className="h-64 flex items-center justify-center text-[var(--text-muted)]">Loading chart…</div>}>
-                <DataChart data={csvData.rows as Record<string, unknown>[]} headers={csvData.headers} />
+                <DataChart data={csvData.rows as Record<string, unknown>[]} headers={csvData.headers} chartConfig={(csvData as Record<string, unknown>).chartConfig as Record<string, unknown> | undefined} />
               </Suspense>
             </>
           )}
@@ -678,7 +680,7 @@ function RichContentRenderer({
   }
 }
 
-function QueryResultTable({ result }: { result: QueryResultData }) {
+function QueryResultTable({ result }: { result: QueryResultData & { chartConfig?: Record<string, unknown> } }) {
   const [pageRange, setPageRange] = useState({ start: 0, end: 10 });
   const pagedData = result.data.slice(pageRange.start, pageRange.end);
 
@@ -724,7 +726,7 @@ function QueryResultTable({ result }: { result: QueryResultData }) {
             />
           )}
           <Suspense fallback={<div className="h-64 flex items-center justify-center text-[var(--text-muted)]">Loading chart…</div>}>
-            <DataChart data={result.data} />
+            <DataChart data={result.data} chartConfig={result.chartConfig} />
           </Suspense>
         </>
       )}

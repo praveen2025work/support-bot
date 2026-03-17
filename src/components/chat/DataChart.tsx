@@ -1,11 +1,13 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   BarChart,
   Bar,
   LineChart,
   Line,
+  AreaChart,
+  Area,
   PieChart,
   Pie,
   Cell,
@@ -28,7 +30,16 @@ const COLORS = [
   '#ec4899',
 ];
 
-type ChartType = 'line' | 'bar' | 'pie' | 'none';
+export type ChartType = 'line' | 'bar' | 'pie' | 'area' | 'stacked-bar' | 'stacked-area' | 'none';
+
+export interface ChartConfig {
+  defaultType?: ChartType;
+  labelKey?: string;
+  valueKeys?: string[];
+  height?: number;
+  stacked?: boolean;
+  showLegend?: boolean;
+}
 
 interface ChartDetection {
   type: ChartType;
@@ -36,8 +47,17 @@ interface ChartDetection {
   numericKeys: string[];
 }
 
+// Broad date detection for chart label/x-axis (includes month, year, day, week, cohort)
 const DATE_NAME_PATTERN =
-  /^(date|month|year|day|week|time|period|timestamp|created|updated|cohort)/i;
+  /(?:_|^)(date|month|year|day|week|time|period|timestamp|created|updated|cohort|asof|effective)$|date$|time$|^month$|^year$|^day$|^week$|^cohort$/i;
+
+// Narrow date pattern for excluding from numeric chart values (only actual date/timestamp columns)
+const DATE_EXCLUDE_PATTERN =
+  /(?:_|^)(date|time|timestamp|datetime|created|updated|modified|asof|effective)$|date$|time$/i;
+
+// Matches: stageid, stage_id, substageid, workflowprocessid, user_key, etc.
+const ID_NAME_PATTERN =
+  /(?:_|^)(id|key|code|index|seq|sequence|ref|reference|pk|fk)$|id$|key$/i;
 
 function isDateColumn(key: string, data: Record<string, unknown>[]): boolean {
   if (DATE_NAME_PATTERN.test(key)) return true;
@@ -51,35 +71,51 @@ function isDateColumn(key: string, data: Record<string, unknown>[]): boolean {
 
 function detectChartType(
   data: Record<string, unknown>[],
-  headers?: string[]
+  headers?: string[],
+  config?: ChartConfig
 ): ChartDetection {
   if (!data || data.length < 2)
     return { type: 'none', labelKey: '', numericKeys: [] };
 
   const keys = headers ?? Object.keys(data[0]);
 
-  const numericKeys = keys.filter((key) => {
-    const numericCount = data.filter((row) => {
-      const val = row[key];
-      return (
-        val !== null && val !== undefined && val !== '' && !isNaN(Number(val))
-      );
-    }).length;
-    return numericCount / data.length > 0.8;
-  });
+  // If config specifies labelKey and valueKeys, use them directly
+  const configLabelKey = config?.labelKey && keys.includes(config.labelKey) ? config.labelKey : undefined;
+  const configValueKeys = config?.valueKeys?.filter((k) => keys.includes(k));
+
+  const numericKeys = configValueKeys && configValueKeys.length > 0
+    ? configValueKeys
+    : keys.filter((key) => {
+        // Skip ID and date/timestamp columns — they're numeric but not meaningful to chart
+        if (ID_NAME_PATTERN.test(key)) return false;
+        if (DATE_EXCLUDE_PATTERN.test(key)) return false;
+        const numericCount = data.filter((row) => {
+          const val = row[key];
+          return (
+            val !== null && val !== undefined && val !== '' && !isNaN(Number(val))
+          );
+        }).length;
+        return numericCount / data.length > 0.8;
+      });
 
   if (numericKeys.length === 0)
     return { type: 'none', labelKey: '', numericKeys: [] };
 
   const nonNumericKeys = keys.filter((k) => !numericKeys.includes(k));
-  const labelKey = nonNumericKeys[0] || keys[0];
+  const labelKey = configLabelKey || nonNumericKeys[0] || keys[0];
 
-  // Date label + numeric columns → LineChart
+  // If config specifies a default type, use it
+  if (config?.defaultType && config.defaultType !== 'none') {
+    return { type: config.defaultType, labelKey, numericKeys: numericKeys.slice(0, 3) };
+  }
+
+  // Auto-detection fallback
+  // Date label + numeric columns -> LineChart
   if (isDateColumn(labelKey, data) && numericKeys.length >= 1) {
     return { type: 'line', labelKey, numericKeys: numericKeys.slice(0, 3) };
   }
 
-  // Single numeric + few categories → PieChart
+  // Single numeric + few categories -> PieChart
   if (
     numericKeys.length === 1 &&
     data.length <= 8 &&
@@ -88,7 +124,7 @@ function detectChartType(
     return { type: 'pie', labelKey, numericKeys };
   }
 
-  // String label + numeric columns → BarChart
+  // String label + numeric columns -> BarChart
   if (nonNumericKeys.length >= 1 && numericKeys.length >= 1) {
     return { type: 'bar', labelKey, numericKeys: numericKeys.slice(0, 3) };
   }
@@ -96,17 +132,61 @@ function detectChartType(
   return { type: 'none', labelKey: '', numericKeys: [] };
 }
 
+const CHART_TYPE_ICONS: { type: ChartType; label: string; icon: string }[] = [
+  { type: 'bar', label: 'Bar', icon: '▐' },
+  { type: 'stacked-bar', label: 'Stacked', icon: '▊' },
+  { type: 'line', label: 'Line', icon: '⟋' },
+  { type: 'area', label: 'Area', icon: '▨' },
+  { type: 'stacked-area', label: 'Stack Area', icon: '▩' },
+  { type: 'pie', label: 'Pie', icon: '◕' },
+  { type: 'none', label: 'Hide', icon: '▭' },
+];
+
+function ChartToolbar({
+  activeType,
+  onTypeChange,
+}: {
+  activeType: ChartType;
+  onTypeChange: (type: ChartType) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1 mb-1">
+      <span className="text-[10px] text-gray-400 mr-1">Chart:</span>
+      {CHART_TYPE_ICONS.map(({ type, label, icon }) => (
+        <button
+          key={type}
+          onClick={() => onTypeChange(type)}
+          className={`px-1.5 py-0.5 text-[10px] rounded border transition-colors ${
+            activeType === type
+              ? 'bg-blue-50 border-blue-300 text-blue-700 font-medium'
+              : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300'
+          }`}
+          title={label}
+        >
+          <span className="mr-0.5">{icon}</span>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function DataChart({
   data,
   headers,
+  chartConfig,
 }: {
   data: Record<string, unknown>[];
   headers?: string[];
+  chartConfig?: ChartConfig;
 }) {
-  const detection = useMemo(() => detectChartType(data, headers), [data, headers]);
+  const detection = useMemo(() => detectChartType(data, headers, chartConfig), [data, headers, chartConfig]);
+  const [overrideType, setOverrideType] = useState<ChartType | null>(null);
+
+  const activeType = overrideType ?? detection.type;
 
   const chartData = useMemo(() => {
-    if (detection.type === 'none') return [];
+    if (detection.labelKey === '' && detection.numericKeys.length === 0) return [];
     return data.slice(0, 30).map((row) => {
       const entry: Record<string, unknown> = {
         [detection.labelKey]: row[detection.labelKey],
@@ -118,14 +198,16 @@ export function DataChart({
     });
   }, [data, detection]);
 
-  if (detection.type === 'none') return null;
+  if (detection.numericKeys.length === 0) return null;
 
-  const chartHeight = 220;
+  const chartHeight = chartConfig?.height || 220;
+  const showLegend = chartConfig?.showLegend ?? detection.numericKeys.length > 1;
+  const stacked = chartConfig?.stacked ?? false;
 
-  switch (detection.type) {
-    case 'line':
-      return (
-        <div className="mt-3 border border-gray-200 rounded-lg p-2 bg-white">
+  const renderChart = () => {
+    switch (activeType) {
+      case 'line':
+        return (
           <ResponsiveContainer width="100%" height={chartHeight}>
             <LineChart
               data={chartData}
@@ -139,9 +221,7 @@ export function DataChart({
               />
               <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" />
               <Tooltip contentStyle={{ fontSize: 11 }} />
-              {detection.numericKeys.length > 1 && (
-                <Legend wrapperStyle={{ fontSize: 10 }} />
-              )}
+              {showLegend && <Legend wrapperStyle={{ fontSize: 10 }} />}
               {detection.numericKeys.map((key, i) => (
                 <Line
                   key={key}
@@ -154,12 +234,10 @@ export function DataChart({
               ))}
             </LineChart>
           </ResponsiveContainer>
-        </div>
-      );
+        );
 
-    case 'bar':
-      return (
-        <div className="mt-3 border border-gray-200 rounded-lg p-2 bg-white">
+      case 'bar':
+        return (
           <ResponsiveContainer width="100%" height={chartHeight}>
             <BarChart
               data={chartData}
@@ -173,25 +251,115 @@ export function DataChart({
               />
               <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" />
               <Tooltip contentStyle={{ fontSize: 11 }} />
-              {detection.numericKeys.length > 1 && (
-                <Legend wrapperStyle={{ fontSize: 10 }} />
-              )}
+              {showLegend && <Legend wrapperStyle={{ fontSize: 10 }} />}
               {detection.numericKeys.map((key, i) => (
                 <Bar
                   key={key}
                   dataKey={key}
                   fill={COLORS[i % COLORS.length]}
                   radius={[2, 2, 0, 0]}
+                  stackId={stacked ? 'stack' : undefined}
                 />
               ))}
             </BarChart>
           </ResponsiveContainer>
-        </div>
-      );
+        );
 
-    case 'pie':
-      return (
-        <div className="mt-3 border border-gray-200 rounded-lg p-2 bg-white">
+      case 'stacked-bar':
+        return (
+          <ResponsiveContainer width="100%" height={chartHeight}>
+            <BarChart
+              data={chartData}
+              margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis
+                dataKey={detection.labelKey}
+                tick={{ fontSize: 10 }}
+                stroke="#9ca3af"
+              />
+              <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" />
+              <Tooltip contentStyle={{ fontSize: 11 }} />
+              {showLegend && <Legend wrapperStyle={{ fontSize: 10 }} />}
+              {detection.numericKeys.map((key, i) => (
+                <Bar
+                  key={key}
+                  dataKey={key}
+                  fill={COLORS[i % COLORS.length]}
+                  radius={[2, 2, 0, 0]}
+                  stackId="stack"
+                />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        );
+
+      case 'area':
+        return (
+          <ResponsiveContainer width="100%" height={chartHeight}>
+            <AreaChart
+              data={chartData}
+              margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis
+                dataKey={detection.labelKey}
+                tick={{ fontSize: 10 }}
+                stroke="#9ca3af"
+              />
+              <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" />
+              <Tooltip contentStyle={{ fontSize: 11 }} />
+              {showLegend && <Legend wrapperStyle={{ fontSize: 10 }} />}
+              {detection.numericKeys.map((key, i) => (
+                <Area
+                  key={key}
+                  type="monotone"
+                  dataKey={key}
+                  stroke={COLORS[i % COLORS.length]}
+                  fill={COLORS[i % COLORS.length]}
+                  fillOpacity={0.15}
+                  strokeWidth={2}
+                  stackId={stacked ? 'stack' : undefined}
+                />
+              ))}
+            </AreaChart>
+          </ResponsiveContainer>
+        );
+
+      case 'stacked-area':
+        return (
+          <ResponsiveContainer width="100%" height={chartHeight}>
+            <AreaChart
+              data={chartData}
+              margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis
+                dataKey={detection.labelKey}
+                tick={{ fontSize: 10 }}
+                stroke="#9ca3af"
+              />
+              <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" />
+              <Tooltip contentStyle={{ fontSize: 11 }} />
+              {showLegend && <Legend wrapperStyle={{ fontSize: 10 }} />}
+              {detection.numericKeys.map((key, i) => (
+                <Area
+                  key={key}
+                  type="monotone"
+                  dataKey={key}
+                  stroke={COLORS[i % COLORS.length]}
+                  fill={COLORS[i % COLORS.length]}
+                  fillOpacity={0.3}
+                  strokeWidth={2}
+                  stackId="stack"
+                />
+              ))}
+            </AreaChart>
+          </ResponsiveContainer>
+        );
+
+      case 'pie':
+        return (
           <ResponsiveContainer width="100%" height={chartHeight}>
             <PieChart>
               <Pie
@@ -214,10 +382,18 @@ export function DataChart({
               <Tooltip contentStyle={{ fontSize: 11 }} />
             </PieChart>
           </ResponsiveContainer>
-        </div>
-      );
+        );
 
-    default:
-      return null;
-  }
+      case 'none':
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="mt-3 border border-gray-200 rounded-lg p-2 bg-white">
+      <ChartToolbar activeType={activeType} onTypeChange={setOverrideType} />
+      {renderChart()}
+    </div>
+  );
 }

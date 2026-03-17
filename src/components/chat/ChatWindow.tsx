@@ -50,10 +50,12 @@ export function ChatWindow({
   platform = 'web',
   groupId,
   userName,
+  hideHeader = false,
 }: {
   platform?: 'web' | 'widget';
   groupId?: string;
   userName?: string;
+  hideHeader?: boolean;
 }) {
   const { messages, isLoading, loadingStatus, sendMessage, executeQuery, retryMessage, clearMessages } = useChat(platform, groupId, userName);
   const { userInfo } = useUser();
@@ -161,7 +163,7 @@ export function ChatWindow({
             </svg>
           </button>
         </div>
-      ) : (
+      ) : !hideHeader ? (
         /* Non-widget: sticky header with title, status, user info */
         <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 flex-shrink-0">
           <div className="flex-1">
@@ -192,7 +194,7 @@ export function ChatWindow({
             </div>
           )}
         </div>
-      )}
+      ) : null}
 
       <MessageList messages={messages} isLoading={isLoading} loadingStatus={loadingStatus} onAction={sendMessage} onExecuteQuery={executeQuery} onRetry={retryMessage} />
 

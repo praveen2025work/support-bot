@@ -285,8 +285,9 @@ export async function handleQueryExecute(
 
     const execMs = result.durationMs;
 
-    // Look up reference URL for this query
+    // Look up reference URL and chartConfig for this query
     let referenceUrl: string | undefined;
+    let chartConfig: Record<string, unknown> | undefined;
     try {
       const allQueries = await queryService.getQueries();
       const queryDef = allQueries.find(
@@ -294,6 +295,9 @@ export async function handleQueryExecute(
       );
       if (queryDef?.url && queryDef.type !== 'url') {
         referenceUrl = queryDef.url;
+      }
+      if (queryDef?.chartConfig) {
+        chartConfig = queryDef.chartConfig as Record<string, unknown>;
       }
     } catch { /* ignore */ }
 
@@ -409,7 +413,7 @@ export async function handleQueryExecute(
         }
         return {
           text: `Here is the data from "${queryNameEntity.value}" (${csv.rowCount} rows):`,
-          richContent: { type: 'csv_table', data: csv },
+          richContent: { type: 'csv_table', data: chartConfig ? { ...csv, chartConfig } : csv },
           sessionId: context.sessionId,
           intent: classification.intent,
           confidence: classification.confidence,
@@ -421,10 +425,13 @@ export async function handleQueryExecute(
       }
 
       case 'api':
-      default:
+      default: {
+        const apiData = chartConfig
+          ? { ...(result.apiResult as Record<string, unknown>), chartConfig }
+          : result.apiResult;
         return {
           text: `Here are the results for "${queryNameEntity.value}"${filterLabel}:`,
-          richContent: { type: 'query_result', data: result.apiResult },
+          richContent: { type: 'query_result', data: apiData },
           sessionId: context.sessionId,
           intent: classification.intent,
           confidence: classification.confidence,
@@ -433,6 +440,7 @@ export async function handleQueryExecute(
           queryName: queryNameEntity.value,
           anomalies,
         };
+      }
     }
   } catch (error) {
     logger.error({ error, query: queryNameEntity.value, filters }, 'Query execution failed');

@@ -197,9 +197,44 @@ export interface GroupRow {
 }
 
 /** Identify columns where >80% of values are numeric */
+/**
+ * Patterns that identify ID/key columns — numeric but not meaningful to sum/aggregate.
+ * These are excluded from numeric aggregation (group-by sums, chart value columns, etc.)
+ */
+// Matches: stageid, stage_id, substageid, workflowprocessid, user_key, etc.
+const ID_COLUMN_PATTERN = /(?:_|^)(id|key|code|index|seq|sequence|ref|reference|pk|fk)$|id$|key$/i;
+// Matches: businessdate, business_date, created_at, timestamp, effective_date, etc.
+const DATE_COLUMN_PATTERN = /(?:_|^)(date|time|timestamp|datetime|created|updated|modified|period|asof|effective)$|date$|time$/i;
+
+/**
+ * Check if a column is an ID/key column (numeric but not aggregatable).
+ * Uses both name patterns and value analysis (e.g., all unique integers = likely an ID).
+ */
+function isIdentityColumn(header: string, rows: Record<string, string | number>[]): boolean {
+  // Name-based detection
+  if (ID_COLUMN_PATTERN.test(header)) return true;
+  if (DATE_COLUMN_PATTERN.test(header)) return true;
+
+  // Value-based detection: if all values are unique integers, likely an ID
+  if (rows.length >= 3) {
+    const values = rows.map((r) => r[header]).filter((v) => v !== undefined && v !== null && v !== '');
+    const uniqueRatio = new Set(values.map(String)).size / values.length;
+    const allIntegers = values.every((v) => {
+      const n = typeof v === 'number' ? v : parseFloat(String(v));
+      return !isNaN(n) && Number.isInteger(n);
+    });
+    // If >95% unique and all integers, treat as ID column
+    if (allIntegers && uniqueRatio > 0.95 && values.length > 5) return true;
+  }
+
+  return false;
+}
+
 function getNumericColumns(data: CsvData): string[] {
   return data.headers.filter((h) => {
     if (data.rows.length === 0) return false;
+    // Skip ID and date columns — they're numeric but not meaningful to aggregate
+    if (isIdentityColumn(h, data.rows)) return false;
     let numCount = 0;
     for (const row of data.rows) {
       const v = row[h];

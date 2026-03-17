@@ -77,8 +77,8 @@ function ChatPage() {
         groups={groups}
         onGroupChange={setGroupId}
       />
-      <main className="flex-1 max-w-2xl w-full mx-auto border-x border-gray-200 flex flex-col overflow-hidden">
-        <ChatWindow key={`${groupId}-${sessionKey}`} platform="web" groupId={groupId} userName={userInfo?.samAccountName} />
+      <main className="flex-1 w-full flex flex-col overflow-hidden">
+        <ChatWindow key={`${groupId}-${sessionKey}`} platform="web" groupId={groupId} userName={userInfo?.samAccountName} hideHeader />
       </main>
       {showShortcuts && <KeyboardShortcutsHelp onClose={() => setShowShortcuts(false)} />}
     </div>

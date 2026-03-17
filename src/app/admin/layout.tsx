@@ -4,6 +4,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
+import { ChatbotWidget } from './components/ChatbotWidget';
 import { AppHeader } from '@/components/AppHeader';
 
 export default function AdminLayout({
@@ -53,6 +54,7 @@ export default function AdminLayout({
         <Sidebar />
         <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
+      <ChatbotWidget />
     </div>
   );
 }

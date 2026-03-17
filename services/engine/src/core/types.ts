@@ -75,6 +75,15 @@ export interface IntentOverlap {
   secondBestConfidence?: number;
 }
 
+export interface QueryChartConfig {
+  defaultType: 'line' | 'bar' | 'pie' | 'area' | 'stacked-bar' | 'stacked-area' | 'none';
+  labelKey?: string;
+  valueKeys?: string[];
+  height?: number;
+  stacked?: boolean;
+  showLegend?: boolean;
+}
+
 export interface ConversationContext {
   sessionId: string;
   history: Array<{ role: 'user' | 'bot'; text: string; timestamp: Date }>;
