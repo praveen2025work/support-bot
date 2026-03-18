@@ -130,7 +130,7 @@ server.post('/api/reports/generate', (req, res) => {
 function handleFinanceRevenue(req, res) {
   const region = req.params.region;
   const filters = { ...(req.body.filters || {}), ...req.query };
-  if (region) filters.region = region;
+  if (region && !region.startsWith('{')) filters.region = region;
   console.log(`[Finance] ${req.method} /api/finance/revenue/${region || 'all'} filters:`, JSON.stringify(filters));
   const data = applyFilters(getRawData('monthly_revenue'), filters);
   res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 3200) });
@@ -139,6 +139,46 @@ server.get('/api/finance/revenue/:region', handleFinanceRevenue);
 server.post('/api/finance/revenue/:region', handleFinanceRevenue);
 server.get('/api/finance/revenue', handleFinanceRevenue);
 server.post('/api/finance/revenue', handleFinanceRevenue);
+
+// Quarterly revenue
+function handleQuarterlyRevenue(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[Finance] ${req.method} /api/finance/quarterly-revenue filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('quarterly_revenue'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 2000) });
+}
+server.get('/api/finance/quarterly-revenue', handleQuarterlyRevenue);
+server.post('/api/finance/quarterly-revenue', handleQuarterlyRevenue);
+
+// Revenue by segment
+function handleRevenueBySegment(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[Finance] ${req.method} /api/finance/revenue/segments filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('revenue_by_segment'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 1800) });
+}
+server.get('/api/finance/revenue/segments', handleRevenueBySegment);
+server.post('/api/finance/revenue/segments', handleRevenueBySegment);
+
+// Gross margin
+function handleGrossMargin(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[Finance] ${req.method} /api/finance/gross-margin filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('gross_margin'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 1500) });
+}
+server.get('/api/finance/gross-margin', handleGrossMargin);
+server.post('/api/finance/gross-margin', handleGrossMargin);
+
+// P&L Summary
+function handlePnlSummary(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[Finance] ${req.method} /api/finance/pnl filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('pnl_summary'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 2500) });
+}
+server.get('/api/finance/pnl', handlePnlSummary);
+server.post('/api/finance/pnl', handlePnlSummary);
 
 // === Analytics endpoints ===
 
@@ -168,7 +208,7 @@ server.post('/api/analytics/churn', handleChurn);
 function handleErrors(req, res) {
   const environment = req.params.environment;
   const filters = { ...(req.body.filters || {}), ...req.query };
-  if (environment) filters.environment = environment;
+  if (environment && !environment.startsWith('{')) filters.environment = environment;
   console.log(`[Monitoring] ${req.method} /api/monitoring/${environment || 'all'}/errors filters:`, JSON.stringify(filters));
   const data = applyFilters(getRawData('error_rate'), filters);
   res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 800) });
@@ -194,7 +234,7 @@ server.post('/api/monitoring/performance', handlePerformance);
 function handleOrders(req, res) {
   const region = req.params.region;
   const filters = { ...(req.body.filters || {}), ...req.query };
-  if (region) filters.region = region;
+  if (region && !region.startsWith('{')) filters.region = region;
   console.log(`[Commerce] ${req.method} /api/commerce/orders/${region || 'all'} filters:`, JSON.stringify(filters));
   const data = applyFilters(getRawData('daily_orders'), filters);
   res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 1200) });
@@ -210,7 +250,7 @@ server.post('/api/commerce/orders', handleOrders);
 function handleInfraCosts(req, res) {
   const environment = req.params.environment;
   const filters = { ...(req.body.filters || {}), ...req.query };
-  if (environment) filters.environment = environment;
+  if (environment && !environment.startsWith('{')) filters.environment = environment;
   console.log(`[Infra] ${req.method} /api/infra/costs/${environment || 'all'} filters:`, JSON.stringify(filters));
   const data = applyFilters(getRawData('infrastructure_costs'), filters);
   res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 2800) });
@@ -562,6 +602,50 @@ function getRawData(queryName) {
         { role: 'Senior Engineer', applicants: 120, screened: 45, interviewed: 12, offers: 3 },
         { role: 'Product Manager', applicants: 85, screened: 30, interviewed: 8, offers: 2 },
         { role: 'Designer', applicants: 60, screened: 20, interviewed: 6, offers: 1 },
+      ];
+    case 'quarterly_revenue':
+      return [
+        { quarter: 'Q1 2025', region: 'US', revenue: 3250000, growth: '8.2%' },
+        { quarter: 'Q1 2025', region: 'EU', revenue: 1850000, growth: '6.5%' },
+        { quarter: 'Q1 2025', region: 'APAC', revenue: 920000, growth: '12.1%' },
+        { quarter: 'Q2 2025', region: 'US', revenue: 3480000, growth: '7.1%' },
+        { quarter: 'Q2 2025', region: 'EU', revenue: 1920000, growth: '3.8%' },
+        { quarter: 'Q2 2025', region: 'APAC', revenue: 1050000, growth: '14.1%' },
+        { quarter: 'Q3 2025', region: 'US', revenue: 3710000, growth: '6.6%' },
+        { quarter: 'Q3 2025', region: 'EU', revenue: 2010000, growth: '4.7%' },
+        { quarter: 'Q3 2025', region: 'APAC', revenue: 1180000, growth: '12.4%' },
+        { quarter: 'Q4 2025', region: 'US', revenue: 4120000, growth: '11.0%' },
+        { quarter: 'Q4 2025', region: 'EU', revenue: 2250000, growth: '11.9%' },
+        { quarter: 'Q4 2025', region: 'APAC', revenue: 1340000, growth: '13.6%' },
+      ];
+    case 'revenue_by_segment':
+      return [
+        { segment: 'Platform', region: 'US', revenue: 5200000, pct_total: '38%' },
+        { segment: 'Platform', region: 'EU', revenue: 3100000, pct_total: '23%' },
+        { segment: 'API Services', region: 'US', revenue: 2100000, pct_total: '15%' },
+        { segment: 'API Services', region: 'EU', revenue: 1200000, pct_total: '9%' },
+        { segment: 'Consulting', region: 'US', revenue: 1050000, pct_total: '8%' },
+        { segment: 'Consulting', region: 'APAC', revenue: 950000, pct_total: '7%' },
+      ];
+    case 'gross_margin':
+      return [
+        { quarter: 'Q1 2025', region: 'US', revenue: 3250000, cogs: 1140000, margin: '64.9%' },
+        { quarter: 'Q1 2025', region: 'EU', revenue: 1850000, cogs: 720000, margin: '61.1%' },
+        { quarter: 'Q2 2025', region: 'US', revenue: 3480000, cogs: 1180000, margin: '66.1%' },
+        { quarter: 'Q2 2025', region: 'EU', revenue: 1920000, cogs: 730000, margin: '62.0%' },
+        { quarter: 'Q3 2025', region: 'US', revenue: 3710000, cogs: 1220000, margin: '67.1%' },
+        { quarter: 'Q3 2025', region: 'EU', revenue: 2010000, cogs: 740000, margin: '63.2%' },
+      ];
+    case 'pnl_summary':
+      return [
+        { line_item: 'Revenue', region: 'US', q1: 3250000, q2: 3480000, q3: 3710000, q4: 4120000 },
+        { line_item: 'Revenue', region: 'EU', q1: 1850000, q2: 1920000, q3: 2010000, q4: 2250000 },
+        { line_item: 'COGS', region: 'US', q1: -1140000, q2: -1180000, q3: -1220000, q4: -1300000 },
+        { line_item: 'COGS', region: 'EU', q1: -720000, q2: -730000, q3: -740000, q4: -780000 },
+        { line_item: 'Gross Profit', region: 'US', q1: 2110000, q2: 2300000, q3: 2490000, q4: 2820000 },
+        { line_item: 'Gross Profit', region: 'EU', q1: 1130000, q2: 1190000, q3: 1270000, q4: 1470000 },
+        { line_item: 'OpEx', region: 'US', q1: -1200000, q2: -1250000, q3: -1300000, q4: -1350000 },
+        { line_item: 'Net Income', region: 'US', q1: 910000, q2: 1050000, q3: 1190000, q4: 1470000 },
       ];
     default:
       return [{ message: 'No data available for this query' }];

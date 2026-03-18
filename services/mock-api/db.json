@@ -22,21 +22,27 @@
       "chartConfig": {
         "defaultType": "line",
         "labelKey": "month",
-        "valueKeys": [
-          "revenue",
-          "target"
-        ],
+        "valueKeys": ["revenue", "target"],
         "showLegend": true
       },
       "columnConfig": {
-        "labelColumns": [
-          "month"
-        ],
-        "valueColumns": [
-          "revenue",
-          "target"
-        ]
-      }
+        "labelColumns": ["month"],
+        "valueColumns": ["revenue", "target"]
+      },
+      "drillDown": [
+        {
+          "sourceColumn": "region",
+          "targetQuery": "daily_orders",
+          "targetFilter": "region",
+          "label": "View Orders by Region"
+        },
+        {
+          "sourceColumn": "product",
+          "targetQuery": "revenue_by_segment",
+          "targetFilter": "segment",
+          "label": "View Revenue by Segment"
+        }
+      ]
     },
     {
       "id": "q2",
@@ -56,10 +62,7 @@
       "chartConfig": {
         "defaultType": "area",
         "labelKey": "date",
-        "valueKeys": [
-          "dau",
-          "mau"
-        ],
+        "valueKeys": ["dau", "mau"],
         "showLegend": true
       }
     },
@@ -85,30 +88,27 @@
       "chartConfig": {
         "defaultType": "bar",
         "labelKey": "service",
-        "valueKeys": [
-          "error_count",
-          "error_rate"
-        ],
+        "valueKeys": ["error_count", "error_rate"],
         "showLegend": true
       },
       "columnConfig": {
-        "idColumns": [
-          "serviceid"
-        ],
-        "labelColumns": [
-          "service"
-        ],
-        "valueColumns": [
-          "error_count",
-          "error_rate",
-          "errors"
-        ]
+        "idColumns": ["serviceid"],
+        "labelColumns": ["service"],
+        "valueColumns": ["error_count", "error_rate", "errors"]
       },
       "filePath": "",
       "baseUrl": "",
       "method": "",
       "authType": "none",
-      "bamTokenUrl": ""
+      "bamTokenUrl": "",
+      "drillDown": [
+        {
+          "sourceColumn": "service",
+          "targetQuery": "service_logs",
+          "targetFilter": "service",
+          "label": "View Service Logs"
+        }
+      ]
     },
     {
       "id": "q4",
@@ -147,6 +147,14 @@
         {
           "key": "region",
           "binding": "path"
+        }
+      ],
+      "drillDown": [
+        {
+          "sourceColumn": "region",
+          "targetQuery": "monthly_revenue",
+          "targetFilter": "region",
+          "label": "View Revenue by Region"
         }
       ]
     },
@@ -203,6 +211,14 @@
         {
           "key": "team",
           "binding": "query_param"
+        }
+      ],
+      "drillDown": [
+        {
+          "sourceColumn": "team",
+          "targetQuery": "hiring_pipeline",
+          "targetFilter": "team",
+          "label": "View Hiring Pipeline"
         }
       ]
     },
@@ -319,13 +335,8 @@
       "authType": "none",
       "bamTokenUrl": "",
       "columnConfig": {
-        "idColumns": [
-          "ticket_id"
-        ],
-        "dateColumns": [
-          "created_date",
-          "resolved_date"
-        ]
+        "idColumns": ["ticket_id"],
+        "dateColumns": ["created_date", "resolved_date"]
       }
     },
     {
@@ -379,7 +390,7 @@
     {
       "id": "q23",
       "name": "hr_report_salaries",
-      "description": "HR report — sheet \"Salaries\"",
+      "description": "HR report \u2014 sheet \"Salaries\"",
       "estimatedDuration": 0,
       "source": "hr_team",
       "type": "xlsx",
@@ -395,7 +406,7 @@
     {
       "id": "q24",
       "name": "hr_report_bonuses",
-      "description": "HR report — sheet \"Bonuses\"",
+      "description": "HR report \u2014 sheet \"Bonuses\"",
       "estimatedDuration": 0,
       "source": "hr_team",
       "type": "xlsx",
@@ -411,7 +422,7 @@
     {
       "id": "q25",
       "name": "hr_report_ratings",
-      "description": "HR report — sheet \"Ratings\"",
+      "description": "HR report \u2014 sheet \"Ratings\"",
       "estimatedDuration": 0,
       "source": "hr_team",
       "type": "xlsx",
