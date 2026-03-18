@@ -1,9 +1,7 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { ResponsiveGridLayout, useContainerWidth, verticalCompactor, type Layout } from 'react-grid-layout';
-import 'react-grid-layout/css/styles.css';
-import 'react-resizable/css/styles.css';
+import { useCallback, useRef, useState } from 'react';
+import { SimpleGrid, type GridItem } from './SimpleGrid';
 import { QueryCard } from './QueryCard';
 import { DashboardToolbar } from './DashboardToolbar';
 import type { Dashboard, DashboardCard, CardLayout } from '@/types/dashboard';
@@ -45,7 +43,6 @@ function CardHeader({ card, executionMs, onRemove }: { card: DashboardCard; exec
 }
 
 export function GridDashboard({ dashboard, userName, availableQueries, onLayoutChange, onCardRemove, onCardUpdate, onSubscribe }: GridDashboardProps) {
-  const { width, containerRef, mounted } = useContainerWidth({ measureBeforeMount: true });
   const gridCaptureRef = useRef<HTMLDivElement>(null);
   const [executionTimes, setExecutionTimes] = useState<Record<string, number | null>>({});
 
@@ -53,11 +50,13 @@ export function GridDashboard({ dashboard, userName, availableQueries, onLayoutC
     setExecutionTimes((prev) => ({ ...prev, [cardId]: ms }));
   }, []);
 
-  const layouts = useMemo(() => ({
-    lg: dashboard.layouts.map((l) => ({ ...l, minW: l.minW ?? 3, minH: l.minH ?? 4 })),
-  }), [dashboard.layouts]);
+  const gridLayouts: GridItem[] = dashboard.layouts.map((l) => ({
+    ...l,
+    minW: l.minW ?? 3,
+    minH: l.minH ?? 4,
+  }));
 
-  const handleLayoutChange = useCallback((layout: Layout) => {
+  const handleLayoutChange = useCallback((layout: GridItem[]) => {
     const mapped: CardLayout[] = layout.map((l) => ({
       i: l.i,
       x: l.x,
@@ -83,7 +82,7 @@ export function GridDashboard({ dashboard, userName, availableQueries, onLayoutC
   }
 
   return (
-    <div ref={containerRef}>
+    <div>
       {/* Toolbar — Print / PDF / Subscribe */}
       <div className="flex items-center justify-between mb-2 px-1">
         <div className="dashboard-print-header hidden">{dashboard.name} — {new Date().toLocaleDateString()}</div>
@@ -92,32 +91,26 @@ export function GridDashboard({ dashboard, userName, availableQueries, onLayoutC
         </div>
       </div>
       <div ref={gridCaptureRef}>
-      {mounted && (
-        <ResponsiveGridLayout
-          className="layout"
-          width={width}
-          layouts={layouts}
-          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480 }}
-          cols={{ lg: 12, md: 8, sm: 4, xs: 2 }}
+        <SimpleGrid
+          layouts={gridLayouts}
+          cols={12}
           rowHeight={80}
-          margin={[16, 16] as const}
-          dragConfig={{ enabled: true, handle: '.card-drag-handle' }}
-          resizeConfig={{ enabled: true }}
-          compactor={verticalCompactor}
+          gap={16}
           onLayoutChange={handleLayoutChange}
-          autoSize
         >
           {dashboard.cards.map((card) => {
             const queryInfo = availableQueries?.find((q) => q.name === card.queryName);
             return (
-              <div key={card.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
-                <CardHeader
-                  card={card}
-                  executionMs={executionTimes[card.id] ?? null}
-                  onRemove={() => onCardRemove(card.id)}
-                />
-                {/* Card content */}
-                <div className="flex-1 overflow-hidden">
+              <div key={card.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col h-full">
+                <div className="flex-shrink-0">
+                  <CardHeader
+                    card={card}
+                    executionMs={executionTimes[card.id] ?? null}
+                    onRemove={() => onCardRemove(card.id)}
+                  />
+                </div>
+                {/* Card content — scrollable with hidden scrollbar */}
+                <div className="flex-1 overflow-y-auto grid-item-scroll" style={{ scrollbarWidth: 'none' as const }}>
                   <QueryCard
                     queryName={card.queryName}
                     label={card.label}
@@ -137,8 +130,7 @@ export function GridDashboard({ dashboard, userName, availableQueries, onLayoutC
               </div>
             );
           })}
-        </ResponsiveGridLayout>
-      )}
+        </SimpleGrid>
       </div>
     </div>
   );

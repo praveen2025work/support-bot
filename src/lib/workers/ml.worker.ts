@@ -16,7 +16,7 @@ import { computeHistogram }  from '../ml/histogram';
 import type { WorkerRequest, WorkerResponse }  from '../../types/ml';
 
 // ── Dynamic imports of ML libs (bundled by Next.js webpack) ──────────────────
-import * as ss from 'simple-statistics';
+import * as ss from '../ml/simple-stats';
 import { kmeans } from 'ml-kmeans';
 import { SimpleLinearRegression } from 'ml-regression';
 import Fuse from 'fuse.js';

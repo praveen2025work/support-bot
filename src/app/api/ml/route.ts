@@ -14,7 +14,7 @@ import type { DatasetProfile, TenantMLConfig } from '../../../types/ml';
 import { INTENT_TO_ANALYSIS } from '../../../types/ml';
 
 // ── ML libs (server-side) ─────────────────────────────────────────────────────
-import * as ss from 'simple-statistics';
+import * as ss from '../../../lib/ml/simple-stats';
 import { kmeans } from 'ml-kmeans';
 import { SimpleLinearRegression } from 'ml-regression';
 import Fuse from 'fuse.js';
