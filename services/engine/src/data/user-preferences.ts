@@ -1,7 +1,7 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import { logger } from '@/lib/logger';
-import { paths } from '@/lib/env-config';
+import { promises as fs } from "fs";
+import path from "path";
+import { logger } from "@/lib/logger";
+import { paths } from "@/lib/env-config";
 
 const PREFS_DIR = paths.data.preferencesDir;
 const MAX_RECENTS = 50;
@@ -45,7 +45,7 @@ export interface CardLayout {
 }
 
 export interface EventLinkConfig {
-  mode: 'auto' | 'manual' | 'disabled';
+  mode: "auto" | "manual" | "disabled";
   columnMappings?: Record<string, string>;
   ignoreColumns?: string[];
 }
@@ -62,22 +62,11 @@ export interface DashboardCard {
   createdAt: string;
 }
 
-export interface DashboardSubscription {
-  id: string;
-  email: string;
-  cronExpression: string;
-  enabled: boolean;
-  createdAt: string;
-  lastSentAt?: string;
-  nextSendAt?: string;
-}
-
 export interface Dashboard {
   id: string;
   name: string;
   cards: DashboardCard[];
   layouts: CardLayout[];
-  subscriptions?: DashboardSubscription[];
   createdAt: string;
   updatedAt: string;
 }
@@ -98,22 +87,34 @@ function uid(): string {
 
 function prefsPath(userId: string): string {
   // Sanitize userId to prevent path traversal
-  const safe = userId.replace(/[^a-zA-Z0-9_\-]/g, '_');
+  const safe = userId.replace(/[^a-zA-Z0-9_\-]/g, "_");
   return path.join(PREFS_DIR, `${safe}.json`);
 }
 
 function defaultPrefs(userId: string): UserPreferences {
-  return { userId, favorites: [], subscriptions: [], recentQueries: [], dashboards: [], updatedAt: new Date().toISOString() };
+  return {
+    userId,
+    favorites: [],
+    subscriptions: [],
+    recentQueries: [],
+    dashboards: [],
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 function slugify(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `dashboard-${Date.now()}`;
+  return (
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || `dashboard-${Date.now()}`
+  );
 }
 
 export class UserPreferencesStore {
   async read(userId: string): Promise<UserPreferences> {
     try {
-      const raw = await fs.readFile(prefsPath(userId), 'utf-8');
+      const raw = await fs.readFile(prefsPath(userId), "utf-8");
       return JSON.parse(raw);
     } catch {
       return defaultPrefs(userId);
@@ -123,12 +124,23 @@ export class UserPreferencesStore {
   private async write(prefs: UserPreferences): Promise<void> {
     await fs.mkdir(PREFS_DIR, { recursive: true });
     prefs.updatedAt = new Date().toISOString();
-    await fs.writeFile(prefsPath(prefs.userId), JSON.stringify(prefs, null, 2), 'utf-8');
+    await fs.writeFile(
+      prefsPath(prefs.userId),
+      JSON.stringify(prefs, null, 2),
+      "utf-8",
+    );
   }
 
-  async addFavorite(userId: string, item: Omit<FavoriteItem, 'id' | 'createdAt'>): Promise<FavoriteItem> {
+  async addFavorite(
+    userId: string,
+    item: Omit<FavoriteItem, "id" | "createdAt">,
+  ): Promise<FavoriteItem> {
     const prefs = await this.read(userId);
-    const fav: FavoriteItem = { ...item, id: uid(), createdAt: new Date().toISOString() };
+    const fav: FavoriteItem = {
+      ...item,
+      id: uid(),
+      createdAt: new Date().toISOString(),
+    };
     prefs.favorites.push(fav);
     await this.write(prefs);
     return fav;
@@ -143,18 +155,30 @@ export class UserPreferencesStore {
     return true;
   }
 
-  async addSubscription(userId: string, item: Omit<SubscriptionItem, 'id' | 'createdAt'>): Promise<SubscriptionItem> {
+  async addSubscription(
+    userId: string,
+    item: Omit<SubscriptionItem, "id" | "createdAt">,
+  ): Promise<SubscriptionItem> {
     const prefs = await this.read(userId);
-    const sub: SubscriptionItem = { ...item, id: uid(), createdAt: new Date().toISOString() };
+    const sub: SubscriptionItem = {
+      ...item,
+      id: uid(),
+      createdAt: new Date().toISOString(),
+    };
     prefs.subscriptions.push(sub);
     await this.write(prefs);
     return sub;
   }
 
-  async removeSubscription(userId: string, subscriptionId: string): Promise<boolean> {
+  async removeSubscription(
+    userId: string,
+    subscriptionId: string,
+  ): Promise<boolean> {
     const prefs = await this.read(userId);
     const before = prefs.subscriptions.length;
-    prefs.subscriptions = prefs.subscriptions.filter((s) => s.id !== subscriptionId);
+    prefs.subscriptions = prefs.subscriptions.filter(
+      (s) => s.id !== subscriptionId,
+    );
     if (prefs.subscriptions.length === before) return false;
     await this.write(prefs);
     return true;
@@ -169,7 +193,7 @@ export class UserPreferencesStore {
       }
       await this.write(prefs);
     } catch (err) {
-      logger.warn({ err, userId }, 'Failed to append recent query');
+      logger.warn({ err, userId }, "Failed to append recent query");
     }
   }
 
@@ -179,7 +203,10 @@ export class UserPreferencesStore {
     await this.write(prefs);
   }
 
-  async update(userId: string, partial: Partial<Pick<UserPreferences, 'favorites' | 'subscriptions'>>): Promise<UserPreferences> {
+  async update(
+    userId: string,
+    partial: Partial<Pick<UserPreferences, "favorites" | "subscriptions">>,
+  ): Promise<UserPreferences> {
     const prefs = await this.read(userId);
     if (partial.favorites) prefs.favorites = partial.favorites;
     if (partial.subscriptions) prefs.subscriptions = partial.subscriptions;
@@ -194,12 +221,18 @@ export class UserPreferencesStore {
     return prefs.dashboards || [];
   }
 
-  async getDashboard(userId: string, dashboardId: string): Promise<Dashboard | null> {
+  async getDashboard(
+    userId: string,
+    dashboardId: string,
+  ): Promise<Dashboard | null> {
     const prefs = await this.read(userId);
     return (prefs.dashboards || []).find((d) => d.id === dashboardId) || null;
   }
 
-  async createDashboard(userId: string, input: { name: string; cards?: DashboardCard[]; layouts?: CardLayout[] }): Promise<Dashboard> {
+  async createDashboard(
+    userId: string,
+    input: { name: string; cards?: DashboardCard[]; layouts?: CardLayout[] },
+  ): Promise<Dashboard> {
     const prefs = await this.read(userId);
     if (!prefs.dashboards) prefs.dashboards = [];
     const baseSlug = slugify(input.name);
@@ -224,7 +257,11 @@ export class UserPreferencesStore {
     return dashboard;
   }
 
-  async updateDashboard(userId: string, dashboardId: string, partial: Partial<Pick<Dashboard, 'name' | 'cards' | 'layouts'>>): Promise<Dashboard | null> {
+  async updateDashboard(
+    userId: string,
+    dashboardId: string,
+    partial: Partial<Pick<Dashboard, "name" | "cards" | "layouts">>,
+  ): Promise<Dashboard | null> {
     const prefs = await this.read(userId);
     const dash = (prefs.dashboards || []).find((d) => d.id === dashboardId);
     if (!dash) return null;
@@ -239,7 +276,9 @@ export class UserPreferencesStore {
   async deleteDashboard(userId: string, dashboardId: string): Promise<boolean> {
     const prefs = await this.read(userId);
     const before = (prefs.dashboards || []).length;
-    prefs.dashboards = (prefs.dashboards || []).filter((d) => d.id !== dashboardId);
+    prefs.dashboards = (prefs.dashboards || []).filter(
+      (d) => d.id !== dashboardId,
+    );
     if (prefs.dashboards.length === before) return false;
     if (prefs.activeDashboardId === dashboardId) {
       prefs.activeDashboardId = prefs.dashboards[0]?.id;
@@ -248,15 +287,27 @@ export class UserPreferencesStore {
     return true;
   }
 
-  async updateDashboardLayouts(userId: string, dashboardId: string, layouts: CardLayout[]): Promise<Dashboard | null> {
+  async updateDashboardLayouts(
+    userId: string,
+    dashboardId: string,
+    layouts: CardLayout[],
+  ): Promise<Dashboard | null> {
     return this.updateDashboard(userId, dashboardId, { layouts });
   }
 
-  async addCardToDashboard(userId: string, dashboardId: string, card: Omit<DashboardCard, 'id' | 'createdAt'>): Promise<DashboardCard | null> {
+  async addCardToDashboard(
+    userId: string,
+    dashboardId: string,
+    card: Omit<DashboardCard, "id" | "createdAt">,
+  ): Promise<DashboardCard | null> {
     const prefs = await this.read(userId);
     const dash = (prefs.dashboards || []).find((d) => d.id === dashboardId);
     if (!dash) return null;
-    const newCard: DashboardCard = { ...card, id: uid(), createdAt: new Date().toISOString() };
+    const newCard: DashboardCard = {
+      ...card,
+      id: uid(),
+      createdAt: new Date().toISOString(),
+    };
     dash.cards.push(newCard);
     // Auto-generate layout position: next available slot in 3-col grid
     const maxY = dash.layouts.reduce((m, l) => Math.max(m, l.y + l.h), 0);
@@ -275,7 +326,11 @@ export class UserPreferencesStore {
     return newCard;
   }
 
-  async removeCardFromDashboard(userId: string, dashboardId: string, cardId: string): Promise<boolean> {
+  async removeCardFromDashboard(
+    userId: string,
+    dashboardId: string,
+    cardId: string,
+  ): Promise<boolean> {
     const prefs = await this.read(userId);
     const dash = (prefs.dashboards || []).find((d) => d.id === dashboardId);
     if (!dash) return false;
@@ -288,7 +343,12 @@ export class UserPreferencesStore {
     return true;
   }
 
-  async updateCard(userId: string, dashboardId: string, cardId: string, partial: Partial<DashboardCard>): Promise<DashboardCard | null> {
+  async updateCard(
+    userId: string,
+    dashboardId: string,
+    cardId: string,
+    partial: Partial<DashboardCard>,
+  ): Promise<DashboardCard | null> {
     const prefs = await this.read(userId);
     const dash = (prefs.dashboards || []).find((d) => d.id === dashboardId);
     if (!dash) return null;
@@ -306,12 +366,19 @@ export class UserPreferencesStore {
     await this.write(prefs);
   }
 
-  async migrateFavoritesToDashboard(userId: string, dashboardId: string): Promise<Dashboard | null> {
+  async migrateFavoritesToDashboard(
+    userId: string,
+    dashboardId: string,
+  ): Promise<Dashboard | null> {
     const prefs = await this.read(userId);
     const dash = (prefs.dashboards || []).find((d) => d.id === dashboardId);
     if (!dash) return null;
 
-    const existingMigrated = new Set(dash.cards.filter((c) => c.migratedFromFavoriteId).map((c) => c.migratedFromFavoriteId));
+    const existingMigrated = new Set(
+      dash.cards
+        .filter((c) => c.migratedFromFavoriteId)
+        .map((c) => c.migratedFromFavoriteId),
+    );
     let added = 0;
 
     // Migrate favorites
@@ -324,7 +391,7 @@ export class UserPreferencesStore {
         label: fav.label,
         defaultFilters: fav.defaultFilters,
         autoRun: false,
-        eventLink: { mode: 'auto' },
+        eventLink: { mode: "auto" },
         migratedFromFavoriteId: fav.id,
         createdAt: new Date().toISOString(),
       };
@@ -333,7 +400,10 @@ export class UserPreferencesStore {
         i: card.id,
         x: (added % 3) * 4,
         y: dash.layouts.reduce((m, l) => Math.max(m, l.y + l.h), 0),
-        w: 4, h: 6, minW: 3, minH: 4,
+        w: 4,
+        h: 6,
+        minW: 3,
+        minH: 4,
       });
       added++;
     }
@@ -348,7 +418,7 @@ export class UserPreferencesStore {
         label: sub.label,
         defaultFilters: sub.defaultFilters,
         autoRun: sub.refreshOnLoad,
-        eventLink: { mode: 'auto' },
+        eventLink: { mode: "auto" },
         migratedFromFavoriteId: sub.id,
         createdAt: new Date().toISOString(),
       };
@@ -357,7 +427,10 @@ export class UserPreferencesStore {
         i: card.id,
         x: (added % 3) * 4,
         y: dash.layouts.reduce((m, l) => Math.max(m, l.y + l.h), 0),
-        w: 4, h: 6, minW: 3, minH: 4,
+        w: 4,
+        h: 6,
+        minW: 3,
+        minH: 4,
       });
       added++;
     }
@@ -365,78 +438,6 @@ export class UserPreferencesStore {
     dash.updatedAt = new Date().toISOString();
     await this.write(prefs);
     return dash;
-  }
-
-  // ── Dashboard Email Subscriptions ───────────────────────────────────
-
-  async addDashboardSubscription(userId: string, dashboardId: string, data: { email: string; cronExpression: string }): Promise<DashboardSubscription | null> {
-    const prefs = await this.read(userId);
-    const dash = (prefs.dashboards || []).find((d) => d.id === dashboardId);
-    if (!dash) return null;
-    if (!dash.subscriptions) dash.subscriptions = [];
-    const sub: DashboardSubscription = {
-      id: uid(),
-      email: data.email,
-      cronExpression: data.cronExpression,
-      enabled: true,
-      createdAt: new Date().toISOString(),
-    };
-    dash.subscriptions.push(sub);
-    dash.updatedAt = new Date().toISOString();
-    await this.write(prefs);
-    return sub;
-  }
-
-  async removeDashboardSubscription(userId: string, dashboardId: string, subId: string): Promise<boolean> {
-    const prefs = await this.read(userId);
-    const dash = (prefs.dashboards || []).find((d) => d.id === dashboardId);
-    if (!dash || !dash.subscriptions) return false;
-    const idx = dash.subscriptions.findIndex((s) => s.id === subId);
-    if (idx === -1) return false;
-    dash.subscriptions.splice(idx, 1);
-    dash.updatedAt = new Date().toISOString();
-    await this.write(prefs);
-    return true;
-  }
-
-  async updateDashboardSubscription(userId: string, dashboardId: string, subId: string, updates: Partial<DashboardSubscription>): Promise<DashboardSubscription | null> {
-    const prefs = await this.read(userId);
-    const dash = (prefs.dashboards || []).find((d) => d.id === dashboardId);
-    if (!dash || !dash.subscriptions) return null;
-    const sub = dash.subscriptions.find((s) => s.id === subId);
-    if (!sub) return null;
-    if (updates.email !== undefined) sub.email = updates.email;
-    if (updates.cronExpression !== undefined) sub.cronExpression = updates.cronExpression;
-    if (updates.enabled !== undefined) sub.enabled = updates.enabled;
-    if (updates.lastSentAt !== undefined) sub.lastSentAt = updates.lastSentAt;
-    if (updates.nextSendAt !== undefined) sub.nextSendAt = updates.nextSendAt;
-    dash.updatedAt = new Date().toISOString();
-    await this.write(prefs);
-    return sub;
-  }
-
-  /** Get all active subscriptions across all users (for the email scheduler) */
-  async getAllActiveSubscriptions(): Promise<Array<{ userId: string; dashboardId: string; dashboardName: string; subscription: DashboardSubscription; cards: DashboardCard[] }>> {
-    const result: Array<{ userId: string; dashboardId: string; dashboardName: string; subscription: DashboardSubscription; cards: DashboardCard[] }> = [];
-    try {
-      await fs.mkdir(PREFS_DIR, { recursive: true });
-      const files = await fs.readdir(PREFS_DIR);
-      for (const file of files) {
-        if (!file.endsWith('.json')) continue;
-        try {
-          const raw = await fs.readFile(path.join(PREFS_DIR, file), 'utf-8');
-          const prefs: UserPreferences = JSON.parse(raw);
-          for (const dash of prefs.dashboards || []) {
-            for (const sub of dash.subscriptions || []) {
-              if (sub.enabled) {
-                result.push({ userId: prefs.userId, dashboardId: dash.id, dashboardName: dash.name, subscription: sub, cards: dash.cards });
-              }
-            }
-          }
-        } catch { /* skip corrupt files */ }
-      }
-    } catch { /* dir doesn't exist yet */ }
-    return result;
   }
 }
 

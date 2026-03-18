@@ -47,11 +47,11 @@ export interface QueryInfo {
 
 /** Grid position for react-grid-layout */
 export interface CardLayout {
-  i: string;    // matches DashboardCard.id
+  i: string; // matches DashboardCard.id
   x: number;
   y: number;
-  w: number;    // width in grid units (1-12)
-  h: number;    // height in grid units
+  w: number; // width in grid units (1-12)
+  h: number; // height in grid units
   minW?: number;
   minH?: number;
 }
@@ -59,7 +59,7 @@ export interface CardLayout {
 /** Cross-card event linking configuration */
 export interface EventLinkConfig {
   /** auto: match by column name, manual: explicit mappings, disabled: ignore events */
-  mode: 'auto' | 'manual' | 'disabled';
+  mode: "auto" | "manual" | "disabled";
   /** manual mode: { sourceColumn: targetFilter } mappings */
   columnMappings?: Record<string, string>;
   /** columns to ignore even in auto mode */
@@ -83,32 +83,18 @@ export interface DashboardCard {
 
 /** Defines how a column value drills into a sub-query */
 export interface DrillDownConfig {
-  sourceColumn: string;   // column name to make clickable
-  targetQuery: string;    // query name to execute on click
-  targetFilter: string;   // filter key to pass the clicked value to
-  label?: string;         // display label for the drill-down option
-}
-
-// ── Dashboard Email Subscription ────────────────────────────────────
-
-/** Email subscription for scheduled dashboard newsletter delivery */
-export interface DashboardSubscription {
-  id: string;
-  email: string;
-  cronExpression: string;
-  enabled: boolean;
-  createdAt: string;
-  lastSentAt?: string;
-  nextSendAt?: string;
+  sourceColumn: string; // column name to make clickable
+  targetQuery: string; // query name to execute on click
+  targetFilter: string; // filter key to pass the clicked value to
+  label?: string; // display label for the drill-down option
 }
 
 /** A named, persistent dashboard */
 export interface Dashboard {
-  id: string;           // URL-safe slug
-  name: string;         // display name
+  id: string; // URL-safe slug
+  name: string; // display name
   cards: DashboardCard[];
   layouts: CardLayout[];
-  subscriptions?: DashboardSubscription[];
   createdAt: string;
   updatedAt: string;
 }

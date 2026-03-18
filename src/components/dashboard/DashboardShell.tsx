@@ -1,20 +1,24 @@
-'use client';
+"use client";
 
-import { useState, useEffect, lazy, Suspense } from 'react';
-import { useDashboard } from '@/hooks/useDashboard';
-import { useMultiDashboard } from '@/hooks/useMultiDashboard';
-import { DashboardHeader } from './DashboardHeader';
-import { FavoritesPanel } from './FavoritesPanel';
-import { RecentQueriesPanel } from './RecentQueriesPanel';
-import { AddFavoriteModal } from './AddFavoriteModal';
-import { AddCardModal } from './AddCardModal';
-import { DashboardSelector } from './DashboardSelector';
-import { SearchBar } from './SearchBar';
-import { DashboardProvider, useDashboardContext } from '@/contexts/DashboardContext';
-import { SubscribeModal } from './SubscribeModal';
-import type { QueryInfo, DashboardCard } from '@/types/dashboard';
+import { useState, useEffect, lazy, Suspense } from "react";
+import { useDashboard } from "@/hooks/useDashboard";
+import { useMultiDashboard } from "@/hooks/useMultiDashboard";
+import { DashboardHeader } from "./DashboardHeader";
+import { FavoritesPanel } from "./FavoritesPanel";
+import { RecentQueriesPanel } from "./RecentQueriesPanel";
+import { AddFavoriteModal } from "./AddFavoriteModal";
+import { AddCardModal } from "./AddCardModal";
+import { DashboardSelector } from "./DashboardSelector";
+import { SearchBar } from "./SearchBar";
+import {
+  DashboardProvider,
+  useDashboardContext,
+} from "@/contexts/DashboardContext";
+import type { QueryInfo, DashboardCard } from "@/types/dashboard";
 
-const GridDashboard = lazy(() => import('./GridDashboard').then((m) => ({ default: m.GridDashboard })));
+const GridDashboard = lazy(() =>
+  import("./GridDashboard").then((m) => ({ default: m.GridDashboard })),
+);
 
 interface GroupInfo {
   id: string;
@@ -49,7 +53,7 @@ export function DashboardShell({
   }, [dashboardId, multiDashboard.dashboards.length]);
 
   useEffect(() => {
-    fetch('/api/groups')
+    fetch("/api/groups")
       .then((res) => res.json())
       .then((data) => setGroups(data.groups || []))
       .catch(() => {});
@@ -127,23 +131,30 @@ function DashboardShellInner({
   setGroupId: (v: string) => void;
   isGridView: boolean;
 }) {
-  const { businessDate, setBusinessDate, activeEvents, clearAllEvents, linkedSelection, clearLinkedSelection, sharedFilters, clearSharedFilters } = useDashboardContext();
-  const [showSubscribe, setShowSubscribe] = useState(false);
-
+  const {
+    businessDate,
+    setBusinessDate,
+    activeEvents,
+    clearAllEvents,
+    linkedSelection,
+    clearLinkedSelection,
+    sharedFilters,
+    clearSharedFilters,
+  } = useDashboardContext();
   const handleDashboardSelect = (id: string) => {
     multiDashboard.setActiveDashboard(id);
     // Update URL without full reload
     const url = new URL(window.location.href);
-    url.searchParams.set('id', id);
-    window.history.pushState({}, '', url.toString());
+    url.searchParams.set("id", id);
+    window.history.pushState({}, "", url.toString());
   };
 
   const handleCreateDashboard = async (name: string) => {
     const d = await multiDashboard.createDashboard(name);
     if (d) {
       const url = new URL(window.location.href);
-      url.searchParams.set('id', d.id);
-      window.history.pushState({}, '', url.toString());
+      url.searchParams.set("id", d.id);
+      window.history.pushState({}, "", url.toString());
     }
   };
 
@@ -151,8 +162,8 @@ function DashboardShellInner({
     await multiDashboard.deleteDashboard(id);
     if (multiDashboard.activeDashboard?.id === id) {
       const url = new URL(window.location.href);
-      url.searchParams.delete('id');
-      window.history.pushState({}, '', url.toString());
+      url.searchParams.delete("id");
+      window.history.pushState({}, "", url.toString());
     }
   };
 
@@ -163,8 +174,10 @@ function DashboardShellInner({
         groupId={groupId}
         groups={groups}
         onGroupChange={setGroupId}
-        onAddFavorite={() => isGridView ? setShowAddCard(true) : setShowAddFavorite(true)}
-        addLabel={isGridView ? '+ Add Card' : '+ Add Favorite'}
+        onAddFavorite={() =>
+          isGridView ? setShowAddCard(true) : setShowAddFavorite(true)
+        }
+        addLabel={isGridView ? "+ Add Card" : "+ Add Favorite"}
       />
 
       <div className="px-6 pt-4 pb-2 flex flex-wrap items-center gap-3">
@@ -187,10 +200,12 @@ function DashboardShellInner({
           />
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-500 whitespace-nowrap">Business Date:</label>
+          <label className="text-xs text-gray-500 whitespace-nowrap">
+            Business Date:
+          </label>
           <input
             type="date"
-            value={businessDate || ''}
+            value={businessDate || ""}
             onChange={(e) => setBusinessDate(e.target.value || null)}
             className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
@@ -207,7 +222,10 @@ function DashboardShellInner({
         {activeEvents.length > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap">
             {activeEvents.map((evt) => (
-              <span key={`${evt.column}-${evt.value}`} className="inline-flex items-center gap-1 rounded-full bg-yellow-50 border border-yellow-300 px-2.5 py-1 text-[11px] text-yellow-700">
+              <span
+                key={`${evt.column}-${evt.value}`}
+                className="inline-flex items-center gap-1 rounded-full bg-yellow-50 border border-yellow-300 px-2.5 py-1 text-[11px] text-yellow-700"
+              >
                 {evt.column}={evt.value}
               </span>
             ))}
@@ -225,8 +243,18 @@ function DashboardShellInner({
             className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2.5 py-1 text-[11px] text-blue-600 hover:bg-blue-100 transition-colors"
           >
             Clear shared filters ({Object.keys(sharedFilters).length})
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-3 h-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         )}
@@ -235,15 +263,36 @@ function DashboardShellInner({
       <div className="px-6 py-6 space-y-6">
         {isGridView && multiDashboard.activeDashboard ? (
           /* Grid Dashboard View */
-          <Suspense fallback={<div className="text-center py-12 text-gray-400 text-sm">Loading grid...</div>}>
+          <Suspense
+            fallback={
+              <div className="text-center py-12 text-gray-400 text-sm">
+                Loading grid...
+              </div>
+            }
+          >
             <GridDashboard
               dashboard={multiDashboard.activeDashboard}
               userName={userId}
               availableQueries={availableQueries}
-              onLayoutChange={(layouts) => multiDashboard.updateLayouts(multiDashboard.activeDashboard!.id, layouts)}
-              onCardRemove={(cardId) => multiDashboard.removeCard(multiDashboard.activeDashboard!.id, cardId)}
-              onCardUpdate={(cardId, partial) => multiDashboard.updateCard(multiDashboard.activeDashboard!.id, cardId, partial)}
-              onSubscribe={() => setShowSubscribe(true)}
+              onLayoutChange={(layouts) =>
+                multiDashboard.updateLayouts(
+                  multiDashboard.activeDashboard!.id,
+                  layouts,
+                )
+              }
+              onCardRemove={(cardId) =>
+                multiDashboard.removeCard(
+                  multiDashboard.activeDashboard!.id,
+                  cardId,
+                )
+              }
+              onCardUpdate={(cardId, partial) =>
+                multiDashboard.updateCard(
+                  multiDashboard.activeDashboard!.id,
+                  cardId,
+                  partial,
+                )
+              }
             />
             {multiDashboard.activeDashboard.cards.length === 0 && (
               <div className="flex justify-center gap-3">
@@ -254,7 +303,11 @@ function DashboardShellInner({
                   Add a Card
                 </button>
                 <button
-                  onClick={() => multiDashboard.migrateFavorites(multiDashboard.activeDashboard!.id)}
+                  onClick={() =>
+                    multiDashboard.migrateFavorites(
+                      multiDashboard.activeDashboard!.id,
+                    )
+                  }
                   className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-100"
                 >
                   Import from Favorites
@@ -266,9 +319,14 @@ function DashboardShellInner({
           /* Legacy Favorites/Recents View */
           <>
             {dashboard.loading ? (
-              <div className="text-center py-12 text-gray-400 text-sm">Loading your dashboard...</div>
+              <div className="text-center py-12 text-gray-400 text-sm">
+                Loading your dashboard...
+              </div>
             ) : isEmpty ? (
-              <EmptyState onAddFavorite={() => setShowAddFavorite(true)} onCreateDashboard={() => handleCreateDashboard('My Dashboard')} />
+              <EmptyState
+                onAddFavorite={() => setShowAddFavorite(true)}
+                onCreateDashboard={() => handleCreateDashboard("My Dashboard")}
+              />
             ) : (
               <>
                 {hasFavorites && (
@@ -313,31 +371,33 @@ function DashboardShellInner({
           availableQueries={availableQueries}
           groupId={groupId}
           onAdd={async (config) => {
-            await multiDashboard.addCard(multiDashboard.activeDashboard!.id, config);
+            await multiDashboard.addCard(
+              multiDashboard.activeDashboard!.id,
+              config,
+            );
           }}
-        />
-      )}
-
-      {showSubscribe && multiDashboard.activeDashboard && userId && (
-        <SubscribeModal
-          open={showSubscribe}
-          dashboardId={multiDashboard.activeDashboard.id}
-          dashboardName={multiDashboard.activeDashboard.name}
-          userId={userId}
-          onClose={() => setShowSubscribe(false)}
         />
       )}
     </div>
   );
 }
 
-function EmptyState({ onAddFavorite, onCreateDashboard }: { onAddFavorite: () => void; onCreateDashboard?: () => void }) {
+function EmptyState({
+  onAddFavorite,
+  onCreateDashboard,
+}: {
+  onAddFavorite: () => void;
+  onCreateDashboard?: () => void;
+}) {
   return (
     <div className="text-center py-16">
       <div className="text-4xl mb-4">&#128202;</div>
-      <h2 className="text-lg font-semibold text-gray-700 mb-2">Your Dashboard is Empty</h2>
+      <h2 className="text-lg font-semibold text-gray-700 mb-2">
+        Your Dashboard is Empty
+      </h2>
       <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
-        Add favorite queries for quick access, create a grid dashboard, or start chatting to build your recent history.
+        Add favorite queries for quick access, create a grid dashboard, or start
+        chatting to build your recent history.
       </p>
       <div className="flex gap-3 justify-center">
         <button
