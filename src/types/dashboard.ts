@@ -41,6 +41,7 @@ export interface QueryInfo {
   description: string;
   filters: Array<string | { key: string; binding: string }>;
   type: string;
+  drillDown?: DrillDownConfig[];
 }
 
 // ── Dashboard Grid Types ─────────────────────────────────────────────
