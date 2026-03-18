@@ -36,6 +36,23 @@ dashboardsRouter.post("/", async (req: Request, res: Response) => {
   }
 });
 
+// PUT /api/dashboards/active — persist active dashboard selection
+// IMPORTANT: Must be defined BEFORE /:id routes to avoid Express matching "active" as :id
+dashboardsRouter.put("/active", async (req: Request, res: Response) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(400).json({ error: "userId is required" });
+  const { dashboardId } = req.body;
+  if (!dashboardId)
+    return res.status(400).json({ error: "dashboardId is required" });
+  try {
+    await preferencesStore.setActiveDashboard(userId, dashboardId);
+    return res.json({ success: true, activeDashboardId: dashboardId });
+  } catch (err) {
+    logger.error({ err, userId }, "Failed to set active dashboard");
+    return res.status(500).json({ error: "Failed to set active dashboard" });
+  }
+});
+
 // GET /api/dashboards/:id?userId= — get single dashboard
 dashboardsRouter.get("/:id", async (req: Request, res: Response) => {
   const userId = getUserId(req);
@@ -71,22 +88,6 @@ dashboardsRouter.put("/:id", async (req: Request, res: Response) => {
   } catch (err) {
     logger.error({ err, userId }, "Failed to update dashboard");
     return res.status(500).json({ error: "Failed to update dashboard" });
-  }
-});
-
-// PUT /api/dashboards/active — persist active dashboard selection
-dashboardsRouter.put("/active", async (req: Request, res: Response) => {
-  const userId = getUserId(req);
-  if (!userId) return res.status(400).json({ error: "userId is required" });
-  const { dashboardId } = req.body;
-  if (!dashboardId)
-    return res.status(400).json({ error: "dashboardId is required" });
-  try {
-    await preferencesStore.setActiveDashboard(userId, dashboardId);
-    return res.json({ success: true, activeDashboardId: dashboardId });
-  } catch (err) {
-    logger.error({ err, userId }, "Failed to set active dashboard");
-    return res.status(500).json({ error: "Failed to set active dashboard" });
   }
 });
 
