@@ -1,9 +1,15 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { UserInfo } from '@/types/user-types';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import type { UserInfo } from "@/types/user-types";
 
-export type Role = 'admin' | 'builder' | 'viewer';
+export type Role = "admin" | "builder" | "viewer";
 
 interface UserContextValue {
   userInfo: UserInfo | null;
@@ -33,8 +39,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     async function fetchUserInfo() {
       try {
-        const res = await fetch('/api/userinfo', {
-          credentials: 'include',
+        const res = await fetch("/api/userinfo", {
+          credentials: "include",
         });
 
         if (!res.ok) {
@@ -49,8 +55,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
         // Check admin status after getting user identity
         try {
-          const adminRes = await fetch('/api/admin/auth', {
-            credentials: 'include',
+          const adminRes = await fetch("/api/admin/auth", {
+            credentials: "include",
           });
           if (adminRes.ok) {
             const adminData = await adminRes.json();
@@ -68,18 +74,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
         }
       } catch (err) {
         if (!cancelled) {
-          const msg = err instanceof Error ? err.message : 'Failed to load user info';
+          const msg =
+            err instanceof Error ? err.message : "Failed to load user info";
           setError(msg);
           // Fallback for dev
-          if (process.env.NODE_ENV === 'development') {
+          if (process.env.NODE_ENV === "development") {
             setUserInfo({
-              samAccountName: 'dev_user',
-              displayName: 'Dev User',
-              emailAddress: 'dev@localhost',
-              employeeId: 'DEV001',
-              givenName: 'Dev',
-              surname: 'User',
-              userName: 'LOCAL\\dev_user',
+              samAccountName: "jdoe",
+              displayName: "John Doe",
+              emailAddress: "john.doe@company.com",
+              employeeId: "EMP001",
+              givenName: "John",
+              surname: "Doe",
+              userName: "DOMAIN\\jdoe",
             });
             setIsAdmin(false);
           }
@@ -92,11 +99,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
 
     fetchUserInfo();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
-    <UserContext.Provider value={{ userInfo, isAdmin, userRole, loading, error }}>
+    <UserContext.Provider
+      value={{ userInfo, isAdmin, userRole, loading, error }}
+    >
       {children}
     </UserContext.Provider>
   );
