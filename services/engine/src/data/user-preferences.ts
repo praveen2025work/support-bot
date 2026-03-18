@@ -62,11 +62,22 @@ export interface DashboardCard {
   createdAt: string;
 }
 
+export interface DashboardSubscription {
+  id: string;
+  email: string;
+  cronExpression: string;
+  enabled: boolean;
+  createdAt: string;
+  lastSentAt?: string;
+  nextSendAt?: string;
+}
+
 export interface Dashboard {
   id: string;
   name: string;
   cards: DashboardCard[];
   layouts: CardLayout[];
+  subscriptions?: DashboardSubscription[];
   createdAt: string;
   updatedAt: string;
 }
@@ -354,6 +365,78 @@ export class UserPreferencesStore {
     dash.updatedAt = new Date().toISOString();
     await this.write(prefs);
     return dash;
+  }
+
+  // ── Dashboard Email Subscriptions ───────────────────────────────────
+
+  async addDashboardSubscription(userId: string, dashboardId: string, data: { email: string; cronExpression: string }): Promise<DashboardSubscription | null> {
+    const prefs = await this.read(userId);
+    const dash = (prefs.dashboards || []).find((d) => d.id === dashboardId);
+    if (!dash) return null;
+    if (!dash.subscriptions) dash.subscriptions = [];
+    const sub: DashboardSubscription = {
+      id: uid(),
+      email: data.email,
+      cronExpression: data.cronExpression,
+      enabled: true,
+      createdAt: new Date().toISOString(),
+    };
+    dash.subscriptions.push(sub);
+    dash.updatedAt = new Date().toISOString();
+    await this.write(prefs);
+    return sub;
+  }
+
+  async removeDashboardSubscription(userId: string, dashboardId: string, subId: string): Promise<boolean> {
+    const prefs = await this.read(userId);
+    const dash = (prefs.dashboards || []).find((d) => d.id === dashboardId);
+    if (!dash || !dash.subscriptions) return false;
+    const idx = dash.subscriptions.findIndex((s) => s.id === subId);
+    if (idx === -1) return false;
+    dash.subscriptions.splice(idx, 1);
+    dash.updatedAt = new Date().toISOString();
+    await this.write(prefs);
+    return true;
+  }
+
+  async updateDashboardSubscription(userId: string, dashboardId: string, subId: string, updates: Partial<DashboardSubscription>): Promise<DashboardSubscription | null> {
+    const prefs = await this.read(userId);
+    const dash = (prefs.dashboards || []).find((d) => d.id === dashboardId);
+    if (!dash || !dash.subscriptions) return null;
+    const sub = dash.subscriptions.find((s) => s.id === subId);
+    if (!sub) return null;
+    if (updates.email !== undefined) sub.email = updates.email;
+    if (updates.cronExpression !== undefined) sub.cronExpression = updates.cronExpression;
+    if (updates.enabled !== undefined) sub.enabled = updates.enabled;
+    if (updates.lastSentAt !== undefined) sub.lastSentAt = updates.lastSentAt;
+    if (updates.nextSendAt !== undefined) sub.nextSendAt = updates.nextSendAt;
+    dash.updatedAt = new Date().toISOString();
+    await this.write(prefs);
+    return sub;
+  }
+
+  /** Get all active subscriptions across all users (for the email scheduler) */
+  async getAllActiveSubscriptions(): Promise<Array<{ userId: string; dashboardId: string; dashboardName: string; subscription: DashboardSubscription; cards: DashboardCard[] }>> {
+    const result: Array<{ userId: string; dashboardId: string; dashboardName: string; subscription: DashboardSubscription; cards: DashboardCard[] }> = [];
+    try {
+      await fs.mkdir(PREFS_DIR, { recursive: true });
+      const files = await fs.readdir(PREFS_DIR);
+      for (const file of files) {
+        if (!file.endsWith('.json')) continue;
+        try {
+          const raw = await fs.readFile(path.join(PREFS_DIR, file), 'utf-8');
+          const prefs: UserPreferences = JSON.parse(raw);
+          for (const dash of prefs.dashboards || []) {
+            for (const sub of dash.subscriptions || []) {
+              if (sub.enabled) {
+                result.push({ userId: prefs.userId, dashboardId: dash.id, dashboardName: dash.name, subscription: sub, cards: dash.cards });
+              }
+            }
+          }
+        } catch { /* skip corrupt files */ }
+      }
+    } catch { /* dir doesn't exist yet */ }
+    return result;
   }
 }
 

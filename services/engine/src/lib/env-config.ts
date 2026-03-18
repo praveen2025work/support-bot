@@ -61,6 +61,14 @@ export const FILE_BASE_DIR = process.env.FILE_BASE_DIR || '';
 /** Mock API db.json */
 export const DB_JSON_PATH = process.env.DB_JSON_PATH || process.env.MOCK_API_DB_PATH || join(CWD, '..', 'mock-api', 'db.json');
 
+// ─── SMTP / Email ───────────────────────────────────────────────────────────
+
+export const SMTP_HOST = process.env.SMTP_HOST || '';
+export const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
+export const SMTP_USER = process.env.SMTP_USER || '';
+export const SMTP_PASS = process.env.SMTP_PASS || '';
+export const SMTP_FROM = process.env.SMTP_FROM || 'dashboard@mitr-ai.local';
+
 // ─── Instance identity ──────────────────────────────────────────────────────
 
 export const INSTANCE_ID = process.env.INSTANCE_ID || `engine-${process.pid}`;

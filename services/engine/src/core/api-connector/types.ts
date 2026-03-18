@@ -83,6 +83,13 @@ export const QuerySchema = z.object({
     valueColumns: z.array(z.string()).optional(),    // columns for calculation / chart y-axis
     ignoreColumns: z.array(z.string()).optional(),   // columns to skip entirely
   }).optional(),
+  // Drill-down configuration — defines which columns link to sub-queries
+  drillDown: z.array(z.object({
+    sourceColumn: z.string(),    // column name to make clickable
+    targetQuery: z.string(),     // query name to execute when clicked
+    targetFilter: z.string(),    // filter key to pass the clicked value to
+    label: z.string().optional(),// display label (defaults to targetQuery)
+  })).optional(),
 });
 
 export const QueryResultSchema = z.object({

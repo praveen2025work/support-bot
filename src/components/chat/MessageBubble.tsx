@@ -2,6 +2,7 @@
 
 import { useState, Suspense, lazy } from 'react';
 import type { Message } from '@/hooks/useChat';
+import type { DrillDownConfig } from '@/types/dashboard';
 import { QueryFilterForm, type QueryFilterFormData } from './QueryFilterForm';
 import { TablePagination, exportToCsv } from './TablePagination';
 import type { DetectedColumnMeta } from './DataChart';
@@ -149,6 +150,8 @@ export function MessageBubble({
   cardId,
   linkedSelection,
   onCellClick,
+  drillDownConfig,
+  onDrillDown,
 }: {
   message: Message;
   onAction?: (text: string) => void;
@@ -158,6 +161,10 @@ export function MessageBubble({
   cardId?: string;
   linkedSelection?: LinkedSelection;
   onCellClick?: (column: string, value: unknown) => void;
+  /** Config-based drill-down definitions from query config */
+  drillDownConfig?: DrillDownConfig[];
+  /** Callback when user triggers a drill-down (config-based or picker) */
+  onDrillDown?: (targetQuery: string, targetFilter: string, column: string, value: string) => void;
 }) {
   const isUser = message.role === 'user';
 
@@ -179,7 +186,7 @@ export function MessageBubble({
         </p>
         {message.richContent && (
           <div className="mt-2">
-            <RichContentRenderer richContent={message.richContent} onExecuteQuery={onExecuteQuery} onAction={onAction} cardId={cardId} linkedSelection={linkedSelection} onCellClick={onCellClick} />
+            <RichContentRenderer richContent={message.richContent} onExecuteQuery={onExecuteQuery} onAction={onAction} cardId={cardId} linkedSelection={linkedSelection} onCellClick={onCellClick} drillDownConfig={drillDownConfig} onDrillDown={onDrillDown} />
           </div>
         )}
         {/* Anomaly alerts */}
@@ -245,6 +252,8 @@ function RichContentRenderer({
   cardId,
   linkedSelection,
   onCellClick,
+  drillDownConfig,
+  onDrillDown,
 }: {
   richContent: NonNullable<Message['richContent']>;
   onExecuteQuery?: (queryName: string, filters: Record<string, string>) => void;
@@ -252,6 +261,8 @@ function RichContentRenderer({
   cardId?: string;
   linkedSelection?: LinkedSelection;
   onCellClick?: (column: string, value: unknown) => void;
+  drillDownConfig?: DrillDownConfig[];
+  onDrillDown?: (targetQuery: string, targetFilter: string, column: string, value: string) => void;
 }) {
   switch (richContent.type) {
     case 'url_list': {
@@ -275,7 +286,7 @@ function RichContentRenderer({
     }
     case 'query_result': {
       const result = richContent.data as QueryResultData;
-      return <QueryResultTable result={result} cardId={cardId} linkedSelection={linkedSelection} onCellClick={onCellClick} />;
+      return <QueryResultTable result={result} cardId={cardId} linkedSelection={linkedSelection} onCellClick={onCellClick} drillDownConfig={drillDownConfig} onDrillDown={onDrillDown} />;
     }
     case 'multi_query_result': {
       const results = richContent.data as MultiQueryResultItem[];
@@ -286,7 +297,7 @@ function RichContentRenderer({
               <h4 className="text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
                 {item.queryName}
               </h4>
-              <QueryResultTable result={item.result} cardId={cardId} linkedSelection={linkedSelection} onCellClick={onCellClick} />
+              <QueryResultTable result={item.result} cardId={cardId} linkedSelection={linkedSelection} onCellClick={onCellClick} drillDownConfig={drillDownConfig} onDrillDown={onDrillDown} />
             </div>
           ))}
         </div>
@@ -1063,15 +1074,27 @@ function QueryResultTable({
   cardId,
   linkedSelection,
   onCellClick,
+  drillDownConfig,
+  onDrillDown,
 }: {
   result: QueryResultData & { chartConfig?: Record<string, unknown>; columnConfig?: Record<string, unknown>; columnMetadata?: DetectedColumnMeta[] };
   cardId?: string;
   linkedSelection?: LinkedSelection;
   onCellClick?: (column: string, value: unknown) => void;
+  drillDownConfig?: DrillDownConfig[];
+  onDrillDown?: (targetQuery: string, targetFilter: string, column: string, value: string) => void;
 }) {
   const [pageRange, setPageRange] = useState({ start: 0, end: 10 });
   const rows = result.data || [];
   const pagedData = rows.slice(pageRange.start, pageRange.end);
+
+  // Build a set of drill-down-able columns for quick lookup
+  const drillDownMap = new Map<string, DrillDownConfig>();
+  if (drillDownConfig) {
+    for (const dd of drillDownConfig) {
+      drillDownMap.set(dd.sourceColumn, dd);
+    }
+  }
 
   // Determine if this card should highlight rows (linked selection from another card)
   const highlightValue = linkedSelection?.value;
@@ -1094,14 +1117,25 @@ function QueryResultTable({
             <table className="min-w-full text-xs border border-gray-200 rounded">
               <thead>
                 <tr className="bg-gray-50">
-                  {Object.keys(rows[0]).map((key) => (
-                    <th
-                      key={key}
-                      className="px-2 py-1 text-left font-medium text-gray-600 border-b"
-                    >
-                      {key}
-                    </th>
-                  ))}
+                  {Object.keys(rows[0]).map((key) => {
+                    const hasDrillDown = drillDownMap.has(key);
+                    return (
+                      <th
+                        key={key}
+                        className={`px-2 py-1 text-left font-medium border-b ${
+                          hasDrillDown ? 'text-blue-600' : 'text-gray-600'
+                        }`}
+                        title={hasDrillDown ? `Drill down: ${drillDownMap.get(key)!.label || drillDownMap.get(key)!.targetQuery}` : undefined}
+                      >
+                        {key}
+                        {hasDrillDown && (
+                          <svg className="inline-block w-3 h-3 ml-0.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                          </svg>
+                        )}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -1109,17 +1143,33 @@ function QueryResultTable({
                   const highlighted = isRowHighlighted(row);
                   return (
                     <tr key={i} className={`border-b border-gray-100 ${highlighted ? 'bg-yellow-50' : ''}`}>
-                      {Object.entries(row).map(([key, val], j) => (
-                        <td
-                          key={j}
-                          className={`px-2 py-1 ${onCellClick && cardId ? 'cursor-pointer hover:bg-blue-50' : ''} ${
-                            highlighted && String(val) === highlightValue ? 'bg-yellow-100 font-semibold' : ''
-                          }`}
-                          onClick={onCellClick && cardId ? () => onCellClick(key, val) : undefined}
-                        >
-                          {String(val)}
-                        </td>
-                      ))}
+                      {Object.entries(row).map(([key, val], j) => {
+                        const dd = drillDownMap.get(key);
+                        const hasDrillDown = !!dd && !!onDrillDown;
+                        const hasEventClick = onCellClick && cardId;
+                        return (
+                          <td
+                            key={j}
+                            className={`px-2 py-1 ${
+                              hasDrillDown
+                                ? 'text-blue-600 underline decoration-dotted cursor-pointer hover:bg-blue-50 hover:text-blue-800'
+                                : hasEventClick
+                                ? 'cursor-pointer hover:bg-blue-50'
+                                : ''
+                            } ${highlighted && String(val) === highlightValue ? 'bg-yellow-100 font-semibold' : ''}`}
+                            onClick={() => {
+                              if (hasDrillDown) {
+                                onDrillDown!(dd!.targetQuery, dd!.targetFilter, key, String(val));
+                              } else if (hasEventClick) {
+                                onCellClick!(key, val);
+                              }
+                            }}
+                            title={hasDrillDown ? `Drill down: ${dd!.label || dd!.targetQuery}` : undefined}
+                          >
+                            {String(val)}
+                          </td>
+                        );
+                      })}
                     </tr>
                   );
                 })}

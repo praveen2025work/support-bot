@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo, type MouseEvent as ReactMouseEvent } from 'react';
 import { MessageBubble } from '@/components/chat/MessageBubble';
+import { DrillDownModal } from '@/components/chat/DrillDownModal';
 import { useDashboardContext } from '@/contexts/DashboardContext';
 import type { Message } from '@/hooks/useChat';
-import type { EventLinkConfig } from '@/types/dashboard';
+import type { EventLinkConfig, DrillDownConfig } from '@/types/dashboard';
 
 interface CardMessage {
   id: string;
@@ -49,6 +50,7 @@ export function QueryCard({
   hideHeader,
   onExecutionInfo,
   onFilterChange,
+  drillDownConfig,
 }: {
   queryName: string;
   label: string;
@@ -71,6 +73,8 @@ export function QueryCard({
   onExecutionInfo?: (executionMs: number | null) => void;
   /** Callback when user changes filters — used by grid to persist */
   onFilterChange?: (filters: Record<string, string>) => void;
+  /** Drill-down config from query definition */
+  drillDownConfig?: DrillDownConfig[];
 }) {
   const [messages, setMessages] = useState<CardMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -280,6 +284,15 @@ export function QueryCard({
       setSaving(false);
     }
   };
+
+  // Drill-down modal state
+  const [drillDown, setDrillDown] = useState<{
+    targetQuery: string; targetFilter: string; column: string; value: string;
+  } | null>(null);
+
+  const handleDrillDown = useCallback((targetQuery: string, targetFilter: string, column: string, value: string) => {
+    setDrillDown({ targetQuery, targetFilter, column, value });
+  }, []);
 
   const [isHovered, setIsHovered] = useState(false);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -497,6 +510,8 @@ export function QueryCard({
                   cardId={cardId}
                   linkedSelection={linkedSelection}
                   onCellClick={(column, value) => setLinkedSelection(resolvedCardId, column, String(value))}
+                  drillDownConfig={drillDownConfig}
+                  onDrillDown={handleDrillDown}
                 />
                 {/* Rerun button — hidden in dashboard grid (Refresh in hover panel serves same purpose) */}
                 {!hideHeader && msg.role === 'bot' && msg.originalQuery && (
@@ -620,6 +635,24 @@ export function QueryCard({
           </div>
         </div>
       </div>
+
+      {/* Drill-down modal */}
+      {drillDown && (
+        <DrillDownModal
+          open
+          sourceColumn={drillDown.column}
+          sourceValue={drillDown.value}
+          targetQuery={drillDown.targetQuery}
+          targetFilter={drillDown.targetFilter}
+          groupId={groupId}
+          onClose={() => setDrillDown(null)}
+          onOpenInChat={(query, filters) => {
+            setDrillDown(null);
+            const filterStr = Object.entries(filters).map(([k, v]) => `${k}=${v}`).join(', ');
+            sendMessage(`run ${query}`, filters);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -79,12 +79,36 @@ export interface DashboardCard {
   createdAt: string;
 }
 
+// ── Drill-Down Configuration ────────────────────────────────────────
+
+/** Defines how a column value drills into a sub-query */
+export interface DrillDownConfig {
+  sourceColumn: string;   // column name to make clickable
+  targetQuery: string;    // query name to execute on click
+  targetFilter: string;   // filter key to pass the clicked value to
+  label?: string;         // display label for the drill-down option
+}
+
+// ── Dashboard Email Subscription ────────────────────────────────────
+
+/** Email subscription for scheduled dashboard newsletter delivery */
+export interface DashboardSubscription {
+  id: string;
+  email: string;
+  cronExpression: string;
+  enabled: boolean;
+  createdAt: string;
+  lastSentAt?: string;
+  nextSendAt?: string;
+}
+
 /** A named, persistent dashboard */
 export interface Dashboard {
   id: string;           // URL-safe slug
   name: string;         // display name
   cards: DashboardCard[];
   layouts: CardLayout[];
+  subscriptions?: DashboardSubscription[];
   createdAt: string;
   updatedAt: string;
 }

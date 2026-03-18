@@ -1,19 +1,21 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { ResponsiveGridLayout, useContainerWidth, verticalCompactor, type Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import { QueryCard } from './QueryCard';
+import { DashboardToolbar } from './DashboardToolbar';
 import type { Dashboard, DashboardCard, CardLayout } from '@/types/dashboard';
 
 interface GridDashboardProps {
   dashboard: Dashboard;
   userName?: string;
-  availableQueries?: Array<{ name: string; description: string; filters: Array<string | { key: string; binding: string }>; type: string }>;
+  availableQueries?: Array<{ name: string; description: string; filters: Array<string | { key: string; binding: string }>; type: string; drillDown?: Array<{ sourceColumn: string; targetQuery: string; targetFilter: string; label?: string }> }>;
   onLayoutChange: (layouts: CardLayout[]) => void;
   onCardRemove: (cardId: string) => void;
   onCardUpdate: (cardId: string, partial: Partial<DashboardCard>) => void;
+  onSubscribe?: () => void;
 }
 
 function CardHeader({ card, executionMs, onRemove }: { card: DashboardCard; executionMs: number | null; onRemove: () => void }) {
@@ -42,8 +44,9 @@ function CardHeader({ card, executionMs, onRemove }: { card: DashboardCard; exec
   );
 }
 
-export function GridDashboard({ dashboard, userName, availableQueries, onLayoutChange, onCardRemove, onCardUpdate }: GridDashboardProps) {
+export function GridDashboard({ dashboard, userName, availableQueries, onLayoutChange, onCardRemove, onCardUpdate, onSubscribe }: GridDashboardProps) {
   const { width, containerRef, mounted } = useContainerWidth({ measureBeforeMount: true });
+  const gridCaptureRef = useRef<HTMLDivElement>(null);
   const [executionTimes, setExecutionTimes] = useState<Record<string, number | null>>({});
 
   const handleExecutionInfo = useCallback((cardId: string, ms: number | null) => {
@@ -81,6 +84,14 @@ export function GridDashboard({ dashboard, userName, availableQueries, onLayoutC
 
   return (
     <div ref={containerRef}>
+      {/* Toolbar — Print / PDF / Subscribe */}
+      <div className="flex items-center justify-between mb-2 px-1">
+        <div className="dashboard-print-header hidden">{dashboard.name} — {new Date().toLocaleDateString()}</div>
+        <div className="ml-auto">
+          <DashboardToolbar dashboardName={dashboard.name} gridRef={gridCaptureRef} onSubscribe={onSubscribe} />
+        </div>
+      </div>
+      <div ref={gridCaptureRef}>
       {mounted && (
         <ResponsiveGridLayout
           className="layout"
@@ -120,6 +131,7 @@ export function GridDashboard({ dashboard, userName, availableQueries, onLayoutC
                     hideHeader
                     onExecutionInfo={(ms) => handleExecutionInfo(card.id, ms)}
                     onFilterChange={(filters) => onCardUpdate(card.id, { defaultFilters: filters })}
+                    drillDownConfig={queryInfo?.drillDown}
                   />
                 </div>
               </div>
@@ -127,6 +139,7 @@ export function GridDashboard({ dashboard, userName, availableQueries, onLayoutC
           })}
         </ResponsiveGridLayout>
       )}
+      </div>
     </div>
   );
 }

@@ -17,6 +17,7 @@ import { uploadRouter } from './routes/upload';
 import { urlIngestRouter } from './routes/url-ingest';
 import { logger } from './lib/logger';
 import { tenantContextMiddleware } from './middleware/tenant-context';
+import { startEmailScheduler, stopEmailScheduler } from './core/scheduler/email-scheduler';
 
 const app = express();
 const PORT = parseInt(process.env.ENGINE_PORT || '4001', 10);
@@ -103,6 +104,8 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 const server = app.listen(PORT, () => {
   logger.info(`Engine server running at http://localhost:${PORT}`);
   console.log(`Engine server running at http://localhost:${PORT}`);
+  // Start the email scheduler for dashboard subscriptions
+  startEmailScheduler();
 });
 
 // ---------------------------------------------------------------------------
@@ -110,6 +113,7 @@ const server = app.listen(PORT, () => {
 // ---------------------------------------------------------------------------
 async function shutdown(signal: string) {
   logger.info({ signal }, 'Shutting down gracefully...');
+  stopEmailScheduler();
 
   // Stop accepting new connections and close existing ones
   server.close(() => {

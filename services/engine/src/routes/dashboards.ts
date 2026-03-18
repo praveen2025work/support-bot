@@ -1,8 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { preferencesStore } from '@/data/user-preferences';
 import { logger } from '@/lib/logger';
+import { dashboardSubscriptionsRouter } from './dashboard-subscriptions';
 
 export const dashboardsRouter = Router();
+
+// Mount subscription sub-routes
+dashboardsRouter.use('/:id/subscriptions', dashboardSubscriptionsRouter);
 
 function getUserId(req: Request): string | null {
   return (req.query.userId as string) || (req.body?.userId as string) || null;

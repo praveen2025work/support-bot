@@ -25,6 +25,7 @@ queriesRouter.get('/queries', async (req: Request, res: Response) => {
         description: q.description,
         filters: q.filters || [],
         type: q.type ?? 'api',
+        ...(q.drillDown ? { drillDown: q.drillDown } : {}),
       })),
     });
   } catch (error) {

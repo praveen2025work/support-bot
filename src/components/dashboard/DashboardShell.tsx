@@ -11,6 +11,7 @@ import { AddCardModal } from './AddCardModal';
 import { DashboardSelector } from './DashboardSelector';
 import { SearchBar } from './SearchBar';
 import { DashboardProvider, useDashboardContext } from '@/contexts/DashboardContext';
+import { SubscribeModal } from './SubscribeModal';
 import type { QueryInfo, DashboardCard } from '@/types/dashboard';
 
 const GridDashboard = lazy(() => import('./GridDashboard').then((m) => ({ default: m.GridDashboard })));
@@ -127,6 +128,7 @@ function DashboardShellInner({
   isGridView: boolean;
 }) {
   const { businessDate, setBusinessDate, activeEvents, clearAllEvents, linkedSelection, clearLinkedSelection, sharedFilters, clearSharedFilters } = useDashboardContext();
+  const [showSubscribe, setShowSubscribe] = useState(false);
 
   const handleDashboardSelect = (id: string) => {
     multiDashboard.setActiveDashboard(id);
@@ -241,6 +243,7 @@ function DashboardShellInner({
               onLayoutChange={(layouts) => multiDashboard.updateLayouts(multiDashboard.activeDashboard!.id, layouts)}
               onCardRemove={(cardId) => multiDashboard.removeCard(multiDashboard.activeDashboard!.id, cardId)}
               onCardUpdate={(cardId, partial) => multiDashboard.updateCard(multiDashboard.activeDashboard!.id, cardId, partial)}
+              onSubscribe={() => setShowSubscribe(true)}
             />
             {multiDashboard.activeDashboard.cards.length === 0 && (
               <div className="flex justify-center gap-3">
@@ -312,6 +315,16 @@ function DashboardShellInner({
           onAdd={async (config) => {
             await multiDashboard.addCard(multiDashboard.activeDashboard!.id, config);
           }}
+        />
+      )}
+
+      {showSubscribe && multiDashboard.activeDashboard && userId && (
+        <SubscribeModal
+          open={showSubscribe}
+          dashboardId={multiDashboard.activeDashboard.id}
+          dashboardName={multiDashboard.activeDashboard.name}
+          userId={userId}
+          onClose={() => setShowSubscribe(false)}
         />
       )}
     </div>
