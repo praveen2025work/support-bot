@@ -8,6 +8,7 @@ import { DashboardShell } from '@/components/dashboard/DashboardShell';
 function DashboardPage() {
   const searchParams = useSearchParams();
   const initialGroup = searchParams.get('group') || 'default';
+  const dashboardId = searchParams.get('id') || undefined;
   const { userInfo, loading: userLoading } = useUser();
 
   if (userLoading) {
@@ -23,6 +24,7 @@ function DashboardPage() {
       userId={userInfo?.samAccountName}
       userName={userInfo?.displayName}
       initialGroupId={initialGroup}
+      dashboardId={dashboardId}
     />
   );
 }

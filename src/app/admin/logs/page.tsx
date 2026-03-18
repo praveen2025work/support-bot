@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { csrfHeaders } from '@/lib/csrf';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 interface LogEntry {
   timestamp: string;
@@ -25,6 +26,7 @@ export default function ConversationLogsPage() {
   const [filterIntent, setFilterIntent] = useState('');
   const [search, setSearch] = useState('');
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const fetchLogs = useCallback(async () => {
     try {
@@ -49,9 +51,9 @@ export default function ConversationLogsPage() {
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
   const handleClear = async () => {
-    if (!confirm('Clear all conversation logs? This cannot be undone.')) return;
     await fetch('/api/admin/logs', { method: 'DELETE', headers: { ...csrfHeaders() } });
     await fetchLogs();
+    setShowClearConfirm(false);
   };
 
   const uniqueGroups = Array.from(new Set(logs.map((l) => l.groupId)));
@@ -67,7 +69,7 @@ export default function ConversationLogsPage() {
         <div className="flex items-center gap-2">
           <button onClick={fetchLogs} className="text-xs text-blue-600 hover:underline">Refresh</button>
           {total > 0 && (
-            <button onClick={handleClear} className="text-xs text-red-500 hover:underline">Clear All</button>
+            <button onClick={() => setShowClearConfirm(true)} className="text-xs text-red-500 hover:underline">Clear All</button>
           )}
         </div>
       </div>
@@ -198,6 +200,16 @@ export default function ConversationLogsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={showClearConfirm}
+        title="Clear All Logs"
+        message="Clear all conversation logs? This cannot be undone."
+        confirmLabel="Clear All"
+        variant="danger"
+        onConfirm={handleClear}
+        onCancel={() => setShowClearConfirm(false)}
+      />
     </div>
   );
 }

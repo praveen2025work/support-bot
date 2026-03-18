@@ -2,6 +2,7 @@ import { NlpService } from './nlp/nlp-service';
 import { ResponseGenerator } from './response/response-generator';
 import { SessionManager } from './session/session-manager';
 import { RecommendationEngine } from './recommendations/recommendation-engine';
+import { QueryRewriter } from './nlp/query-rewriter';
 import type { LearningService } from './learning/learning-service';
 import { logger } from '@/lib/logger';
 import type { ChatMessage, BotResponse, IntentOverlap } from './types';
@@ -9,6 +10,7 @@ import type { ChatMessage, BotResponse, IntentOverlap } from './types';
 export class ChatbotEngine {
   private initialized = false;
   private recommendationEngine: RecommendationEngine;
+  private queryRewriter: QueryRewriter;
 
   constructor(
     private nlpService: NlpService,
@@ -18,6 +20,7 @@ export class ChatbotEngine {
     groupId?: string
   ) {
     this.recommendationEngine = new RecommendationEngine(groupId || 'default');
+    this.queryRewriter = new QueryRewriter();
   }
 
   async initialize(): Promise<void> {
@@ -47,8 +50,21 @@ export class ChatbotEngine {
       timestamp: message.timestamp,
     });
 
+    // Context-aware query rewriting (pronoun resolution, abbreviation expansion, etc.)
+    const rewriteResult = this.queryRewriter.rewrite(message.text, context);
+    const processedText = rewriteResult.rewritten;
+    if (rewriteResult.rewrites.length > 0) {
+      logger.info({ original: message.text, rewritten: processedText, rewrites: rewriteResult.rewrites.length }, 'Query rewritten');
+    }
+
     const hasQueryContext = !!(context.lastQueryName && context.lastApiResult);
-    const classification = await this.nlpService.classify(message.text, hasQueryContext);
+    const classification = await this.nlpService.classify(processedText, hasQueryContext);
+
+    // Store entities in context for future pronoun resolution
+    if (classification.entities.length > 0) {
+      context.lastEntities = classification.entities;
+    }
+
     logger.info(
       {
         intent: classification.intent,

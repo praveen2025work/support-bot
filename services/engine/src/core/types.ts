@@ -16,7 +16,7 @@ export interface ClassificationResult {
   confidence: number;
   entities: ExtractedEntity[];
   sentiment?: SentimentResult;
-  source: 'nlp' | 'fuzzy' | 'fuzzy_synonym';
+  source: 'nlp' | 'fuzzy' | 'fuzzy_synonym' | 'ensemble' | 'pattern';
   /** Typo corrections applied before classification, if any */
   corrections?: Array<{ from: string; to: string }>;
 }
@@ -46,6 +46,10 @@ export interface BotResponse {
   referenceUrl?: string;
   /** The actual query name that was executed (e.g. "active_users"), distinct from intent. */
   queryName?: string;
+  /** Name of the data source that answered the query (e.g. "sales-data.csv", "Products API") */
+  sourceName?: string;
+  /** Type of the data source */
+  sourceType?: 'csv' | 'xlsx' | 'api' | 'document' | 'url';
   /** Contextual recommendations based on user behavior and content similarity */
   recommendations?: Array<{ type: string; name: string; reason: string }>;
   /** Anomaly alerts detected in query results */
@@ -103,4 +107,8 @@ export interface ConversationContext {
   lastApiResult?: unknown;
   lastQueryName?: string;
   lastQueryColumns?: string[];
+  /** Last date filter applied (for query rewriter context enrichment) */
+  lastDateFilter?: string;
+  /** Entities extracted from last classification (for pronoun resolution) */
+  lastEntities?: ExtractedEntity[];
 }

@@ -1,0 +1,548 @@
+{
+  "sales_data": [
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    },
+    {
+      "name": "hr_report_bonuses",
+      "score": 1
+    }
+  ],
+  "active_users": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    },
+    {
+      "name": "hr_report_bonuses",
+      "score": 1
+    }
+  ],
+  "customer_churn": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    },
+    {
+      "name": "hr_report_bonuses",
+      "score": 1
+    }
+  ],
+  "performance": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    },
+    {
+      "name": "hr_report_bonuses",
+      "score": 1
+    }
+  ],
+  "monthly_revenue": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    },
+    {
+      "name": "hr_report_bonuses",
+      "score": 1
+    }
+  ],
+  "daily_orders": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    },
+    {
+      "name": "hr_report_bonuses",
+      "score": 1
+    }
+  ],
+  "support_tickets": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    },
+    {
+      "name": "hr_report_bonuses",
+      "score": 1
+    }
+  ],
+  "pnl_availability": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    },
+    {
+      "name": "hr_report_bonuses",
+      "score": 1
+    }
+  ],
+  "employee_compensation": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    },
+    {
+      "name": "hr_report_bonuses",
+      "score": 1
+    }
+  ],
+  "hr_report_salaries": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_bonuses",
+      "score": 1
+    }
+  ],
+  "hr_report_bonuses": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    }
+  ],
+  "hr_report_ratings": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    }
+  ],
+  "customer_churn_copy": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    }
+  ]
+}

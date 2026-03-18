@@ -28,15 +28,26 @@ export interface AggregationResult {
 export function parseCsv(content: string | Buffer, sheetName?: string): CsvData {
   const XLSX = getXLSX();
   const readType = Buffer.isBuffer(content) ? 'buffer' : 'string';
-  const wb = XLSX.read(content, { type: readType });
+  const wb = XLSX.read(content, { type: readType, cellDates: true });
   const targetSheet = sheetName ?? wb.SheetNames[0];
   if (!targetSheet || !wb.Sheets[targetSheet]) return { headers: [], rows: [] };
 
   const sheet = wb.Sheets[targetSheet];
-  const rows = XLSX.utils.sheet_to_json(sheet) as Record<string, string | number>[];
+  const rows = XLSX.utils.sheet_to_json(sheet) as Record<string, string | number | Date>[];
   const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
 
-  return { headers, rows };
+  // Convert Date objects back to ISO date strings so downstream code sees
+  // readable dates instead of Excel serial numbers or JS Date objects.
+  for (const row of rows) {
+    for (const key of headers) {
+      if (row[key] instanceof Date) {
+        const d = row[key] as Date;
+        row[key] = d.toISOString().split('T')[0]; // "2026-03-15"
+      }
+    }
+  }
+
+  return { headers, rows: rows as Record<string, string | number>[] };
 }
 
 /** List all sheet names from an xlsx/xls file buffer. */
@@ -163,7 +174,7 @@ export function parseAggregationFromText(
 }
 
 function findMatchingHeader(term: string, headers: string[]): string | null {
-  const lowerTerm = term.toLowerCase().replace(/_/g, '');
+  const lowerTerm = term.toLowerCase().replace(/[_\s]/g, '');
 
   // 1. Exact match (case-insensitive)
   for (const h of headers) {
@@ -341,8 +352,16 @@ function getNumericColumns(data: CsvData, columnConfig?: ColumnConfig): string[]
     let numCount = 0;
     for (const row of data.rows) {
       const v = row[h];
-      if (typeof v === 'number' || (typeof v === 'string' && !isNaN(parseFloat(v)) && v.trim() !== '')) {
+      if (typeof v === 'number') {
         numCount++;
+      } else if (typeof v === 'string') {
+        const trimmed = v.trim();
+        // Reject time-format ("10:00 BST") and date-text ("13-Mar-2026") strings
+        // that parseFloat would incorrectly parse as numbers.
+        // A true numeric string should not contain ':' or letters (except trailing %).
+        if (trimmed !== '' && !isNaN(parseFloat(trimmed)) && !/[a-zA-Z:]/.test(trimmed.replace(/%$/, ''))) {
+          numCount++;
+        }
       }
     }
     return numCount / data.rows.length > 0.8;

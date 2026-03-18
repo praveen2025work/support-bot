@@ -148,10 +148,20 @@ body {
 .dark th { color: #94a3b8 !important; }
 .dark td { color: #cbd5e1 !important; }
 
+/* Hidden scrollbar — keeps scroll functional, hides the bar for a clean look */
+.scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* Thin scrollbar — subtle on light, dark-aware */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
 /* Scrollbar styling for dark mode */
-.dark ::-webkit-scrollbar { width: 8px; height: 8px; }
+.dark ::-webkit-scrollbar { width: 6px; height: 6px; }
 .dark ::-webkit-scrollbar-track { background: #1e293b; }
-.dark ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+.dark ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
 .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
 /* Charts - Recharts dark mode */

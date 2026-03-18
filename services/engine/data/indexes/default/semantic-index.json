@@ -1,0 +1,846 @@
+{
+  "docs": [
+    {
+      "queryName": "monthly_revenue",
+      "description": "Monthly revenue breakdown by product line and region",
+      "terms": [
+        "monthli",
+        "revenu",
+        "monthli",
+        "revenu",
+        "breakdown",
+        "product",
+        "line",
+        "region"
+      ]
+    },
+    {
+      "queryName": "active_users",
+      "description": "Daily and monthly active user counts with retention metrics",
+      "terms": [
+        "activ",
+        "user",
+        "daili",
+        "monthli",
+        "activ",
+        "user",
+        "count",
+        "retent",
+        "metric"
+      ]
+    },
+    {
+      "queryName": "error_rate",
+      "description": "Application error rates by service, endpoint, and severity",
+      "terms": [
+        "error",
+        "rate",
+        "applic",
+        "error",
+        "rate",
+        "servic",
+        "endpoint",
+        "sever"
+      ]
+    },
+    {
+      "queryName": "performance",
+      "description": "API latency percentiles (p50, p95, p99) and throughput metrics",
+      "terms": [
+        "perform",
+        "api",
+        "latenc",
+        "percentil",
+        "p50",
+        "p95",
+        "p99",
+        "throughput",
+        "metric"
+      ]
+    },
+    {
+      "queryName": "daily_orders",
+      "description": "Order volume, average order value, and fulfillment status",
+      "terms": [
+        "daili",
+        "order",
+        "order",
+        "volum",
+        "averag",
+        "order",
+        "valu",
+        "fulfil",
+        "statu"
+      ]
+    },
+    {
+      "queryName": "customer_churn",
+      "description": "Customer churn rate analysis with cohort breakdown",
+      "terms": [
+        "custom",
+        "churn",
+        "custom",
+        "churn",
+        "rate",
+        "analysi",
+        "cohort",
+        "breakdown"
+      ]
+    },
+    {
+      "queryName": "infrastructure_costs",
+      "description": "Cloud infrastructure spend by service and environment",
+      "terms": [
+        "infrastructur",
+        "cost",
+        "cloud",
+        "infrastructur",
+        "spend",
+        "servic",
+        "environ"
+      ]
+    },
+    {
+      "queryName": "headcount",
+      "description": "Current headcount by department and location",
+      "terms": [
+        "headcount",
+        "current",
+        "headcount",
+        "depart",
+        "locat"
+      ]
+    },
+    {
+      "queryName": "hiring_pipeline",
+      "description": "Open positions and hiring funnel metrics",
+      "terms": [
+        "hire",
+        "pipelin",
+        "open",
+        "posit",
+        "hire",
+        "funnel",
+        "metric"
+      ]
+    },
+    {
+      "queryName": "onboarding_guide",
+      "description": "New employee onboarding guide on Confluence",
+      "terms": [
+        "onboard",
+        "guid",
+        "new",
+        "employe",
+        "onboard",
+        "guid",
+        "confluenc"
+      ]
+    },
+    {
+      "queryName": "api_changelog",
+      "description": "Latest API changelog and release notes",
+      "terms": [
+        "api",
+        "changelog",
+        "latest",
+        "api",
+        "changelog",
+        "releas",
+        "note"
+      ]
+    },
+    {
+      "queryName": "brd_payments",
+      "description": "Business requirements document for payments module",
+      "terms": [
+        "brd",
+        "payment",
+        "busi",
+        "requir",
+        "document",
+        "payment",
+        "modul"
+      ]
+    },
+    {
+      "queryName": "sales_data",
+      "description": "Regional sales data with revenue and unit metrics",
+      "terms": [
+        "sale",
+        "data",
+        "region",
+        "sale",
+        "data",
+        "revenu",
+        "unit",
+        "metric"
+      ]
+    },
+    {
+      "queryName": "auth_spec",
+      "description": "Feature specification for authentication and authorization module v3",
+      "terms": [
+        "auth",
+        "spec",
+        "featur",
+        "specif",
+        "authent",
+        "author",
+        "modul",
+        "v3"
+      ]
+    },
+    {
+      "queryName": "incident_report",
+      "description": "Post-incident report for the March 2026 payment gateway outage",
+      "terms": [
+        "incid",
+        "report",
+        "post",
+        "incid",
+        "report",
+        "march",
+        "2026",
+        "payment",
+        "gatewai",
+        "outag"
+      ]
+    },
+    {
+      "queryName": "deployment_runbook",
+      "description": "Production deployment runbook with step-by-step procedures",
+      "terms": [
+        "deploy",
+        "runbook",
+        "product",
+        "deploy",
+        "runbook",
+        "step",
+        "step",
+        "procedur"
+      ]
+    },
+    {
+      "queryName": "support_tickets",
+      "description": "Support ticket data with priority, status, and resolution times",
+      "terms": [
+        "support",
+        "ticket",
+        "support",
+        "ticket",
+        "data",
+        "prioriti",
+        "statu",
+        "resolut",
+        "time"
+      ]
+    },
+    {
+      "queryName": "employee_metrics",
+      "description": "Employee data with department, salary, performance, and tenure",
+      "terms": [
+        "employe",
+        "metric",
+        "employe",
+        "data",
+        "depart",
+        "salari",
+        "perform",
+        "tenur"
+      ]
+    },
+    {
+      "queryName": "servicenow_dashboard",
+      "description": "ServiceNow ITSM dashboard for incident tracking",
+      "terms": [
+        "servicenow",
+        "dashboard",
+        "servicenow",
+        "itsm",
+        "dashboard",
+        "incid",
+        "track"
+      ]
+    },
+    {
+      "queryName": "architecture_wiki",
+      "description": "System architecture documentation on Confluence",
+      "terms": [
+        "architectur",
+        "wiki",
+        "system",
+        "architectur",
+        "document",
+        "confluenc"
+      ]
+    },
+    {
+      "queryName": "user_profile",
+      "description": "User profile data fetched via path variable (demo: Windows auth + path binding)",
+      "terms": [
+        "user",
+        "profil",
+        "user",
+        "profil",
+        "data",
+        "fetch",
+        "via",
+        "path",
+        "variabl",
+        "demo",
+        "window",
+        "auth",
+        "path",
+        "bind"
+      ]
+    },
+    {
+      "queryName": "service_logs",
+      "description": "Service logs filtered via query parameters (demo: query_param binding)",
+      "terms": [
+        "servic",
+        "log",
+        "servic",
+        "log",
+        "filter",
+        "via",
+        "paramet",
+        "demo",
+        "param",
+        "bind"
+      ]
+    },
+    {
+      "queryName": "report_generator",
+      "description": "Generate reports via request body payload (demo: body binding)",
+      "terms": [
+        "report",
+        "gener",
+        "gener",
+        "report",
+        "via",
+        "request",
+        "bodi",
+        "payload",
+        "demo",
+        "bodi",
+        "bind"
+      ]
+    },
+    {
+      "queryName": "bam_report",
+      "description": "Secured report fetched via BAM token authentication (demo: BAM auth)",
+      "terms": [
+        "bam",
+        "report",
+        "secur",
+        "report",
+        "fetch",
+        "via",
+        "bam",
+        "token",
+        "authent",
+        "demo",
+        "bam",
+        "auth"
+      ]
+    },
+    {
+      "queryName": "quarterly_revenue",
+      "description": "Quarterly revenue with YoY comparison and segment breakdown",
+      "terms": [
+        "quarterli",
+        "revenu",
+        "quarterli",
+        "revenu",
+        "yoi",
+        "comparison",
+        "segment",
+        "breakdown"
+      ]
+    },
+    {
+      "queryName": "gross_margin",
+      "description": "Gross profit margin by product line and geography",
+      "terms": [
+        "gross",
+        "margin",
+        "gross",
+        "profit",
+        "margin",
+        "product",
+        "line",
+        "geographi"
+      ]
+    },
+    {
+      "queryName": "ebitda",
+      "description": "EBITDA and EBITDA margin with adjustments breakdown",
+      "terms": [
+        "ebitda",
+        "ebitda",
+        "ebitda",
+        "margin",
+        "adjust",
+        "breakdown"
+      ]
+    },
+    {
+      "queryName": "net_income",
+      "description": "Net income after tax with exceptional items breakdown",
+      "terms": [
+        "net",
+        "incom",
+        "net",
+        "incom",
+        "tax",
+        "except",
+        "item",
+        "breakdown"
+      ]
+    },
+    {
+      "queryName": "revenue_by_segment",
+      "description": "Revenue breakdown by business segment and division",
+      "terms": [
+        "revenu",
+        "segment",
+        "revenu",
+        "breakdown",
+        "busi",
+        "segment",
+        "divis"
+      ]
+    },
+    {
+      "queryName": "yoy_growth",
+      "description": "Year-over-year growth rates across key financial metrics",
+      "terms": [
+        "yoi",
+        "growth",
+        "year",
+        "year",
+        "growth",
+        "rate",
+        "across",
+        "kei",
+        "financi",
+        "metric"
+      ]
+    },
+    {
+      "queryName": "pnl_summary",
+      "description": "Profit and loss summary with revenue, COGS, operating expenses",
+      "terms": [
+        "pnl",
+        "summari",
+        "profit",
+        "loss",
+        "summari",
+        "revenu",
+        "cog",
+        "oper",
+        "expens"
+      ]
+    },
+    {
+      "queryName": "trade_volume",
+      "description": "Trade execution volume by asset class, desk, and venue",
+      "terms": [
+        "trade",
+        "volum",
+        "trade",
+        "execut",
+        "volum",
+        "asset",
+        "class",
+        "desk",
+        "venu"
+      ]
+    },
+    {
+      "queryName": "trading_pnl",
+      "description": "Trading desk P&L with realized and unrealized components",
+      "terms": [
+        "trade",
+        "pnl",
+        "trade",
+        "desk",
+        "pl",
+        "realiz",
+        "unreal",
+        "compon"
+      ]
+    },
+    {
+      "queryName": "var_report",
+      "description": "Value at Risk report with historical and parametric VaR by desk",
+      "terms": [
+        "var",
+        "report",
+        "valu",
+        "risk",
+        "report",
+        "histor",
+        "parametr",
+        "var",
+        "desk"
+      ]
+    },
+    {
+      "queryName": "market_exposure",
+      "description": "Net and gross market exposure by asset class and region",
+      "terms": [
+        "market",
+        "exposur",
+        "net",
+        "gross",
+        "market",
+        "exposur",
+        "asset",
+        "class",
+        "region"
+      ]
+    },
+    {
+      "queryName": "positions",
+      "description": "Current open positions by book, instrument, and notional value",
+      "terms": [
+        "posit",
+        "current",
+        "open",
+        "posit",
+        "book",
+        "instrument",
+        "notion",
+        "valu"
+      ]
+    },
+    {
+      "queryName": "credit_risk",
+      "description": "Credit risk metrics including counterparty exposure and ratings",
+      "terms": [
+        "credit",
+        "risk",
+        "credit",
+        "risk",
+        "metric",
+        "includ",
+        "counterparti",
+        "exposur",
+        "rate"
+      ]
+    },
+    {
+      "queryName": "regulatory_report",
+      "description": "Regulatory filing status and compliance report submissions",
+      "terms": [
+        "regulatori",
+        "report",
+        "regulatori",
+        "file",
+        "statu",
+        "complianc",
+        "report",
+        "submiss"
+      ]
+    },
+    {
+      "queryName": "aml_alerts",
+      "description": "Anti-money laundering alerts and suspicious activity reports",
+      "terms": [
+        "aml",
+        "alert",
+        "anti",
+        "monei",
+        "launder",
+        "alert",
+        "suspici",
+        "activ",
+        "report"
+      ]
+    },
+    {
+      "queryName": "compliance_metrics",
+      "description": "Compliance KPI dashboard with training, audit, and breach metrics",
+      "terms": [
+        "complianc",
+        "metric",
+        "complianc",
+        "kpi",
+        "dashboard",
+        "train",
+        "audit",
+        "breach",
+        "metric"
+      ]
+    },
+    {
+      "queryName": "capital_adequacy",
+      "description": "Capital adequacy ratios including CET1, Tier 1, and total capital",
+      "terms": [
+        "capit",
+        "adequaci",
+        "capit",
+        "adequaci",
+        "ratio",
+        "includ",
+        "cet1",
+        "tier",
+        "total",
+        "capit"
+      ]
+    },
+    {
+      "queryName": "aum",
+      "description": "Assets under management by fund, strategy, and client segment",
+      "terms": [
+        "aum",
+        "asset",
+        "manag",
+        "fund",
+        "strategi",
+        "client",
+        "segment"
+      ]
+    },
+    {
+      "queryName": "portfolio_performance",
+      "description": "Portfolio returns vs benchmark with attribution analysis",
+      "terms": [
+        "portfolio",
+        "perform",
+        "portfolio",
+        "return",
+        "vs",
+        "benchmark",
+        "attribut",
+        "analysi"
+      ]
+    },
+    {
+      "queryName": "fund_nav",
+      "description": "Fund net asset value with daily pricing and change history",
+      "terms": [
+        "fund",
+        "nav",
+        "fund",
+        "net",
+        "asset",
+        "valu",
+        "daili",
+        "price",
+        "chang",
+        "histori"
+      ]
+    },
+    {
+      "queryName": "client_assets",
+      "description": "Client asset holdings with allocation and performance breakdown",
+      "terms": [
+        "client",
+        "asset",
+        "client",
+        "asset",
+        "hold",
+        "alloc",
+        "perform",
+        "breakdown"
+      ]
+    },
+    {
+      "queryName": "client_onboarding",
+      "description": "Client onboarding pipeline with KYC/AML status and approvals",
+      "terms": [
+        "client",
+        "onboard",
+        "client",
+        "onboard",
+        "pipelin",
+        "kycaml",
+        "statu",
+        "approv"
+      ]
+    },
+    {
+      "queryName": "settlement_failures",
+      "description": "Failed settlement trades with counterparty and reason codes",
+      "terms": [
+        "settlement",
+        "failur",
+        "fail",
+        "settlement",
+        "trade",
+        "counterparti",
+        "reason",
+        "code"
+      ]
+    },
+    {
+      "queryName": "stp_rate",
+      "description": "Straight-through processing rate by trade type and counterparty",
+      "terms": [
+        "stp",
+        "rate",
+        "straight",
+        "process",
+        "rate",
+        "trade",
+        "type",
+        "counterparti"
+      ]
+    },
+    {
+      "queryName": "reconciliation",
+      "description": "Reconciliation status with break analysis and aging",
+      "terms": [
+        "reconcili",
+        "reconcili",
+        "statu",
+        "break",
+        "analysi",
+        "ag"
+      ]
+    },
+    {
+      "queryName": "trade_breaks",
+      "description": "Trade break exceptions with resolution status and aging",
+      "terms": [
+        "trade",
+        "break",
+        "trade",
+        "break",
+        "except",
+        "resolut",
+        "statu",
+        "ag"
+      ]
+    },
+    {
+      "queryName": "operational_risk",
+      "description": "Operational risk events, losses, and near-miss incidents",
+      "terms": [
+        "oper",
+        "risk",
+        "oper",
+        "risk",
+        "event",
+        "loss",
+        "near",
+        "miss",
+        "incid"
+      ]
+    },
+    {
+      "queryName": "loan_book",
+      "description": "Loan portfolio with outstanding balances, rates, and maturity profile",
+      "terms": [
+        "loan",
+        "book",
+        "loan",
+        "portfolio",
+        "outstand",
+        "balanc",
+        "rate",
+        "matur",
+        "profil"
+      ]
+    },
+    {
+      "queryName": "npl_ratio",
+      "description": "Non-performing loan ratio with vintage analysis and provisioning",
+      "terms": [
+        "npl",
+        "ratio",
+        "non",
+        "perform",
+        "loan",
+        "ratio",
+        "vintag",
+        "analysi",
+        "provis"
+      ]
+    },
+    {
+      "queryName": "origination_pipeline",
+      "description": "Loan origination pipeline with deal stages and expected close dates",
+      "terms": [
+        "origin",
+        "pipelin",
+        "loan",
+        "origin",
+        "pipelin",
+        "deal",
+        "stage",
+        "expect",
+        "close",
+        "date"
+      ]
+    },
+    {
+      "queryName": "liquidity",
+      "description": "Liquidity coverage ratio (LCR) and net stable funding ratio (NSFR)",
+      "terms": [
+        "liquid",
+        "liquid",
+        "coverag",
+        "ratio",
+        "lcr",
+        "net",
+        "stabl",
+        "fund",
+        "ratio",
+        "nsfr"
+      ]
+    },
+    {
+      "queryName": "cash_position",
+      "description": "Daily cash position across accounts, currencies, and custodians",
+      "terms": [
+        "cash",
+        "posit",
+        "daili",
+        "cash",
+        "posit",
+        "across",
+        "account",
+        "currenc",
+        "custodian"
+      ]
+    },
+    {
+      "queryName": "fx_exposure",
+      "description": "Foreign exchange exposure by currency pair with hedging status",
+      "terms": [
+        "fx",
+        "exposur",
+        "foreign",
+        "exchang",
+        "exposur",
+        "currenc",
+        "pair",
+        "hedg",
+        "statu"
+      ]
+    },
+    {
+      "queryName": "interest_rate_risk",
+      "description": "Interest rate risk sensitivity with duration and basis point value",
+      "terms": [
+        "interest",
+        "rate",
+        "risk",
+        "interest",
+        "rate",
+        "risk",
+        "sensit",
+        "durat",
+        "basi",
+        "point",
+        "valu"
+      ]
+    }
+  ],
+  "updatedAt": "2026-03-16T13:19:42.912Z"
+}

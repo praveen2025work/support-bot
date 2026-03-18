@@ -30,6 +30,8 @@ import {
 } from './handlers/followup-handler';
 import { handleSemanticSearch } from './handlers/semantic-search-handler';
 import { handleAnalysis } from './handlers/analysis-handler';
+import { handleCompare } from './handlers/compare-handler';
+import { ExpertiseAdapter } from '../composer/expertise-adapter';
 
 /**
  * Simple Levenshtein distance for typo tolerance on short keywords.
@@ -56,7 +58,7 @@ const FOLLOWUP_KEYWORDS: Record<string, string> = {
   sort: 'sort', order: 'sort',
   group: 'group', grouped: 'group',
   top: 'top', bottom: 'bottom',
-  filter: 'filter', show: 'filter', only: 'filter',
+  filter: 'filter', show: 'filter', only: 'filter', list: 'filter',
   greater: 'compare', above: 'compare', over: 'compare', more: 'compare',
   less: 'compare', below: 'compare', under: 'compare',
   refresh: 'refresh', rerun: 'refresh',
@@ -103,6 +105,7 @@ function isLikelyFollowUp(userText: string): boolean {
 export class ResponseGenerator {
   private templates: Record<string, string[]>;
   private groupId: string;
+  private expertiseAdapter: ExpertiseAdapter;
 
   constructor(
     private queryService: QueryService,
@@ -110,6 +113,7 @@ export class ResponseGenerator {
     groupId?: string
   ) {
     this.groupId = groupId || 'default';
+    this.expertiseAdapter = new ExpertiseAdapter();
     this.templates = { ...baseTemplates };
     if (groupTemplates) {
       Object.entries(groupTemplates).forEach(([key, values]) => {
@@ -138,6 +142,14 @@ export class ResponseGenerator {
         .join(', ');
       response.text = `*Did you mean: "${correctionNote}"?*\n\n${response.text}`;
     }
+
+    // Adapt response vocabulary based on user expertise level
+    try {
+      const level = this.expertiseAdapter.detectLevel(context);
+      if (level !== 'intermediate') {
+        response.text = this.expertiseAdapter.adapt(response.text, level);
+      }
+    } catch { /* expertise adaptation is non-critical */ }
 
     return response;
   }
@@ -185,14 +197,26 @@ export class ResponseGenerator {
         return handleHelp(classification, context, this.templates, this.queryService);
       case INTENTS.FAREWELL:
         return handleFarewell(classification, context, this.templates);
-      case INTENTS.KNOWLEDGE_SEARCH:
+      case INTENTS.KNOWLEDGE_SEARCH: {
+        // When user has active data context, try data lookup BEFORE doc search
+        if (context.lastQueryName && context.lastApiResult) {
+          const dataLookup = handleDataLookup(classification, context);
+          if (dataLookup) return dataLookup;
+        }
         return handleKnowledgeSearch(classification, context, this.queryService);
+      }
       case INTENTS.DOCUMENT_ASK:
         return handleDocumentAsk(classification, context, this.groupId);
       case INTENTS.DOCUMENT_LIST:
         return handleDocumentList(classification, context, this.groupId);
       case INTENTS.QUERY_SEARCH:
         return handleSemanticSearch(classification, context, this.queryService, this.groupId);
+      case INTENTS.QUERY_COMPARE: {
+        const compareResult = await handleCompare(classification, context, this.queryService, incomingHeaders, this.groupId);
+        if (compareResult) return compareResult;
+        // Fall through to query execute if compare pattern didn't match
+        return handleQueryExecute(classification, context, this.queryService, explicitFilters, incomingHeaders, this.groupId);
+      }
 
       // Follow-up intents — route to data operation handlers when query context exists
       case INTENTS.FOLLOWUP_GROUP_BY:

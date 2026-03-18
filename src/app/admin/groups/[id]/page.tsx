@@ -94,7 +94,7 @@ export default function GroupDetailPage() {
   const [qError, setQError] = useState('');
   const [qSuccess, setQSuccess] = useState('');
   const [deletingQueryId, setDeletingQueryId] = useState<string | null>(null);
-  const [qType, setQType] = useState<'api' | 'url' | 'document' | 'csv'>('api');
+  const [qType, setQType] = useState<'api' | 'url' | 'document' | 'csv' | 'xlsx'>('api');
   const [qFilePath, setQFilePath] = useState('');
   const [qFileBaseDir, setQFileBaseDir] = useState('');
   const [qEndpoint, setQEndpoint] = useState('');
@@ -784,7 +784,7 @@ export default function GroupDetailPage() {
                       <label className="block text-xs font-medium text-gray-600 mb-1">Query Type</label>
                       <select
                         value={qType}
-                        onChange={(e) => setQType(e.target.value as 'api' | 'url' | 'document' | 'csv')}
+                        onChange={(e) => setQType(e.target.value as 'api' | 'url' | 'document' | 'csv' | 'xlsx')}
                         className="text-sm border border-gray-300 rounded px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
                         <option value="api">API (REST endpoint)</option>

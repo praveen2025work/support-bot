@@ -34,11 +34,50 @@ export interface RecentQuery {
   executionMs?: number;
 }
 
+export interface CardLayout {
+  i: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  minW?: number;
+  minH?: number;
+}
+
+export interface EventLinkConfig {
+  mode: 'auto' | 'manual' | 'disabled';
+  columnMappings?: Record<string, string>;
+  ignoreColumns?: string[];
+}
+
+export interface DashboardCard {
+  id: string;
+  queryName: string;
+  groupId: string;
+  label: string;
+  defaultFilters: Record<string, string>;
+  autoRun: boolean;
+  eventLink: EventLinkConfig;
+  migratedFromFavoriteId?: string;
+  createdAt: string;
+}
+
+export interface Dashboard {
+  id: string;
+  name: string;
+  cards: DashboardCard[];
+  layouts: CardLayout[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface UserPreferences {
   userId: string;
   favorites: FavoriteItem[];
   subscriptions: SubscriptionItem[];
   recentQueries: RecentQuery[];
+  dashboards: Dashboard[];
+  activeDashboardId?: string;
   updatedAt: string;
 }
 
@@ -53,7 +92,11 @@ function prefsPath(userId: string): string {
 }
 
 function defaultPrefs(userId: string): UserPreferences {
-  return { userId, favorites: [], subscriptions: [], recentQueries: [], updatedAt: new Date().toISOString() };
+  return { userId, favorites: [], subscriptions: [], recentQueries: [], dashboards: [], updatedAt: new Date().toISOString() };
+}
+
+function slugify(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `dashboard-${Date.now()}`;
 }
 
 export class UserPreferencesStore {
@@ -131,6 +174,186 @@ export class UserPreferencesStore {
     if (partial.subscriptions) prefs.subscriptions = partial.subscriptions;
     await this.write(prefs);
     return prefs;
+  }
+
+  // ── Dashboard Methods ──────────────────────────────────────────────
+
+  async listDashboards(userId: string): Promise<Dashboard[]> {
+    const prefs = await this.read(userId);
+    return prefs.dashboards || [];
+  }
+
+  async getDashboard(userId: string, dashboardId: string): Promise<Dashboard | null> {
+    const prefs = await this.read(userId);
+    return (prefs.dashboards || []).find((d) => d.id === dashboardId) || null;
+  }
+
+  async createDashboard(userId: string, input: { name: string; cards?: DashboardCard[]; layouts?: CardLayout[] }): Promise<Dashboard> {
+    const prefs = await this.read(userId);
+    if (!prefs.dashboards) prefs.dashboards = [];
+    const baseSlug = slugify(input.name);
+    // Ensure unique ID
+    let id = baseSlug;
+    let suffix = 1;
+    while (prefs.dashboards.some((d) => d.id === id)) {
+      id = `${baseSlug}-${suffix++}`;
+    }
+    const now = new Date().toISOString();
+    const dashboard: Dashboard = {
+      id,
+      name: input.name,
+      cards: input.cards || [],
+      layouts: input.layouts || [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    prefs.dashboards.push(dashboard);
+    prefs.activeDashboardId = id;
+    await this.write(prefs);
+    return dashboard;
+  }
+
+  async updateDashboard(userId: string, dashboardId: string, partial: Partial<Pick<Dashboard, 'name' | 'cards' | 'layouts'>>): Promise<Dashboard | null> {
+    const prefs = await this.read(userId);
+    const dash = (prefs.dashboards || []).find((d) => d.id === dashboardId);
+    if (!dash) return null;
+    if (partial.name !== undefined) dash.name = partial.name;
+    if (partial.cards !== undefined) dash.cards = partial.cards;
+    if (partial.layouts !== undefined) dash.layouts = partial.layouts;
+    dash.updatedAt = new Date().toISOString();
+    await this.write(prefs);
+    return dash;
+  }
+
+  async deleteDashboard(userId: string, dashboardId: string): Promise<boolean> {
+    const prefs = await this.read(userId);
+    const before = (prefs.dashboards || []).length;
+    prefs.dashboards = (prefs.dashboards || []).filter((d) => d.id !== dashboardId);
+    if (prefs.dashboards.length === before) return false;
+    if (prefs.activeDashboardId === dashboardId) {
+      prefs.activeDashboardId = prefs.dashboards[0]?.id;
+    }
+    await this.write(prefs);
+    return true;
+  }
+
+  async updateDashboardLayouts(userId: string, dashboardId: string, layouts: CardLayout[]): Promise<Dashboard | null> {
+    return this.updateDashboard(userId, dashboardId, { layouts });
+  }
+
+  async addCardToDashboard(userId: string, dashboardId: string, card: Omit<DashboardCard, 'id' | 'createdAt'>): Promise<DashboardCard | null> {
+    const prefs = await this.read(userId);
+    const dash = (prefs.dashboards || []).find((d) => d.id === dashboardId);
+    if (!dash) return null;
+    const newCard: DashboardCard = { ...card, id: uid(), createdAt: new Date().toISOString() };
+    dash.cards.push(newCard);
+    // Auto-generate layout position: next available slot in 3-col grid
+    const maxY = dash.layouts.reduce((m, l) => Math.max(m, l.y + l.h), 0);
+    const colCount = dash.cards.length - 1;
+    dash.layouts.push({
+      i: newCard.id,
+      x: (colCount % 3) * 4,
+      y: maxY + Math.floor(colCount / 3) * 6,
+      w: 4,
+      h: 6,
+      minW: 3,
+      minH: 4,
+    });
+    dash.updatedAt = new Date().toISOString();
+    await this.write(prefs);
+    return newCard;
+  }
+
+  async removeCardFromDashboard(userId: string, dashboardId: string, cardId: string): Promise<boolean> {
+    const prefs = await this.read(userId);
+    const dash = (prefs.dashboards || []).find((d) => d.id === dashboardId);
+    if (!dash) return false;
+    const before = dash.cards.length;
+    dash.cards = dash.cards.filter((c) => c.id !== cardId);
+    dash.layouts = dash.layouts.filter((l) => l.i !== cardId);
+    if (dash.cards.length === before) return false;
+    dash.updatedAt = new Date().toISOString();
+    await this.write(prefs);
+    return true;
+  }
+
+  async updateCard(userId: string, dashboardId: string, cardId: string, partial: Partial<DashboardCard>): Promise<DashboardCard | null> {
+    const prefs = await this.read(userId);
+    const dash = (prefs.dashboards || []).find((d) => d.id === dashboardId);
+    if (!dash) return null;
+    const card = dash.cards.find((c) => c.id === cardId);
+    if (!card) return null;
+    Object.assign(card, partial, { id: cardId }); // prevent id overwrite
+    dash.updatedAt = new Date().toISOString();
+    await this.write(prefs);
+    return card;
+  }
+
+  async setActiveDashboard(userId: string, dashboardId: string): Promise<void> {
+    const prefs = await this.read(userId);
+    prefs.activeDashboardId = dashboardId;
+    await this.write(prefs);
+  }
+
+  async migrateFavoritesToDashboard(userId: string, dashboardId: string): Promise<Dashboard | null> {
+    const prefs = await this.read(userId);
+    const dash = (prefs.dashboards || []).find((d) => d.id === dashboardId);
+    if (!dash) return null;
+
+    const existingMigrated = new Set(dash.cards.filter((c) => c.migratedFromFavoriteId).map((c) => c.migratedFromFavoriteId));
+    let added = 0;
+
+    // Migrate favorites
+    for (const fav of prefs.favorites) {
+      if (existingMigrated.has(fav.id)) continue;
+      const card: DashboardCard = {
+        id: uid(),
+        queryName: fav.queryName,
+        groupId: fav.groupId,
+        label: fav.label,
+        defaultFilters: fav.defaultFilters,
+        autoRun: false,
+        eventLink: { mode: 'auto' },
+        migratedFromFavoriteId: fav.id,
+        createdAt: new Date().toISOString(),
+      };
+      dash.cards.push(card);
+      dash.layouts.push({
+        i: card.id,
+        x: (added % 3) * 4,
+        y: dash.layouts.reduce((m, l) => Math.max(m, l.y + l.h), 0),
+        w: 4, h: 6, minW: 3, minH: 4,
+      });
+      added++;
+    }
+
+    // Migrate subscriptions
+    for (const sub of prefs.subscriptions) {
+      if (existingMigrated.has(sub.id)) continue;
+      const card: DashboardCard = {
+        id: uid(),
+        queryName: sub.queryName,
+        groupId: sub.groupId,
+        label: sub.label,
+        defaultFilters: sub.defaultFilters,
+        autoRun: sub.refreshOnLoad,
+        eventLink: { mode: 'auto' },
+        migratedFromFavoriteId: sub.id,
+        createdAt: new Date().toISOString(),
+      };
+      dash.cards.push(card);
+      dash.layouts.push({
+        i: card.id,
+        x: (added % 3) * 4,
+        y: dash.layouts.reduce((m, l) => Math.max(m, l.y + l.h), 0),
+        w: 4, h: 6, minW: 3, minH: 4,
+      });
+      added++;
+    }
+
+    dash.updatedAt = new Date().toISOString();
+    await this.write(prefs);
+    return dash;
   }
 }
 

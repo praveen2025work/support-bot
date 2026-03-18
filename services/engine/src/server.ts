@@ -9,8 +9,12 @@ import { healthRouter } from './routes/health';
 import { userRouter } from './routes/user';
 import docsRouter from './routes/docs';
 import { preferencesRouter } from './routes/preferences';
+import { dashboardsRouter } from './routes/dashboards';
 import { eventsRouter } from './routes/events';
 import { integrationsRouter } from './routes/integrations';
+import { feedbackRouter } from './routes/feedback';
+import { uploadRouter } from './routes/upload';
+import { urlIngestRouter } from './routes/url-ingest';
 import { logger } from './lib/logger';
 import { tenantContextMiddleware } from './middleware/tenant-context';
 
@@ -78,8 +82,12 @@ app.use('/api', healthRouter);
 app.use('/api', userRouter);
 app.use('/api', docsRouter);
 app.use('/api/preferences', preferencesRouter);
+app.use('/api/dashboards', dashboardsRouter);
 app.use('/api/events', eventsRouter);
 app.use('/api/integrations', integrationsRouter);
+app.use('/api/feedback', feedbackRouter);
+app.use('/api/upload', uploadRouter);
+app.use('/api/url-ingest', urlIngestRouter);
 
 // 404 handler
 app.use((_req, res) => {

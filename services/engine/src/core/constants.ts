@@ -11,6 +11,7 @@ export const INTENTS = {
   DOCUMENT_ASK: 'document.ask',
   DOCUMENT_LIST: 'document.list',
   QUERY_SEARCH: 'query.search',
+  QUERY_COMPARE: 'query.compare',
   FOLLOWUP_GROUP_BY: 'followup.group_by',
   FOLLOWUP_SORT: 'followup.sort',
   FOLLOWUP_FILTER: 'followup.filter',

@@ -31,11 +31,15 @@ export class WebAdapter implements IPlatformAdapter {
       text: response.text,
       richContent: response.richContent,
       suggestions: response.suggestions,
+      recommendations: response.recommendations,
       intent: response.intent,
       confidence: response.confidence,
       executionMs: response.executionMs,
       referenceUrl: response.referenceUrl,
       queryName: response.queryName,
+      sourceName: response.sourceName,
+      sourceType: response.sourceType,
+      anomalies: response.anomalies,
     };
   }
 

@@ -1,0 +1,45 @@
+{
+  "userId": "local_dev",
+  "favorites": [],
+  "subscriptions": [],
+  "recentQueries": [
+    {
+      "queryName": "query.execute",
+      "groupId": "default",
+      "userMessage": "run liquidity",
+      "intent": "query.execute",
+      "timestamp": "2026-03-18T03:42:04.039Z"
+    },
+    {
+      "queryName": "query.list",
+      "groupId": "default",
+      "userMessage": "list queries",
+      "intent": "query.list",
+      "timestamp": "2026-03-18T03:42:01.661Z"
+    },
+    {
+      "queryName": "query.compare",
+      "groupId": "default",
+      "userMessage": "/compare errors and performance",
+      "intent": "query.compare",
+      "timestamp": "2026-03-18T03:40:16.417Z"
+    },
+    {
+      "queryName": "query.multi",
+      "groupId": "default",
+      "userMessage": "run compare errors and performance",
+      "intent": "query.multi",
+      "timestamp": "2026-03-18T03:39:27.164Z"
+    },
+    {
+      "queryName": "active_users",
+      "groupId": "default",
+      "userMessage": "run active_users",
+      "intent": "query.execute",
+      "timestamp": "2026-03-18T03:32:36.367Z",
+      "executionMs": 4
+    }
+  ],
+  "dashboards": [],
+  "updatedAt": "2026-03-18T03:42:04.039Z"
+}

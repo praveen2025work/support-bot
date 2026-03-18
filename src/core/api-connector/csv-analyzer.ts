@@ -26,15 +26,26 @@ export interface AggregationResult {
 
 export async function parseCsv(content: string): Promise<CsvData> {
   const XLSX = await getXLSX();
-  const wb = XLSX.read(content, { type: 'string' });
+  const wb = XLSX.read(content, { type: 'string', cellDates: true });
   const sheetName = wb.SheetNames[0];
   if (!sheetName) return { headers: [], rows: [] };
 
   const sheet = wb.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json<Record<string, string | number>>(sheet);
+  const rows = XLSX.utils.sheet_to_json<Record<string, string | number | Date>>(sheet);
   const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
 
-  return { headers, rows };
+  // Convert Date objects back to ISO date strings so downstream code sees
+  // readable dates instead of Excel serial numbers or JS Date objects.
+  for (const row of rows) {
+    for (const key of headers) {
+      if (row[key] instanceof Date) {
+        const d = row[key] as Date;
+        row[key] = d.toISOString().split('T')[0];
+      }
+    }
+  }
+
+  return { headers, rows: rows as Record<string, string | number>[] };
 }
 
 export function computeAggregation(
@@ -226,8 +237,15 @@ function getNumericColumns(data: CsvData): string[] {
     let numCount = 0;
     for (const row of data.rows) {
       const v = row[h];
-      if (typeof v === 'number' || (typeof v === 'string' && !isNaN(parseFloat(v)) && v.trim() !== '')) {
+      if (typeof v === 'number') {
         numCount++;
+      } else if (typeof v === 'string') {
+        const trimmed = v.trim();
+        // Reject time-format ("10:00 BST") and date-text ("13-Mar-2026") strings
+        // that parseFloat would incorrectly parse as numbers.
+        if (trimmed !== '' && !isNaN(parseFloat(trimmed)) && !/[a-zA-Z:]/.test(trimmed.replace(/%$/, ''))) {
+          numCount++;
+        }
       }
     }
     return numCount / data.rows.length > 0.8;

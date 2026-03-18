@@ -1,0 +1,82 @@
+{
+  "user_profile": {
+    "performance": 1
+  },
+  "performance": {
+    "user_profile": 1,
+    "hr_report_ratings": 1,
+    "monthly_revenue": 1
+  },
+  "monthly_revenue": {
+    "sales_data": 10,
+    "api_changelog": 1,
+    "active_users": 1,
+    "cash_position": 1,
+    "aml_alerts": 1,
+    "hr_report_ratings": 1,
+    "performance": 1
+  },
+  "sales_data": {
+    "monthly_revenue": 10,
+    "cash_position": 1,
+    "aml_alerts": 1,
+    "hr_report_salaries": 1,
+    "hr_report_bonuses": 1,
+    "employee_compensation": 1
+  },
+  "report_generator": {
+    "support_tickets": 1
+  },
+  "support_tickets": {
+    "report_generator": 1,
+    "employee_compensation": 1
+  },
+  "api_changelog": {
+    "monthly_revenue": 1
+  },
+  "fx_exposure": {
+    "error_rate": 1
+  },
+  "error_rate": {
+    "fx_exposure": 1
+  },
+  "active_users": {
+    "monthly_revenue": 1
+  },
+  "cash_position": {
+    "monthly_revenue": 1,
+    "aml_alerts": 1,
+    "sales_data": 1
+  },
+  "aml_alerts": {
+    "monthly_revenue": 1,
+    "cash_position": 1,
+    "sales_data": 1
+  },
+  "pnl_availability": {
+    "pnl_summary": 3
+  },
+  "pnl_summary": {
+    "pnl_availability": 3
+  },
+  "employee_compensation": {
+    "support_tickets": 1,
+    "hr_report_salaries": 1,
+    "hr_report_bonuses": 1,
+    "sales_data": 1
+  },
+  "hr_report_salaries": {
+    "hr_report_bonuses": 1,
+    "employee_compensation": 1,
+    "sales_data": 1
+  },
+  "hr_report_bonuses": {
+    "hr_report_salaries": 1,
+    "employee_compensation": 1,
+    "sales_data": 1
+  },
+  "hr_report_ratings": {
+    "performance": 1,
+    "monthly_revenue": 1
+  }
+}

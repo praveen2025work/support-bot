@@ -7,6 +7,7 @@ import type { ColumnConfig } from '../../types';
 import { extractFilters, formatFilters, parseFilterFromText, mergeFilters } from './filter-utils';
 import { handleGroupByFollowUp, handleSortFollowUp, handleSummaryFollowUp, handleTopNFollowUp } from './followup-handler';
 import { getAnomalyDetector } from '../../anomaly/anomaly-detector';
+import { addToDictionary } from '../../nlp/typo-corrector';
 
 /**
  * Get the last user message text from conversation history.
@@ -100,6 +101,16 @@ export async function rerunLastQueryWithFilters(
       const csvData = result.csvResult as { headers?: string[] };
       if (csvData.headers) {
         context.lastQueryColumns = csvData.headers;
+        // Add column names (and their underscore-split parts) to typo dictionary
+        // so the corrector won't mangle them (e.g. "pnl" → "in", "name" → "me")
+        const dictWords: string[] = [];
+        for (const h of csvData.headers) {
+          dictWords.push(h.toLowerCase());
+          for (const part of h.toLowerCase().split(/[_\s-]+/)) {
+            if (part.length >= 2) dictWords.push(part);
+          }
+        }
+        addToDictionary(dictWords);
       }
     }
 
@@ -360,6 +371,10 @@ export async function handleQueryExecute(
       }
     } catch { /* column detection is non-critical */ }
 
+    // Source metadata for UI badges
+    const sourceName = queryNameEntity.value;
+    const sourceType = (result.type || 'api') as BotResponse['sourceType'];
+
     switch (result.type) {
       case 'url':
         return {
@@ -370,6 +385,8 @@ export async function handleQueryExecute(
           confidence: classification.confidence,
           executionMs: execMs,
           queryName: queryNameEntity.value,
+          sourceName,
+          sourceType,
           anomalies,
         };
 
@@ -385,6 +402,8 @@ export async function handleQueryExecute(
             executionMs: execMs,
             referenceUrl,
             queryName: queryNameEntity.value,
+            sourceName,
+            sourceType: 'document',
             anomalies,
           };
         }
@@ -397,6 +416,8 @@ export async function handleQueryExecute(
           executionMs: execMs,
           referenceUrl,
           queryName: queryNameEntity.value,
+          sourceName,
+          sourceType: 'document',
           anomalies,
         };
       }
@@ -414,6 +435,8 @@ export async function handleQueryExecute(
             executionMs: execMs,
             referenceUrl,
             queryName: queryNameEntity.value,
+            sourceName,
+            sourceType: 'csv',
             anomalies,
           };
         }
@@ -432,6 +455,8 @@ export async function handleQueryExecute(
             executionMs: execMs,
             referenceUrl,
             queryName: queryNameEntity.value,
+            sourceName,
+            sourceType: 'csv',
             anomalies,
           };
         }
@@ -444,6 +469,8 @@ export async function handleQueryExecute(
           executionMs: execMs,
           referenceUrl,
           queryName: queryNameEntity.value,
+          sourceName,
+          sourceType: 'csv',
           anomalies,
         };
       }
@@ -463,6 +490,8 @@ export async function handleQueryExecute(
           executionMs: execMs,
           referenceUrl,
           queryName: queryNameEntity.value,
+          sourceName,
+          sourceType: 'api',
           anomalies,
         };
       }

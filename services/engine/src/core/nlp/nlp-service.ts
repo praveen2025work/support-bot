@@ -9,6 +9,8 @@ import { logger } from '@/lib/logger';
 import { paths } from '@/lib/env-config';
 import { extractDateEntities } from './date-entity-extractor';
 import { correctTypos, addToDictionary } from './typo-corrector';
+import { PatternMatcher } from './pattern-matcher';
+import { TfIdfIntentScorer } from './tfidf-intent-scorer';
 import type { ClassificationResult, ExtractedEntity, IntentOverlap } from '../types';
 import type { FuzzyMatcher } from './fuzzy-matcher';
 
@@ -20,9 +22,16 @@ const QUESTION_PATTERN = /^\s*(what|who|where|when|why|how|which|is|are|can|coul
 // Higher confidence bar for simple intents when text looks like a question
 const SIMPLE_INTENT_QUESTION_THRESHOLD = 0.85;
 
+// Ensemble weights: NLP.js 0.5, TF-IDF 0.3, Pattern 0.2
+const ENSEMBLE_WEIGHT_NLP = 0.5;
+const ENSEMBLE_WEIGHT_TFIDF = 0.3;
+const ENSEMBLE_WEIGHT_PATTERN = 0.2;
+
 export class NlpService {
   private nlp: InstanceType<typeof Nlp> | null = null;
   private fuzzyMatcher: FuzzyMatcher;
+  private patternMatcher = new PatternMatcher();
+  private tfidfScorer = new TfIdfIntentScorer();
   private initialized = false;
   private corpusFile: string | null;
   private cachedOverlaps: IntentOverlap[] = [];
@@ -70,8 +79,20 @@ export class NlpService {
 
     await this.nlp.train();
 
+    // Initialize TF-IDF scorer from corpus utterances
+    try {
+      const intentUtterances = new Map<string, string[]>();
+      const dataEntries: Array<{ intent: string; utterances: string[] }> = corpusData.data || [];
+      for (const entry of dataEntries) {
+        intentUtterances.set(entry.intent, entry.utterances);
+      }
+      this.tfidfScorer.initialize(intentUtterances);
+    } catch (err) {
+      logger.warn({ err }, 'TF-IDF scorer initialization failed — ensemble will use NLP.js + pattern only');
+    }
+
     this.initialized = true;
-    logger.info({ corpus: this.corpusFile ?? 'base' }, 'NLP model trained and ready');
+    logger.info({ corpus: this.corpusFile ?? 'base' }, 'NLP model trained and ready (ensemble: NLP.js + TF-IDF + Pattern)');
 
     // Run intent overlap detection and log warnings
     this.cachedOverlaps = await this.detectOverlaps(corpusData);
@@ -137,8 +158,49 @@ export class NlpService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result: any = await this.nlp.process('en', processedText);
 
-    if (result.intent === 'None' || result.score < NLP_CONFIDENCE_THRESHOLD) {
-      logger.debug({ text, score: result.score }, 'Low confidence, trying fuzzy match');
+    // ---- Ensemble voting: combine NLP.js + TF-IDF + Pattern scores ----
+    const intentScores = new Map<string, number>();
+
+    // 1. NLP.js scores (weight 0.5)
+    const nlpClassifications: Array<{ intent: string; score: number }> = result.classifications || [];
+    for (const cls of nlpClassifications.slice(0, 10)) {
+      if (cls.intent && cls.intent !== 'None') {
+        intentScores.set(cls.intent, (intentScores.get(cls.intent) || 0) + cls.score * ENSEMBLE_WEIGHT_NLP);
+      }
+    }
+
+    // 2. TF-IDF scores (weight 0.3)
+    const tfidfScores = this.tfidfScorer.score(processedText);
+    for (const ts of tfidfScores) {
+      intentScores.set(ts.intent, (intentScores.get(ts.intent) || 0) + ts.score * ENSEMBLE_WEIGHT_TFIDF);
+    }
+
+    // 3. Pattern scores (weight 0.2)
+    const patternMatches = this.patternMatcher.matchAll(processedText);
+    for (const pm of patternMatches) {
+      intentScores.set(pm.intent, (intentScores.get(pm.intent) || 0) + pm.confidence * ENSEMBLE_WEIGHT_PATTERN);
+    }
+
+    // Sort by combined score
+    const ensembleSorted = Array.from(intentScores.entries())
+      .sort(([, a], [, b]) => b - a);
+    const ensembleTop = ensembleSorted[0];
+
+    // Determine source label for ensemble vs single-source
+    const usedSources = [
+      nlpClassifications.length > 0 ? 'nlp' : null,
+      tfidfScores.length > 0 ? 'tfidf' : null,
+      patternMatches.length > 0 ? 'pattern' : null,
+    ].filter(Boolean);
+    const sourceLabel: ClassificationResult['source'] = usedSources.length > 1 ? 'ensemble' : 'nlp';
+
+    // If ensemble has a confident result, use it; otherwise fall back to NLP.js single result
+    let ensembleIntent = ensembleTop?.[0] || result.intent || 'None';
+    let ensembleScore = ensembleTop?.[1] || result.score || 0;
+
+    // If ensemble total score is very low, check fuzzy
+    if (ensembleScore < NLP_CONFIDENCE_THRESHOLD && (result.intent === 'None' || result.score < NLP_CONFIDENCE_THRESHOLD)) {
+      logger.debug({ text, ensembleScore, nlpScore: result.score }, 'Low ensemble confidence, trying fuzzy match');
       const fuzzyResult = this.fuzzyMatcher.match(text);
       if (fuzzyResult) {
         const r: ClassificationResult = {
@@ -156,12 +218,12 @@ export class NlpService {
     // Guard: if text looks like a question but matched a simple intent
     // (farewell/greeting) at borderline confidence, demote to None
     if (
-      SIMPLE_INTENTS.has(result.intent) &&
+      SIMPLE_INTENTS.has(ensembleIntent) &&
       QUESTION_PATTERN.test(text) &&
-      result.score < SIMPLE_INTENT_QUESTION_THRESHOLD
+      ensembleScore < SIMPLE_INTENT_QUESTION_THRESHOLD
     ) {
       logger.debug(
-        { text, intent: result.intent, score: result.score },
+        { text, intent: ensembleIntent, score: ensembleScore },
         'Question-pattern detected with simple-intent — demoting to unknown'
       );
       const fuzzyResult = this.fuzzyMatcher.match(text);
@@ -178,13 +240,20 @@ export class NlpService {
       }
       const r: ClassificationResult = {
         intent: 'None',
-        confidence: result.score || 0,
+        confidence: ensembleScore,
         entities: [],
-        source: 'nlp',
+        source: sourceLabel,
         ...(typoResult.wasCorrected && { corrections: typoResult.corrections }),
       };
       this.classificationCache.set(cacheKey, r);
       return r;
+    }
+
+    if (ensembleTop && ensembleScore >= NLP_CONFIDENCE_THRESHOLD) {
+      logger.debug(
+        { text: processedText, ensemble: ensembleSorted.slice(0, 3).map(([i, s]) => `${i}:${s.toFixed(3)}`), source: sourceLabel },
+        'Ensemble classification result'
+      );
     }
 
     const entities: ExtractedEntity[] = (result.entities || []).map(
@@ -204,8 +273,8 @@ export class NlpService {
       entities.push(...dateEntities);
     }
 
-    let finalIntent = result.intent || 'None';
-    let finalScore = result.score || 0;
+    let finalIntent = ensembleIntent;
+    let finalScore = ensembleScore;
 
     // Context-aware boosting: when user has active query results, prefer follow-up
     // intents if they scored close to the top result. This prevents "group by status"
@@ -252,7 +321,7 @@ export class NlpService {
             vote: result.sentiment.vote,
           }
         : undefined,
-      source: 'nlp',
+      source: sourceLabel,
       ...(typoResult.wasCorrected && { corrections: typoResult.corrections }),
     };
     this.classificationCache.set(cacheKey, classificationResult);

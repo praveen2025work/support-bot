@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { csrfHeaders } from '@/lib/csrf';
 
 interface PipelineStep {
@@ -25,38 +25,82 @@ interface TestResult {
   pipeline: PipelineStep[];
 }
 
+interface QueryInfo {
+  name: string;
+  description: string;
+  filters: unknown[];
+  type: string;
+}
+
+const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
+  api: { bg: 'bg-blue-100', text: 'text-blue-700' },
+  csv: { bg: 'bg-green-100', text: 'text-green-700' },
+  xlsx: { bg: 'bg-purple-100', text: 'text-purple-700' },
+  document: { bg: 'bg-orange-100', text: 'text-orange-700' },
+  url: { bg: 'bg-gray-100', text: 'text-gray-700' },
+};
+
+function TypeBadge({ type }: { type: string }) {
+  const color = TYPE_COLORS[type] || TYPE_COLORS.api;
+  return <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${color.bg} ${color.text}`}>{type}</span>;
+}
+
 export default function TestConsolePage() {
   const [groupId, setGroupId] = useState('default');
   const [input, setInput] = useState('');
   const [results, setResults] = useState<TestResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
-  const [groupsLoaded, setGroupsLoaded] = useState(false);
+  const [queries, setQueries] = useState<QueryInfo[]>([]);
+  const [queryTypeFilter, setQueryTypeFilter] = useState('all');
+  const [querySearch, setQuerySearch] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const initializedRef = useRef(false);
 
-  // Load groups on first render
-  if (!groupsLoaded) {
-    setGroupsLoaded(true);
+  // Load groups once
+  useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
     fetch('/api/admin/groups')
       .then((r) => r.json())
-      .then((d) => setGroups(d.groups || []))
+      .then((d) => {
+        const g = d.groups || [];
+        setGroups(g);
+        if (g.length > 0) setGroupId(g[0].id);
+      })
       .catch(() => {});
-  }
+  }, []);
 
-  const runTest = async () => {
-    if (!input.trim() || loading) return;
+  // Load queries when groupId changes
+  useEffect(() => {
+    if (!groupId) return;
+    fetch(`/api/queries?groupId=${encodeURIComponent(groupId)}`)
+      .then((r) => r.json())
+      .then((d) => setQueries(d.queries || []))
+      .catch(() => setQueries([]));
+  }, [groupId]);
+
+  const queryTypes = Array.from(new Set(queries.map((q) => q.type))).sort();
+  const filteredQueries = queries.filter((q) => {
+    if (queryTypeFilter !== 'all' && q.type !== queryTypeFilter) return false;
+    if (querySearch && !q.name.toLowerCase().includes(querySearch.toLowerCase()) && !q.description.toLowerCase().includes(querySearch.toLowerCase())) return false;
+    return true;
+  });
+
+  const runTest = async (text?: string) => {
+    const msg = text || input.trim();
+    if (!msg || loading) return;
     setLoading(true);
     const startTime = performance.now();
     const pipeline: PipelineStep[] = [];
 
     try {
-      // Step 1: NLP classification
       const nlpStart = performance.now();
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
         body: JSON.stringify({
-          text: input.trim(),
+          text: msg,
           sessionId: `test-console-${Date.now()}`,
           groupId,
         }),
@@ -87,15 +131,12 @@ export default function TestConsolePage() {
         status: 'success',
       });
 
-      setResults((prev) => [
-        {
-          input: input.trim(),
-          timestamp: new Date().toISOString(),
-          response: data,
-          pipeline,
-        },
-        ...prev,
-      ]);
+      setResults((prev) => [{
+        input: msg,
+        timestamp: new Date().toISOString(),
+        response: data,
+        pipeline,
+      }, ...prev]);
     } catch (err) {
       pipeline.push({
         name: 'Request Failed',
@@ -103,19 +144,12 @@ export default function TestConsolePage() {
         result: { error: String(err) },
         status: 'error',
       });
-      setResults((prev) => [
-        {
-          input: input.trim(),
-          timestamp: new Date().toISOString(),
-          response: {
-            text: `Error: ${err}`,
-            intent: 'error',
-            confidence: 0,
-          },
-          pipeline,
-        },
-        ...prev,
-      ]);
+      setResults((prev) => [{
+        input: msg,
+        timestamp: new Date().toISOString(),
+        response: { text: `Error: ${err}`, intent: 'error', confidence: 0 },
+        pipeline,
+      }, ...prev]);
     } finally {
       setLoading(false);
       setInput('');
@@ -152,7 +186,7 @@ export default function TestConsolePage() {
             autoFocus
           />
           <button
-            onClick={runTest}
+            onClick={() => runTest()}
             disabled={loading || !input.trim()}
             className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
@@ -172,10 +206,65 @@ export default function TestConsolePage() {
         </div>
       </div>
 
+      {/* Query Catalog */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Available Queries ({filteredQueries.length})</div>
+          <div className="flex items-center gap-2">
+            <input
+              value={querySearch}
+              onChange={(e) => setQuerySearch(e.target.value)}
+              placeholder="Search queries..."
+              className="text-xs border border-gray-300 rounded px-2 py-1 w-40"
+            />
+            <select
+              value={queryTypeFilter}
+              onChange={(e) => setQueryTypeFilter(e.target.value)}
+              className="text-xs border border-gray-300 rounded px-2 py-1"
+            >
+              <option value="all">All types</option>
+              {queryTypes.map((t) => (
+                <option key={t} value={t}>{t} ({queries.filter((q) => q.type === t).length})</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="max-h-52 overflow-y-auto scrollbar-hide">
+          {filteredQueries.length === 0 ? (
+            <p className="text-xs text-gray-400 text-center py-4">No queries match your filter.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {filteredQueries.map((q) => (
+                <button
+                  key={q.name}
+                  onClick={() => runTest(`run ${q.name}`)}
+                  disabled={loading}
+                  className="text-left p-2 rounded-lg border border-gray-100 hover:border-blue-300 hover:bg-blue-50 transition-colors disabled:opacity-50 group"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-gray-800 group-hover:text-blue-700 truncate">{q.name}</span>
+                    <TypeBadge type={q.type} />
+                  </div>
+                  <div className="text-[10px] text-gray-500 truncate mt-0.5">{q.description}</div>
+                  {q.filters.length > 0 && (
+                    <div className="flex gap-1 mt-1 flex-wrap">
+                      {q.filters.slice(0, 3).map((f, i) => (
+                        <span key={i} className="text-[9px] px-1 py-0.5 bg-gray-100 text-gray-500 rounded">{typeof f === 'string' ? f : (f as { key: string }).key}</span>
+                      ))}
+                      {q.filters.length > 3 && <span className="text-[9px] text-gray-400">+{q.filters.length - 3}</span>}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Results */}
       {results.length === 0 ? (
         <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-          <p className="text-sm text-gray-500">Enter a message above to test the bot pipeline. Results will appear here with detailed step-by-step inspection.</p>
+          <p className="text-sm text-gray-500">Enter a message above or click a query card to test the bot pipeline. Results will appear here with detailed step-by-step inspection.</p>
         </div>
       ) : (
         <div className="space-y-4">

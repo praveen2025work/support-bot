@@ -47,12 +47,16 @@ function findClosestWord(word: string, maxDistance = 2): string | null {
   if (word.length <= 2) return null; // Don't correct very short words
   if (COMMON_WORDS.has(word)) return null; // Already correct
 
+  // For short words (3-4 chars), require distance ≤ 1 to avoid
+  // bad corrections like "pnl"→"in", "name"→"me", "pro"→"from"
+  const effectiveMax = word.length <= 4 ? 1 : maxDistance;
+
   let bestWord: string | null = null;
-  let bestDist = maxDistance + 1;
+  let bestDist = effectiveMax + 1;
 
   for (const dictWord of Array.from(COMMON_WORDS)) {
     // Skip if length difference is too large
-    if (Math.abs(dictWord.length - word.length) > maxDistance) continue;
+    if (Math.abs(dictWord.length - word.length) > effectiveMax) continue;
 
     const dist = levenshteinDistance(word, dictWord);
     if (dist < bestDist) {
@@ -61,7 +65,7 @@ function findClosestWord(word: string, maxDistance = 2): string | null {
     }
   }
 
-  return bestDist <= maxDistance ? bestWord : null;
+  return bestDist <= effectiveMax ? bestWord : null;
 }
 
 export interface TypoCorrectionResult {

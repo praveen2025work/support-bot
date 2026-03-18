@@ -24,6 +24,7 @@ export function MessageList({
   onAction,
   onExecuteQuery,
   onRetry,
+  onFeedback,
 }: {
   messages: Message[];
   isLoading: boolean;
@@ -31,6 +32,7 @@ export function MessageList({
   onAction?: (text: string) => void;
   onExecuteQuery?: (queryName: string, filters: Record<string, string>) => void;
   onRetry?: (text: string) => void;
+  onFeedback?: (messageId: string, type: 'positive' | 'negative', correction?: string) => void;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -39,7 +41,7 @@ export function MessageList({
   }, [messages, isLoading]);
 
   return (
-    <div className="flex-1 overflow-y-auto p-4">
+    <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
       {messages.length === 0 && (
         <div className="flex flex-col items-center justify-center mt-10 px-4">
           <p className="text-lg font-medium text-gray-700">What can I help you with?</p>
@@ -61,7 +63,7 @@ export function MessageList({
         </div>
       )}
       {messages.map((msg) => (
-        <MessageBubble key={msg.id} message={msg} onAction={onAction} onExecuteQuery={onExecuteQuery} onRetry={onRetry} />
+        <MessageBubble key={msg.id} message={msg} onAction={onAction} onExecuteQuery={onExecuteQuery} onRetry={onRetry} onFeedback={onFeedback} />
       ))}
       {isLoading && (
         <div className="flex justify-start mb-3">

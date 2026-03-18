@@ -4,6 +4,7 @@ import { useState, Suspense, lazy } from 'react';
 import type { Message } from '@/hooks/useChat';
 import { QueryFilterForm, type QueryFilterFormData } from './QueryFilterForm';
 import { TablePagination, exportToCsv } from './TablePagination';
+import type { DetectedColumnMeta } from './DataChart';
 
 // Lazy-load DataChart (pulls in Recharts ~150KB) — only loaded when chart is rendered
 const DataChart = lazy(() =>
@@ -17,6 +18,65 @@ const ForecastChart = lazy(() => import('./ForecastChart'));
 const TrendChart = lazy(() => import('./TrendChart'));
 const DecisionTreeViz = lazy(() => import('./DecisionTreeViz'));
 import { AnomalyAlert } from '@/components/dashboard/AnomalyBadge';
+import { FeedbackBar } from './FeedbackBar';
+import { SourceBadge } from './SourceBadge';
+import { ConfidenceBadge } from './ConfidenceBadge';
+
+/** Paginated wrapper for inline tables (csv_table, csv_aggregation, csv_group_by) */
+function PaginatedTableBody<T>({
+  rows,
+  headers,
+  renderRow,
+  tableClassName,
+  headerClassName,
+  renderHeader,
+  footer,
+  defaultPageSize = 10,
+}: {
+  rows: T[];
+  headers: string[];
+  renderRow: (row: T, index: number) => React.ReactNode;
+  tableClassName?: string;
+  headerClassName?: string;
+  renderHeader?: (h: string) => React.ReactNode;
+  footer?: React.ReactNode;
+  defaultPageSize?: number;
+}) {
+  const [pageRange, setPageRange] = useState({ start: 0, end: defaultPageSize });
+  const pagedRows = rows.slice(pageRange.start, pageRange.end);
+  const showPagination = rows.length > defaultPageSize;
+
+  return (
+    <>
+      <div className="overflow-x-auto">
+        <table className={tableClassName || 'min-w-full text-xs border border-gray-200 rounded'}>
+          <thead>
+            <tr className={headerClassName || 'bg-gray-50'}>
+              {renderHeader
+                ? headers.map((h) => <th key={h}>{renderHeader(h)}</th>)
+                : headers.map((h) => (
+                    <th key={h} className="px-2 py-1 text-left font-medium text-gray-600 border-b">{h}</th>
+                  ))
+              }
+            </tr>
+          </thead>
+          <tbody>
+            {pagedRows.map((row, i) => renderRow(row, pageRange.start + i))}
+          </tbody>
+        </table>
+      </div>
+      {showPagination && (
+        <TablePagination
+          totalRows={rows.length}
+          pageSize={defaultPageSize}
+          onPageChange={(start, end) => setPageRange({ start, end })}
+          onExport={() => exportToCsv(rows as Record<string, unknown>[])}
+        />
+      )}
+      {footer}
+    </>
+  );
+}
 
 interface QueryListItem {
   name: string;
@@ -85,6 +145,7 @@ export function MessageBubble({
   onAction,
   onExecuteQuery,
   onRetry,
+  onFeedback,
   cardId,
   linkedSelection,
   onCellClick,
@@ -93,6 +154,7 @@ export function MessageBubble({
   onAction?: (text: string) => void;
   onExecuteQuery?: (queryName: string, filters: Record<string, string>) => void;
   onRetry?: (text: string) => void;
+  onFeedback?: (messageId: string, type: 'positive' | 'negative', correction?: string) => void;
   cardId?: string;
   linkedSelection?: LinkedSelection;
   onCellClick?: (column: string, value: unknown) => void;
@@ -126,13 +188,19 @@ export function MessageBubble({
             <AnomalyAlert anomalies={message.anomalies} />
           </div>
         )}
-        {/* Execution time badge + reference link */}
-        {!isUser && (message.executionMs != null || message.referenceUrl) && (
-          <div className="mt-2 flex items-center gap-2">
+        {/* Execution time badge + source + confidence + reference link */}
+        {!isUser && (message.executionMs != null || message.referenceUrl || message.sourceName || message.confidence != null) && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             {message.executionMs != null && (
               <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
                 Completed in {message.executionMs}ms
               </span>
+            )}
+            {message.sourceName && (
+              <SourceBadge sourceName={message.sourceName} sourceType={message.sourceType} />
+            )}
+            {message.confidence != null && message.confidence < 1 && (
+              <ConfidenceBadge confidence={message.confidence} />
             )}
             {message.referenceUrl && (
               <a
@@ -148,6 +216,10 @@ export function MessageBubble({
               </a>
             )}
           </div>
+        )}
+        {/* Feedback bar (thumbs up/down) */}
+        {!isUser && !message.isError && onFeedback && (
+          <FeedbackBar messageId={message.id} onFeedback={onFeedback} />
         )}
         {/* Retry button for errors */}
         {message.isError && message.retryText && onRetry && (
@@ -284,31 +356,21 @@ function RichContentRenderer({
           <p className="text-gray-500">{csvData.rowCount} rows</p>
           {csvData.headers.length > 0 && (
             <>
-              <div className="mt-1 overflow-x-auto">
-                <table className="min-w-full text-xs border border-gray-200 rounded">
-                  <thead>
-                    <tr className="bg-gray-50">
+              <div className="mt-1">
+                <PaginatedTableBody
+                  rows={csvData.rows}
+                  headers={csvData.headers}
+                  renderRow={(row, i) => (
+                    <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                       {csvData.headers.map((h) => (
-                        <th key={h} className="px-2 py-1 text-left font-medium text-gray-600 border-b">{h}</th>
+                        <td key={h} className="px-2 py-1 border-b border-gray-100">{String(row[h] ?? '')}</td>
                       ))}
                     </tr>
-                  </thead>
-                  <tbody>
-                    {csvData.rows.slice(0, 20).map((row, i) => (
-                      <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        {csvData.headers.map((h) => (
-                          <td key={h} className="px-2 py-1 border-b border-gray-100">{String(row[h] ?? '')}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {csvData.rows.length > 20 && (
-                  <p className="text-gray-400 mt-1">Showing 20 of {csvData.rows.length} rows</p>
-                )}
+                  )}
+                />
               </div>
               <Suspense fallback={<div className="h-64 flex items-center justify-center text-[var(--text-muted)]">Loading chart…</div>}>
-                <DataChart data={csvData.rows as Record<string, unknown>[]} headers={csvData.headers} chartConfig={(csvData as Record<string, unknown>).chartConfig as Record<string, unknown> | undefined} columnConfig={(csvData as Record<string, unknown>).columnConfig as Record<string, unknown> | undefined} columnMetadata={(csvData as Record<string, unknown>).columnMetadata as Record<string, unknown>[] | undefined} />
+                <DataChart data={csvData.rows as Record<string, unknown>[]} headers={csvData.headers} chartConfig={(csvData as Record<string, unknown>).chartConfig as Record<string, unknown> | undefined} columnConfig={(csvData as Record<string, unknown>).columnConfig as Record<string, unknown> | undefined} columnMetadata={(csvData as Record<string, unknown>).columnMetadata as DetectedColumnMeta[] | undefined} />
               </Suspense>
             </>
           )}
@@ -332,39 +394,38 @@ function RichContentRenderer({
         <div className="mt-1 text-xs">
           <p className="text-[10px] text-gray-400 mb-1 font-mono">{aggData.filePath}</p>
           {isTop ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-xs border border-blue-200 rounded">
-                <thead>
-                  <tr className="bg-blue-50">
-                    <th className="px-2 py-1 text-left font-medium text-blue-700 border-b border-blue-200 w-8">#</th>
-                    {aggData.aggregation.topHeaders!.map((h) => (
-                      <th
-                        key={h}
-                        className={`px-2 py-1 text-left font-medium border-b border-blue-200 ${h === aggData.aggregation.column ? 'text-blue-800 bg-blue-100' : 'text-blue-700'}`}
-                      >
-                        {h}{h === aggData.aggregation.column ? ' \u2193' : ''}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {aggData.aggregation.topRows!.map((row, i) => (
-                    <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-blue-50/30'}>
-                      <td className="px-2 py-1 border-b border-gray-100 text-gray-400 font-medium">{i + 1}</td>
-                      {aggData.aggregation.topHeaders!.map((h) => (
-                        <td
-                          key={h}
-                          className={`px-2 py-1 border-b border-gray-100 ${h === aggData.aggregation.column ? 'font-semibold text-blue-800' : ''}`}
-                        >
-                          {String(row[h] ?? '')}
-                        </td>
-                      ))}
-                    </tr>
+            <PaginatedTableBody
+              rows={aggData.aggregation.topRows!}
+              headers={['#', ...aggData.aggregation.topHeaders!]}
+              tableClassName="min-w-full text-xs border border-blue-200 rounded"
+              headerClassName="bg-blue-50"
+              renderHeader={(h) =>
+                h === '#' ? (
+                  <th key={h} className="px-2 py-1 text-left font-medium text-blue-700 border-b border-blue-200 w-8">#</th>
+                ) : (
+                  <th
+                    key={h}
+                    className={`px-2 py-1 text-left font-medium border-b border-blue-200 ${h === aggData.aggregation.column ? 'text-blue-800 bg-blue-100' : 'text-blue-700'}`}
+                  >
+                    {h}{h === aggData.aggregation.column ? ' \u2193' : ''}
+                  </th>
+                )
+              }
+              renderRow={(row, i) => (
+                <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-blue-50/30'}>
+                  <td className="px-2 py-1 border-b border-gray-100 text-gray-400 font-medium">{i + 1}</td>
+                  {aggData.aggregation.topHeaders!.map((h) => (
+                    <td
+                      key={h}
+                      className={`px-2 py-1 border-b border-gray-100 ${h === aggData.aggregation.column ? 'font-semibold text-blue-800' : ''}`}
+                    >
+                      {String(row[h] ?? '')}
+                    </td>
                   ))}
-                </tbody>
-              </table>
-              <p className="text-gray-400 mt-1">Sorted by {aggData.aggregation.column} (descending) from {aggData.rowCount} total rows</p>
-            </div>
+                </tr>
+              )}
+              footer={<p className="text-gray-400 mt-1">Sorted by {aggData.aggregation.column} (descending) from {aggData.rowCount} total rows</p>}
+            />
           ) : (
             <div className="bg-blue-50 border border-blue-200 rounded p-3">
               <p className="font-semibold text-blue-800 text-sm">
@@ -379,42 +440,53 @@ function RichContentRenderer({
     case 'csv_group_by': {
       const gbData = richContent.data as {
         groupColumn: string;
-        groups: { groupValue: string | number; count: number; aggregations: Record<string, number> }[];
+        groupColumns?: string[];
+        groups: { groupValue: string | number; groupValues?: Record<string, string | number>; count: number; aggregations: Record<string, number> }[];
         aggregatedColumns: { column: string; operation: string }[];
       };
       const aggCols = gbData.aggregatedColumns.map((c) => c.column);
+      const isMultiCol = gbData.groupColumns && gbData.groupColumns.length > 1;
+      const groupCols = isMultiCol ? gbData.groupColumns! : [gbData.groupColumn];
       // Build flat records for the chart
-      const chartRows = gbData.groups.map((g) => ({
-        [gbData.groupColumn]: g.groupValue,
-        ...g.aggregations,
-      }));
-      const chartHeaders = [gbData.groupColumn, ...aggCols];
+      const chartRows = gbData.groups.map((g) => {
+        const base: Record<string, string | number> = {};
+        if (isMultiCol && g.groupValues) {
+          for (const col of groupCols) base[col] = g.groupValues[col] ?? '';
+        } else {
+          base[gbData.groupColumn] = g.groupValue;
+        }
+        return { ...base, ...g.aggregations };
+      });
+      const chartHeaders = [...groupCols, ...aggCols];
+      const gbHeaders = [...groupCols, ...aggCols.map((c) => `${c} (sum)`), 'count'];
       return (
         <div className="mt-1 text-xs">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-xs border border-blue-200 rounded">
-              <thead>
-                <tr className="bg-blue-50">
-                  <th className="px-2 py-1 text-left font-medium text-blue-800 bg-blue-100 border-b border-blue-200">{gbData.groupColumn}</th>
-                  {aggCols.map((c) => (
-                    <th key={c} className="px-2 py-1 text-left font-medium text-blue-700 border-b border-blue-200">{c} (sum)</th>
-                  ))}
-                  <th className="px-2 py-1 text-left font-medium text-blue-700 border-b border-blue-200">count</th>
-                </tr>
-              </thead>
-              <tbody>
-                {gbData.groups.map((g, i) => (
-                  <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-blue-50/30'}>
-                    <td className="px-2 py-1 border-b border-gray-100 font-semibold text-blue-800">{String(g.groupValue)}</td>
-                    {aggCols.map((c) => (
-                      <td key={c} className="px-2 py-1 border-b border-gray-100">{g.aggregations[c]?.toLocaleString() ?? 0}</td>
-                    ))}
-                    <td className="px-2 py-1 border-b border-gray-100">{g.count}</td>
-                  </tr>
+          <PaginatedTableBody
+            rows={gbData.groups}
+            headers={gbHeaders}
+            tableClassName="min-w-full text-xs border border-blue-200 rounded"
+            headerClassName="bg-blue-50"
+            renderHeader={(h) => {
+              const isGroupCol = groupCols.includes(h);
+              return (
+                <th key={h} className={`px-2 py-1 text-left font-medium border-b border-blue-200 ${isGroupCol ? 'text-blue-800 bg-blue-100' : 'text-blue-700'}`}>{h}</th>
+              );
+            }}
+            renderRow={(g, i) => (
+              <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-blue-50/30'}>
+                {isMultiCol && g.groupValues
+                  ? groupCols.map((col) => (
+                      <td key={col} className="px-2 py-1 border-b border-gray-100 font-semibold text-blue-800">{String(g.groupValues![col] ?? '')}</td>
+                    ))
+                  : <td className="px-2 py-1 border-b border-gray-100 font-semibold text-blue-800">{String(g.groupValue)}</td>
+                }
+                {aggCols.map((c) => (
+                  <td key={c} className="px-2 py-1 border-b border-gray-100">{g.aggregations[c]?.toLocaleString() ?? 0}</td>
                 ))}
-              </tbody>
-            </table>
-          </div>
+                <td className="px-2 py-1 border-b border-gray-100">{g.count}</td>
+              </tr>
+            )}
+          />
           {chartRows.length > 1 && (
             <div className="mt-2">
               <Suspense fallback={<div className="h-64 flex items-center justify-center text-[var(--text-muted)]">Loading chart…</div>}>
@@ -992,13 +1064,14 @@ function QueryResultTable({
   linkedSelection,
   onCellClick,
 }: {
-  result: QueryResultData & { chartConfig?: Record<string, unknown>; columnConfig?: Record<string, unknown>; columnMetadata?: Record<string, unknown>[] };
+  result: QueryResultData & { chartConfig?: Record<string, unknown>; columnConfig?: Record<string, unknown>; columnMetadata?: DetectedColumnMeta[] };
   cardId?: string;
   linkedSelection?: LinkedSelection;
   onCellClick?: (column: string, value: unknown) => void;
 }) {
   const [pageRange, setPageRange] = useState({ start: 0, end: 10 });
-  const pagedData = result.data.slice(pageRange.start, pageRange.end);
+  const rows = result.data || [];
+  const pagedData = rows.slice(pageRange.start, pageRange.end);
 
   // Determine if this card should highlight rows (linked selection from another card)
   const highlightValue = linkedSelection?.value;
@@ -1015,13 +1088,13 @@ function QueryResultTable({
       <p className="text-gray-500">
         {result.rowCount} rows in {result.executionTime}ms
       </p>
-      {result.data.length > 0 && (
+      {rows.length > 0 && (
         <>
           <div className="mt-1 overflow-x-auto">
             <table className="min-w-full text-xs border border-gray-200 rounded">
               <thead>
                 <tr className="bg-gray-50">
-                  {Object.keys(result.data[0]).map((key) => (
+                  {Object.keys(rows[0]).map((key) => (
                     <th
                       key={key}
                       className="px-2 py-1 text-left font-medium text-gray-600 border-b"
@@ -1053,15 +1126,15 @@ function QueryResultTable({
               </tbody>
             </table>
           </div>
-          {result.data.length > 10 && (
+          {rows.length > 10 && (
             <TablePagination
-              totalRows={result.data.length}
+              totalRows={rows.length}
               onPageChange={(start, end) => setPageRange({ start, end })}
-              onExport={() => exportToCsv(result.data as Record<string, unknown>[], 'query-results.csv')}
+              onExport={() => exportToCsv(rows as Record<string, unknown>[], 'query-results.csv')}
             />
           )}
           <Suspense fallback={<div className="h-64 flex items-center justify-center text-[var(--text-muted)]">Loading chart…</div>}>
-            <DataChart data={result.data} chartConfig={result.chartConfig} columnConfig={result.columnConfig} columnMetadata={result.columnMetadata} />
+            <DataChart data={rows} chartConfig={result.chartConfig} columnConfig={result.columnConfig} columnMetadata={result.columnMetadata} />
           </Suspense>
         </>
       )}

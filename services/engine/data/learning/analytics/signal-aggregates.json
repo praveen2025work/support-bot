@@ -1,0 +1,67 @@
+{
+  "group by category": {
+    "intent": "query.execute",
+    "positive": 3,
+    "negative": 0
+  },
+  "summarize": {
+    "intent": "None",
+    "positive": 3,
+    "negative": 0
+  },
+  "run support_tickets": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "sort by resolution_hours desc": {
+    "intent": "query.execute",
+    "positive": 3,
+    "negative": 0
+  },
+  "sort by resolution_hours asc": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "top 5 by resolution_hours": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "bottom 5 by resolution_hours": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "group by ticket_id": {
+    "intent": "query.execute",
+    "positive": 2,
+    "negative": 0
+  },
+  "group by priority": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "sum resolution_hours": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "min resolution_hours": {
+    "intent": "None",
+    "positive": 1,
+    "negative": 0
+  },
+  "avg resolution_hours": {
+    "intent": "None",
+    "positive": 1,
+    "negative": 0
+  },
+  "group by status": {
+    "intent": "followup.group_by",
+    "positive": 1,
+    "negative": 0
+  }
+}

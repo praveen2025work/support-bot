@@ -5,3 +5,11 @@
 {"id":"al-005","timestamp":"2026-03-12T08:20:00.000Z","utterance":"get customer churn data","intent":"query.execute","positiveSignals":3,"source":"auto"}
 {"id":"al-006","timestamp":"2026-03-12T11:45:00.000Z","utterance":"what queries can I run","intent":"query.list","positiveSignals":4,"source":"auto"}
 {"id":"al-007","timestamp":"2026-03-12T13:00:00.000Z","utterance":"help me with finance reports","intent":"help","positiveSignals":3,"source":"auto"}
+{"id":"cdad183a-9f69-471b-90df-beb66ea36c35","timestamp":"2026-03-13T03:31:55.746Z","utterance":"list queries","intent":"query.list","positiveSignals":3,"source":"auto"}
+{"id":"3594548d-714e-4816-aee4-3f6a071ba30d","timestamp":"2026-03-13T03:31:55.747Z","utterance":"group by region","intent":"query.execute","positiveSignals":3,"source":"auto"}
+{"id":"b38149d7-b40b-4d7f-b2af-513d8357948c","timestamp":"2026-03-18T01:43:11.918Z","utterance":"summarize","intent":"None","positiveSignals":4,"source":"auto"}
+{"id":"b6551520-a182-4305-8b3a-abca7d6475bc","timestamp":"2026-03-18T03:14:39.828Z","utterance":"group by product","intent":"query.execute","positiveSignals":3,"source":"auto"}
+{"id":"4a16d828-8d9b-4eb1-a0e2-36d752a3b929","timestamp":"2026-03-18T03:14:39.828Z","utterance":"group by pnl_name","intent":"query.execute","positiveSignals":4,"source":"auto"}
+{"id":"82f24f0b-9e60-444d-8a04-7aade05958bd","timestamp":"2026-03-18T03:14:39.829Z","utterance":"group by books_open","intent":"query.execute","positiveSignals":3,"source":"auto"}
+{"id":"76272de9-b028-428b-8f81-b7700b69e76e","timestamp":"2026-03-18T03:14:39.831Z","utterance":"group by employee","intent":"query.execute","positiveSignals":3,"source":"auto"}
+{"id":"fe674016-f0ce-4b97-b573-6c59c4afa671","timestamp":"2026-03-18T03:14:39.831Z","utterance":"[feedback:positive]","intent":"unknown","positiveSignals":4,"source":"auto"}

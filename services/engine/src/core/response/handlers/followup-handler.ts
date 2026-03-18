@@ -787,13 +787,73 @@ export function handleDataLookup(
     'how', 'many', 'much', 'does', 'do', 'can', 'you', 'i', 'to', 'it', 'that',
     'this', 'those', 'these', 'any', 'some', 'where', 'which', 'who', 'whom',
     'run', 'query', 'data', 'result', 'results', 'please', 'just', 'only',
+    'down', 'every', 'each',
   ]);
+  // Also treat exact column header names as noise (user may say "list product Widget Pro")
+  const headerLower = new Set(csvData.headers.map((h) => h.toLowerCase()));
   const searchTerms = lower
     .replace(/[^\w\s]/g, '')
     .split(/\s+/)
-    .filter((w) => w.length >= 2 && !searchStopWords.has(w));
+    .filter((w) => w.length >= 2 && !searchStopWords.has(w) && !headerLower.has(w));
 
-  if (searchTerms.length === 0) return null;
+  if (searchTerms.length === 0) {
+    // "list all products" / "list down all X" — strip words leave no search terms
+    // Try to match a remaining hint word to a column name and return distinct values
+    const listAllMatch = lower.match(/\blist\s+(?:down\s+)?(?:all\s+)?(.+)?/i);
+    if (listAllMatch) {
+      const hint = (listAllMatch[1] || '').trim().replace(/[^\w\s]/g, '');
+      if (hint) {
+        // Try to match hint to a column name (case-insensitive, partial match)
+        const col = csvData.headers.find((h) => {
+          const hl = h.toLowerCase();
+          return hl.includes(hint) || hint.includes(hl);
+        });
+        if (col) {
+          const seen = new Set<string>();
+          const uniqueVals: string[] = [];
+          for (const r of csvData.rows) {
+            const v = String(r[col] ?? '');
+            if (v && !seen.has(v)) { seen.add(v); uniqueVals.push(v); }
+          }
+          return {
+            text: `Found ${uniqueVals.length} unique value(s) in column "${col}":`,
+            richContent: {
+              type: 'csv_table',
+              data: {
+                headers: [col],
+                rows: uniqueVals.slice(0, 50).map((v) => ({ [col]: v })),
+                filePath: (context.lastApiResult as Record<string, unknown>)?.filePath,
+                rowCount: uniqueVals.length,
+              },
+            },
+            suggestions: ['summarize', `group by ${col}`],
+            sessionId: context.sessionId,
+            intent: 'followup.data_lookup',
+            confidence: 1,
+          };
+        }
+      }
+      // No column match — return all rows (capped)
+      const cap = Math.min(csvData.rows.length, 20);
+      return {
+        text: `Showing ${cap} of ${csvData.rows.length} row(s) from "${context.lastQueryName}":`,
+        richContent: {
+          type: 'csv_table',
+          data: {
+            headers: csvData.headers,
+            rows: csvData.rows.slice(0, cap),
+            filePath: (context.lastApiResult as Record<string, unknown>)?.filePath,
+            rowCount: csvData.rows.length,
+          },
+        },
+        suggestions: ['summarize', ...csvData.headers.slice(0, 2).map((h) => `group by ${h}`)],
+        sessionId: context.sessionId,
+        intent: 'followup.data_lookup',
+        confidence: 1,
+      };
+    }
+    return null;
+  }
 
   // Try to find rows where any column value matches the search terms
   const matchedRows = csvData.rows.filter((row) => {
@@ -812,7 +872,55 @@ export function handleDataLookup(
       return matchCount >= threshold;
     });
 
-    if (partialMatches.length === 0) return null;
+    if (partialMatches.length === 0) {
+      // "list all products" — searchTerms=['products'] didn't match row values
+      // Check if any search term matches a column name (singular/plural fuzzy)
+      // Only for simple queries (1-2 terms) to avoid false matches like "list widget pro revenue"
+      // Additionally, ALL search terms must match column names (not a mix of column + value terms)
+      if (/\blist\b/i.test(lower) && searchTerms.length <= 2) {
+        // Find the first term that matches a column name
+        let matchedCol: string | undefined;
+        let allTermsAreColumns = true;
+        for (const term of searchTerms) {
+          const col = csvData.headers.find((h) => {
+            const hl = h.toLowerCase();
+            return hl.includes(term) || term.includes(hl)
+              || hl + 's' === term || hl === term + 's';
+          });
+          if (col) {
+            if (!matchedCol) matchedCol = col;
+          } else {
+            allTermsAreColumns = false;
+          }
+        }
+        if (matchedCol && allTermsAreColumns) {
+          const col = matchedCol;
+          const seen = new Set<string>();
+          const uniqueVals: string[] = [];
+          for (const r of csvData.rows) {
+            const v = String(r[col] ?? '');
+            if (v && !seen.has(v)) { seen.add(v); uniqueVals.push(v); }
+          }
+          return {
+            text: `Found ${uniqueVals.length} unique value(s) in column "${col}":`,
+            richContent: {
+              type: 'csv_table',
+              data: {
+                headers: [col],
+                rows: uniqueVals.slice(0, 50).map((v) => ({ [col]: v })),
+                filePath: (context.lastApiResult as Record<string, unknown>)?.filePath,
+                rowCount: uniqueVals.length,
+              },
+            },
+            suggestions: ['summarize', `group by ${col}`],
+            sessionId: context.sessionId,
+            intent: 'followup.data_lookup',
+            confidence: 1,
+          };
+        }
+      }
+      return null;
+    }
     if (partialMatches.length > 20) return null; // Too many results, not specific enough
 
     logger.info({ query: context.lastQueryName, terms: searchTerms, matched: partialMatches.length }, 'Data lookup: partial match');

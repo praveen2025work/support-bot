@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { csrfHeaders } from '@/lib/csrf';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 interface IntentData {
   intent: string;
@@ -38,6 +39,7 @@ export default function IntentBuilderPage() {
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [editSynonyms, setEditSynonyms] = useState('');
+  const [deleteIntentTarget, setDeleteIntentTarget] = useState<string | null>(null);
   const [newOptionKey, setNewOptionKey] = useState('');
   const [newOptionSynonyms, setNewOptionSynonyms] = useState('');
 
@@ -118,9 +120,9 @@ export default function IntentBuilderPage() {
   };
 
   const handleDeleteIntent = async (intent: string) => {
-    if (!confirm(`Delete intent "${intent}"? This cannot be undone.`)) return;
     await fetch(`/api/admin/intents?intent=${encodeURIComponent(intent)}`, { method: 'DELETE', headers: { ...csrfHeaders() } });
     setSelectedIntent(null);
+    setDeleteIntentTarget(null);
     await fetchData();
   };
 
@@ -268,7 +270,7 @@ export default function IntentBuilderPage() {
                     <span className="text-xs text-gray-400">{selected.utteranceCount} training phrases</span>
                   </div>
                   <button
-                    onClick={() => handleDeleteIntent(selected.intent)}
+                    onClick={() => setDeleteIntentTarget(selected.intent)}
                     className="text-xs text-red-500 hover:underline"
                   >
                     Delete Intent
@@ -447,6 +449,16 @@ export default function IntentBuilderPage() {
           )}
         </div>
       )}
+
+      <ConfirmModal
+        open={!!deleteIntentTarget}
+        title="Delete Intent"
+        message={deleteIntentTarget ? `Delete intent "${deleteIntentTarget}"? This cannot be undone.` : ''}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => { if (deleteIntentTarget) handleDeleteIntent(deleteIntentTarget); }}
+        onCancel={() => setDeleteIntentTarget(null)}
+      />
     </div>
   );
 }

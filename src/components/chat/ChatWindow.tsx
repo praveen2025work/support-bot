@@ -7,6 +7,7 @@ import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { SuggestionChips } from './SuggestionChips';
 import { ErrorBoundary } from './ErrorBoundary';
+import { FileDropZone } from './FileDropZone';
 
 /** Compute a safe postMessage target origin instead of broadcasting to '*'. */
 function getPostMessageTargetOrigin(): string {
@@ -57,7 +58,7 @@ export function ChatWindow({
   userName?: string;
   hideHeader?: boolean;
 }) {
-  const { messages, isLoading, loadingStatus, sendMessage, executeQuery, retryMessage, clearMessages } = useChat(platform, groupId, userName);
+  const { messages, isLoading, loadingStatus, sendMessage, executeQuery, retryMessage, clearMessages, submitFeedback, uploadFile } = useChat(platform, groupId, userName);
   const { userInfo } = useUser();
   const engineStatus = useEngineStatus();
 
@@ -99,6 +100,7 @@ export function ChatWindow({
 
   return (
     <ErrorBoundary>
+      <FileDropZone onFileDrop={uploadFile} disabled={isLoading}>
       <div className="flex flex-col h-full bg-white">
       {platform === 'widget' ? (
         /* Single-row sticky header: bot icon, title, user info, status, minimize, close */
@@ -196,7 +198,7 @@ export function ChatWindow({
         </div>
       ) : null}
 
-      <MessageList messages={messages} isLoading={isLoading} loadingStatus={loadingStatus} onAction={sendMessage} onExecuteQuery={executeQuery} onRetry={retryMessage} />
+      <MessageList messages={messages} isLoading={isLoading} loadingStatus={loadingStatus} onAction={sendMessage} onExecuteQuery={executeQuery} onRetry={retryMessage} onFeedback={submitFeedback} />
 
       {suggestions.length > 0 && !isLoading && (
         <SuggestionChips suggestions={suggestions} onSelect={sendMessage} />
@@ -208,8 +210,10 @@ export function ChatWindow({
         onNewSession={handleNewSession}
         onClearChat={handleClearChat}
         onDisconnect={handleDisconnect}
+        onFileSelect={uploadFile}
       />
       </div>
+      </FileDropZone>
     </ErrorBoundary>
   );
 }

@@ -1,242 +1,110 @@
 {
   "queryStats": [
     {
-      "id": "stat_1773273794141_fdmm",
+      "id": "stat_1773804304909_is2j",
+      "queryName": "error_rate",
+      "success": true,
+      "durationMs": 2,
+      "timestamp": "2026-03-18T03:25:04.909Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773804712260_ce2m",
       "queryName": "monthly_revenue",
       "success": true,
-      "durationMs": 9,
-      "timestamp": "2026-03-12T00:03:14.141Z",
+      "durationMs": 6,
+      "timestamp": "2026-03-18T03:31:52.260Z",
       "filters": {
-        "time_period": "this_month"
+        "date_range": "this_month",
+        "region": "US"
       }
     },
     {
-      "id": "stat_1773273796868_7eyw",
-      "queryName": "service_logs",
-      "success": true,
-      "durationMs": 8,
-      "timestamp": "2026-03-12T00:03:16.868Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773273863459_0gc0",
-      "queryName": "employee_metrics",
+      "id": "stat_1773804716433_uom5",
+      "queryName": "monthly_revenue",
       "success": true,
       "durationMs": 3,
-      "timestamp": "2026-03-12T00:04:23.459Z",
+      "timestamp": "2026-03-18T03:31:56.433Z",
+      "filters": {
+        "date_range": "this_month",
+        "region": "US"
+      }
+    },
+    {
+      "id": "stat_1773804756450_tqoj",
+      "queryName": "monthly_revenue",
+      "success": true,
+      "durationMs": 2,
+      "timestamp": "2026-03-18T03:32:36.450Z",
+      "filters": {
+        "date_range": "this_month",
+        "region": "US"
+      }
+    },
+    {
+      "id": "stat_1773805026113_zs17",
+      "queryName": "monthly_revenue",
+      "success": true,
+      "durationMs": 6,
+      "timestamp": "2026-03-18T03:37:06.113Z",
+      "filters": {
+        "date_range": "this_month"
+      }
+    },
+    {
+      "id": "stat_1773805047422_9fzk",
+      "queryName": "sales_data",
+      "success": true,
+      "durationMs": 1,
+      "timestamp": "2026-03-18T03:37:27.422Z",
       "filters": {}
     },
     {
-      "id": "stat_1773273876529_ques",
+      "id": "stat_1773805051346_74gu",
+      "queryName": "support_tickets",
+      "success": true,
+      "durationMs": 2,
+      "timestamp": "2026-03-18T03:37:31.346Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1773805053318_tnh0",
       "queryName": "employee_metrics",
       "success": true,
       "durationMs": 1,
-      "timestamp": "2026-03-12T00:04:36.529Z",
+      "timestamp": "2026-03-18T03:37:33.318Z",
       "filters": {}
     },
     {
-      "id": "stat_1773274000674_yts7",
-      "queryName": "employee_metrics",
-      "success": true,
-      "durationMs": 14,
-      "timestamp": "2026-03-12T00:06:40.674Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773280984354_ub02",
-      "queryName": "customer_churn",
-      "success": true,
-      "durationMs": 14,
-      "timestamp": "2026-03-12T02:03:04.354Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773281393693_d4zk",
-      "queryName": "customer_churn",
-      "success": true,
-      "durationMs": 32,
-      "timestamp": "2026-03-12T02:09:53.693Z",
-      "filters": {
-        "time_period": "jan_2026"
-      }
-    },
-    {
-      "id": "stat_1773281424470_aeul",
-      "queryName": "customer_churn",
-      "success": true,
-      "durationMs": 5,
-      "timestamp": "2026-03-12T02:10:24.470Z",
-      "filters": {
-        "time_period": "jan_2026"
-      }
-    },
-    {
-      "id": "stat_1773281900818_lyc4",
-      "queryName": "monthly_revenue",
+      "id": "stat_1773805055837_udx7",
+      "queryName": "pnl_availability",
       "success": true,
       "durationMs": 3,
-      "timestamp": "2026-03-12T02:18:20.818Z",
-      "filters": {
-        "time_period": "this_month",
-        "region": "EU"
-      }
-    },
-    {
-      "id": "stat_1773281902665_lqeo",
-      "queryName": "incident_report",
-      "success": true,
-      "durationMs": 2,
-      "timestamp": "2026-03-12T02:18:22.665Z",
+      "timestamp": "2026-03-18T03:37:35.837Z",
       "filters": {}
     },
     {
-      "id": "stat_1773281906288_vyc5",
-      "queryName": "hiring_pipeline",
-      "success": true,
-      "durationMs": 5,
-      "timestamp": "2026-03-12T02:18:26.288Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773282096758_y3b6",
-      "queryName": "hiring_pipeline",
-      "success": true,
-      "durationMs": 24,
-      "timestamp": "2026-03-12T02:21:36.758Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773282107504_i8c5",
-      "queryName": "customer_churn",
-      "success": true,
-      "durationMs": 23,
-      "timestamp": "2026-03-12T02:21:47.504Z",
-      "filters": {
-        "time_period": "feb_2026"
-      }
-    },
-    {
-      "id": "stat_1773282145243_r47s",
-      "queryName": "customer_churn",
-      "success": true,
-      "durationMs": 3,
-      "timestamp": "2026-03-12T02:22:25.243Z",
-      "filters": {
-        "time_period": "mar_2026"
-      }
-    },
-    {
-      "id": "stat_1773282616363_x88w",
-      "queryName": "sales_data",
-      "success": true,
-      "durationMs": 14,
-      "timestamp": "2026-03-12T02:30:16.363Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773283541020_ud9q",
-      "queryName": "user_profile",
-      "success": true,
-      "durationMs": 5,
-      "timestamp": "2026-03-12T02:45:41.020Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773283546179_mroq",
-      "queryName": "sales_data",
-      "success": true,
-      "durationMs": 3,
-      "timestamp": "2026-03-12T02:45:46.179Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773283891921_s3x9",
-      "queryName": "customer_churn",
-      "success": true,
-      "durationMs": 28,
-      "timestamp": "2026-03-12T02:51:31.921Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773283901909_yj7n",
-      "queryName": "customer_churn",
-      "success": true,
-      "durationMs": 3,
-      "timestamp": "2026-03-12T02:51:41.909Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773317003726_ih7u",
-      "queryName": "user_profile",
-      "success": true,
-      "durationMs": 4,
-      "timestamp": "2026-03-12T12:03:23.726Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773317067737_yw80",
+      "id": "stat_1773805167437_5amr",
       "queryName": "performance",
       "success": true,
-      "durationMs": 14,
-      "timestamp": "2026-03-12T12:04:27.737Z",
+      "durationMs": 7,
+      "timestamp": "2026-03-18T03:39:27.437Z",
       "filters": {}
     },
     {
-      "id": "stat_1773317186047_vc3g",
-      "queryName": "user_profile",
-      "success": true,
-      "durationMs": 26,
-      "timestamp": "2026-03-12T12:06:26.047Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773317231964_puq8",
-      "queryName": "customer_churn",
-      "success": true,
-      "durationMs": 5,
-      "timestamp": "2026-03-12T12:07:11.964Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773317256413_7fv8",
-      "queryName": "monthly_revenue",
-      "success": true,
-      "durationMs": 11,
-      "timestamp": "2026-03-12T12:07:36.413Z",
-      "filters": {
-        "time_period": "this_month"
-      }
-    },
-    {
-      "id": "stat_1773317275152_s208",
-      "queryName": "sales_data",
+      "id": "stat_1773805167444_nq4p",
+      "queryName": "error_rate",
       "success": true,
       "durationMs": 7,
-      "timestamp": "2026-03-12T12:07:55.152Z",
+      "timestamp": "2026-03-18T03:39:27.444Z",
       "filters": {}
     },
     {
-      "id": "stat_1773317333893_bw8o",
-      "queryName": "user_profile",
-      "success": true,
-      "durationMs": 4,
-      "timestamp": "2026-03-12T12:08:53.893Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773317493730_izld",
-      "queryName": "user_profile",
-      "success": true,
-      "durationMs": 22,
-      "timestamp": "2026-03-12T12:11:33.730Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773317537666_15y7",
-      "queryName": "user_profile",
+      "id": "stat_1773805216442_n6wx",
+      "queryName": "performance",
       "success": true,
       "durationMs": 2,
-      "timestamp": "2026-03-12T12:12:17.666Z",
+      "timestamp": "2026-03-18T03:40:16.442Z",
       "filters": {}
     }
   ]

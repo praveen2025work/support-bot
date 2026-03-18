@@ -4,134 +4,619 @@
   "entities": {
     "query_name": {
       "options": {
-        "monthly_revenue": ["monthly revenue", "revenue report", "monthly sales", "revenue"],
-        "active_users": ["active users", "user count", "monthly active users", "MAU", "users"],
-        "error_rate": ["error rate", "errors", "failure rate", "error report"],
-        "performance": ["performance", "performance metrics", "latency", "response time"],
-        "daily_orders": ["daily orders", "orders today", "order count", "orders"],
-        "customer_churn": ["customer churn", "churn rate", "churn", "attrition"],
-        "infrastructure_costs": ["infrastructure costs", "infra costs", "cloud costs", "costs"],
-        "headcount": ["headcount", "head count", "employee count", "team size"],
-        "hiring_pipeline": ["hiring pipeline", "hiring funnel", "open positions", "hiring"],
-        "onboarding_guide": ["onboarding guide", "onboarding", "new employee guide", "onboarding docs"],
-        "api_changelog": ["api changelog", "changelog", "release notes", "api changes"],
-        "brd_payments": ["brd_payments", "brd payments", "payments brd", "payments document", "payments requirements"],
-        "sales_data": ["sales_data", "sales data", "sales report", "sales csv", "sales metrics", "revenue data"],
-        "auth_spec": ["auth_spec", "auth spec", "authentication spec", "authorization spec", "auth feature spec", "auth module"],
-        "incident_report": ["incident_report", "incident report", "outage report", "post mortem", "incident post mortem"],
-        "deployment_runbook": ["deployment_runbook", "deployment runbook", "deploy runbook", "deployment guide", "release runbook"],
-        "support_tickets": ["support_tickets", "support tickets", "tickets", "support data", "ticket data"],
-        "pnl_availability": ["pnl_availability", "pnl availability", "pnl dashboard", "p&l availability", "p&l delivery", "pnl delivery"],
-        "employee_compensation": ["employee_compensation", "employee compensation", "compensation data", "salary data", "salary report", "compensation report"],
-        "employee_metrics": ["employee_metrics", "employee metrics", "employee data", "staff metrics", "workforce data"],
-        "servicenow_dashboard": ["servicenow_dashboard", "servicenow dashboard", "servicenow", "itsm dashboard", "incident tracking"],
-        "architecture_wiki": ["architecture_wiki", "architecture wiki", "system architecture", "architecture docs", "architecture documentation"],
-        "user_profile": ["user_profile", "user profile", "profile", "user info", "user details", "user data"],
-        "service_logs": ["service_logs", "service logs", "logs", "log data", "application logs", "server logs"],
-        "report_generator": ["report_generator", "report generator", "generate report", "report", "custom report", "generate a report"],
-
-        "quarterly_revenue": ["quarterly revenue", "Q1 revenue", "Q2 revenue", "Q3 revenue", "Q4 revenue", "quarterly earnings"],
-        "gross_margin": ["gross margin", "gross profit margin", "GP margin", "gross profit"],
-        "ebitda": ["EBITDA", "earnings before interest", "operating earnings", "ebitda report"],
-        "net_income": ["net income", "net profit", "bottom line", "net earnings"],
-        "revenue_by_segment": ["revenue by segment", "segment revenue", "business line revenue", "divisional revenue"],
-        "yoy_growth": ["YoY growth", "year over year", "annual growth", "growth rate", "YoY"],
-        "pnl_summary": ["P&L", "profit and loss", "income statement", "P&L summary", "PnL"],
-
-        "trade_volume": ["trade volume", "trading volume", "number of trades", "trade count"],
-        "trading_pnl": ["trading P&L", "desk PnL", "trading profit", "desk profit and loss", "trading pnl"],
-        "var_report": ["VaR", "value at risk", "VaR report", "market risk"],
-        "market_exposure": ["market exposure", "net exposure", "gross exposure", "position exposure"],
-        "positions": ["positions", "open positions", "current positions", "book positions"],
-
-        "credit_risk": ["credit risk", "credit exposure", "counterparty risk", "credit metrics"],
-        "regulatory_report": ["regulatory report", "reg report", "compliance report", "regulatory filing"],
-        "aml_alerts": ["AML alerts", "anti money laundering", "AML report", "suspicious activity"],
-        "compliance_metrics": ["compliance metrics", "compliance dashboard", "compliance KPIs"],
-        "capital_adequacy": ["capital adequacy", "CAR", "capital ratio", "Tier 1 capital", "CET1"],
-
-        "aum": ["AUM", "assets under management", "managed assets", "total AUM"],
-        "portfolio_performance": ["portfolio performance", "fund performance", "investment returns", "portfolio returns"],
-        "fund_nav": ["fund NAV", "net asset value", "NAV report", "fund valuation"],
-        "client_assets": ["client assets", "client holdings", "client balances", "client portfolio"],
-        "client_onboarding": ["client onboarding", "KYC status", "onboarding pipeline", "new client"],
-
-        "settlement_failures": ["settlement failures", "failed settlements", "settlement fails", "unmatched trades"],
-        "stp_rate": ["STP rate", "straight through processing", "STP ratio", "automation rate"],
-        "reconciliation": ["reconciliation", "recon report", "reconciliation breaks", "recon status"],
-        "trade_breaks": ["trade breaks", "breaks report", "unmatched items", "exception report"],
-        "operational_risk": ["operational risk", "op risk", "operational risk events", "op risk metrics"],
-
-        "loan_book": ["loan book", "loan portfolio", "outstanding loans", "loan balances"],
-        "npl_ratio": ["NPL ratio", "non performing loans", "NPL report", "bad loans"],
-        "origination_pipeline": ["origination pipeline", "loan origination", "deal pipeline", "new loans"],
-
-        "liquidity": ["liquidity", "liquidity report", "cash reserves", "LCR", "liquidity coverage"],
-        "cash_position": ["cash position", "cash balance", "daily cash", "cash flow"],
-        "fx_exposure": ["FX exposure", "foreign exchange", "currency exposure", "FX risk"],
-        "interest_rate_risk": ["interest rate risk", "rate risk", "duration risk", "IR sensitivity"]
+        "monthly_revenue": [
+          "monthly revenue",
+          "revenue report",
+          "monthly sales",
+          "revenue"
+        ],
+        "active_users": [
+          "active users",
+          "user count",
+          "monthly active users",
+          "MAU",
+          "users"
+        ],
+        "error_rate": [
+          "error rate",
+          "errors",
+          "failure rate",
+          "error report"
+        ],
+        "performance": [
+          "performance",
+          "performance metrics",
+          "latency",
+          "response time"
+        ],
+        "daily_orders": [
+          "daily orders",
+          "orders today",
+          "order count",
+          "orders"
+        ],
+        "customer_churn": [
+          "customer churn",
+          "churn rate",
+          "churn",
+          "attrition"
+        ],
+        "infrastructure_costs": [
+          "infrastructure costs",
+          "infra costs",
+          "cloud costs",
+          "costs"
+        ],
+        "headcount": [
+          "headcount",
+          "head count",
+          "employee count",
+          "team size"
+        ],
+        "hiring_pipeline": [
+          "hiring pipeline",
+          "hiring funnel",
+          "open positions",
+          "hiring"
+        ],
+        "onboarding_guide": [
+          "onboarding guide",
+          "onboarding",
+          "new employee guide",
+          "onboarding docs"
+        ],
+        "api_changelog": [
+          "api changelog",
+          "changelog",
+          "release notes",
+          "api changes"
+        ],
+        "brd_payments": [
+          "brd_payments",
+          "brd payments",
+          "payments brd",
+          "payments document",
+          "payments requirements"
+        ],
+        "sales_data": [
+          "sales_data",
+          "sales data",
+          "sales report",
+          "sales csv",
+          "sales metrics",
+          "revenue data"
+        ],
+        "auth_spec": [
+          "auth_spec",
+          "auth spec",
+          "authentication spec",
+          "authorization spec",
+          "auth feature spec",
+          "auth module"
+        ],
+        "incident_report": [
+          "incident_report",
+          "incident report",
+          "outage report",
+          "post mortem",
+          "incident post mortem"
+        ],
+        "deployment_runbook": [
+          "deployment_runbook",
+          "deployment runbook",
+          "deploy runbook",
+          "deployment guide",
+          "release runbook"
+        ],
+        "support_tickets": [
+          "support_tickets",
+          "support tickets",
+          "tickets",
+          "support data",
+          "ticket data"
+        ],
+        "pnl_availability": [
+          "pnl_availability",
+          "pnl availability",
+          "pnl dashboard",
+          "p&l availability",
+          "p&l delivery",
+          "pnl delivery"
+        ],
+        "employee_compensation": [
+          "employee_compensation",
+          "employee compensation",
+          "compensation data",
+          "salary data",
+          "salary report",
+          "compensation report"
+        ],
+        "employee_metrics": [
+          "employee_metrics",
+          "employee metrics",
+          "employee data",
+          "staff metrics",
+          "workforce data"
+        ],
+        "servicenow_dashboard": [
+          "servicenow_dashboard",
+          "servicenow dashboard",
+          "servicenow",
+          "itsm dashboard",
+          "incident tracking"
+        ],
+        "architecture_wiki": [
+          "architecture_wiki",
+          "architecture wiki",
+          "system architecture",
+          "architecture docs",
+          "architecture documentation"
+        ],
+        "user_profile": [
+          "user_profile",
+          "user profile",
+          "profile",
+          "user info",
+          "user details",
+          "user data"
+        ],
+        "service_logs": [
+          "service_logs",
+          "service logs",
+          "logs",
+          "log data",
+          "application logs",
+          "server logs"
+        ],
+        "report_generator": [
+          "report_generator",
+          "report generator",
+          "generate report",
+          "report",
+          "custom report",
+          "generate a report"
+        ],
+        "quarterly_revenue": [
+          "quarterly revenue",
+          "Q1 revenue",
+          "Q2 revenue",
+          "Q3 revenue",
+          "Q4 revenue",
+          "quarterly earnings"
+        ],
+        "gross_margin": [
+          "gross margin",
+          "gross profit margin",
+          "GP margin",
+          "gross profit"
+        ],
+        "ebitda": [
+          "EBITDA",
+          "earnings before interest",
+          "operating earnings",
+          "ebitda report"
+        ],
+        "net_income": [
+          "net income",
+          "net profit",
+          "bottom line",
+          "net earnings"
+        ],
+        "revenue_by_segment": [
+          "revenue by segment",
+          "segment revenue",
+          "business line revenue",
+          "divisional revenue"
+        ],
+        "yoy_growth": [
+          "YoY growth",
+          "year over year",
+          "annual growth",
+          "growth rate",
+          "YoY"
+        ],
+        "pnl_summary": [
+          "P&L",
+          "profit and loss",
+          "income statement",
+          "P&L summary",
+          "PnL"
+        ],
+        "trade_volume": [
+          "trade volume",
+          "trading volume",
+          "number of trades",
+          "trade count"
+        ],
+        "trading_pnl": [
+          "trading P&L",
+          "desk PnL",
+          "trading profit",
+          "desk profit and loss",
+          "trading pnl"
+        ],
+        "var_report": [
+          "VaR",
+          "value at risk",
+          "VaR report",
+          "market risk"
+        ],
+        "market_exposure": [
+          "market exposure",
+          "net exposure",
+          "gross exposure",
+          "position exposure"
+        ],
+        "positions": [
+          "positions",
+          "open positions",
+          "current positions",
+          "book positions"
+        ],
+        "credit_risk": [
+          "credit risk",
+          "credit exposure",
+          "counterparty risk",
+          "credit metrics"
+        ],
+        "regulatory_report": [
+          "regulatory report",
+          "reg report",
+          "compliance report",
+          "regulatory filing"
+        ],
+        "aml_alerts": [
+          "AML alerts",
+          "anti money laundering",
+          "AML report",
+          "suspicious activity"
+        ],
+        "compliance_metrics": [
+          "compliance metrics",
+          "compliance dashboard",
+          "compliance KPIs"
+        ],
+        "capital_adequacy": [
+          "capital adequacy",
+          "CAR",
+          "capital ratio",
+          "Tier 1 capital",
+          "CET1"
+        ],
+        "aum": [
+          "AUM",
+          "assets under management",
+          "managed assets",
+          "total AUM"
+        ],
+        "portfolio_performance": [
+          "portfolio performance",
+          "fund performance",
+          "investment returns",
+          "portfolio returns"
+        ],
+        "fund_nav": [
+          "fund NAV",
+          "net asset value",
+          "NAV report",
+          "fund valuation"
+        ],
+        "client_assets": [
+          "client assets",
+          "client holdings",
+          "client balances",
+          "client portfolio"
+        ],
+        "client_onboarding": [
+          "client onboarding",
+          "KYC status",
+          "onboarding pipeline",
+          "new client"
+        ],
+        "settlement_failures": [
+          "settlement failures",
+          "failed settlements",
+          "settlement fails",
+          "unmatched trades"
+        ],
+        "stp_rate": [
+          "STP rate",
+          "straight through processing",
+          "STP ratio",
+          "automation rate"
+        ],
+        "reconciliation": [
+          "reconciliation",
+          "recon report",
+          "reconciliation breaks",
+          "recon status"
+        ],
+        "trade_breaks": [
+          "trade breaks",
+          "breaks report",
+          "unmatched items",
+          "exception report"
+        ],
+        "operational_risk": [
+          "operational risk",
+          "op risk",
+          "operational risk events",
+          "op risk metrics"
+        ],
+        "loan_book": [
+          "loan book",
+          "loan portfolio",
+          "outstanding loans",
+          "loan balances"
+        ],
+        "npl_ratio": [
+          "NPL ratio",
+          "non performing loans",
+          "NPL report",
+          "bad loans"
+        ],
+        "origination_pipeline": [
+          "origination pipeline",
+          "loan origination",
+          "deal pipeline",
+          "new loans"
+        ],
+        "liquidity": [
+          "liquidity",
+          "liquidity report",
+          "cash reserves",
+          "LCR",
+          "liquidity coverage"
+        ],
+        "cash_position": [
+          "cash position",
+          "cash balance",
+          "daily cash",
+          "cash flow"
+        ],
+        "fx_exposure": [
+          "FX exposure",
+          "foreign exchange",
+          "currency exposure",
+          "FX risk"
+        ],
+        "interest_rate_risk": [
+          "interest rate risk",
+          "rate risk",
+          "duration risk",
+          "IR sensitivity"
+        ]
       }
     },
     "time_period": {
       "options": {
-        "today": ["today", "current day"],
-        "this_week": ["this week", "current week", "weekly"],
-        "this_month": ["this month", "current month", "monthly"],
-        "this_quarter": ["this quarter", "current quarter", "quarterly"],
-        "last_week": ["last week", "previous week"],
-        "last_month": ["last month", "previous month"],
-        "last_quarter": ["last quarter", "previous quarter"],
-        "ytd": ["year to date", "YTD"],
-        "last_year": ["last year", "previous year"],
-        "this_year": ["this year", "current year"]
+        "today": [
+          "today",
+          "current day"
+        ],
+        "this_week": [
+          "this week",
+          "current week",
+          "weekly"
+        ],
+        "this_month": [
+          "this month",
+          "current month",
+          "monthly"
+        ],
+        "this_quarter": [
+          "this quarter",
+          "current quarter",
+          "quarterly"
+        ],
+        "last_week": [
+          "last week",
+          "previous week"
+        ],
+        "last_month": [
+          "last month",
+          "previous month"
+        ],
+        "last_quarter": [
+          "last quarter",
+          "previous quarter"
+        ],
+        "ytd": [
+          "year to date",
+          "YTD"
+        ],
+        "last_year": [
+          "last year",
+          "previous year"
+        ],
+        "this_year": [
+          "this year",
+          "current year"
+        ]
       }
     },
     "region": {
       "options": {
-        "US": ["US", "United States", "America", "USA"],
-        "EU": ["EU", "Europe", "European"],
-        "APAC": ["APAC", "Asia Pacific", "Asia"]
+        "US": [
+          "US",
+          "United States",
+          "America",
+          "USA"
+        ],
+        "EU": [
+          "EU",
+          "Europe",
+          "European"
+        ],
+        "APAC": [
+          "APAC",
+          "Asia Pacific",
+          "Asia"
+        ]
       }
     },
     "team": {
       "options": {
-        "engineering": ["engineering", "engineers", "eng", "dev", "development"],
-        "sales": ["sales", "sales team"],
-        "marketing": ["marketing", "marketing team"],
-        "support": ["support", "customer support", "cs"],
-        "trading": ["trading", "trading desk", "markets"],
-        "risk": ["risk", "risk management", "compliance"],
-        "treasury": ["treasury", "treasury desk"],
-        "operations": ["operations", "ops", "middle office", "back office"]
+        "engineering": [
+          "engineering",
+          "engineers",
+          "eng",
+          "dev",
+          "development"
+        ],
+        "sales": [
+          "sales",
+          "sales team"
+        ],
+        "marketing": [
+          "marketing",
+          "marketing team"
+        ],
+        "support": [
+          "support",
+          "customer support",
+          "cs"
+        ],
+        "trading": [
+          "trading",
+          "trading desk",
+          "markets"
+        ],
+        "risk": [
+          "risk",
+          "risk management",
+          "compliance"
+        ],
+        "treasury": [
+          "treasury",
+          "treasury desk"
+        ],
+        "operations": [
+          "operations",
+          "ops",
+          "middle office",
+          "back office"
+        ]
       }
     },
     "environment": {
       "options": {
-        "production": ["production", "prod", "live"],
-        "staging": ["staging", "stage", "pre-prod"],
-        "dev": ["dev", "development", "local"]
+        "production": [
+          "production",
+          "prod",
+          "live"
+        ],
+        "staging": [
+          "staging",
+          "stage",
+          "pre-prod"
+        ],
+        "dev": [
+          "dev",
+          "development",
+          "local"
+        ]
       }
     },
     "severity": {
       "options": {
-        "critical": ["critical", "crit", "P1", "severity 1"],
-        "high": ["high", "P2", "severity 2"],
-        "medium": ["medium", "med", "P3", "severity 3"],
-        "low": ["low", "P4", "severity 4", "minor"]
+        "critical": [
+          "critical",
+          "crit",
+          "P1",
+          "severity 1"
+        ],
+        "high": [
+          "high",
+          "P2",
+          "severity 2"
+        ],
+        "medium": [
+          "medium",
+          "med",
+          "P3",
+          "severity 3"
+        ],
+        "low": [
+          "low",
+          "P4",
+          "severity 4",
+          "minor"
+        ]
       }
     },
     "column_name": {
       "options": {
-        "status": ["status", "state", "condition", "stage"],
-        "region": ["region", "area", "location", "geography", "country"],
-        "category": ["category", "type", "kind", "class", "group"],
-        "priority": ["priority", "severity", "urgency", "importance"],
-        "name": ["name", "title", "label", "identifier"],
-        "date": ["date", "time", "timestamp", "created", "updated", "modified"],
-        "amount": ["amount", "value", "total", "revenue", "cost", "price", "balance"],
-        "count": ["count", "number", "quantity", "volume"],
-        "description": ["description", "desc", "details", "notes", "comment"],
-        "owner": ["owner", "assignee", "assigned", "responsible", "user", "creator"]
+        "status": [
+          "status",
+          "state",
+          "condition",
+          "stage"
+        ],
+        "region": [
+          "region",
+          "area",
+          "location",
+          "geography",
+          "country"
+        ],
+        "category": [
+          "category",
+          "type",
+          "kind",
+          "class",
+          "group"
+        ],
+        "priority": [
+          "priority",
+          "severity",
+          "urgency",
+          "importance"
+        ],
+        "name": [
+          "name",
+          "title",
+          "label",
+          "identifier"
+        ],
+        "date": [
+          "date",
+          "time",
+          "timestamp",
+          "created",
+          "updated",
+          "modified"
+        ],
+        "amount": [
+          "amount",
+          "value",
+          "total",
+          "revenue",
+          "cost",
+          "price",
+          "balance"
+        ],
+        "count": [
+          "count",
+          "number",
+          "quantity",
+          "volume"
+        ],
+        "description": [
+          "description",
+          "desc",
+          "details",
+          "notes",
+          "comment"
+        ],
+        "owner": [
+          "owner",
+          "assignee",
+          "assigned",
+          "responsible",
+          "user",
+          "creator"
+        ]
       }
     }
   },
@@ -139,8 +624,15 @@
     {
       "intent": "greeting",
       "utterances": [
-        "hello", "hi", "hey", "good morning", "good afternoon",
-        "hi there", "hey there", "howdy", "greetings"
+        "hello",
+        "hi",
+        "hey",
+        "good morning",
+        "good afternoon",
+        "hi there",
+        "hey there",
+        "howdy",
+        "greetings"
       ],
       "answers": [
         "Hello! I'm MITR AI. I can help you run queries, find URLs, or provide estimations. You can also use filters like date range, region, or team. What would you like to do?",
@@ -198,7 +690,6 @@
         "run @query_name query",
         "get @query_name report",
         "pull @query_name data",
-
         "what is our EBITDA this quarter",
         "show me the P&L for last month",
         "pull up the VaR report",
@@ -229,7 +720,6 @@
         "show me trade breaks",
         "get operational risk report",
         "what is our revenue by segment",
-
         "give me @query_name for region @region",
         "give me @query_name for @region",
         "show @query_name data for @region region",
@@ -249,7 +739,11 @@
         "can you get @query_name for @region",
         "I need @query_name for region @region",
         "pull @query_name for @time_period for @region",
-        "what is @query_name for @region for @time_period"
+        "what is @query_name for @region for @time_period",
+        "group by product",
+        "group by pnl_name",
+        "group by books_open",
+        "group by employee"
       ],
       "answers": []
     },
@@ -374,7 +868,6 @@
         "do we have docs on",
         "where can I find documentation about",
         "is there any info on",
-
         "what is our risk appetite",
         "explain the settlement process",
         "how does trade reconciliation work",
@@ -601,15 +1094,32 @@
         "what is the current status",
         "show records where",
         "which ones are pending",
-        "find US entries"
+        "find US entries",
+        "list all @column_name",
+        "list down all @column_name",
+        "list all products",
+        "list all items",
+        "list all entries",
+        "list all records",
+        "list everything",
+        "show all @column_name",
+        "list down @column_name"
       ],
       "answers": []
     },
     {
       "intent": "farewell",
       "utterances": [
-        "bye", "goodbye", "see you", "thanks bye", "that is all",
-        "I am done", "exit", "quit", "later", "thank you goodbye"
+        "bye",
+        "goodbye",
+        "see you",
+        "thanks bye",
+        "that is all",
+        "I am done",
+        "exit",
+        "quit",
+        "later",
+        "thank you goodbye"
       ],
       "answers": [
         "Goodbye! Feel free to come back to MITR AI anytime.",
@@ -619,133 +1129,271 @@
     {
       "intent": "analysis.profile",
       "utterances": [
-        "profile the data", "describe columns", "column profiler", "show column info",
-        "data profile", "what types are the columns", "column details",
-        "tell me about the columns", "data overview", "inspect columns",
-        "show me column types", "analyze the columns", "column analysis"
+        "profile the data",
+        "describe columns",
+        "column profiler",
+        "show column info",
+        "data profile",
+        "what types are the columns",
+        "column details",
+        "tell me about the columns",
+        "data overview",
+        "inspect columns",
+        "show me column types",
+        "analyze the columns",
+        "column analysis"
       ],
       "answers": []
     },
     {
       "intent": "analysis.smart_summary",
       "utterances": [
-        "smart summary", "give me insights", "key insights", "intelligent summary",
-        "what are the key takeaways", "analyze this data", "data insights",
-        "summarize with insights", "what stands out", "notable patterns",
-        "deep analysis", "what should I know about this data"
+        "smart summary",
+        "give me insights",
+        "key insights",
+        "intelligent summary",
+        "what are the key takeaways",
+        "analyze this data",
+        "data insights",
+        "summarize with insights",
+        "what stands out",
+        "notable patterns",
+        "deep analysis",
+        "what should I know about this data"
       ],
       "answers": []
     },
     {
       "intent": "analysis.correlation",
       "utterances": [
-        "show correlations", "correlation matrix", "correlation heatmap",
-        "how are columns correlated", "which columns are related",
-        "find relationships", "column relationships", "pearson correlation",
-        "show me the correlation", "are these columns related",
-        "what correlates with @column_name", "correlation analysis"
+        "show correlations",
+        "correlation matrix",
+        "correlation heatmap",
+        "how are columns correlated",
+        "which columns are related",
+        "find relationships",
+        "column relationships",
+        "pearson correlation",
+        "show me the correlation",
+        "are these columns related",
+        "what correlates with @column_name",
+        "correlation analysis"
       ],
       "answers": []
     },
     {
       "intent": "analysis.distribution",
       "utterances": [
-        "show distribution of @column_name", "histogram of @column_name",
-        "distribution of @column_name", "plot distribution",
-        "show histogram", "frequency distribution", "value distribution",
-        "how is @column_name distributed", "distribution chart",
-        "show me the spread of @column_name", "histogram", "data spread"
+        "show distribution of @column_name",
+        "histogram of @column_name",
+        "distribution of @column_name",
+        "plot distribution",
+        "show histogram",
+        "frequency distribution",
+        "value distribution",
+        "how is @column_name distributed",
+        "distribution chart",
+        "show me the spread of @column_name",
+        "histogram",
+        "data spread"
       ],
       "answers": []
     },
     {
       "intent": "analysis.anomaly",
       "utterances": [
-        "find outliers", "show outliers", "detect anomalies", "flag anomalous rows",
-        "which rows are unusual", "any outliers", "outlier detection",
-        "show me unusual values", "find anomalies", "detect unusual data",
-        "are there any outliers", "flag outliers in @column_name",
-        "z-score analysis", "iqr outliers"
+        "find outliers",
+        "show outliers",
+        "detect anomalies",
+        "flag anomalous rows",
+        "which rows are unusual",
+        "any outliers",
+        "outlier detection",
+        "show me unusual values",
+        "find anomalies",
+        "detect unusual data",
+        "are there any outliers",
+        "flag outliers in @column_name",
+        "z-score analysis",
+        "iqr outliers"
       ],
       "answers": []
     },
     {
       "intent": "analysis.trend",
       "utterances": [
-        "find trends", "show trend", "trend analysis", "is there a trend",
-        "trending up or down", "detect trend", "show me the trend",
-        "revenue trend", "is @column_name trending", "trend detection",
-        "linear trend", "how is it trending", "trend line"
+        "find trends",
+        "show trend",
+        "trend analysis",
+        "is there a trend",
+        "trending up or down",
+        "detect trend",
+        "show me the trend",
+        "revenue trend",
+        "is @column_name trending",
+        "trend detection",
+        "linear trend",
+        "how is it trending",
+        "trend line"
       ],
       "answers": []
     },
     {
       "intent": "analysis.duplicates",
       "utterances": [
-        "find duplicates", "duplicate rows", "show duplicates",
-        "any duplicate records", "deduplicate", "near duplicates",
-        "find similar rows", "duplicate detection", "remove duplicates",
-        "are there duplicates", "find repeated entries", "fuzzy duplicates"
+        "find duplicates",
+        "duplicate rows",
+        "show duplicates",
+        "any duplicate records",
+        "deduplicate",
+        "near duplicates",
+        "find similar rows",
+        "duplicate detection",
+        "remove duplicates",
+        "are there duplicates",
+        "find repeated entries",
+        "fuzzy duplicates"
       ],
       "answers": []
     },
     {
       "intent": "analysis.missing",
       "utterances": [
-        "show missing values", "missing data", "null values", "where are the gaps",
-        "missing value heatmap", "check for nulls", "missing data analysis",
-        "which columns have nulls", "data completeness", "find empty values",
-        "show me missing entries", "null analysis", "data quality check"
+        "show missing values",
+        "missing data",
+        "null values",
+        "where are the gaps",
+        "missing value heatmap",
+        "check for nulls",
+        "missing data analysis",
+        "which columns have nulls",
+        "data completeness",
+        "find empty values",
+        "show me missing entries",
+        "null analysis",
+        "data quality check"
       ],
       "answers": []
     },
     {
       "intent": "analysis.cluster",
       "utterances": [
-        "cluster the data", "find groups", "k-means", "segment the data",
-        "group similar rows", "find clusters", "clustering analysis",
-        "how many groups", "segment by similarity", "k means clustering",
-        "find natural groups", "cluster analysis", "unsupervised grouping"
+        "cluster the data",
+        "find groups",
+        "k-means",
+        "segment the data",
+        "group similar rows",
+        "find clusters",
+        "clustering analysis",
+        "how many groups",
+        "segment by similarity",
+        "k means clustering",
+        "find natural groups",
+        "cluster analysis",
+        "unsupervised grouping"
       ],
       "answers": []
     },
     {
       "intent": "analysis.decision_tree",
       "utterances": [
-        "predict @column_name", "classify by @column_name", "decision tree",
-        "predict target", "build classifier", "classification model",
-        "train a model", "predict values", "which features matter",
-        "feature importance", "decision tree analysis", "classify rows"
+        "predict @column_name",
+        "classify by @column_name",
+        "decision tree",
+        "predict target",
+        "build classifier",
+        "classification model",
+        "train a model",
+        "predict values",
+        "which features matter",
+        "feature importance",
+        "decision tree analysis",
+        "classify rows"
       ],
       "answers": []
     },
     {
       "intent": "analysis.forecast",
       "utterances": [
-        "forecast @column_name", "predict future", "time series forecast",
-        "forecast next 5", "project forward", "forecast trend",
-        "predict next month", "future predictions", "forecast ahead",
-        "sales forecast", "revenue forecast", "predict upcoming values"
+        "forecast @column_name",
+        "predict future",
+        "time series forecast",
+        "forecast next 5",
+        "project forward",
+        "forecast trend",
+        "predict next month",
+        "future predictions",
+        "forecast ahead",
+        "sales forecast",
+        "revenue forecast",
+        "predict upcoming values"
       ],
       "answers": []
     },
     {
       "intent": "analysis.pca",
       "utterances": [
-        "reduce dimensions", "PCA", "dimension reduction", "principal components",
-        "2D scatter", "pca analysis", "reduce to 2 dimensions",
-        "show principal components", "dimensionality reduction",
-        "visualize in 2D", "scatter plot of data", "pca scatter"
+        "reduce dimensions",
+        "PCA",
+        "dimension reduction",
+        "principal components",
+        "2D scatter",
+        "pca analysis",
+        "reduce to 2 dimensions",
+        "show principal components",
+        "dimensionality reduction",
+        "visualize in 2D",
+        "scatter plot of data",
+        "pca scatter"
       ],
       "answers": []
     },
     {
       "intent": "analysis.report",
       "utterances": [
-        "generate report", "export insights", "create analysis report",
-        "download report", "compile analysis", "export analysis",
-        "give me a report", "insight report", "full analysis report",
-        "create summary report", "export data analysis", "downloadable report"
+        "generate report",
+        "export insights",
+        "create analysis report",
+        "download report",
+        "compile analysis",
+        "export analysis",
+        "give me a report",
+        "insight report",
+        "full analysis report",
+        "create summary report",
+        "export data analysis",
+        "downloadable report"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "None",
+      "utterances": [
+        "summarize"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "query.compare",
+      "utterances": [
+        "compare @query_name with @query_name",
+        "compare @query_name to @query_name",
+        "compare @query_name and @query_name",
+        "compare @query_name vs @query_name",
+        "join @query_name with @query_name",
+        "merge @query_name and @query_name",
+        "cross reference @query_name with @query_name",
+        "combine @query_name and @query_name data",
+        "show @query_name versus @query_name",
+        "how does @query_name relate to @query_name",
+        "correlate @query_name with @query_name"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "unknown",
+      "utterances": [
+        "[feedback:positive]"
       ],
       "answers": []
     }

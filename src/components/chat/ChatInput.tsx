@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 export function ChatInput({
   onSend,
@@ -8,14 +8,17 @@ export function ChatInput({
   onNewSession,
   onClearChat,
   onDisconnect,
+  onFileSelect,
 }: {
   onSend: (text: string) => void;
   disabled: boolean;
   onNewSession: () => void;
   onClearChat: () => void;
   onDisconnect: () => void;
+  onFileSelect?: (file: File) => void;
 }) {
   const [text, setText] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = useCallback(() => {
     if (!text.trim() || disabled) return;
@@ -23,9 +26,45 @@ export function ChatInput({
     setText('');
   }, [text, disabled, onSend]);
 
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file && onFileSelect) {
+        onFileSelect(file);
+      }
+      // Reset so re-selecting the same file triggers onChange
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    },
+    [onFileSelect]
+  );
+
   return (
     <div className="sticky bottom-0 z-10 bg-white border-t border-gray-200 flex-shrink-0">
       <div className="flex gap-2 p-3 pb-2">
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,.xlsx,.xls,.pdf,.docx,.doc"
+          onChange={handleFileChange}
+          className="hidden"
+          aria-hidden="true"
+        />
+        {/* Paperclip / attach button */}
+        {onFileSelect && (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled}
+            className="rounded-full p-2 text-gray-400 hover:text-blue-600 hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Attach a file (CSV, Excel, PDF, DOCX)"
+            aria-label="Attach file"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+            </svg>
+          </button>
+        )}
         <input
           type="text"
           value={text}

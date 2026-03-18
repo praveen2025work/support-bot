@@ -4,9 +4,94 @@
     "positive": 1,
     "negative": 0
   },
+  "group by ticket_id": {
+    "intent": "query.execute",
+    "positive": 2,
+    "negative": 0
+  },
+  "group by priority": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "group by revenue": {
+    "intent": "query.execute",
+    "positive": 2,
+    "negative": 0
+  },
+  "sort by units desc": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "top 5 by units": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "group by category": {
+    "intent": "query.execute",
+    "positive": 2,
+    "negative": 0
+  },
+  "group by region": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
   "list queries": {
     "intent": "query.list",
     "positive": 1,
+    "negative": 0
+  },
+  "search api_changelog for v250": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "revenue < 380000": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "sort by revenue desc": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "top 5 by revenue": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "bottom 5 by revenue": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "group by sla": {
+    "intent": "query.execute",
+    "positive": 2,
+    "negative": 0
+  },
+  "sort by books_open desc": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "top 5 by books_open": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "group by performance_score": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "group by base_salary": {
+    "intent": "followup.group_by",
+    "positive": 2,
     "negative": 0
   }
 }

@@ -31,6 +31,14 @@ export interface Message {
   isError?: boolean;
   retryText?: string;
   timestamp: Date;
+  /** Classification confidence (0–1) from the engine */
+  confidence?: number;
+  /** Name of the data source that answered (e.g. "sales-data.csv") */
+  sourceName?: string;
+  /** Type of data source */
+  sourceType?: string;
+  /** Original query text for this message (for feedback correlation) */
+  originalQuery?: string;
 }
 
 interface QueryMeta {
@@ -208,6 +216,10 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
             executionMs: data.executionMs as number | undefined,
             referenceUrl: data.referenceUrl as string | undefined,
             anomalies: data.anomalies as Message['anomalies'],
+            confidence: data.confidence as number | undefined,
+            sourceName: data.sourceName as string | undefined,
+            sourceType: data.sourceType as string | undefined,
+            originalQuery: text.trim(),
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, botMessage]);
@@ -303,6 +315,10 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
             executionMs: data.executionMs as number | undefined,
             referenceUrl: data.referenceUrl as string | undefined,
             anomalies: data.anomalies as Message['anomalies'],
+            confidence: data.confidence as number | undefined,
+            sourceName: data.sourceName as string | undefined,
+            sourceType: data.sourceType as string | undefined,
+            originalQuery: text.trim(),
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, botMessage]);
@@ -339,5 +355,83 @@ export function useChat(platform: 'web' | 'widget' = 'web', groupId?: string, us
     sessionIdRef.current = `${platform}-${generateId()}`;
   }, [platform]);
 
-  return { messages, isLoading, loadingStatus, sendMessage, executeQuery, retryMessage, clearMessages };
+  const uploadFile = useCallback(
+    async (file: File) => {
+      // Show user message indicating upload
+      const userMessage: Message = {
+        id: generateId(),
+        role: 'user',
+        text: `📎 Uploading: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+      setIsLoading(true);
+      setLoadingStatus('Uploading file...');
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (groupId) formData.append('groupId', groupId);
+        formData.append('sessionId', sessionIdRef.current);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) {
+          throw new Error(`Upload failed: ${res.status}`);
+        }
+
+        const data = await res.json();
+        const botMessage: Message = {
+          id: generateId(),
+          role: 'bot',
+          text: data.text || `File "${file.name}" processed successfully.`,
+          richContent: data.richContent,
+          suggestions: data.suggestions || ['Summarize', 'Show columns', 'List queries'],
+          sourceName: file.name,
+          sourceType: file.name.endsWith('.pdf') ? 'document' : file.name.endsWith('.docx') || file.name.endsWith('.doc') ? 'document' : 'csv',
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, botMessage]);
+      } catch {
+        const errorMessage: Message = {
+          id: generateId(),
+          role: 'bot',
+          text: `Sorry, I couldn't process "${file.name}". Please check the file format and try again.`,
+          isError: true,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      } finally {
+        setIsLoading(false);
+        setLoadingStatus('');
+      }
+    },
+    [groupId]
+  );
+
+  const submitFeedback = useCallback(
+    async (messageId: string, type: 'positive' | 'negative', correction?: string) => {
+      try {
+        await fetch('/api/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: sessionIdRef.current,
+            messageId,
+            feedbackType: type,
+            correctionText: correction,
+            groupId,
+          }),
+        });
+      } catch {
+        // Silent fail — feedback is non-critical
+      }
+    },
+    [groupId]
+  );
+
+  return { messages, isLoading, loadingStatus, sendMessage, executeQuery, retryMessage, clearMessages, submitFeedback, uploadFile };
 }

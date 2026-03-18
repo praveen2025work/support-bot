@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { csrfHeaders } from '@/lib/csrf';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 export default function TemplateEditorPage() {
   const [baseTemplates, setBaseTemplates] = useState<Record<string, string[]>>({});
@@ -14,6 +15,7 @@ export default function TemplateEditorPage() {
   const [showNew, setShowNew] = useState(false);
   const [newIntent, setNewIntent] = useState('');
   const [newResponses, setNewResponses] = useState('');
+  const [deleteTemplateTarget, setDeleteTemplateTarget] = useState<string | null>(null);
 
   const fetchTemplates = async () => {
     try {
@@ -80,9 +82,9 @@ export default function TemplateEditorPage() {
   };
 
   const handleDelete = async (intent: string) => {
-    if (!confirm(`Delete template "${intent}" from ${activeScope}?`)) return;
     await fetch(`/api/admin/templates?scope=${activeScope}&intent=${encodeURIComponent(intent)}`, { method: 'DELETE', headers: { ...csrfHeaders() } });
     setSelectedIntent(null);
+    setDeleteTemplateTarget(null);
     await fetchTemplates();
   };
 
@@ -197,7 +199,7 @@ export default function TemplateEditorPage() {
                   <h2 className="text-sm font-semibold text-gray-700">{selectedIntent}</h2>
                   <span className="text-xs text-gray-400">Scope: {activeScope}</span>
                 </div>
-                <button onClick={() => handleDelete(selectedIntent)} className="text-xs text-red-500 hover:underline">
+                <button onClick={() => setDeleteTemplateTarget(selectedIntent)} className="text-xs text-red-500 hover:underline">
                   Delete
                 </button>
               </div>
@@ -245,6 +247,16 @@ export default function TemplateEditorPage() {
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        open={!!deleteTemplateTarget}
+        title="Delete Template"
+        message={deleteTemplateTarget ? `Delete template "${deleteTemplateTarget}" from ${activeScope}?` : ''}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => { if (deleteTemplateTarget) handleDelete(deleteTemplateTarget); }}
+        onCancel={() => setDeleteTemplateTarget(null)}
+      />
     </div>
   );
 }

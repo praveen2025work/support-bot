@@ -1,0 +1,12 @@
+{"action":"update","resource":"learning-retrain","groupId":"default","details":{"groupId":"default"},"ip":"::1","timestamp":"2026-03-13T03:31:47.670Z"}
+{"action":"update","resource":"learning-retrain","groupId":"default","details":{"groupId":"default"},"ip":"::1","timestamp":"2026-03-13T03:31:49.672Z"}
+{"action":"update","resource":"learning-retrain","groupId":"default","details":{"groupId":"default"},"ip":"::1","timestamp":"2026-03-13T03:31:50.424Z"}
+{"action":"update","resource":"learning-retrain","groupId":"default","details":{"groupId":"default"},"ip":"::1","timestamp":"2026-03-13T03:31:51.920Z"}
+{"action":"update","resource":"learning-retrain","groupId":"default","details":{"groupId":"default"},"ip":"::1","timestamp":"2026-03-13T03:31:53.520Z"}
+{"action":"update","resource":"learning-retrain","groupId":"default","details":{"groupId":"default"},"ip":"::1","timestamp":"2026-03-13T03:32:16.253Z"}
+{"action":"create","resource":"query","resourceId":"q59","details":{"name":"test_anomaly_check","source":"engineering","type":"api"},"ip":"::1","timestamp":"2026-03-16T17:31:10.119Z"}
+{"action":"create","resource":"query","resourceId":"q59","details":{"name":"test_new_metric","source":"engineering","type":"api"},"ip":"::1","timestamp":"2026-03-16T17:37:55.036Z"}
+{"action":"delete","resource":"query","resourceId":"q59","ip":"::1","timestamp":"2026-03-16T17:38:11.648Z"}
+{"action":"create","resource":"query","resourceId":"q60","details":{"name":"test_reload_query","source":"analytics","type":"api"},"ip":"::1","timestamp":"2026-03-16T21:27:01.913Z"}
+{"action":"delete","resource":"query","resourceId":"q60","ip":"::1","timestamp":"2026-03-16T21:28:56.051Z"}
+{"action":"update","resource":"learning-retrain","groupId":"default","details":{"groupId":"default"},"ip":"::1","timestamp":"2026-03-17T03:41:07.788Z"}

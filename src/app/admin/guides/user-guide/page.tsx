@@ -211,6 +211,83 @@ export default function UserGuidePage() {
           </div>
         </Section>
 
+        <Section title="Grid Dashboard">
+          <p className="text-sm text-gray-600 mb-3">
+            Create custom dashboards with drag-and-drop grid cards. Each card runs a query and shows live results.
+          </p>
+          <div className="space-y-2 text-sm text-gray-600">
+            <div>
+              <span className="font-medium">Create a dashboard:</span> Click <Cmd>Select Dashboard</Cmd> &rarr; <Cmd>New Dashboard</Cmd>, name it, then add cards with <Cmd>+ Add Card</Cmd>.
+            </div>
+            <div>
+              <span className="font-medium">Auto-run cards:</span> Cards marked &quot;Auto&quot; execute their query when the dashboard loads. Execution time is shown in the header (e.g., <Cmd>6ms</Cmd>).
+            </div>
+            <div>
+              <span className="font-medium">Hover actions:</span> Hover over any card to reveal action buttons — ask a follow-up, refresh data, clear results, or open the query in the full chat view (new tab).
+            </div>
+            <div>
+              <span className="font-medium">Drag &amp; resize:</span> Grab the card header to reposition, or drag card edges to resize. Layouts are saved automatically.
+            </div>
+            <div>
+              <span className="font-medium">Cross-card linking:</span> Click a cell value in one card to filter related cards automatically (e.g., click &quot;US&quot; in revenue to filter support tickets to US).
+            </div>
+            <div>
+              <span className="font-medium">Filter persistence:</span> Filter changes made on dashboard cards are saved and restored on reload.
+            </div>
+            <div>
+              <span className="font-medium">Business date:</span> Set a global date in the top bar to filter all cards to that date simultaneously.
+            </div>
+          </div>
+        </Section>
+
+        <Section title="File Upload">
+          <p className="text-sm text-gray-600 mb-3">
+            Upload CSV, TSV, or XLSX files directly in the chat to query them.
+          </p>
+          <div className="space-y-2 text-sm text-gray-600">
+            <div>
+              <span className="font-medium">Drag &amp; drop:</span> Drag a file into the chat window, or click the upload icon in the input bar.
+            </div>
+            <div>
+              <span className="font-medium">Supported formats:</span> CSV (comma, tab, semicolon, pipe delimited), TSV, and XLSX with multi-sheet support.
+            </div>
+            <div>
+              <span className="font-medium">After upload:</span> The file is registered as a query. Ask questions like <Cmd>average salary in uploaded file</Cmd> or <Cmd>group by department</Cmd>.
+            </div>
+          </div>
+        </Section>
+
+        <Section title="Data Tables &amp; Pagination">
+          <p className="text-sm text-gray-600 mb-3">
+            All data tables (API results, CSV data, aggregations, group-by results) support pagination.
+          </p>
+          <div className="space-y-2 text-sm text-gray-600">
+            <div>
+              <span className="font-medium">Page controls:</span> Navigate pages with the controls below each table. Adjust rows-per-page (10, 25, 50, 100) using the dropdown.
+            </div>
+            <div>
+              <span className="font-medium">Charts:</span> Toggle between Bar, Stacked, Line, Area, Stack Area, and Pie chart views using the chart type selector above each visualization.
+            </div>
+            <div>
+              <span className="font-medium">Export:</span> Click <Cmd>Export CSV</Cmd> to download query results as a CSV file.
+            </div>
+          </div>
+        </Section>
+
+        <Section title="Feedback &amp; Confidence">
+          <div className="space-y-2 text-sm text-gray-600">
+            <div>
+              <span className="font-medium">Confidence badge:</span> Each bot response shows a confidence score. Green = high confidence, yellow = moderate, red = low.
+            </div>
+            <div>
+              <span className="font-medium">Thumbs up/down:</span> Rate bot responses to help improve accuracy. Your feedback is used by the learning system to fine-tune query matching.
+            </div>
+            <div>
+              <span className="font-medium">Source badge:</span> Responses indicate their data source (API, CSV, Document, URL) so you know where the data came from.
+            </div>
+          </div>
+        </Section>
+
         <Section title="Tips">
           <ul className="space-y-2 text-sm text-gray-600">
             <li className="flex gap-2">
@@ -243,15 +320,19 @@ export default function UserGuidePage() {
             </li>
             <li className="flex gap-2">
               <span className="text-blue-500 shrink-0">&#x2022;</span>
-              Star your favorite queries from the dashboard for one-click access.
-            </li>
-            <li className="flex gap-2">
-              <span className="text-blue-500 shrink-0">&#x2022;</span>
               CSV files support multiple delimiters: comma, tab, semicolon, and pipe — auto-detected by the engine.
             </li>
             <li className="flex gap-2">
               <span className="text-blue-500 shrink-0">&#x2022;</span>
               XLSX files with multiple sheets are auto-registered as separate queries (one per sheet).
+            </li>
+            <li className="flex gap-2">
+              <span className="text-blue-500 shrink-0">&#x2022;</span>
+              Dashboard cards persist filter changes — set a filter once and it stays on reload.
+            </li>
+            <li className="flex gap-2">
+              <span className="text-blue-500 shrink-0">&#x2022;</span>
+              Use <Cmd>Open in Chat</Cmd> from a dashboard card hover panel to continue the query in the full chat view.
             </li>
           </ul>
         </Section>

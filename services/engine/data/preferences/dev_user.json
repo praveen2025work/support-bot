@@ -1,0 +1,179 @@
+{
+  "userId": "dev_user",
+  "favorites": [
+    {
+      "queryName": "sales_data",
+      "groupId": "default",
+      "label": "sales_data",
+      "defaultFilters": {},
+      "id": "1773461274980_loggti",
+      "createdAt": "2026-03-14T04:07:54.980Z"
+    },
+    {
+      "queryName": "active_users",
+      "groupId": "default",
+      "label": "active_users",
+      "defaultFilters": {},
+      "id": "1773461283340_nnpvxj",
+      "createdAt": "2026-03-14T04:08:03.340Z"
+    },
+    {
+      "queryName": "customer_churn",
+      "groupId": "default",
+      "label": "customer_churn",
+      "defaultFilters": {},
+      "id": "1773461289925_prgvo8",
+      "createdAt": "2026-03-14T04:08:09.925Z"
+    },
+    {
+      "queryName": "support_tickets",
+      "groupId": "default",
+      "label": "support_tickets",
+      "defaultFilters": {},
+      "id": "1773461307453_70sf4y",
+      "createdAt": "2026-03-14T04:08:27.453Z"
+    }
+  ],
+  "subscriptions": [],
+  "recentQueries": [
+    {
+      "queryName": "sales_data",
+      "groupId": "default",
+      "userMessage": "run sales_data",
+      "intent": "query.execute",
+      "timestamp": "2026-03-14T04:12:38.438Z",
+      "executionMs": 1
+    },
+    {
+      "queryName": "query.list",
+      "groupId": "default",
+      "userMessage": "list queries",
+      "intent": "query.list",
+      "timestamp": "2026-03-14T04:12:34.907Z"
+    },
+    {
+      "queryName": "sales_data",
+      "groupId": "default",
+      "userMessage": "give me sales data for region US",
+      "intent": "query.execute",
+      "timestamp": "2026-03-14T04:11:46.113Z",
+      "executionMs": 5
+    },
+    {
+      "queryName": "active_users",
+      "groupId": "default",
+      "userMessage": "run active_users",
+      "intent": "query.execute",
+      "timestamp": "2026-03-14T04:09:41.147Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "sales_data",
+      "groupId": "default",
+      "userMessage": "run sales_data",
+      "intent": "query.execute",
+      "timestamp": "2026-03-14T04:09:38.434Z",
+      "executionMs": 1
+    },
+    {
+      "queryName": "sales_data",
+      "groupId": "default",
+      "userMessage": "run sales_data",
+      "intent": "query.execute",
+      "timestamp": "2026-03-14T04:09:37.015Z",
+      "executionMs": 6
+    },
+    {
+      "queryName": "support_tickets",
+      "groupId": "default",
+      "userMessage": "run support_tickets",
+      "intent": "query.execute",
+      "timestamp": "2026-03-14T04:08:28.292Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "sales_data",
+      "groupId": "default",
+      "userMessage": "run sales_data",
+      "intent": "query.execute",
+      "timestamp": "2026-03-14T04:08:21.642Z",
+      "executionMs": 1
+    },
+    {
+      "queryName": "customer_churn",
+      "groupId": "default",
+      "userMessage": "run customer_churn",
+      "intent": "query.execute",
+      "timestamp": "2026-03-14T04:08:14.431Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "daily_orders",
+      "groupId": "default",
+      "userMessage": "run daily_orders",
+      "intent": "query.execute",
+      "timestamp": "2026-03-14T04:08:13.977Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "active_users",
+      "groupId": "default",
+      "userMessage": "run active_users",
+      "intent": "query.execute",
+      "timestamp": "2026-03-14T04:08:13.513Z",
+      "executionMs": 5
+    },
+    {
+      "queryName": "sales_data",
+      "groupId": "default",
+      "userMessage": "run sales_data",
+      "intent": "query.execute",
+      "timestamp": "2026-03-14T04:08:13.106Z",
+      "executionMs": 5
+    },
+    {
+      "queryName": "sales_data",
+      "groupId": "default",
+      "userMessage": "run sales_data",
+      "intent": "query.execute",
+      "timestamp": "2026-03-14T04:07:47.875Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "query.list",
+      "groupId": "default",
+      "userMessage": "list queries",
+      "intent": "query.list",
+      "timestamp": "2026-03-14T04:07:38.145Z"
+    },
+    {
+      "queryName": "query.list",
+      "groupId": "default",
+      "userMessage": "list queries",
+      "intent": "query.list",
+      "timestamp": "2026-03-14T04:07:29.805Z"
+    },
+    {
+      "queryName": "query.list",
+      "groupId": "default",
+      "userMessage": "list queries",
+      "intent": "query.list",
+      "timestamp": "2026-03-14T04:05:10.247Z"
+    },
+    {
+      "queryName": "query.list",
+      "groupId": "default",
+      "userMessage": "list queries",
+      "intent": "query.list",
+      "timestamp": "2026-03-14T04:04:42.257Z"
+    },
+    {
+      "queryName": "query.list",
+      "groupId": "default",
+      "userMessage": "list queries",
+      "intent": "query.list",
+      "timestamp": "2026-03-14T04:04:28.217Z"
+    }
+  ],
+  "updatedAt": "2026-03-14T04:12:38.439Z"
+}

@@ -4,3 +4,11 @@
 {"id":"rev-004","timestamp":"2026-03-12T11:30:44.000Z","userMessage":"how do I add a new data source","detectedIntent":"help","confidence":0.22,"groupId":"default","status":"pending"}
 {"id":"rev-005","timestamp":"2026-03-12T10:15:33.000Z","userMessage":"compare last month sales vs this month","detectedIntent":"query.execute","confidence":0.38,"groupId":"default","status":"pending"}
 {"id":"rev-006","timestamp":"2026-03-11T16:42:18.000Z","userMessage":"hello there","detectedIntent":"greeting","confidence":0.85,"groupId":"default","status":"resolved","correctIntent":"greeting","resolvedAt":"2026-03-11T17:00:00.000Z"}
+{"id":"bd68a278-fff9-471d-bfa7-a69e503fcf89","timestamp":"2026-03-18T02:12:07.606Z","userMessage":"[feedback:positive]","detectedIntent":"unknown","confidence":0,"groupId":"default","status":"pending"}
+{"id":"5fdebee3-0e8b-445f-8a6a-ffdbb2c13557","timestamp":"2026-03-18T02:12:07.615Z","userMessage":"I meant active_users","detectedIntent":"unknown","confidence":0,"groupId":"default","status":"pending"}
+{"id":"5da98164-2d3b-4a7c-aa50-7ee5b2bc9bad","timestamp":"2026-03-18T02:13:19.039Z","userMessage":"[feedback:positive]","detectedIntent":"unknown","confidence":0,"groupId":"default","status":"pending"}
+{"id":"1c5e89ab-a478-4eef-a406-3ed840cbef40","timestamp":"2026-03-18T02:13:19.047Z","userMessage":"I wanted active_users","detectedIntent":"unknown","confidence":0,"groupId":"default","status":"pending"}
+{"id":"8597c383-8c2a-4a58-bbda-fdc6b58c7d06","timestamp":"2026-03-18T02:13:32.462Z","userMessage":"summarize it","detectedIntent":"followup.summary","confidence":0.2624235789363559,"groupId":"default","status":"pending"}
+{"id":"497df7ef-4e2d-4cf4-92ec-e953a25b11e8","timestamp":"2026-03-18T02:17:55.834Z","userMessage":"[feedback:positive]","detectedIntent":"unknown","confidence":0,"groupId":"default","status":"pending"}
+{"id":"681e97bb-97f0-4d94-a217-a8437e907338","timestamp":"2026-03-18T02:19:35.794Z","userMessage":"[feedback:positive]","detectedIntent":"unknown","confidence":0,"groupId":"default","status":"pending"}
+{"id":"ab8d6c02-01d5-4e2b-bf9a-f4f4a9da5584","timestamp":"2026-03-18T02:22:08.502Z","userMessage":"Show me revenue data","detectedIntent":"unknown","confidence":0,"groupId":"default","status":"pending"}

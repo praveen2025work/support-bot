@@ -30,11 +30,11 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [filterQuery, setFilterQuery] = useState('');
   const [timeRange, setTimeRange] = useState('all');
-  const { events: liveEvents, connected: sseConnected } = useSSE('http://localhost:8080/api/events');
+  const { events: liveEvents, connected: sseConnected } = useSSE('/api/events');
 
   const fetchStats = useCallback(async () => {
     try {
-      let url = 'http://localhost:8080/api/stats';
+      let url = '/api/admin/stats';
       const params = new URLSearchParams();
       if (filterQuery) params.set('queryName', filterQuery);
       if (timeRange !== 'all') {

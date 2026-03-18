@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 interface ScheduledQuery {
   id: string;
@@ -55,6 +56,7 @@ export default function SchedulesPage() {
   const [formGroupId, setFormGroupId] = useState('default');
   const [formUserId, setFormUserId] = useState('admin');
   const [formFilters, setFormFilters] = useState('');
+  const [deleteScheduleTarget, setDeleteScheduleTarget] = useState<string | null>(null);
 
   // Available queries for the selector
   const [availableQueries, setAvailableQueries] = useState<{ name: string; source: string }[]>([]);
@@ -198,9 +200,9 @@ export default function SchedulesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Delete this schedule?')) return;
     try {
       await fetch(`/api/admin/schedules/${id}`, { method: 'DELETE' });
+      setDeleteScheduleTarget(null);
       fetchSchedules();
     } catch {
       // ignore
@@ -460,7 +462,7 @@ export default function SchedulesPage() {
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDelete(s.id)}
+                      onClick={() => setDeleteScheduleTarget(s.id)}
                       className="text-xs text-red-600 dark:text-red-400 hover:underline"
                     >
                       Delete
@@ -472,6 +474,16 @@ export default function SchedulesPage() {
           </table>
         </div>
       )}
+
+      <ConfirmModal
+        open={!!deleteScheduleTarget}
+        title="Delete Schedule"
+        message="Delete this schedule? This cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => { if (deleteScheduleTarget) handleDelete(deleteScheduleTarget); }}
+        onCancel={() => setDeleteScheduleTarget(null)}
+      />
     </div>
   );
 }
