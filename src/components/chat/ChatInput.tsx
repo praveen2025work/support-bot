@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from "react";
+import { Paperclip, Plus, Trash2, LogOut } from "lucide-react";
 
 export function ChatInput({
   onSend,
@@ -17,13 +18,13 @@ export function ChatInput({
   onDisconnect: () => void;
   onFileSelect?: (file: File) => void;
 }) {
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = useCallback(() => {
     if (!text.trim() || disabled) return;
     onSend(text);
-    setText('');
+    setText("");
   }, [text, disabled, onSend]);
 
   const handleFileChange = useCallback(
@@ -33,9 +34,9 @@ export function ChatInput({
         onFileSelect(file);
       }
       // Reset so re-selecting the same file triggers onChange
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (fileInputRef.current) fileInputRef.current.value = "";
     },
-    [onFileSelect]
+    [onFileSelect],
   );
 
   return (
@@ -60,16 +61,14 @@ export function ChatInput({
             title="Attach a file (CSV, Excel, PDF, DOCX)"
             aria-label="Attach file"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
-            </svg>
+            <Paperclip size={18} />
           </button>
         )}
         <input
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
           placeholder="Type a message..."
           disabled={disabled}
           className="flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
@@ -89,9 +88,7 @@ export function ChatInput({
           className="text-[11px] text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-1"
           title="Start a new conversation session"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 5v14M5 12h14"/>
-          </svg>
+          <Plus size={12} />
           New Session
         </button>
         <span className="text-gray-200">|</span>
@@ -101,9 +98,7 @@ export function ChatInput({
           className="text-[11px] text-gray-400 hover:text-orange-500 transition-colors flex items-center gap-1 disabled:opacity-50"
           title="Clear all messages"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-          </svg>
+          <Trash2 size={12} />
           Clear Chat
         </button>
         <span className="text-gray-200">|</span>
@@ -112,9 +107,7 @@ export function ChatInput({
           className="text-[11px] text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1"
           title="Disconnect and end session"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
-          </svg>
+          <LogOut size={12} />
           Disconnect
         </button>
       </div>

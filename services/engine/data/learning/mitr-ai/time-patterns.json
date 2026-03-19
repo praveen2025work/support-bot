@@ -1,0 +1,20 @@
+[
+  {
+    "queryName": "monthly_revenue",
+    "hourDistribution": [
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.7384615384615385,
+      0.26153846153846155, 0, 0, 0, 0
+    ],
+    "dayDistribution": [0, 0, 0, 1, 0, 0, 0],
+    "totalCount": 65
+  },
+  {
+    "queryName": "daily_orders",
+    "hourDistribution": [
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.7384615384615385,
+      0.26153846153846155, 0, 0, 0, 0
+    ],
+    "dayDistribution": [0, 0, 0, 1, 0, 0, 0],
+    "totalCount": 65
+  }
+]

@@ -170,15 +170,67 @@ function handleGrossMargin(req, res) {
 server.get('/api/finance/gross-margin', handleGrossMargin);
 server.post('/api/finance/gross-margin', handleGrossMargin);
 
-// P&L Summary
-function handlePnlSummary(req, res) {
+// P&L Summary (legacy)
+function handlePnlSummaryLegacy(req, res) {
   const filters = { ...(req.body.filters || {}), ...req.query };
   console.log(`[Finance] ${req.method} /api/finance/pnl filters:`, JSON.stringify(filters));
   const data = applyFilters(getRawData('pnl_summary'), filters);
   res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 2500) });
 }
-server.get('/api/finance/pnl', handlePnlSummary);
-server.post('/api/finance/pnl', handlePnlSummary);
+server.get('/api/finance/pnl', handlePnlSummaryLegacy);
+server.post('/api/finance/pnl', handlePnlSummaryLegacy);
+
+// === P&L Demo Endpoints ===
+
+// P&L Summary (new demo version)
+function handlePnlSummaryDemo(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[P&L Demo] ${req.method} /api/finance/pnl/summary filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('pnl_summary_demo'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 2500) });
+}
+server.get('/api/finance/pnl/summary', handlePnlSummaryDemo);
+server.post('/api/finance/pnl/summary', handlePnlSummaryDemo);
+
+// P&L Detail
+function handlePnlDetail(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[P&L Demo] ${req.method} /api/finance/pnl/detail filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('pnl_detail'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 2000) });
+}
+server.get('/api/finance/pnl/detail', handlePnlDetail);
+server.post('/api/finance/pnl/detail', handlePnlDetail);
+
+// Revenue by Region
+function handleRevenueByRegion(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[P&L Demo] ${req.method} /api/finance/pnl/revenue-by-region filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('revenue_by_region'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 1800) });
+}
+server.get('/api/finance/pnl/revenue-by-region', handleRevenueByRegion);
+server.post('/api/finance/pnl/revenue-by-region', handleRevenueByRegion);
+
+// Budget vs Actual
+function handleBudgetVsActual(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[P&L Demo] ${req.method} /api/finance/pnl/budget-vs-actual filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('budget_vs_actual'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 2200) });
+}
+server.get('/api/finance/pnl/budget-vs-actual', handleBudgetVsActual);
+server.post('/api/finance/pnl/budget-vs-actual', handleBudgetVsActual);
+
+// GL Transactions
+function handleGlTransactions(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[P&L Demo] ${req.method} /api/finance/pnl/gl-transactions filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('gl_transactions'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 1500) });
+}
+server.get('/api/finance/pnl/gl-transactions', handleGlTransactions);
+server.post('/api/finance/pnl/gl-transactions', handleGlTransactions);
 
 // === Analytics endpoints ===
 
@@ -282,6 +334,58 @@ function handleHiring(req, res) {
 server.get('/api/hr/hiring/pipeline', handleHiring);
 server.post('/api/hr/hiring/pipeline', handleHiring);
 
+// === Cross-source join data endpoints ===
+
+// Headcount by cost center (for budget vs headcount combined query)
+function handleHeadcountByCostCenter(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[HR] ${req.method} /api/hr/headcount-by-cost-center filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('headcount_by_cost_center'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 1200) });
+}
+server.get('/api/hr/headcount-by-cost-center', handleHeadcountByCostCenter);
+server.post('/api/hr/headcount-by-cost-center', handleHeadcountByCostCenter);
+
+// Trading desk P&L (for trading risk combined query)
+function handleTradingDeskPnl(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[Trading] ${req.method} /api/trading/desk-pnl filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('trading_desk_pnl'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 1800) });
+}
+server.get('/api/trading/desk-pnl', handleTradingDeskPnl);
+server.post('/api/trading/desk-pnl', handleTradingDeskPnl);
+
+// Trading desk risk metrics (for trading risk combined query)
+function handleTradingDeskRisk(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[Risk] ${req.method} /api/risk/desk-risk filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('trading_desk_risk'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 1500) });
+}
+server.get('/api/risk/desk-risk', handleTradingDeskRisk);
+server.post('/api/risk/desk-risk', handleTradingDeskRisk);
+
+// Loan portfolio (for lending combined query)
+function handleLoanPortfolio(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[Lending] ${req.method} /api/lending/portfolio filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('loan_portfolio'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 2000) });
+}
+server.get('/api/lending/portfolio', handleLoanPortfolio);
+server.post('/api/lending/portfolio', handleLoanPortfolio);
+
+// Loan origination pipeline (for lending combined query)
+function handleLoanOrigination(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[Lending] ${req.method} /api/lending/origination filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('loan_origination'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 1500) });
+}
+server.get('/api/lending/origination', handleLoanOrigination);
+server.post('/api/lending/origination', handleLoanOrigination);
+
 // Mock query execution endpoint: POST /api/queries/:id/execute
 server.post('/api/queries/:id/execute', (req, res) => {
   const db = router.db;
@@ -333,6 +437,47 @@ server.post('/api/queries/batch', (req, res) => {
   res.json({
     results,
     totalExecutionTime: Date.now() - startTime,
+  });
+});
+
+// === Write-back endpoint (demo mode) ===
+server.post('/api/write', (req, res) => {
+  const { queryName, changes } = req.body;
+  console.log(`[Write-back] POST /api/write query=${queryName} changes=${JSON.stringify(changes).substring(0, 200)}`);
+
+  if (!queryName || !changes || !Array.isArray(changes)) {
+    return res.status(400).json({ error: 'queryName and changes array are required' });
+  }
+
+  // Demo mode: return success without actually modifying data
+  res.json({
+    success: true,
+    queryName,
+    rowsAffected: changes.length,
+    message: `Demo mode: ${changes.length} row(s) would be updated via stored procedure.`,
+    changes: changes.map((c, i) => ({
+      index: i,
+      status: 'applied',
+      updates: c.updates || {},
+    })),
+  });
+});
+
+// Write-back for specific query (connector-style endpoint)
+server.post('/api/queries/:id/write', (req, res) => {
+  const { changes } = req.body;
+  const queryId = req.params.id;
+  console.log(`[Write-back] POST /api/queries/${queryId}/write changes=${(changes || []).length}`);
+
+  if (!changes || !Array.isArray(changes)) {
+    return res.status(400).json({ error: 'changes array is required' });
+  }
+
+  res.json({
+    success: true,
+    queryId,
+    rowsAffected: changes.length,
+    message: `Demo mode: ${changes.length} row(s) would be updated.`,
   });
 });
 
@@ -510,6 +655,34 @@ function applyFilters(data, filters) {
     );
   }
 
+  // P&L fiscal filters
+  if (filters.fiscal_year) {
+    result = result.filter(
+      (row) => !row.fiscal_year || row.fiscal_year === filters.fiscal_year
+    );
+  }
+  if (filters.fiscal_quarter) {
+    result = result.filter(
+      (row) => !row.fiscal_quarter || row.fiscal_quarter === filters.fiscal_quarter
+    );
+  }
+  if (filters.business_unit) {
+    const units = filters.business_unit.split(',').map((u) => u.trim().toLowerCase());
+    result = result.filter(
+      (row) => !row.business_unit || units.includes(row.business_unit.toLowerCase())
+    );
+  }
+  if (filters.cost_center) {
+    result = result.filter(
+      (row) => !row.cost_center || row.cost_center.toLowerCase().includes(filters.cost_center.toLowerCase())
+    );
+  }
+  if (filters.gl_account) {
+    result = result.filter(
+      (row) => !row.gl_account || row.gl_account.toLowerCase().includes(filters.gl_account.toLowerCase())
+    );
+  }
+
   return result;
 }
 
@@ -647,6 +820,176 @@ function getRawData(queryName) {
         { line_item: 'OpEx', region: 'US', q1: -1200000, q2: -1250000, q3: -1300000, q4: -1350000 },
         { line_item: 'Net Income', region: 'US', q1: 910000, q2: 1050000, q3: 1190000, q4: 1470000 },
       ];
+
+    // ── P&L Demo Data ──────────────────────────────────────────────────
+
+    case 'pnl_summary_demo':
+      return [
+        // Corporate
+        { line_item: 'Revenue',       business_unit: 'Corporate',           fiscal_year: 'FY2025', q1_actual: 12500000, q1_budget: 12000000, q2_actual: 13200000, q2_budget: 12800000, q3_actual: 14100000, q3_budget: 13500000, q4_actual: 15800000, q4_budget: 14200000, ytd_actual: 55600000, ytd_budget: 52500000, variance_pct: '5.9%' },
+        { line_item: 'COGS',          business_unit: 'Corporate',           fiscal_year: 'FY2025', q1_actual: -4375000, q1_budget: -4200000, q2_actual: -4620000, q2_budget: -4480000, q3_actual: -4935000, q3_budget: -4725000, q4_actual: -5530000, q4_budget: -4970000, ytd_actual: -19460000, ytd_budget: -18375000, variance_pct: '-5.9%' },
+        { line_item: 'Gross Profit',  business_unit: 'Corporate',           fiscal_year: 'FY2025', q1_actual: 8125000, q1_budget: 7800000, q2_actual: 8580000, q2_budget: 8320000, q3_actual: 9165000, q3_budget: 8775000, q4_actual: 10270000, q4_budget: 9230000, ytd_actual: 36140000, ytd_budget: 34125000, variance_pct: '5.9%' },
+        { line_item: 'OpEx',          business_unit: 'Corporate',           fiscal_year: 'FY2025', q1_actual: -5200000, q1_budget: -5400000, q2_actual: -5350000, q2_budget: -5500000, q3_actual: -5500000, q3_budget: -5600000, q4_actual: -5650000, q4_budget: -5700000, ytd_actual: -21700000, ytd_budget: -22200000, variance_pct: '2.3%' },
+        { line_item: 'EBITDA',        business_unit: 'Corporate',           fiscal_year: 'FY2025', q1_actual: 2925000, q1_budget: 2400000, q2_actual: 3230000, q2_budget: 2820000, q3_actual: 3665000, q3_budget: 3175000, q4_actual: 4620000, q4_budget: 3530000, ytd_actual: 14440000, ytd_budget: 11925000, variance_pct: '21.1%' },
+        { line_item: 'Net Income',    business_unit: 'Corporate',           fiscal_year: 'FY2025', q1_actual: 2045000, q1_budget: 1680000, q2_actual: 2261000, q2_budget: 1974000, q3_actual: 2566000, q3_budget: 2223000, q4_actual: 3234000, q4_budget: 2471000, ytd_actual: 10106000, ytd_budget: 8348000, variance_pct: '21.1%' },
+        // Retail Banking
+        { line_item: 'Revenue',       business_unit: 'Retail Banking',      fiscal_year: 'FY2025', q1_actual: 8200000, q1_budget: 7900000, q2_actual: 8650000, q2_budget: 8300000, q3_actual: 9100000, q3_budget: 8700000, q4_actual: 9800000, q4_budget: 9100000, ytd_actual: 35750000, ytd_budget: 34000000, variance_pct: '5.1%' },
+        { line_item: 'COGS',          business_unit: 'Retail Banking',      fiscal_year: 'FY2025', q1_actual: -3280000, q1_budget: -3160000, q2_actual: -3460000, q2_budget: -3320000, q3_actual: -3640000, q3_budget: -3480000, q4_actual: -3920000, q4_budget: -3640000, ytd_actual: -14300000, ytd_budget: -13600000, variance_pct: '-5.1%' },
+        { line_item: 'Gross Profit',  business_unit: 'Retail Banking',      fiscal_year: 'FY2025', q1_actual: 4920000, q1_budget: 4740000, q2_actual: 5190000, q2_budget: 4980000, q3_actual: 5460000, q3_budget: 5220000, q4_actual: 5880000, q4_budget: 5460000, ytd_actual: 21450000, ytd_budget: 20400000, variance_pct: '5.1%' },
+        { line_item: 'Net Income',    business_unit: 'Retail Banking',      fiscal_year: 'FY2025', q1_actual: 1476000, q1_budget: 1422000, q2_actual: 1557000, q2_budget: 1494000, q3_actual: 1638000, q3_budget: 1566000, q4_actual: 1764000, q4_budget: 1638000, ytd_actual: 6435000, ytd_budget: 6120000, variance_pct: '5.1%' },
+        // Investment Banking
+        { line_item: 'Revenue',       business_unit: 'Investment Banking',  fiscal_year: 'FY2025', q1_actual: 18500000, q1_budget: 17000000, q2_actual: 19800000, q2_budget: 18200000, q3_actual: 21200000, q3_budget: 19500000, q4_actual: 24500000, q4_budget: 21000000, ytd_actual: 84000000, ytd_budget: 75700000, variance_pct: '11.0%' },
+        { line_item: 'COGS',          business_unit: 'Investment Banking',  fiscal_year: 'FY2025', q1_actual: -5550000, q1_budget: -5100000, q2_actual: -5940000, q2_budget: -5460000, q3_actual: -6360000, q3_budget: -5850000, q4_actual: -7350000, q4_budget: -6300000, ytd_actual: -25200000, ytd_budget: -22710000, variance_pct: '-11.0%' },
+        { line_item: 'Gross Profit',  business_unit: 'Investment Banking',  fiscal_year: 'FY2025', q1_actual: 12950000, q1_budget: 11900000, q2_actual: 13860000, q2_budget: 12740000, q3_actual: 14840000, q3_budget: 13650000, q4_actual: 17150000, q4_budget: 14700000, ytd_actual: 58800000, ytd_budget: 52990000, variance_pct: '11.0%' },
+        { line_item: 'Net Income',    business_unit: 'Investment Banking',  fiscal_year: 'FY2025', q1_actual: 5180000, q1_budget: 4760000, q2_actual: 5544000, q2_budget: 5096000, q3_actual: 5936000, q3_budget: 5460000, q4_actual: 6860000, q4_budget: 5880000, ytd_actual: 23520000, ytd_budget: 21196000, variance_pct: '11.0%' },
+        // Wealth Management
+        { line_item: 'Revenue',       business_unit: 'Wealth Management',   fiscal_year: 'FY2025', q1_actual: 6800000, q1_budget: 6500000, q2_actual: 7100000, q2_budget: 6800000, q3_actual: 7500000, q3_budget: 7200000, q4_actual: 8200000, q4_budget: 7600000, ytd_actual: 29600000, ytd_budget: 28100000, variance_pct: '5.3%' },
+        { line_item: 'COGS',          business_unit: 'Wealth Management',   fiscal_year: 'FY2025', q1_actual: -1700000, q1_budget: -1625000, q2_actual: -1775000, q2_budget: -1700000, q3_actual: -1875000, q3_budget: -1800000, q4_actual: -2050000, q4_budget: -1900000, ytd_actual: -7400000, ytd_budget: -7025000, variance_pct: '-5.3%' },
+        { line_item: 'Gross Profit',  business_unit: 'Wealth Management',   fiscal_year: 'FY2025', q1_actual: 5100000, q1_budget: 4875000, q2_actual: 5325000, q2_budget: 5100000, q3_actual: 5625000, q3_budget: 5400000, q4_actual: 6150000, q4_budget: 5700000, ytd_actual: 22200000, ytd_budget: 21075000, variance_pct: '5.3%' },
+        { line_item: 'Net Income',    business_unit: 'Wealth Management',   fiscal_year: 'FY2025', q1_actual: 2040000, q1_budget: 1950000, q2_actual: 2130000, q2_budget: 2040000, q3_actual: 2250000, q3_budget: 2160000, q4_actual: 2460000, q4_budget: 2280000, ytd_actual: 8880000, ytd_budget: 8430000, variance_pct: '5.3%' },
+      ];
+
+    case 'pnl_detail':
+      return [
+        // Corporate detail
+        { gl_account: '4100', gl_description: 'Product Revenue',         category: 'Revenue',  business_unit: 'Corporate', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: 8500000, budget: 8200000, variance: 300000, variance_pct: '3.7%' },
+        { gl_account: '4200', gl_description: 'Service Revenue',         category: 'Revenue',  business_unit: 'Corporate', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: 2800000, budget: 2600000, variance: 200000, variance_pct: '7.7%' },
+        { gl_account: '4300', gl_description: 'License Revenue',         category: 'Revenue',  business_unit: 'Corporate', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: 1200000, budget: 1200000, variance: 0, variance_pct: '0.0%' },
+        { gl_account: '5100', gl_description: 'Direct Labor',            category: 'COGS',     business_unit: 'Corporate', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: -2100000, budget: -2000000, variance: -100000, variance_pct: '-5.0%' },
+        { gl_account: '5200', gl_description: 'Infrastructure Costs',    category: 'COGS',     business_unit: 'Corporate', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: -1500000, budget: -1400000, variance: -100000, variance_pct: '-7.1%' },
+        { gl_account: '5300', gl_description: 'Third Party Services',    category: 'COGS',     business_unit: 'Corporate', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: -775000, budget: -800000, variance: 25000, variance_pct: '3.1%' },
+        { gl_account: '6100', gl_description: 'Salaries & Benefits',     category: 'OpEx',     business_unit: 'Corporate', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: -3100000, budget: -3200000, variance: 100000, variance_pct: '3.1%' },
+        { gl_account: '6200', gl_description: 'Marketing & Sales',       category: 'OpEx',     business_unit: 'Corporate', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: -1200000, budget: -1250000, variance: 50000, variance_pct: '4.0%' },
+        { gl_account: '6300', gl_description: 'R&D Expenses',            category: 'OpEx',     business_unit: 'Corporate', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: -600000, budget: -650000, variance: 50000, variance_pct: '7.7%' },
+        { gl_account: '6400', gl_description: 'General & Administrative',category: 'OpEx',     business_unit: 'Corporate', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: -300000, budget: -300000, variance: 0, variance_pct: '0.0%' },
+        // Investment Banking detail
+        { gl_account: '4100', gl_description: 'Advisory Fees',           category: 'Revenue',  business_unit: 'Investment Banking', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: 9200000, budget: 8500000, variance: 700000, variance_pct: '8.2%' },
+        { gl_account: '4200', gl_description: 'Underwriting Revenue',    category: 'Revenue',  business_unit: 'Investment Banking', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: 5800000, budget: 5200000, variance: 600000, variance_pct: '11.5%' },
+        { gl_account: '4300', gl_description: 'Trading Revenue',         category: 'Revenue',  business_unit: 'Investment Banking', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: 3500000, budget: 3300000, variance: 200000, variance_pct: '6.1%' },
+        { gl_account: '5100', gl_description: 'Compensation',            category: 'COGS',     business_unit: 'Investment Banking', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: -3800000, budget: -3500000, variance: -300000, variance_pct: '-8.6%' },
+        { gl_account: '5200', gl_description: 'Technology & Data',       category: 'COGS',     business_unit: 'Investment Banking', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: -1750000, budget: -1600000, variance: -150000, variance_pct: '-9.4%' },
+        // Retail Banking detail
+        { gl_account: '4100', gl_description: 'Net Interest Income',     category: 'Revenue',  business_unit: 'Retail Banking', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: 5400000, budget: 5200000, variance: 200000, variance_pct: '3.8%' },
+        { gl_account: '4200', gl_description: 'Fee Income',              category: 'Revenue',  business_unit: 'Retail Banking', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: 1800000, budget: 1700000, variance: 100000, variance_pct: '5.9%' },
+        { gl_account: '4300', gl_description: 'Mortgage Revenue',        category: 'Revenue',  business_unit: 'Retail Banking', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: 1000000, budget: 1000000, variance: 0, variance_pct: '0.0%' },
+        { gl_account: '5100', gl_description: 'Provision for Losses',    category: 'COGS',     business_unit: 'Retail Banking', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: -2100000, budget: -2000000, variance: -100000, variance_pct: '-5.0%' },
+        { gl_account: '5200', gl_description: 'Branch Operations',       category: 'COGS',     business_unit: 'Retail Banking', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: -1180000, budget: -1160000, variance: -20000, variance_pct: '-1.7%' },
+        // Wealth Management detail
+        { gl_account: '4100', gl_description: 'AUM Management Fees',     category: 'Revenue',  business_unit: 'Wealth Management', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: 4200000, budget: 4000000, variance: 200000, variance_pct: '5.0%' },
+        { gl_account: '4200', gl_description: 'Performance Fees',        category: 'Revenue',  business_unit: 'Wealth Management', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: 1600000, budget: 1500000, variance: 100000, variance_pct: '6.7%' },
+        { gl_account: '4300', gl_description: 'Financial Planning Fees', category: 'Revenue',  business_unit: 'Wealth Management', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: 1000000, budget: 1000000, variance: 0, variance_pct: '0.0%' },
+        { gl_account: '5100', gl_description: 'Advisor Compensation',    category: 'COGS',     business_unit: 'Wealth Management', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: -1200000, budget: -1125000, variance: -75000, variance_pct: '-6.7%' },
+        { gl_account: '5200', gl_description: 'Platform & Custody',      category: 'COGS',     business_unit: 'Wealth Management', fiscal_quarter: 'Q1', fiscal_year: 'FY2025', actual: -500000, budget: -500000, variance: 0, variance_pct: '0.0%' },
+      ];
+
+    case 'revenue_by_region':
+      return [
+        { region: 'North America', business_unit: 'Corporate',          fiscal_year: 'FY2025', q1_revenue: 7500000, q2_revenue: 7900000, q3_revenue: 8450000, q4_revenue: 9500000, total_revenue: 33350000 },
+        { region: 'North America', business_unit: 'Investment Banking', fiscal_year: 'FY2025', q1_revenue: 11100000, q2_revenue: 11880000, q3_revenue: 12720000, q4_revenue: 14700000, total_revenue: 50400000 },
+        { region: 'North America', business_unit: 'Retail Banking',     fiscal_year: 'FY2025', q1_revenue: 5740000, q2_revenue: 6055000, q3_revenue: 6370000, q4_revenue: 6860000, total_revenue: 25025000 },
+        { region: 'North America', business_unit: 'Wealth Management',  fiscal_year: 'FY2025', q1_revenue: 4080000, q2_revenue: 4260000, q3_revenue: 4500000, q4_revenue: 4920000, total_revenue: 17760000 },
+        { region: 'Europe',        business_unit: 'Corporate',          fiscal_year: 'FY2025', q1_revenue: 3125000, q2_revenue: 3300000, q3_revenue: 3525000, q4_revenue: 3950000, total_revenue: 13900000 },
+        { region: 'Europe',        business_unit: 'Investment Banking', fiscal_year: 'FY2025', q1_revenue: 4625000, q2_revenue: 4950000, q3_revenue: 5300000, q4_revenue: 6125000, total_revenue: 21000000 },
+        { region: 'Europe',        business_unit: 'Retail Banking',     fiscal_year: 'FY2025', q1_revenue: 1640000, q2_revenue: 1730000, q3_revenue: 1820000, q4_revenue: 1960000, total_revenue: 7150000 },
+        { region: 'Europe',        business_unit: 'Wealth Management',  fiscal_year: 'FY2025', q1_revenue: 1700000, q2_revenue: 1775000, q3_revenue: 1875000, q4_revenue: 2050000, total_revenue: 7400000 },
+        { region: 'Asia Pacific',  business_unit: 'Corporate',          fiscal_year: 'FY2025', q1_revenue: 1875000, q2_revenue: 2000000, q3_revenue: 2125000, q4_revenue: 2350000, total_revenue: 8350000 },
+        { region: 'Asia Pacific',  business_unit: 'Investment Banking', fiscal_year: 'FY2025', q1_revenue: 2775000, q2_revenue: 2970000, q3_revenue: 3180000, q4_revenue: 3675000, total_revenue: 12600000 },
+        { region: 'Asia Pacific',  business_unit: 'Retail Banking',     fiscal_year: 'FY2025', q1_revenue: 820000, q2_revenue: 865000, q3_revenue: 910000, q4_revenue: 980000, total_revenue: 3575000 },
+        { region: 'Asia Pacific',  business_unit: 'Wealth Management',  fiscal_year: 'FY2025', q1_revenue: 1020000, q2_revenue: 1065000, q3_revenue: 1125000, q4_revenue: 1230000, total_revenue: 4440000 },
+      ];
+
+    case 'budget_vs_actual':
+      return [
+        { cost_center: 'Technology',      category: 'OpEx',     fiscal_year: 'FY2025', budget: 18500000, actual: 17800000, variance: 700000, variance_pct: '3.8%', status: 'Under Budget' },
+        { cost_center: 'Sales & Marketing',category: 'OpEx',    fiscal_year: 'FY2025', budget: 12000000, actual: 12450000, variance: -450000, variance_pct: '-3.8%', status: 'Over Budget' },
+        { cost_center: 'Human Resources', category: 'OpEx',     fiscal_year: 'FY2025', budget: 4200000, actual: 4100000, variance: 100000, variance_pct: '2.4%', status: 'Under Budget' },
+        { cost_center: 'Legal & Compliance',category: 'OpEx',   fiscal_year: 'FY2025', budget: 3800000, actual: 4200000, variance: -400000, variance_pct: '-10.5%', status: 'Over Budget' },
+        { cost_center: 'Operations',      category: 'OpEx',     fiscal_year: 'FY2025', budget: 8500000, actual: 8200000, variance: 300000, variance_pct: '3.5%', status: 'Under Budget' },
+        { cost_center: 'Risk Management', category: 'OpEx',     fiscal_year: 'FY2025', budget: 2800000, actual: 2750000, variance: 50000, variance_pct: '1.8%', status: 'Under Budget' },
+        { cost_center: 'Finance',         category: 'OpEx',     fiscal_year: 'FY2025', budget: 2200000, actual: 2180000, variance: 20000, variance_pct: '0.9%', status: 'On Track' },
+        { cost_center: 'Facilities',      category: 'OpEx',     fiscal_year: 'FY2025', budget: 5000000, actual: 5100000, variance: -100000, variance_pct: '-2.0%', status: 'Over Budget' },
+        { cost_center: 'Research',        category: 'OpEx',     fiscal_year: 'FY2025', budget: 6500000, actual: 6200000, variance: 300000, variance_pct: '4.6%', status: 'Under Budget' },
+        { cost_center: 'Executive Office',category: 'OpEx',     fiscal_year: 'FY2025', budget: 1500000, actual: 1480000, variance: 20000, variance_pct: '1.3%', status: 'On Track' },
+      ];
+
+    case 'gl_transactions':
+      return [
+        { journal_id: 'JE-2025-001', gl_account: '4100', posting_date: '2025-01-05', description: 'Q1 Product revenue recognition - Platform licenses', debit: 0, credit: 2800000, balance: 2800000, fiscal_year: 'FY2025' },
+        { journal_id: 'JE-2025-002', gl_account: '4100', posting_date: '2025-01-15', description: 'Q1 Product revenue recognition - Enterprise deals', debit: 0, credit: 1950000, balance: 4750000, fiscal_year: 'FY2025' },
+        { journal_id: 'JE-2025-003', gl_account: '4200', posting_date: '2025-01-20', description: 'Q1 Service revenue - Consulting engagements', debit: 0, credit: 1400000, balance: 6150000, fiscal_year: 'FY2025' },
+        { journal_id: 'JE-2025-004', gl_account: '5100', posting_date: '2025-01-31', description: 'January payroll - Engineering division', debit: 700000, credit: 0, balance: 5450000, fiscal_year: 'FY2025' },
+        { journal_id: 'JE-2025-005', gl_account: '5100', posting_date: '2025-02-28', description: 'February payroll - Engineering division', debit: 700000, credit: 0, balance: 4750000, fiscal_year: 'FY2025' },
+        { journal_id: 'JE-2025-006', gl_account: '5200', posting_date: '2025-02-15', description: 'AWS infrastructure charges - Q1 allocation', debit: 450000, credit: 0, balance: 4300000, fiscal_year: 'FY2025' },
+        { journal_id: 'JE-2025-007', gl_account: '6100', posting_date: '2025-02-28', description: 'February salaries & benefits accrual', debit: 1050000, credit: 0, balance: 3250000, fiscal_year: 'FY2025' },
+        { journal_id: 'JE-2025-008', gl_account: '6200', posting_date: '2025-03-10', description: 'Q1 Marketing campaign spend - Digital', debit: 380000, credit: 0, balance: 2870000, fiscal_year: 'FY2025' },
+        { journal_id: 'JE-2025-009', gl_account: '6200', posting_date: '2025-03-15', description: 'Q1 Sales commission accrual', debit: 520000, credit: 0, balance: 2350000, fiscal_year: 'FY2025' },
+        { journal_id: 'JE-2025-010', gl_account: '6300', posting_date: '2025-03-20', description: 'Q1 R&D project expenses - AI platform', debit: 280000, credit: 0, balance: 2070000, fiscal_year: 'FY2025' },
+        { journal_id: 'JE-2025-011', gl_account: '4100', posting_date: '2025-04-05', description: 'Q2 Product revenue recognition - Platform', debit: 0, credit: 3100000, balance: 5170000, fiscal_year: 'FY2025' },
+        { journal_id: 'JE-2025-012', gl_account: '4200', posting_date: '2025-04-20', description: 'Q2 Service revenue - Implementation projects', debit: 0, credit: 1600000, balance: 6770000, fiscal_year: 'FY2025' },
+        { journal_id: 'JE-2025-013', gl_account: '5100', posting_date: '2025-04-30', description: 'April payroll - All divisions', debit: 720000, credit: 0, balance: 6050000, fiscal_year: 'FY2025' },
+        { journal_id: 'JE-2025-014', gl_account: '6400', posting_date: '2025-05-15', description: 'Q2 G&A - Office lease and utilities', debit: 150000, credit: 0, balance: 5900000, fiscal_year: 'FY2025' },
+        { journal_id: 'JE-2025-015', gl_account: '4300', posting_date: '2025-06-30', description: 'Q2 License revenue recognition', debit: 0, credit: 1200000, balance: 7100000, fiscal_year: 'FY2025' },
+        { journal_id: 'JE-2025-ADJ1', gl_account: '4100', posting_date: '2025-03-31', description: 'Q1 Revenue adjustment - Deferred recognition', debit: 150000, credit: 0, balance: 1920000, fiscal_year: 'FY2025' },
+        { journal_id: 'JE-2025-ADJ2', gl_account: '5200', posting_date: '2025-06-30', description: 'Q2 COGS adjustment - Vendor credit received', debit: 0, credit: 85000, balance: 7185000, fiscal_year: 'FY2025' },
+      ];
+
+    // ── Cross-source join data ───────────────────────────────────────
+
+    case 'headcount_by_cost_center':
+      return [
+        { cost_center: 'Technology',       headcount: 142, avg_salary: 165000, open_positions: 18, attrition_rate: '8.2%' },
+        { cost_center: 'Sales & Marketing', headcount: 95, avg_salary: 128000, open_positions: 12, attrition_rate: '14.5%' },
+        { cost_center: 'Human Resources',  headcount: 28, avg_salary: 112000, open_positions: 3,  attrition_rate: '5.1%' },
+        { cost_center: 'Legal & Compliance', headcount: 35, avg_salary: 155000, open_positions: 5, attrition_rate: '4.8%' },
+        { cost_center: 'Operations',       headcount: 78, avg_salary: 98000,  open_positions: 8,  attrition_rate: '11.2%' },
+        { cost_center: 'Risk Management',  headcount: 22, avg_salary: 148000, open_positions: 2,  attrition_rate: '3.6%' },
+        { cost_center: 'Finance',          headcount: 31, avg_salary: 135000, open_positions: 1,  attrition_rate: '6.5%' },
+        { cost_center: 'Facilities',       headcount: 45, avg_salary: 72000,  open_positions: 4,  attrition_rate: '18.3%' },
+        { cost_center: 'Research',         headcount: 56, avg_salary: 158000, open_positions: 9,  attrition_rate: '6.0%' },
+        { cost_center: 'Executive Office', headcount: 8,  avg_salary: 310000, open_positions: 0,  attrition_rate: '0.0%' },
+      ];
+
+    case 'trading_desk_pnl':
+      return [
+        { desk: 'Equities',       asset_class: 'Equity',       realized_pnl: 4200000,  unrealized_pnl: 1850000,  total_pnl: 6050000,   trades: 12450, win_rate: '58%' },
+        { desk: 'Fixed Income',   asset_class: 'Bonds',        realized_pnl: 2800000,  unrealized_pnl: -420000,  total_pnl: 2380000,   trades: 3200,  win_rate: '62%' },
+        { desk: 'FX',             asset_class: 'Currency',     realized_pnl: 1560000,  unrealized_pnl: 780000,   total_pnl: 2340000,   trades: 28900, win_rate: '51%' },
+        { desk: 'Commodities',    asset_class: 'Commodity',    realized_pnl: 890000,   unrealized_pnl: 340000,   total_pnl: 1230000,   trades: 4100,  win_rate: '55%' },
+        { desk: 'Derivatives',    asset_class: 'Options/Swaps', realized_pnl: 3100000, unrealized_pnl: -1200000, total_pnl: 1900000,   trades: 8700,  win_rate: '48%' },
+        { desk: 'Credit',         asset_class: 'Credit',       realized_pnl: 1750000,  unrealized_pnl: 520000,   total_pnl: 2270000,   trades: 2100,  win_rate: '64%' },
+      ];
+
+    case 'trading_desk_risk':
+      return [
+        { desk: 'Equities',       var_95: 2800000, var_99: 4500000, stress_loss: -8200000,  exposure_gross: 185000000, exposure_net: 42000000,  risk_limit: 5000000, limit_usage: '90%' },
+        { desk: 'Fixed Income',   var_95: 1200000, var_99: 2100000, stress_loss: -3800000,  exposure_gross: 320000000, exposure_net: 18000000,  risk_limit: 2500000, limit_usage: '84%' },
+        { desk: 'FX',             var_95: 950000,  var_99: 1600000, stress_loss: -2900000,  exposure_gross: 420000000, exposure_net: 35000000,  risk_limit: 2000000, limit_usage: '80%' },
+        { desk: 'Commodities',    var_95: 680000,  var_99: 1100000, stress_loss: -2100000,  exposure_gross: 95000000,  exposure_net: 22000000,  risk_limit: 1500000, limit_usage: '73%' },
+        { desk: 'Derivatives',    var_95: 3200000, var_99: 5800000, stress_loss: -12000000, exposure_gross: 450000000, exposure_net: -8000000,  risk_limit: 6000000, limit_usage: '97%' },
+        { desk: 'Credit',         var_95: 780000,  var_99: 1350000, stress_loss: -2500000,  exposure_gross: 210000000, exposure_net: 52000000,  risk_limit: 1800000, limit_usage: '75%' },
+      ];
+
+    case 'loan_portfolio':
+      return [
+        { segment: 'Mortgages',       region: 'North America', outstanding: 4200000000, avg_rate: '5.85%', weighted_ltv: '72%', npl_count: 142, npl_amount: 38500000,  npl_ratio: '0.92%', provision: 52000000 },
+        { segment: 'Mortgages',       region: 'Europe',        outstanding: 2100000000, avg_rate: '4.20%', weighted_ltv: '68%', npl_count: 89,  npl_amount: 21200000,  npl_ratio: '1.01%', provision: 28000000 },
+        { segment: 'Commercial',      region: 'North America', outstanding: 1800000000, avg_rate: '6.50%', weighted_ltv: '60%', npl_count: 23,  npl_amount: 45000000,  npl_ratio: '2.50%', provision: 62000000 },
+        { segment: 'Commercial',      region: 'Europe',        outstanding: 950000000,  avg_rate: '5.75%', weighted_ltv: '55%', npl_count: 15,  npl_amount: 28000000,  npl_ratio: '2.95%', provision: 38000000 },
+        { segment: 'Consumer',        region: 'North America', outstanding: 820000000,  avg_rate: '9.20%', weighted_ltv: 'N/A', npl_count: 312, npl_amount: 18500000,  npl_ratio: '2.26%', provision: 24000000 },
+        { segment: 'Consumer',        region: 'Asia Pacific',  outstanding: 380000000,  avg_rate: '8.50%', weighted_ltv: 'N/A', npl_count: 178, npl_amount: 9800000,   npl_ratio: '2.58%', provision: 13000000 },
+        { segment: 'Auto',            region: 'North America', outstanding: 560000000,  avg_rate: '7.10%', weighted_ltv: '85%', npl_count: 95,  npl_amount: 8200000,   npl_ratio: '1.46%', provision: 11000000 },
+        { segment: 'Small Business',  region: 'North America', outstanding: 420000000,  avg_rate: '8.75%', weighted_ltv: 'N/A', npl_count: 67,  npl_amount: 14500000,  npl_ratio: '3.45%', provision: 19000000 },
+      ];
+
+    case 'loan_origination':
+      return [
+        { segment: 'Mortgages',       pipeline_count: 845,  pipeline_value: 312000000, avg_deal_size: 369231,  approval_rate: '72%', avg_days_to_close: 45, funded_mtd: 189000000, funded_count: 412 },
+        { segment: 'Commercial',      pipeline_count: 128,  pipeline_value: 580000000, avg_deal_size: 4531250, approval_rate: '48%', avg_days_to_close: 90, funded_mtd: 145000000, funded_count: 31 },
+        { segment: 'Consumer',        pipeline_count: 2340, pipeline_value: 42000000,  avg_deal_size: 17949,   approval_rate: '85%', avg_days_to_close: 7,  funded_mtd: 28000000,  funded_count: 1560 },
+        { segment: 'Auto',            pipeline_count: 1200, pipeline_value: 48000000,  avg_deal_size: 40000,   approval_rate: '78%', avg_days_to_close: 3,  funded_mtd: 35000000,  funded_count: 875 },
+        { segment: 'Small Business',  pipeline_count: 310,  pipeline_value: 95000000,  avg_deal_size: 306452,  approval_rate: '38%', avg_days_to_close: 60, funded_mtd: 22000000,  funded_count: 72 },
+      ];
+
     default:
       return [{ message: 'No data available for this query' }];
   }

@@ -1,0 +1,14 @@
+{
+  "monthly_revenue": [
+    {
+      "name": "daily_orders",
+      "score": 1
+    }
+  ],
+  "daily_orders": [
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    }
+  ]
+}

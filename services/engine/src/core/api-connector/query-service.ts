@@ -1,20 +1,33 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import { ApiClient } from './api-client';
-import { QuerySchema, QueryResultSchema } from './types';
-import { fetchBamToken } from './bam-auth';
-import { FILE_BASE_DIR } from '@/lib/env-config';
-import { QueryNotFoundError, FileReadError } from '@/lib/errors';
-import { logger } from '@/lib/logger';
-import { resolveDateRange, isDatePreset } from '@/lib/date-resolver';
-import { searchDocument, searchDocumentBM25, type DocumentSection } from './document-search';
-import { DocumentManager } from '../document-index/document-manager';
-import { parseCsv, computeAggregation, parseAggregationFromText, groupBy, sortData, type AggregationResult, type GroupByResult } from './csv-analyzer';
-import filterConfig from '@/config/filter-config.json';
-import type { Query, QueryResult, QueryFilters, FilterBinding } from './types';
+import { promises as fs } from "fs";
+import path from "path";
+import { ApiClient } from "./api-client";
+import { QuerySchema, QueryResultSchema } from "./types";
+import { fetchBamToken } from "./bam-auth";
+import { FILE_BASE_DIR } from "@/lib/env-config";
+import { QueryNotFoundError, FileReadError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
+import { resolveDateRange, isDatePreset } from "@/lib/date-resolver";
+import {
+  searchDocument,
+  searchDocumentBM25,
+  type DocumentSection,
+} from "./document-search";
+import { DocumentManager } from "../document-index/document-manager";
+import {
+  parseCsv,
+  computeAggregation,
+  parseAggregationFromText,
+  groupBy,
+  sortData,
+  type AggregationResult,
+  type GroupByResult,
+} from "./csv-analyzer";
+import filterConfig from "@/config/filter-config.json";
+import type { Query, QueryResult, QueryFilters, FilterBinding } from "./types";
+import { joinDatasets, prefixColumns, extractDataArray } from "./join-engine";
 
 export interface QueryExecutionResult {
-  type: 'api' | 'url' | 'document' | 'csv' | 'xlsx';
+  type: "api" | "url" | "document" | "csv" | "xlsx";
   durationMs?: number;
   apiResult?: QueryResult;
   urlResult?: { title: string; url: string };
@@ -40,7 +53,7 @@ export interface QueryExecuteOptions {
   aggregationText?: string;
   groupByColumn?: string;
   sortColumn?: string;
-  sortDirection?: 'asc' | 'desc';
+  sortDirection?: "asc" | "desc";
 }
 
 export interface MultiQueryResult {
@@ -51,19 +64,24 @@ export interface MultiQueryResult {
 export class QueryService {
   private sources: string[];
 
-  constructor(private apiClient: ApiClient, sources?: string[]) {
+  constructor(
+    private apiClient: ApiClient,
+    sources?: string[],
+  ) {
     this.sources = sources ?? [];
   }
 
   async getQueries(): Promise<Query[]> {
-    const raw = await this.apiClient.get<unknown[]>('queries', {
+    const raw = await this.apiClient.get<unknown[]>("queries", {
       cacheTtl: 60_000,
     });
     let queries = raw.map((q) => QuerySchema.parse(q));
 
     if (this.sources.length > 0) {
       queries = queries.filter(
-        (q) => q.source && this.sources.includes(q.source)
+        (q) =>
+          q.type === "combined" ||
+          (q.source && this.sources.includes(q.source)),
       );
     }
 
@@ -92,30 +110,37 @@ export class QueryService {
     queryName: string,
     filters?: QueryFilters,
     options?: QueryExecuteOptions,
-    incomingHeaders?: Record<string, string>
+    incomingHeaders?: Record<string, string>,
   ): Promise<QueryExecutionResult> {
     const startTime = performance.now();
     const queries = await this.getQueries();
     const query = queries.find(
-      (q) => q.name.toLowerCase() === queryName.toLowerCase()
+      (q) => q.name.toLowerCase() === queryName.toLowerCase(),
     );
     if (!query) throw new QueryNotFoundError(queryName);
 
-    const queryType = query.type ?? 'api';
+    const queryType = query.type ?? "api";
 
     let result: QueryExecutionResult;
     switch (queryType) {
-      case 'url':
+      case "url":
         result = this.executeUrlQuery(query);
         break;
-      case 'document':
+      case "document":
         result = await this.executeDocumentQuery(query, options);
         break;
-      case 'csv':
-      case 'xlsx':
+      case "csv":
+      case "xlsx":
         result = await this.executeCsvQuery(query, options, filters);
         break;
-      case 'api':
+      case "combined":
+        result = await this.executeCombinedQuery(
+          query,
+          filters,
+          incomingHeaders,
+        );
+        break;
+      case "api":
       default:
         result = await this.executeApiQuery(query, filters, incomingHeaders);
         break;
@@ -124,7 +149,9 @@ export class QueryService {
     result.durationMs = Math.round(performance.now() - startTime);
 
     // Fire-and-forget stats recording
-    this.recordStat(queryName, true, result.durationMs, filters).catch(() => {});
+    this.recordStat(queryName, true, result.durationMs, filters).catch(
+      () => {},
+    );
 
     return result;
   }
@@ -134,13 +161,19 @@ export class QueryService {
     success: boolean,
     durationMs: number,
     filters?: QueryFilters,
-    error?: string
+    error?: string,
   ): Promise<void> {
     try {
       await fetch(`${this.getStatsUrl()}/api/stats`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ queryName, success, durationMs, filters: filters || {}, error }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          queryName,
+          success,
+          durationMs,
+          filters: filters || {},
+          error,
+        }),
       });
     } catch {
       // Silently fail — stats are non-critical
@@ -149,33 +182,35 @@ export class QueryService {
 
   private getStatsUrl(): string {
     // Use the Next.js server URL for internal stats endpoint
-    const port = process.env.PORT || '3000';
+    const port = process.env.PORT || "3000";
     return `http://localhost:${port}`;
   }
 
   private async executeApiQuery(
     query: Query,
     filters?: QueryFilters,
-    incomingHeaders?: Record<string, string>
+    incomingHeaders?: Record<string, string>,
   ): Promise<QueryExecutionResult> {
     const filterBindings: FilterBinding[] = query.filters ?? [];
     const resolved = filters ? this.resolveFilters(filters) : undefined;
     const bodyFilters: Record<string, string> = {};
     const paramFilters: Record<string, string> = {};
     let urlPath = query.endpoint
-      ? query.endpoint.replace(/^\//, '')
+      ? query.endpoint.replace(/^\//, "")
       : `queries/${query.id}/execute`;
 
     if (resolved && Object.keys(resolved).length > 0) {
       for (const [key, value] of Object.entries(resolved)) {
         // For resolved date keys like date_range_start, find binding for base key
-        const baseKey = key.replace(/_start$|_end$/, '');
-        const binding = filterBindings.find((f) => f.key === baseKey || f.key === key);
-        const bindingType = binding?.binding ?? 'body';
+        const baseKey = key.replace(/_start$|_end$/, "");
+        const binding = filterBindings.find(
+          (f) => f.key === baseKey || f.key === key,
+        );
+        const bindingType = binding?.binding ?? "body";
 
-        if (bindingType === 'path') {
+        if (bindingType === "path") {
           urlPath = urlPath.replace(`{${key}}`, encodeURIComponent(value));
-        } else if (bindingType === 'query_param') {
+        } else if (bindingType === "query_param") {
           paramFilters[key] = value;
         } else {
           bodyFilters[key] = value;
@@ -186,9 +221,11 @@ export class QueryService {
     // Build per-query auth headers based on authType
     const authHeaders = await this.resolveQueryAuth(query, incomingHeaders);
 
-    const body = Object.keys(bodyFilters).length > 0 ? { filters: bodyFilters } : {};
-    const params = Object.keys(paramFilters).length > 0 ? paramFilters : undefined;
-    const httpMethod = query.method ?? 'POST';
+    const body =
+      Object.keys(bodyFilters).length > 0 ? { filters: bodyFilters } : {};
+    const params =
+      Object.keys(paramFilters).length > 0 ? paramFilters : undefined;
+    const httpMethod = query.method ?? "POST";
 
     let raw: unknown;
 
@@ -201,12 +238,12 @@ export class QueryService {
       // ── Endpoint is a full URL — use it directly, ignore base URLs ────
       let absoluteUrl = urlPath;
       if (params && Object.keys(params).length > 0) {
-        const sep = absoluteUrl.includes('?') ? '&' : '?';
+        const sep = absoluteUrl.includes("?") ? "&" : "?";
         absoluteUrl += `${sep}${new URLSearchParams(params).toString()}`;
       }
       raw = await this.apiClient.fetchAbsolute(absoluteUrl, {
-        method: httpMethod as 'GET' | 'POST' | 'PUT' | 'DELETE',
-        body: httpMethod !== 'GET' ? body : undefined,
+        method: httpMethod as "GET" | "POST" | "PUT" | "DELETE",
+        body: httpMethod !== "GET" ? body : undefined,
         headers: { ...authHeaders },
       });
     } else if (query.baseUrl) {
@@ -215,22 +252,24 @@ export class QueryService {
       // e.g., query.baseUrl = "https://finance-api.corp.com:9443/v2"
       //       query.endpoint = "/revenue/{region}"
       //       → https://finance-api.corp.com:9443/v2/revenue/US
-      const queryBase = query.baseUrl.replace(/\/?$/, '/');
+      const queryBase = query.baseUrl.replace(/\/?$/, "/");
       let absoluteUrl = `${queryBase}${urlPath}`;
       if (params && Object.keys(params).length > 0) {
         absoluteUrl += `?${new URLSearchParams(params).toString()}`;
       }
       raw = await this.apiClient.fetchAbsolute(absoluteUrl, {
-        method: httpMethod as 'GET' | 'POST' | 'PUT' | 'DELETE',
-        body: httpMethod !== 'GET' ? body : undefined,
+        method: httpMethod as "GET" | "POST" | "PUT" | "DELETE",
+        body: httpMethod !== "GET" ? body : undefined,
         headers: { ...authHeaders },
       });
     } else {
       // ── Default: use group/global base URL via ApiClient ───────────────
-      if (httpMethod === 'GET') {
+      if (httpMethod === "GET") {
         raw = await this.apiClient.get(
-          params ? `${urlPath}?${new URLSearchParams(params).toString()}` : urlPath,
-          { authHeaders }
+          params
+            ? `${urlPath}?${new URLSearchParams(params).toString()}`
+            : urlPath,
+          { authHeaders },
         );
       } else {
         raw = await this.apiClient.post(urlPath, body, params, authHeaders);
@@ -238,7 +277,7 @@ export class QueryService {
     }
 
     const apiResult = this.normalizeApiResponse(raw);
-    return { type: 'api', apiResult };
+    return { type: "api", apiResult };
   }
 
   /**
@@ -257,16 +296,24 @@ export class QueryService {
     if (standard.success) return standard.data;
 
     // 2. Primitive values: 42, "OK", true, null
-    if (raw === null || raw === undefined || typeof raw !== 'object') {
-      const label = typeof raw === 'number' ? 'count' : 'result';
-      return { data: [{ [label]: raw ?? 'null' }], rowCount: 1, executionTime: 0 };
+    if (raw === null || raw === undefined || typeof raw !== "object") {
+      const label = typeof raw === "number" ? "count" : "result";
+      return {
+        data: [{ [label]: raw ?? "null" }],
+        rowCount: 1,
+        executionTime: 0,
+      };
     }
 
     // 3. Raw array: [{ ... }, ...]
     if (Array.isArray(raw)) {
       // Array of primitives: [1, 2, 3] or ["a", "b"]
-      if (raw.length > 0 && typeof raw[0] !== 'object') {
-        return { data: raw.map((v, i) => ({ index: i, value: v })), rowCount: raw.length, executionTime: 0 };
+      if (raw.length > 0 && typeof raw[0] !== "object") {
+        return {
+          data: raw.map((v, i) => ({ index: i, value: v })),
+          rowCount: raw.length,
+          executionTime: 0,
+        };
       }
       return { data: raw, rowCount: raw.length, executionTime: 0 };
     }
@@ -277,16 +324,40 @@ export class QueryService {
     //    Covers: { data: [...] }, { results: [...] }, { items: [...] },
     //    { records: [...] }, { rows: [...] }, { content: [...] } (Spring Boot),
     //    { entries: [...] }, { list: [...] }, { values: [...] }
-    const arrayKeys = ['data', 'results', 'items', 'records', 'rows', 'content', 'entries', 'list', 'values'];
+    const arrayKeys = [
+      "data",
+      "results",
+      "items",
+      "records",
+      "rows",
+      "content",
+      "entries",
+      "list",
+      "values",
+    ];
     for (const key of arrayKeys) {
       if (Array.isArray(obj[key])) {
         const arr = obj[key] as Record<string, unknown>[];
         // Extract rowCount from common metadata fields
-        const rowCount = this.extractNumericField(obj, ['rowCount', 'total', 'totalElements', 'totalCount', 'count', 'size', 'length']);
+        const rowCount = this.extractNumericField(obj, [
+          "rowCount",
+          "total",
+          "totalElements",
+          "totalCount",
+          "count",
+          "size",
+          "length",
+        ]);
         return {
           data: arr,
           rowCount: rowCount ?? arr.length,
-          executionTime: this.extractNumericField(obj, ['executionTime', 'elapsed', 'duration', 'took']) ?? 0,
+          executionTime:
+            this.extractNumericField(obj, [
+              "executionTime",
+              "elapsed",
+              "duration",
+              "took",
+            ]) ?? 0,
         };
       }
     }
@@ -295,7 +366,11 @@ export class QueryService {
     //    Recursively look for the first array at any depth (max 3 levels)
     const nestedArray = this.findNestedArray(obj, 3);
     if (nestedArray) {
-      return { data: nestedArray, rowCount: nestedArray.length, executionTime: 0 };
+      return {
+        data: nestedArray,
+        rowCount: nestedArray.length,
+        executionTime: 0,
+      };
     }
 
     // 6. Mixed object with primitives + nested objects/arrays
@@ -303,36 +378,64 @@ export class QueryService {
     //    → Extract just the primitive fields as a key-value table
     const entries = Object.entries(obj);
     const primitiveEntries = entries.filter(
-      ([, v]) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' || v === null
+      ([, v]) =>
+        typeof v === "string" ||
+        typeof v === "number" ||
+        typeof v === "boolean" ||
+        v === null,
     );
 
     if (primitiveEntries.length > 0) {
-      const data = primitiveEntries.map(([key, value]) => ({ metric: key, value: value as string | number }));
+      const data = primitiveEntries.map(([key, value]) => ({
+        metric: key,
+        value: value as string | number,
+      }));
       return { data, rowCount: data.length, executionTime: 0 };
     }
 
     // 7. Last resort: wrap whatever we got as a single row
-    logger.warn({ rawType: typeof raw, keys: Object.keys(obj) }, 'API response could not be normalized, wrapping as-is');
-    return { data: [{ result: JSON.stringify(raw) }], rowCount: 1, executionTime: 0 };
+    logger.warn(
+      { rawType: typeof raw, keys: Object.keys(obj) },
+      "API response could not be normalized, wrapping as-is",
+    );
+    return {
+      data: [{ result: JSON.stringify(raw) }],
+      rowCount: 1,
+      executionTime: 0,
+    };
   }
 
   /** Extract the first matching numeric field from an object. */
-  private extractNumericField(obj: Record<string, unknown>, keys: string[]): number | undefined {
+  private extractNumericField(
+    obj: Record<string, unknown>,
+    keys: string[],
+  ): number | undefined {
     for (const key of keys) {
-      if (typeof obj[key] === 'number') return obj[key] as number;
+      if (typeof obj[key] === "number") return obj[key] as number;
     }
     return undefined;
   }
 
   /** Recursively find the first array of objects within nested objects (up to maxDepth). */
-  private findNestedArray(obj: Record<string, unknown>, maxDepth: number): Record<string, unknown>[] | null {
+  private findNestedArray(
+    obj: Record<string, unknown>,
+    maxDepth: number,
+  ): Record<string, unknown>[] | null {
     if (maxDepth <= 0) return null;
     for (const value of Object.values(obj)) {
-      if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
+      if (
+        Array.isArray(value) &&
+        value.length > 0 &&
+        typeof value[0] === "object" &&
+        value[0] !== null
+      ) {
         return value as Record<string, unknown>[];
       }
-      if (value && typeof value === 'object' && !Array.isArray(value)) {
-        const found = this.findNestedArray(value as Record<string, unknown>, maxDepth - 1);
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        const found = this.findNestedArray(
+          value as Record<string, unknown>,
+          maxDepth - 1,
+        );
         if (found) return found;
       }
     }
@@ -348,63 +451,73 @@ export class QueryService {
    */
   private async resolveQueryAuth(
     query: Query,
-    incomingHeaders?: Record<string, string>
+    incomingHeaders?: Record<string, string>,
   ): Promise<Record<string, string> | undefined> {
-    const authType = query.authType ?? 'none';
+    const authType = query.authType ?? "none";
 
     switch (authType) {
-      case 'windows': {
+      case "windows": {
         // Forward the user's Windows auth headers (Authorization, Cookie)
         if (!incomingHeaders) {
-          logger.warn({ query: query.name }, 'Windows auth query but no incoming headers available');
+          logger.warn(
+            { query: query.name },
+            "Windows auth query but no incoming headers available",
+          );
           return undefined;
         }
         const forwarded: Record<string, string> = {};
-        if (incomingHeaders['authorization']) {
-          forwarded['Authorization'] = incomingHeaders['authorization'];
+        if (incomingHeaders["authorization"]) {
+          forwarded["Authorization"] = incomingHeaders["authorization"];
         }
-        if (incomingHeaders['cookie']) {
-          forwarded['Cookie'] = incomingHeaders['cookie'];
+        if (incomingHeaders["cookie"]) {
+          forwarded["Cookie"] = incomingHeaders["cookie"];
         }
         logger.debug(
-          { query: query.name, hasAuth: !!forwarded['Authorization'], hasCookie: !!forwarded['Cookie'] },
-          'Windows auth: forwarding user headers'
+          {
+            query: query.name,
+            hasAuth: !!forwarded["Authorization"],
+            hasCookie: !!forwarded["Cookie"],
+          },
+          "Windows auth: forwarding user headers",
         );
         return Object.keys(forwarded).length > 0 ? forwarded : undefined;
       }
 
-      case 'bam': {
+      case "bam": {
         // Step 1: Fetch BAM token
         if (!query.bamTokenUrl) {
-          logger.error({ query: query.name }, 'BAM auth query missing bamTokenUrl');
+          logger.error(
+            { query: query.name },
+            "BAM auth query missing bamTokenUrl",
+          );
           return undefined;
         }
 
         // Forward user headers to BAM token endpoint too (may need SSO context)
         const forwardHeaders: Record<string, string> = {};
-        if (incomingHeaders?.['authorization']) {
-          forwardHeaders['Authorization'] = incomingHeaders['authorization'];
+        if (incomingHeaders?.["authorization"]) {
+          forwardHeaders["Authorization"] = incomingHeaders["authorization"];
         }
-        if (incomingHeaders?.['cookie']) {
-          forwardHeaders['Cookie'] = incomingHeaders['cookie'];
+        if (incomingHeaders?.["cookie"]) {
+          forwardHeaders["Cookie"] = incomingHeaders["cookie"];
         }
 
         const bamResponse = await fetchBamToken(
           query.bamTokenUrl,
-          Object.keys(forwardHeaders).length > 0 ? forwardHeaders : undefined
+          Object.keys(forwardHeaders).length > 0 ? forwardHeaders : undefined,
         );
 
         logger.debug(
           { query: query.name, hasRedirectURL: !!bamResponse.redirectURL },
-          'BAM auth: token acquired'
+          "BAM auth: token acquired",
         );
 
         // Step 2: Use bamToken as X-BAM-Token header
-        return { 'X-BAM-Token': bamResponse.bamToken };
+        return { "X-BAM-Token": bamResponse.bamToken };
       }
 
-      case 'bearer':
-      case 'none':
+      case "bearer":
+      case "none":
       default:
         // Use global API_TOKEN (handled by ApiClient.buildHeaders())
         return undefined;
@@ -420,7 +533,10 @@ export class QueryService {
         const range = resolveDateRange(value, dateFormat);
         resolved[`${key}_start`] = range.start;
         resolved[`${key}_end`] = range.end;
-        logger.debug({ key, preset: value, range, dateFormat }, 'Resolved date preset');
+        logger.debug(
+          { key, preset: value, range, dateFormat },
+          "Resolved date preset",
+        );
       } else {
         resolved[key] = value;
       }
@@ -430,32 +546,40 @@ export class QueryService {
   }
 
   private getDateFormat(): string {
-    const cfg = (filterConfig as Record<string, unknown>).filters as Record<string, Record<string, unknown>> | undefined;
+    const cfg = (filterConfig as Record<string, unknown>).filters as
+      | Record<string, Record<string, unknown>>
+      | undefined;
     const dateRangeCfg = cfg?.date_range;
-    return (dateRangeCfg?.dateFormat as string) || 'YYYY-MM-DD';
+    return (dateRangeCfg?.dateFormat as string) || "YYYY-MM-DD";
   }
 
   private executeUrlQuery(query: Query): QueryExecutionResult {
     if (!query.url) {
-      throw new QueryNotFoundError(`URL-type query "${query.name}" has no URL configured`);
+      throw new QueryNotFoundError(
+        `URL-type query "${query.name}" has no URL configured`,
+      );
     }
     return {
-      type: 'url',
+      type: "url",
       urlResult: { title: query.name, url: query.url },
     };
   }
 
   private async executeDocumentQuery(
     query: Query,
-    options?: QueryExecuteOptions
+    options?: QueryExecuteOptions,
   ): Promise<QueryExecutionResult> {
-    const { content: rawContent, filePath, format } = await this.readFile(query);
+    const {
+      content: rawContent,
+      filePath,
+      format,
+    } = await this.readFile(query);
     const content = rawContent as string; // documents are always text files
 
     if (options?.searchKeywords && options.searchKeywords.length > 0) {
       const searchResults = searchDocument(content, options.searchKeywords);
       return {
-        type: 'document',
+        type: "document",
         documentResult: {
           content,
           filePath,
@@ -467,7 +591,7 @@ export class QueryService {
     }
 
     return {
-      type: 'document',
+      type: "document",
       documentResult: { content, filePath, format },
     };
   }
@@ -475,7 +599,7 @@ export class QueryService {
   private async executeCsvQuery(
     query: Query,
     options?: QueryExecuteOptions,
-    filters?: QueryFilters
+    filters?: QueryFilters,
   ): Promise<QueryExecutionResult> {
     const { content, filePath } = await this.readFile(query);
     let csvData = parseCsv(content, query.sheetName);
@@ -486,7 +610,9 @@ export class QueryService {
       // Build a map: lowercase filter key → matching header name in CSV
       const filterToHeader: Record<string, string> = {};
       for (const filterKey of Object.keys(filters)) {
-        const match = csvData.headers.find((h) => h.toLowerCase() === filterKey.toLowerCase());
+        const match = csvData.headers.find(
+          (h) => h.toLowerCase() === filterKey.toLowerCase(),
+        );
         if (match) filterToHeader[filterKey] = match;
       }
 
@@ -496,13 +622,16 @@ export class QueryService {
           for (const [filterKey, filterVal] of Object.entries(filters)) {
             const header = filterToHeader[filterKey];
             if (!header) continue; // filter key doesn't match a column, skip
-            const cellVal = String(row[header] ?? '').toLowerCase();
+            const cellVal = String(row[header] ?? "").toLowerCase();
             if (cellVal !== filterVal.toLowerCase()) return false;
           }
           return true;
         });
         csvData = { headers: csvData.headers, rows: filteredRows };
-        logger.debug({ filters, original: originalCount, filtered: filteredRows.length }, 'CSV filter applied');
+        logger.debug(
+          { filters, original: originalCount, filtered: filteredRows.length },
+          "CSV filter applied",
+        );
       }
     }
 
@@ -511,7 +640,7 @@ export class QueryService {
       const gbResult = groupBy(csvData, options.groupByColumn);
       if (gbResult) {
         return {
-          type: 'csv',
+          type: "csv",
           csvResult: {
             headers: csvData.headers,
             rows: csvData.rows,
@@ -525,15 +654,21 @@ export class QueryService {
 
     // Inline sort: "run sales_data sort by revenue desc"
     if (options?.sortColumn) {
-      csvData = sortData(csvData, { column: options.sortColumn, direction: options.sortDirection ?? 'desc' });
+      csvData = sortData(csvData, {
+        column: options.sortColumn,
+        direction: options.sortDirection ?? "desc",
+      });
     }
 
     if (options?.aggregationText) {
-      const aggRequest = parseAggregationFromText(options.aggregationText, csvData.headers);
+      const aggRequest = parseAggregationFromText(
+        options.aggregationText,
+        csvData.headers,
+      );
       if (aggRequest) {
         const aggregation = computeAggregation(csvData, aggRequest);
         return {
-          type: 'csv',
+          type: "csv",
           csvResult: {
             headers: csvData.headers,
             rows: csvData.rows,
@@ -546,7 +681,7 @@ export class QueryService {
     }
 
     return {
-      type: 'csv',
+      type: "csv",
       csvResult: {
         headers: csvData.headers,
         rows: csvData.rows,
@@ -556,9 +691,11 @@ export class QueryService {
     };
   }
 
-  private async readFile(query: Query): Promise<{ content: string | Buffer; filePath: string; format: string }> {
+  private async readFile(
+    query: Query,
+  ): Promise<{ content: string | Buffer; filePath: string; format: string }> {
     if (!query.filePath) {
-      throw new FileReadError(query.name, 'No file path configured');
+      throw new FileReadError(query.name, "No file path configured");
     }
 
     // Priority: per-query fileBaseDir → global FILE_BASE_DIR → engine CWD
@@ -569,67 +706,166 @@ export class QueryService {
     // Security: when using default CWD (no external base), prevent path traversal
     if (!externalBase) {
       const relative = path.relative(baseDir, resolved);
-      if (relative.startsWith('..') || path.isAbsolute(relative)) {
-        throw new FileReadError(query.filePath, 'Path outside project directory');
+      if (relative.startsWith("..") || path.isAbsolute(relative)) {
+        throw new FileReadError(
+          query.filePath,
+          "Path outside project directory",
+        );
       }
     }
 
     try {
-      const format = path.extname(query.filePath).toLowerCase().replace('.', '') || 'txt';
+      const format =
+        path.extname(query.filePath).toLowerCase().replace(".", "") || "txt";
       // Read spreadsheet formats (xlsx, xls, csv, tsv) as Buffer so SheetJS
       // can auto-detect encoding, BOM, and delimiters reliably.
       // Only text document formats (md, txt, etc.) are read as UTF-8.
-      const isSpreadsheet = ['xlsx', 'xls', 'csv', 'tsv'].includes(format);
+      const isSpreadsheet = ["xlsx", "xls", "csv", "tsv"].includes(format);
       const content = isSpreadsheet
         ? await fs.readFile(resolved)
-        : await fs.readFile(resolved, 'utf-8');
+        : await fs.readFile(resolved, "utf-8");
       return { content, filePath: query.filePath, format };
     } catch (error) {
-      logger.error({ error, filePath: query.filePath, resolved }, 'File read failed');
-      throw new FileReadError(query.filePath, 'File not found or unreadable');
+      logger.error(
+        { error, filePath: query.filePath, resolved },
+        "File read failed",
+      );
+      throw new FileReadError(query.filePath, "File not found or unreadable");
     }
   }
 
   async executeMultipleQueries(
     queryNames: string[],
     filters?: QueryFilters,
-    incomingHeaders?: Record<string, string>
+    incomingHeaders?: Record<string, string>,
   ): Promise<MultiQueryResult[]> {
     const results = await Promise.allSettled(
       queryNames.map(async (name) => {
-        const result = await this.executeQuery(name, filters, undefined, incomingHeaders);
+        const result = await this.executeQuery(
+          name,
+          filters,
+          undefined,
+          incomingHeaders,
+        );
         return { queryName: name, result };
-      })
+      }),
     );
 
     const successful: MultiQueryResult[] = [];
     for (const r of results) {
-      if (r.status === 'fulfilled') {
+      if (r.status === "fulfilled") {
         successful.push(r.value);
       } else {
-        logger.error({ error: r.reason }, 'Multi-query: one query failed');
+        logger.error({ error: r.reason }, "Multi-query: one query failed");
       }
     }
     return successful;
   }
 
+  // ── Combined Query Execution ─────────────────────────────────────
+
+  private async executeCombinedQuery(
+    query: Query,
+    filters?: QueryFilters,
+    incomingHeaders?: Record<string, string>,
+  ): Promise<QueryExecutionResult> {
+    const config = query.combinedConfig;
+    if (!config || !config.subQueries || config.subQueries.length < 2) {
+      throw new Error(
+        `Combined query "${query.name}" requires at least 2 sub-queries in combinedConfig`,
+      );
+    }
+
+    // Execute all sub-queries in parallel
+    const subResults = await Promise.allSettled(
+      config.subQueries.map((sq) => {
+        const mergedFilters = { ...(sq.filters || {}), ...(filters || {}) };
+        return this.executeQuery(
+          sq.queryName,
+          mergedFilters,
+          undefined,
+          incomingHeaders,
+        );
+      }),
+    );
+
+    // Extract data arrays from results, applying maxRows limits
+    const datasets: Record<string, unknown>[][] = [];
+    for (let i = 0; i < subResults.length; i++) {
+      const r = subResults[i];
+      if (r.status !== "fulfilled") {
+        throw new Error(
+          `Sub-query "${config.subQueries[i].queryName}" failed: ${r.reason}`,
+        );
+      }
+      let data = extractDataArray(r.value);
+      const maxRows = config.subQueries[i].maxRows;
+      if (maxRows && maxRows > 0 && data.length > maxRows) {
+        logger.warn(
+          {
+            queryName: config.subQueries[i].queryName,
+            original: data.length,
+            limited: maxRows,
+          },
+          "Combined sub-query: applying maxRows limit before join",
+        );
+        data = data.slice(0, maxRows);
+      }
+      datasets.push(data);
+    }
+
+    // Apply prefixes
+    const prefixed = datasets.map((data, i) => {
+      const prefix = config.subQueries[i].prefix;
+      return prefix ? prefixColumns(data, prefix) : data;
+    });
+
+    // Join sequentially: (q1 JOIN q2) JOIN q3 ...
+    let joined = joinDatasets(prefixed[0], prefixed[1], {
+      joinType: config.joinType || "inner",
+      leftKey: config.joinKeys.left,
+      rightKey: config.joinKeys.right,
+    });
+
+    if (config.additionalJoins) {
+      for (let i = 2; i < prefixed.length; i++) {
+        const addJoin = config.additionalJoins[i - 2];
+        if (!addJoin) break;
+        joined = joinDatasets(joined.rows, prefixed[i], {
+          joinType: addJoin.joinType || config.joinType || "inner",
+          leftKey: addJoin.leftKey,
+          rightKey: addJoin.rightKey,
+        });
+      }
+    }
+
+    return {
+      type: "api",
+      apiResult: {
+        data: joined.rows,
+        rowCount: joined.rows.length,
+        executionTime: 0,
+      },
+    };
+  }
+
   async getEstimation(
-    queryName: string
+    queryName: string,
   ): Promise<{ estimatedDuration: number; description: string }> {
     const queries = await this.getQueries();
     const query = queries.find(
-      (q) => q.name.toLowerCase() === queryName.toLowerCase()
+      (q) => q.name.toLowerCase() === queryName.toLowerCase(),
     );
     if (!query) throw new QueryNotFoundError(queryName);
 
     return {
       estimatedDuration: query.estimatedDuration ?? 0,
-      description: query.description ?? 'No description available.',
+      description: query.description ?? "No description available.",
     };
   }
 
   async findRelevantUrls(
-    topic: string
+    topic: string,
   ): Promise<Array<{ title: string; url: string }>> {
     const queries = await this.getQueries();
     return queries
@@ -637,7 +873,7 @@ export class QueryService {
         (q) =>
           q.url &&
           (q.name.toLowerCase().includes(topic.toLowerCase()) ||
-            q.description?.toLowerCase().includes(topic.toLowerCase()))
+            q.description?.toLowerCase().includes(topic.toLowerCase())),
       )
       .map((q) => ({ title: q.name, url: q.url! }));
   }
@@ -647,40 +883,41 @@ export class QueryService {
   async searchAllDocuments(
     keywords: string[],
     maxResultsPerDoc: number = 3,
-    maxTotalSections: number = 8
+    maxTotalSections: number = 8,
   ): Promise<KnowledgeSearchResult[]> {
     const queries = await this.getQueries();
-    const docQueries = queries.filter((q) => (q.type ?? 'api') === 'document');
+    const docQueries = queries.filter((q) => (q.type ?? "api") === "document");
 
     if (docQueries.length === 0) return [];
 
     // Use BM25 search with the full query string for better relevance
-    const queryString = keywords.join(' ');
+    const queryString = keywords.join(" ");
 
     // Read all documents in parallel
     const readResults = await Promise.allSettled(
       docQueries.map(async (q) => {
         const { content } = await this.readFile(q);
         return { query: q, content };
-      })
+      }),
     );
 
     const results: KnowledgeSearchResult[] = [];
 
     for (const r of readResults) {
-      if (r.status !== 'fulfilled') continue;
+      if (r.status !== "fulfilled") continue;
       const { query, content } = r.value;
 
       // Use BM25 for better ranking (falls back to keyword search if query is too short)
-      const sections = queryString.length >= 3
-        ? searchDocumentBM25(content, queryString, maxResultsPerDoc)
-        : searchDocument(content, keywords, maxResultsPerDoc);
+      const sections =
+        queryString.length >= 3
+          ? searchDocumentBM25(content, queryString, maxResultsPerDoc)
+          : searchDocument(content, keywords, maxResultsPerDoc);
       if (sections.length === 0) continue;
 
       results.push({
         queryName: query.name,
-        queryDescription: query.description ?? '',
-        filePath: query.filePath ?? '',
+        queryDescription: query.description ?? "",
+        filePath: query.filePath ?? "",
         referenceUrl: query.url,
         sections,
       });
@@ -714,8 +951,8 @@ export class QueryService {
    */
   async searchIndexedDocuments(
     query: string,
-    groupId: string = 'default',
-    topK: number = 8
+    groupId: string = "default",
+    topK: number = 8,
   ) {
     const docManager = DocumentManager.getInstance(groupId);
     await docManager.ensureLoaded();

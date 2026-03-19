@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { X, Loader2 } from "lucide-react";
 
 interface DrillDownModalProps {
   open: boolean;
@@ -113,19 +114,7 @@ export function DrillDownModal({
               onClick={onClose}
               className="p-1 text-gray-400 hover:text-gray-600 rounded"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -135,25 +124,7 @@ export function DrillDownModal({
           {loading && (
             <div className="flex items-center justify-center py-12">
               <div className="flex items-center gap-2 text-gray-500">
-                <svg
-                  className="w-5 h-5 animate-spin"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                  />
-                </svg>
+                <Loader2 className="w-5 h-5 animate-spin" />
                 Running {targetQuery}...
               </div>
             </div>
@@ -190,12 +161,24 @@ export function DrillDownModal({
   );
 }
 
+/** Type guard: checks that the value is a non-null object with a `type` string */
+function isRichContentObject(
+  value: unknown,
+): value is Record<string, unknown> & { type: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "type" in value &&
+    typeof (value as Record<string, unknown>).type === "string"
+  );
+}
+
 /** Lightweight renderer for drill-down results — renders tables inline */
 function DrillDownResultRenderer({ richContent }: { richContent: unknown }) {
-  const rc = richContent as Record<string, unknown>;
-  if (!rc || typeof rc !== "object") return null;
+  if (!isRichContentObject(richContent)) return null;
+  const rc = richContent;
 
-  const type = rc.type as string;
+  const { type } = rc;
 
   // Handle query_result type
   if (type === "query_result" || type === "csv_table") {

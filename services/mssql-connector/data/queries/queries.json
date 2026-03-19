@@ -1,0 +1,83 @@
+[
+  {
+    "id": "order_details",
+    "name": "order_details",
+    "description": "daily orders",
+    "connectorId": "sample-mssql",
+    "sqlText": "SELECT OrderId, CustomerName, CustomerEmail, OrderDate, Status, TotalAmount\nFROM dbo.Orders",
+    "filters": [
+      {
+        "key": "orderDate",
+        "binding": "body"
+      },
+      {
+        "key": "status",
+        "binding": "body"
+      }
+    ],
+    "maxRows": 10000,
+    "createdAt": "2026-03-19T02:15:42.371Z",
+    "updatedAt": "2026-03-19T02:15:42.371Z"
+  },
+  {
+    "id": "all-employees",
+    "name": "All Employees",
+    "description": "List all employees with their details",
+    "connectorId": "sample-mssql",
+    "sqlText": "SELECT EmployeeId, FirstName, LastName, Email, DepartmentId, Title, Salary, HireDate, IsActive\nFROM dbo.Employees",
+    "filters": [],
+    "maxRows": 10000,
+    "createdAt": "2026-03-19T02:20:27.249Z",
+    "updatedAt": "2026-03-19T02:20:27.249Z"
+  },
+  {
+    "id": "revenue_by_product",
+    "name": "Revenue by Product",
+    "description": "Product revenue with order counts — JOIN across OrderItems, Products, and Orders",
+    "connectorId": "sample-mssql",
+    "sqlText": "SELECT p.Name AS ProductName, p.Category,\n       COUNT(oi.OrderItemId) AS TotalOrders,\n       SUM(oi.Subtotal) AS TotalRevenue,\n       AVG(oi.UnitPrice) AS AvgUnitPrice\nFROM dbo.OrderItems oi\nJOIN dbo.Products p ON p.ProductId = oi.ProductId\nJOIN dbo.Orders o ON o.OrderId = oi.OrderId\nGROUP BY p.Name, p.Category\nORDER BY TotalRevenue DESC",
+    "filters": [
+      {
+        "key": "Category",
+        "binding": "body",
+        "column": "p.Category"
+      }
+    ],
+    "maxRows": 10000,
+    "createdAt": "2026-03-19T05:00:00.000Z",
+    "updatedAt": "2026-03-19T05:00:00.000Z"
+  },
+  {
+    "id": "employee_directory",
+    "name": "Employee Directory",
+    "description": "Employees with department info — JOIN Employees and Departments",
+    "connectorId": "sample-mssql",
+    "sqlText": "SELECT e.EmployeeId, e.FirstName, e.LastName, e.Email, e.Title,\n       d.Name AS Department, d.Location, e.Salary, e.HireDate, e.IsActive\nFROM dbo.Employees e\nJOIN dbo.Departments d ON d.DepartmentId = e.DepartmentId\nORDER BY d.Name, e.LastName",
+    "filters": [
+      {
+        "key": "Department",
+        "binding": "body",
+        "column": "d.Name"
+      },
+      {
+        "key": "IsActive",
+        "binding": "body",
+        "column": "e.IsActive"
+      }
+    ],
+    "maxRows": 10000,
+    "createdAt": "2026-03-19T05:00:00.000Z",
+    "updatedAt": "2026-03-19T05:00:00.000Z"
+  },
+  {
+    "id": "order_summary",
+    "name": "Order Summary",
+    "description": "Order aggregation by status — counts, totals, averages, date ranges",
+    "connectorId": "sample-mssql",
+    "sqlText": "SELECT o.Status,\n       COUNT(o.OrderId) AS OrderCount,\n       SUM(o.TotalAmount) AS TotalValue,\n       AVG(o.TotalAmount) AS AvgOrderValue,\n       MIN(o.OrderDate) AS EarliestOrder,\n       MAX(o.OrderDate) AS LatestOrder\nFROM dbo.Orders o\nGROUP BY o.Status\nORDER BY TotalValue DESC",
+    "filters": [],
+    "maxRows": 10000,
+    "createdAt": "2026-03-19T05:00:00.000Z",
+    "updatedAt": "2026-03-19T05:00:00.000Z"
+  }
+]

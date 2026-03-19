@@ -39,11 +39,6 @@
     "positive": 1,
     "negative": 0
   },
-  "list queries": {
-    "intent": "query.list",
-    "positive": 1,
-    "negative": 0
-  },
   "search api_changelog for v250": {
     "intent": "query.execute",
     "positive": 1,
@@ -92,6 +87,191 @@
   "group by base_salary": {
     "intent": "followup.group_by",
     "positive": 2,
+    "negative": 0
+  },
+  "group by employee": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "sort by base_salary desc": {
+    "intent": "followup.sort",
+    "positive": 1,
+    "negative": 0
+  },
+  "top 5 by base_salary": {
+    "intent": "followup.top_n",
+    "positive": 1,
+    "negative": 0
+  },
+  "what is region": {
+    "intent": "document.list",
+    "positive": 1,
+    "negative": 0
+  },
+  "[feedback:positive]": {
+    "intent": "unknown",
+    "positive": 2,
+    "negative": 0
+  },
+  "sort by totalamount desc": {
+    "intent": "followup.sort",
+    "positive": 1,
+    "negative": 0
+  },
+  "top 5 by totalamount": {
+    "intent": "followup.top_n",
+    "positive": 1,
+    "negative": 0
+  },
+  "bottom 5 by totalamount": {
+    "intent": "followup.top_n",
+    "positive": 1,
+    "negative": 0
+  },
+  "group by orderid": {
+    "intent": "followup.group_by",
+    "positive": 1,
+    "negative": 0
+  },
+  "group by customername": {
+    "intent": "followup.group_by",
+    "positive": 1,
+    "negative": 0
+  },
+  "pca analysis": {
+    "intent": "analysis.pca",
+    "positive": 1,
+    "negative": 0
+  },
+  "what is avgordervalue": {
+    "intent": "followup.data_lookup",
+    "positive": 1,
+    "negative": 0
+  },
+  "what is totalvalue": {
+    "intent": "followup.data_lookup",
+    "positive": 2,
+    "negative": 0
+  },
+  "what is ordercount": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0
+  },
+  "what is status": {
+    "intent": "followup.data_lookup",
+    "positive": 1,
+    "negative": 0
+  },
+  "what is earliestorder": {
+    "intent": "followup.data_lookup",
+    "positive": 1,
+    "negative": 0
+  },
+  "sort by salary desc": {
+    "intent": "followup.sort",
+    "positive": 1,
+    "negative": 0
+  },
+  "top 5 by salary": {
+    "intent": "followup.top_n",
+    "positive": 1,
+    "negative": 0
+  },
+  "group by book_outstanding": {
+    "intent": "followup.group_by",
+    "positive": 1,
+    "negative": 0
+  },
+  "sort by book_avg_rate desc": {
+    "intent": "followup.sort",
+    "positive": 1,
+    "negative": 0
+  },
+  "sort by book_avg_rate asc": {
+    "intent": "followup.sort",
+    "positive": 1,
+    "negative": 0
+  },
+  "group by book_region": {
+    "intent": "followup.group_by",
+    "positive": 1,
+    "negative": 0
+  },
+  "profile columns": {
+    "intent": "analysis.profile",
+    "positive": 1,
+    "negative": 0
+  },
+  "find outliers": {
+    "intent": "analysis.anomaly",
+    "positive": 1,
+    "negative": 0
+  },
+  "what is sal_base_salary": {
+    "intent": "followup.data_lookup",
+    "positive": 1,
+    "negative": 0
+  },
+  "what is bon_q1_bonus": {
+    "intent": "followup.data_lookup",
+    "positive": 1,
+    "negative": 0
+  },
+  "what is sal_department": {
+    "intent": "followup.data_lookup",
+    "positive": 1,
+    "negative": 0
+  },
+  "group by sales_region": {
+    "intent": "followup.group_by",
+    "positive": 1,
+    "negative": 0
+  },
+  "group by sales_revenue": {
+    "intent": "followup.group_by",
+    "positive": 1,
+    "negative": 0
+  },
+  "sort by sales_units desc": {
+    "intent": "followup.sort",
+    "positive": 1,
+    "negative": 0
+  },
+  "what is sales_region": {
+    "intent": "followup.data_lookup",
+    "positive": 1,
+    "negative": 0
+  },
+  "what is sales_quarter": {
+    "intent": "followup.data_lookup",
+    "positive": 1,
+    "negative": 0
+  },
+  "group by sal_department": {
+    "intent": "followup.group_by",
+    "positive": 1,
+    "negative": 0
+  },
+  "group by sal_base_salary": {
+    "intent": "followup.group_by",
+    "positive": 1,
+    "negative": 0
+  },
+  "group by sal_employee": {
+    "intent": "followup.group_by",
+    "positive": 1,
+    "negative": 0
+  },
+  "sort by sal_base_salary desc": {
+    "intent": "followup.sort",
+    "positive": 1,
+    "negative": 0
+  },
+  "smart summary": {
+    "intent": "followup.summary",
+    "positive": 1,
     "negative": 0
   }
 }

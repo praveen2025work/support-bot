@@ -1,0 +1,8 @@
+{
+  "monthly_revenue": {
+    "daily_orders": 2
+  },
+  "daily_orders": {
+    "monthly_revenue": 2
+  }
+}

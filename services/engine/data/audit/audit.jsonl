@@ -10,3 +10,6 @@
 {"action":"create","resource":"query","resourceId":"q60","details":{"name":"test_reload_query","source":"analytics","type":"api"},"ip":"::1","timestamp":"2026-03-16T21:27:01.913Z"}
 {"action":"delete","resource":"query","resourceId":"q60","ip":"::1","timestamp":"2026-03-16T21:28:56.051Z"}
 {"action":"update","resource":"learning-retrain","groupId":"default","details":{"groupId":"default"},"ip":"::1","timestamp":"2026-03-17T03:41:07.788Z"}
+{"action":"create","resource":"query","resourceId":"q62","details":{"name":"revenue_by_product","source":"sales","type":"api"},"ip":"::1","timestamp":"2026-03-19T03:27:40.087Z"}
+{"action":"create","resource":"query","resourceId":"q63","details":{"name":"employee_directory","source":"hr","type":"api"},"ip":"::1","timestamp":"2026-03-19T03:27:45.157Z"}
+{"action":"create","resource":"query","resourceId":"q64","details":{"name":"order_summary","source":"sales","type":"api"},"ip":"::1","timestamp":"2026-03-19T03:27:50.219Z"}

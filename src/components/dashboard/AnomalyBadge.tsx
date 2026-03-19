@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
+import { AlertTriangle } from "lucide-react";
 
 interface AnomalyInfo {
   queryName: string;
@@ -8,8 +9,8 @@ interface AnomalyInfo {
   currentValue: number;
   expectedMean: number;
   zScore: number;
-  severity: 'info' | 'warning' | 'critical';
-  direction: 'spike' | 'drop';
+  severity: "info" | "warning" | "critical";
+  direction: "spike" | "drop";
   message: string;
 }
 
@@ -18,22 +19,22 @@ export function AnomalyBadge({ anomalies }: { anomalies: AnomalyInfo[] }) {
 
   if (anomalies.length === 0) return null;
 
-  const maxSeverity = anomalies.some((a) => a.severity === 'critical')
-    ? 'critical'
-    : anomalies.some((a) => a.severity === 'warning')
-    ? 'warning'
-    : 'info';
+  const maxSeverity = anomalies.some((a) => a.severity === "critical")
+    ? "critical"
+    : anomalies.some((a) => a.severity === "warning")
+      ? "warning"
+      : "info";
 
   const colors = {
-    critical: 'bg-red-100 text-red-700 border-red-200',
-    warning: 'bg-amber-100 text-amber-700 border-amber-200',
-    info: 'bg-blue-100 text-blue-700 border-blue-200',
+    critical: "bg-red-100 text-red-700 border-red-200",
+    warning: "bg-amber-100 text-amber-700 border-amber-200",
+    info: "bg-blue-100 text-blue-700 border-blue-200",
   };
 
   const dotColors = {
-    critical: 'bg-red-500',
-    warning: 'bg-amber-500',
-    info: 'bg-blue-500',
+    critical: "bg-red-500",
+    warning: "bg-amber-500",
+    info: "bg-blue-500",
   };
 
   return (
@@ -43,21 +44,31 @@ export function AnomalyBadge({ anomalies }: { anomalies: AnomalyInfo[] }) {
         onMouseLeave={() => setShowTooltip(false)}
         className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${colors[maxSeverity]}`}
       >
-        <span className={`w-1.5 h-1.5 rounded-full ${dotColors[maxSeverity]} animate-pulse`} />
-        {anomalies.length} anomal{anomalies.length === 1 ? 'y' : 'ies'}
+        <span
+          className={`w-1.5 h-1.5 rounded-full ${dotColors[maxSeverity]} animate-pulse`}
+        />
+        {anomalies.length} anomal{anomalies.length === 1 ? "y" : "ies"}
       </button>
 
       {showTooltip && (
         <div className="absolute bottom-full left-0 mb-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-2">
-          <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Anomalies Detected</p>
+          <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">
+            Anomalies Detected
+          </p>
           <div className="space-y-1.5">
             {anomalies.map((a, i) => (
-              <div key={i} className={`rounded p-1.5 text-[11px] ${colors[a.severity]}`}>
+              <div
+                key={i}
+                className={`rounded p-1.5 text-[11px] ${colors[a.severity]}`}
+              >
                 <div className="flex items-center gap-1">
-                  <span className={`w-1.5 h-1.5 rounded-full ${dotColors[a.severity]}`} />
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${dotColors[a.severity]}`}
+                  />
                   <span className="font-medium">{a.columnName}</span>
                   <span className="text-[10px] opacity-75">
-                    ({a.direction === 'spike' ? '+' : '-'}{Math.abs(a.zScore).toFixed(1)} std)
+                    ({a.direction === "spike" ? "+" : "-"}
+                    {Math.abs(a.zScore).toFixed(1)} std)
                   </span>
                 </div>
                 <p className="mt-0.5 text-[10px] opacity-80">{a.message}</p>
@@ -73,31 +84,43 @@ export function AnomalyBadge({ anomalies }: { anomalies: AnomalyInfo[] }) {
 export function AnomalyAlert({ anomalies }: { anomalies: AnomalyInfo[] }) {
   if (anomalies.length === 0) return null;
 
-  const hasCritical = anomalies.some((a) => a.severity === 'critical');
+  const hasCritical = anomalies.some((a) => a.severity === "critical");
 
   return (
     <div
       className={`rounded-lg border p-3 text-xs ${
         hasCritical
-          ? 'bg-red-50 border-red-200'
-          : 'bg-amber-50 border-amber-200'
+          ? "bg-red-50 border-red-200"
+          : "bg-amber-50 border-amber-200"
       }`}
     >
       <div className="flex items-center gap-1.5 mb-1.5">
-        <svg className={`w-4 h-4 ${hasCritical ? 'text-red-500' : 'text-amber-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-        </svg>
-        <span className={`font-semibold ${hasCritical ? 'text-red-700' : 'text-amber-700'}`}>
-          {anomalies.length} anomal{anomalies.length === 1 ? 'y' : 'ies'} detected
+        <AlertTriangle
+          size={16}
+          className={hasCritical ? "text-red-500" : "text-amber-500"}
+        />
+        <span
+          className={`font-semibold ${hasCritical ? "text-red-700" : "text-amber-700"}`}
+        >
+          {anomalies.length} anomal{anomalies.length === 1 ? "y" : "ies"}{" "}
+          detected
         </span>
       </div>
       <div className="space-y-1">
         {anomalies.map((a, i) => (
           <div key={i} className="flex items-center gap-2">
-            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-              a.severity === 'critical' ? 'bg-red-500' : a.severity === 'warning' ? 'bg-amber-500' : 'bg-blue-500'
-            }`} />
-            <span className={`${hasCritical ? 'text-red-700' : 'text-amber-700'}`}>
+            <span
+              className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                a.severity === "critical"
+                  ? "bg-red-500"
+                  : a.severity === "warning"
+                    ? "bg-amber-500"
+                    : "bg-blue-500"
+              }`}
+            />
+            <span
+              className={`${hasCritical ? "text-red-700" : "text-amber-700"}`}
+            >
               {a.message}
             </span>
           </div>

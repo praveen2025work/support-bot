@@ -108,6 +108,13 @@ export const paths = {
       return join(DATA_DIR, "preferences", `${safe}.json`);
     },
 
+    /** Per-user session files (shared across instances via NAS) */
+    sessionsDir: join(DATA_DIR, "sessions"),
+    sessionFile: (userId: string) => {
+      const safe = userId.replace(/[^a-zA-Z0-9_\-]/g, "_");
+      return join(DATA_DIR, "sessions", `${safe}.json`);
+    },
+
     /** Document knowledge base (uploaded files) */
     knowledgeDir: KNOWLEDGE_DIR,
     knowledgeGroupDir: (groupId: string) => join(KNOWLEDGE_DIR, groupId),

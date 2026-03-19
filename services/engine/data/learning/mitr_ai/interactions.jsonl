@@ -1,0 +1,1 @@
+{"id":"0df5e02b-7d6e-423a-bdae-051c4d9ddae0","timestamp":"2026-03-19T18:59:05.894Z","sessionId":"test-nlp","groupId":"mitr_ai","userMessage":"run employee_full_review","intent":"query.execute","confidence":0.6500277943239697,"source":"ensemble","entities":[{"entity":"query_name","value":"employee_full_review","start":4,"end":23}],"feedbackType":"normal"}

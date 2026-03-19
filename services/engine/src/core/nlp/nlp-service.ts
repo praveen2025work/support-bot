@@ -1,24 +1,29 @@
-import { containerBootstrap } from '@nlpjs/core';
-import { Nlp } from '@nlpjs/nlp';
-import { LangEn } from '@nlpjs/lang-en';
-import { LRUCache } from 'lru-cache';
-import { NLP_CONFIDENCE_THRESHOLD } from '../constants';
-import { promises as fsPromises } from 'fs';
-import { NlpNotInitializedError } from '@/lib/errors';
-import { logger } from '@/lib/logger';
-import { paths } from '@/lib/env-config';
-import { extractDateEntities } from './date-entity-extractor';
-import { correctTypos, addToDictionary } from './typo-corrector';
-import { PatternMatcher } from './pattern-matcher';
-import { TfIdfIntentScorer } from './tfidf-intent-scorer';
-import type { ClassificationResult, ExtractedEntity, IntentOverlap } from '../types';
-import type { FuzzyMatcher } from './fuzzy-matcher';
+import { containerBootstrap } from "@nlpjs/core";
+import { Nlp } from "@nlpjs/nlp";
+import { LangEn } from "@nlpjs/lang-en";
+import { LRUCache } from "lru-cache";
+import { NLP_CONFIDENCE_THRESHOLD } from "../constants";
+import { promises as fsPromises } from "fs";
+import { NlpNotInitializedError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
+import { paths } from "@/lib/env-config";
+import { extractDateEntities } from "./date-entity-extractor";
+import { correctTypos, addToDictionary } from "./typo-corrector";
+import { PatternMatcher } from "./pattern-matcher";
+import { TfIdfIntentScorer } from "./tfidf-intent-scorer";
+import type {
+  ClassificationResult,
+  ExtractedEntity,
+  IntentOverlap,
+} from "../types";
+import type { FuzzyMatcher } from "./fuzzy-matcher";
 
 export { addToDictionary };
 
 // Intents that should NOT match when the user is clearly asking a question
-const SIMPLE_INTENTS = new Set(['farewell', 'greeting']);
-const QUESTION_PATTERN = /^\s*(what|who|where|when|why|how|which|is|are|can|could|do|does|did|tell me)\b/i;
+const SIMPLE_INTENTS = new Set(["farewell", "greeting"]);
+const QUESTION_PATTERN =
+  /^\s*(what|who|where|when|why|how|which|is|are|can|could|do|does|did|tell me)\b/i;
 // Higher confidence bar for simple intents when text looks like a question
 const SIMPLE_INTENT_QUESTION_THRESHOLD = 0.85;
 
@@ -44,7 +49,11 @@ export class NlpService {
     ttl: 2 * 60 * 1000,
   });
 
-  constructor(fuzzyMatcher: FuzzyMatcher, corpusFile?: string | null, sources?: string[]) {
+  constructor(
+    fuzzyMatcher: FuzzyMatcher,
+    corpusFile?: string | null,
+    sources?: string[],
+  ) {
     this.fuzzyMatcher = fuzzyMatcher;
     this.corpusFile = corpusFile ?? null;
     this.sources = sources ?? [];
@@ -59,11 +68,11 @@ export class NlpService {
     container.use(Nlp);
     container.use(LangEn);
 
-    this.nlp = container.get('nlp') as InstanceType<typeof Nlp>;
+    this.nlp = container.get("nlp") as InstanceType<typeof Nlp>;
     this.nlp.settings.autoSave = false;
 
     // Always load base corpus first — ensures all groups share core intents/entities
-    const baseMod = await import('@/training/corpus.json');
+    const baseMod = await import("@/training/corpus.json");
     const corpusData = baseMod.default;
     await this.nlp.addCorpus(corpusData);
 
@@ -82,24 +91,31 @@ export class NlpService {
     // Initialize TF-IDF scorer from corpus utterances
     try {
       const intentUtterances = new Map<string, string[]>();
-      const dataEntries: Array<{ intent: string; utterances: string[] }> = corpusData.data || [];
+      const dataEntries: Array<{ intent: string; utterances: string[] }> =
+        corpusData.data || [];
       for (const entry of dataEntries) {
         intentUtterances.set(entry.intent, entry.utterances);
       }
       this.tfidfScorer.initialize(intentUtterances);
     } catch (err) {
-      logger.warn({ err }, 'TF-IDF scorer initialization failed — ensemble will use NLP.js + pattern only');
+      logger.warn(
+        { err },
+        "TF-IDF scorer initialization failed — ensemble will use NLP.js + pattern only",
+      );
     }
 
     this.initialized = true;
-    logger.info({ corpus: this.corpusFile ?? 'base' }, 'NLP model trained and ready (ensemble: NLP.js + TF-IDF + Pattern)');
+    logger.info(
+      { corpus: this.corpusFile ?? "base" },
+      "NLP model trained and ready (ensemble: NLP.js + TF-IDF + Pattern)",
+    );
 
     // Run intent overlap detection and log warnings
     this.cachedOverlaps = await this.detectOverlaps(corpusData);
     if (this.cachedOverlaps.length > 0) {
       logger.warn(
         { overlapCount: this.cachedOverlaps.length },
-        'Intent overlap detection found potential issues'
+        "Intent overlap detection found potential issues",
       );
       for (const overlap of this.cachedOverlaps) {
         if (overlap.trainedIntent !== overlap.classifiedIntent) {
@@ -110,7 +126,7 @@ export class NlpService {
               classified: overlap.classifiedIntent,
               confidence: overlap.confidence,
             },
-            'Misclassified training utterance'
+            "Misclassified training utterance",
           );
         } else {
           logger.warn(
@@ -121,16 +137,19 @@ export class NlpService {
               secondBest: overlap.secondBestIntent,
               secondBestConfidence: overlap.secondBestConfidence,
             },
-            'Ambiguous training utterance — top-2 intents within 0.15'
+            "Ambiguous training utterance — top-2 intents within 0.15",
           );
         }
       }
     } else {
-      logger.info('Intent overlap detection: no issues found');
+      logger.info("Intent overlap detection: no issues found");
     }
   }
 
-  async classify(text: string, hasQueryContext = false): Promise<ClassificationResult> {
+  async classify(
+    text: string,
+    hasQueryContext = false,
+  ): Promise<ClassificationResult> {
     if (!this.nlp) throw new NlpNotInitializedError();
 
     // Apply typo correction before classification
@@ -138,8 +157,12 @@ export class NlpService {
     const processedText = typoResult.wasCorrected ? typoResult.corrected : text;
     if (typoResult.wasCorrected) {
       logger.debug(
-        { original: text, corrected: processedText, corrections: typoResult.corrections },
-        'Typo correction applied before NLP classification'
+        {
+          original: text,
+          corrected: processedText,
+          corrections: typoResult.corrections,
+        },
+        "Typo correction applied before NLP classification",
       );
     }
 
@@ -147,7 +170,7 @@ export class NlpService {
     const cacheKey = processedText.trim().toLowerCase();
     const cached = this.classificationCache.get(cacheKey);
     if (cached) {
-      logger.debug({ text: cacheKey, intent: cached.intent }, 'NLP cache hit');
+      logger.debug({ text: cacheKey, intent: cached.intent }, "NLP cache hit");
       // Attach corrections even on cache hit so the response can show "Did you mean"
       if (typoResult.wasCorrected) {
         return { ...cached, corrections: typoResult.corrections };
@@ -156,51 +179,70 @@ export class NlpService {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result: any = await this.nlp.process('en', processedText);
+    const result: any = await this.nlp.process("en", processedText);
 
     // ---- Ensemble voting: combine NLP.js + TF-IDF + Pattern scores ----
     const intentScores = new Map<string, number>();
 
     // 1. NLP.js scores (weight 0.5)
-    const nlpClassifications: Array<{ intent: string; score: number }> = result.classifications || [];
+    const nlpClassifications: Array<{ intent: string; score: number }> =
+      result.classifications || [];
     for (const cls of nlpClassifications.slice(0, 10)) {
-      if (cls.intent && cls.intent !== 'None') {
-        intentScores.set(cls.intent, (intentScores.get(cls.intent) || 0) + cls.score * ENSEMBLE_WEIGHT_NLP);
+      if (cls.intent && cls.intent !== "None") {
+        intentScores.set(
+          cls.intent,
+          (intentScores.get(cls.intent) || 0) + cls.score * ENSEMBLE_WEIGHT_NLP,
+        );
       }
     }
 
     // 2. TF-IDF scores (weight 0.3)
     const tfidfScores = this.tfidfScorer.score(processedText);
     for (const ts of tfidfScores) {
-      intentScores.set(ts.intent, (intentScores.get(ts.intent) || 0) + ts.score * ENSEMBLE_WEIGHT_TFIDF);
+      intentScores.set(
+        ts.intent,
+        (intentScores.get(ts.intent) || 0) + ts.score * ENSEMBLE_WEIGHT_TFIDF,
+      );
     }
 
     // 3. Pattern scores (weight 0.2)
     const patternMatches = this.patternMatcher.matchAll(processedText);
     for (const pm of patternMatches) {
-      intentScores.set(pm.intent, (intentScores.get(pm.intent) || 0) + pm.confidence * ENSEMBLE_WEIGHT_PATTERN);
+      intentScores.set(
+        pm.intent,
+        (intentScores.get(pm.intent) || 0) +
+          pm.confidence * ENSEMBLE_WEIGHT_PATTERN,
+      );
     }
 
     // Sort by combined score
-    const ensembleSorted = Array.from(intentScores.entries())
-      .sort(([, a], [, b]) => b - a);
+    const ensembleSorted = Array.from(intentScores.entries()).sort(
+      ([, a], [, b]) => b - a,
+    );
     const ensembleTop = ensembleSorted[0];
 
     // Determine source label for ensemble vs single-source
     const usedSources = [
-      nlpClassifications.length > 0 ? 'nlp' : null,
-      tfidfScores.length > 0 ? 'tfidf' : null,
-      patternMatches.length > 0 ? 'pattern' : null,
+      nlpClassifications.length > 0 ? "nlp" : null,
+      tfidfScores.length > 0 ? "tfidf" : null,
+      patternMatches.length > 0 ? "pattern" : null,
     ].filter(Boolean);
-    const sourceLabel: ClassificationResult['source'] = usedSources.length > 1 ? 'ensemble' : 'nlp';
+    const sourceLabel: ClassificationResult["source"] =
+      usedSources.length > 1 ? "ensemble" : "nlp";
 
     // If ensemble has a confident result, use it; otherwise fall back to NLP.js single result
-    let ensembleIntent = ensembleTop?.[0] || result.intent || 'None';
-    let ensembleScore = ensembleTop?.[1] || result.score || 0;
+    const ensembleIntent = ensembleTop?.[0] || result.intent || "None";
+    const ensembleScore = ensembleTop?.[1] || result.score || 0;
 
     // If ensemble total score is very low, check fuzzy
-    if (ensembleScore < NLP_CONFIDENCE_THRESHOLD && (result.intent === 'None' || result.score < NLP_CONFIDENCE_THRESHOLD)) {
-      logger.debug({ text, ensembleScore, nlpScore: result.score }, 'Low ensemble confidence, trying fuzzy match');
+    if (
+      ensembleScore < NLP_CONFIDENCE_THRESHOLD &&
+      (result.intent === "None" || result.score < NLP_CONFIDENCE_THRESHOLD)
+    ) {
+      logger.debug(
+        { text, ensembleScore, nlpScore: result.score },
+        "Low ensemble confidence, trying fuzzy match",
+      );
       const fuzzyResult = this.fuzzyMatcher.match(text);
       if (fuzzyResult) {
         const r: ClassificationResult = {
@@ -208,7 +250,9 @@ export class NlpService {
           confidence: fuzzyResult.score,
           entities: [],
           source: fuzzyResult.source,
-          ...(typoResult.wasCorrected && { corrections: typoResult.corrections }),
+          ...(typoResult.wasCorrected && {
+            corrections: typoResult.corrections,
+          }),
         };
         this.classificationCache.set(cacheKey, r);
         return r;
@@ -224,7 +268,7 @@ export class NlpService {
     ) {
       logger.debug(
         { text, intent: ensembleIntent, score: ensembleScore },
-        'Question-pattern detected with simple-intent — demoting to unknown'
+        "Question-pattern detected with simple-intent — demoting to unknown",
       );
       const fuzzyResult = this.fuzzyMatcher.match(text);
       if (fuzzyResult) {
@@ -233,13 +277,15 @@ export class NlpService {
           confidence: fuzzyResult.score,
           entities: [],
           source: fuzzyResult.source,
-          ...(typoResult.wasCorrected && { corrections: typoResult.corrections }),
+          ...(typoResult.wasCorrected && {
+            corrections: typoResult.corrections,
+          }),
         };
         this.classificationCache.set(cacheKey, r);
         return r;
       }
       const r: ClassificationResult = {
-        intent: 'None',
+        intent: "None",
         confidence: ensembleScore,
         entities: [],
         source: sourceLabel,
@@ -251,8 +297,14 @@ export class NlpService {
 
     if (ensembleTop && ensembleScore >= NLP_CONFIDENCE_THRESHOLD) {
       logger.debug(
-        { text: processedText, ensemble: ensembleSorted.slice(0, 3).map(([i, s]) => `${i}:${s.toFixed(3)}`), source: sourceLabel },
-        'Ensemble classification result'
+        {
+          text: processedText,
+          ensemble: ensembleSorted
+            .slice(0, 3)
+            .map(([i, s]) => `${i}:${s.toFixed(3)}`),
+          source: sourceLabel,
+        },
+        "Ensemble classification result",
       );
     }
 
@@ -264,11 +316,11 @@ export class NlpService {
         resolution: e.resolution,
         start: e.start,
         end: e.end,
-      })
+      }),
     );
 
     // Auto-detect date entities if NLP didn't find a time_period
-    if (!entities.some((e) => e.entity === 'time_period')) {
+    if (!entities.some((e) => e.entity === "time_period")) {
       const dateEntities = extractDateEntities(text);
       entities.push(...dateEntities);
     }
@@ -279,17 +331,29 @@ export class NlpService {
     // Context-aware boosting: when user has active query results, prefer follow-up
     // intents if they scored close to the top result. This prevents "group by status"
     // from being classified as query.execute when the user is working with data.
-    if (hasQueryContext && finalIntent !== 'None') {
+    if (hasQueryContext && finalIntent !== "None") {
       const followupIntents = new Set([
-        'followup.group_by', 'followup.sort', 'followup.filter',
-        'followup.summary', 'followup.top_n', 'followup.aggregation',
-        'followup.data_lookup',
+        "followup.group_by",
+        "followup.sort",
+        "followup.filter",
+        "followup.summary",
+        "followup.top_n",
+        "followup.aggregation",
+        "followup.data_lookup",
         // Analysis intents also get context-aware boosting
-        'analysis.profile', 'analysis.smart_summary', 'analysis.correlation',
-        'analysis.distribution', 'analysis.anomaly', 'analysis.trend',
-        'analysis.duplicates', 'analysis.missing', 'analysis.cluster',
-        'analysis.decision_tree', 'analysis.forecast', 'analysis.pca',
-        'analysis.report',
+        "analysis.profile",
+        "analysis.smart_summary",
+        "analysis.correlation",
+        "analysis.distribution",
+        "analysis.anomaly",
+        "analysis.trend",
+        "analysis.duplicates",
+        "analysis.missing",
+        "analysis.cluster",
+        "analysis.decision_tree",
+        "analysis.forecast",
+        "analysis.pca",
+        "analysis.report",
       ]);
 
       // If already a follow-up intent, no boosting needed
@@ -297,10 +361,18 @@ export class NlpService {
         const classifications: Array<{ intent: string; score: number }> =
           result.classifications || [];
         for (const cls of classifications) {
-          if (followupIntents.has(cls.intent) && cls.score >= finalScore - 0.20) {
+          if (
+            followupIntents.has(cls.intent) &&
+            cls.score >= finalScore - 0.2
+          ) {
             logger.debug(
-              { original: finalIntent, boosted: cls.intent, origScore: finalScore, boostScore: cls.score },
-              'Context-aware boost: preferring follow-up intent'
+              {
+                original: finalIntent,
+                boosted: cls.intent,
+                origScore: finalScore,
+                boostScore: cls.score,
+              },
+              "Context-aware boost: preferring follow-up intent",
             );
             finalIntent = cls.intent;
             finalScore = cls.score;
@@ -351,7 +423,7 @@ export class NlpService {
       // Collect query names already registered in the corpus
       const corpusQueryNames = new Set<string>();
       const entityOptions = corpusData?.entities?.query_name?.options;
-      if (entityOptions && typeof entityOptions === 'object') {
+      if (entityOptions && typeof entityOptions === "object") {
         for (const key of Object.keys(entityOptions)) {
           corpusQueryNames.add(key.toLowerCase());
         }
@@ -359,17 +431,20 @@ export class NlpService {
 
       // Read directly from db.json (bypasses mock API in-memory cache staleness)
       const dbPath = paths.mockApi.dbJson;
-      const raw = await fsPromises.readFile(dbPath, 'utf-8');
+      const raw = await fsPromises.readFile(dbPath, "utf-8");
       const dbData = JSON.parse(raw);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const allQueries: any[] = dbData.queries || [];
 
       // Filter by group sources if applicable
+      // Combined queries bypass source filtering since they aggregate across sources
       let queries = allQueries;
       if (this.sources.length > 0) {
         queries = allQueries.filter(
-          (q) => q.source && this.sources.includes(q.source)
+          (q) =>
+            q.type === "combined" ||
+            (q.source && this.sources.includes(q.source)),
         );
       }
 
@@ -381,33 +456,42 @@ export class NlpService {
         if (!corpusQueryNames.has(name.toLowerCase())) {
           // Generate synonyms from the query name (replace underscores, add description words)
           const synonyms: string[] = [name];
-          const readable = name.replace(/_/g, ' ');
+          const readable = name.replace(/_/g, " ");
           if (readable !== name) synonyms.push(readable);
           if (q.description) {
             // Add first few meaningful words of description as a synonym
-            const descWords = (q.description as string).split(/\s+/).slice(0, 4).join(' ');
+            const descWords = (q.description as string)
+              .split(/\s+/)
+              .slice(0, 4)
+              .join(" ");
             if (descWords.length > 3) synonyms.push(descWords);
           }
 
           // Register as a named entity option in the NLP manager
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const nlpAny = this.nlp as any;
-          const manager = nlpAny.container?.get?.('ner') ?? nlpAny.ner;
+          const manager = nlpAny.container?.get?.("ner") ?? nlpAny.ner;
           if (manager?.addRuleOptionTexts) {
-            manager.addRuleOptionTexts('en', 'query_name', name, synonyms);
+            manager.addRuleOptionTexts("en", "query_name", name, synonyms);
           } else if (nlpAny.addNerRuleOptionTexts) {
-            nlpAny.addNerRuleOptionTexts('en', 'query_name', name, synonyms);
+            nlpAny.addNerRuleOptionTexts("en", "query_name", name, synonyms);
           }
           addedCount++;
         }
       }
 
       if (addedCount > 0) {
-        logger.info({ addedCount, total: queries.length }, 'Synced dynamic query_name entities from db.json');
+        logger.info(
+          { addedCount, total: queries.length },
+          "Synced dynamic query_name entities from db.json",
+        );
       }
     } catch (error) {
       // Non-critical: if we can't read db.json, the corpus entities still work
-      logger.warn({ error }, 'Could not sync dynamic query entities from db.json — using corpus entities only');
+      logger.warn(
+        { error },
+        "Could not sync dynamic query entities from db.json — using corpus entities only",
+      );
     }
   }
 
@@ -418,7 +502,7 @@ export class NlpService {
    */
   private async detectOverlaps(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    corpusData: any
+    corpusData: any,
   ): Promise<IntentOverlap[]> {
     if (!this.nlp) return [];
 
@@ -431,8 +515,8 @@ export class NlpService {
 
       for (const utterance of entry.utterances) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result: any = await this.nlp.process('en', utterance);
-        const classifiedIntent = result.intent || 'None';
+        const result: any = await this.nlp.process("en", utterance);
+        const classifiedIntent = result.intent || "None";
         const confidence = result.score || 0;
 
         // Extract the top-2 classifications from the NLP result

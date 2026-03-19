@@ -34,6 +34,17 @@
       "updatedOn": "2024-01-01T00:00:00Z"
     },
     {
+      "id": "u5",
+      "name": "John Doe",
+      "email": "john.doe@company.com",
+      "userid": "jdoe",
+      "brid": "",
+      "role": "admin",
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedBy": "system",
+      "updatedOn": "2024-01-01T00:00:00Z"
+    },
+    {
       "id": "u4",
       "name": "Demo User",
       "email": "demo@company.com",

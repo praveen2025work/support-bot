@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from "react";
+import { AlertCircle } from "lucide-react";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -11,7 +12,10 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -22,8 +26,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    console.error('[ChatBot] Component error:', error);
-    console.error('[ChatBot] Component stack:', errorInfo.componentStack);
+    console.error("[ChatBot] Component error:", error);
+    console.error("[ChatBot] Component stack:", errorInfo.componentStack);
   }
 
   handleRetry = (): void => {
@@ -35,21 +39,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <div className="flex flex-col items-center justify-center h-full p-6 text-center bg-white">
           <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-4">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-red-500"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
+            <AlertCircle size={24} className="text-red-500" />
           </div>
           <h2 className="text-sm font-semibold text-gray-900 mb-1">
             Something went wrong

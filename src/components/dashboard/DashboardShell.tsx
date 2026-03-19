@@ -15,6 +15,7 @@ import {
   useDashboardContext,
 } from "@/contexts/DashboardContext";
 import type { QueryInfo, DashboardCard } from "@/types/dashboard";
+import { X } from "lucide-react";
 
 const GridDashboard = lazy(() =>
   import("./GridDashboard").then((m) => ({ default: m.GridDashboard })),
@@ -243,19 +244,7 @@ function DashboardShellInner({
             className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2.5 py-1 text-[11px] text-blue-600 hover:bg-blue-100 transition-colors"
           >
             Clear shared filters ({Object.keys(sharedFilters).length})
-            <svg
-              className="w-3 h-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <X size={12} />
           </button>
         )}
       </div>

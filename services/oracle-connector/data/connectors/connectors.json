@@ -1,0 +1,21 @@
+[
+  {
+    "id": "sample-oracle",
+    "name": "Sample Oracle DB",
+    "type": "oracle",
+    "host": "localhost",
+    "port": 1521,
+    "database": "XEPDB1",
+    "defaultSchema": "TESTUSER",
+    "authType": "sql_auth",
+    "username": "testuser",
+    "maxPoolSize": 10,
+    "connectionTimeout": 30000,
+    "requestTimeout": 60000,
+    "maxRows": 10000,
+    "allowedSchemas": [],
+    "readOnly": true,
+    "createdAt": "2026-03-19T02:22:10.557Z",
+    "updatedAt": "2026-03-19T02:22:10.557Z"
+  }
+]

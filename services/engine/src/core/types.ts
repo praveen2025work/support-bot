@@ -2,11 +2,11 @@ export interface ChatMessage {
   id: string;
   text: string;
   sessionId: string;
-  platform: 'web' | 'widget' | 'teams';
+  platform: "web" | "widget" | "teams";
   groupId?: string;
   userId?: string;
   metadata?: Record<string, unknown>;
-  feedbackType?: 'suggestion_click' | 'rephrase' | 'retry' | 'normal';
+  feedbackType?: "suggestion_click" | "rephrase" | "retry" | "normal";
   previousMessageText?: string;
   timestamp: Date;
 }
@@ -16,7 +16,7 @@ export interface ClassificationResult {
   confidence: number;
   entities: ExtractedEntity[];
   sentiment?: SentimentResult;
-  source: 'nlp' | 'fuzzy' | 'fuzzy_synonym' | 'ensemble' | 'pattern';
+  source: "nlp" | "fuzzy" | "fuzzy_synonym" | "ensemble" | "pattern";
   /** Typo corrections applied before classification, if any */
   corrections?: Array<{ from: string; to: string }>;
 }
@@ -32,7 +32,7 @@ export interface ExtractedEntity {
 export interface SentimentResult {
   score: number;
   comparative: number;
-  vote: 'positive' | 'neutral' | 'negative';
+  vote: "positive" | "neutral" | "negative";
 }
 
 export interface BotResponse {
@@ -49,7 +49,9 @@ export interface BotResponse {
   /** Name of the data source that answered the query (e.g. "sales-data.csv", "Products API") */
   sourceName?: string;
   /** Type of the data source */
-  sourceType?: 'csv' | 'xlsx' | 'api' | 'document' | 'url';
+  sourceType?: "csv" | "xlsx" | "api" | "document" | "url";
+  /** Indicates how a follow-up was processed: local (in-memory) or requery (fresh API call) */
+  followUpMode?: "local" | "requery";
   /** Contextual recommendations based on user behavior and content similarity */
   recommendations?: Array<{ type: string; name: string; reason: string }>;
   /** Anomaly alerts detected in query results */
@@ -59,17 +61,50 @@ export interface BotResponse {
     currentValue: number;
     expectedMean: number;
     zScore: number;
-    severity: 'info' | 'warning' | 'critical';
-    direction: 'spike' | 'drop';
+    severity: "info" | "warning" | "critical";
+    direction: "spike" | "drop";
     message: string;
   }>;
+  /** Truncation metadata — populated when results are capped for chat display */
+  totalRowsBeforeTruncation?: number;
+  displayedRows?: number;
+  totalColumns?: number;
+  estimatedSizeKB?: number;
+  truncated?: boolean;
 }
 
 export interface RichContent {
-  type: 'url_list' | 'query_result' | 'multi_query_result' | 'estimation' | 'error' | 'file_content' | 'document_search' | 'csv_table' | 'csv_aggregation' | 'csv_group_by' | 'csv_summary' | 'document_summary' | 'knowledge_search' | 'query_list' | 'document_answer' | 'document_upload_result' | 'recommendations'
-    | 'column_profile' | 'smart_summary' | 'correlation_heatmap' | 'distribution_histogram'
-    | 'anomaly_table' | 'trend_analysis' | 'duplicate_rows' | 'missing_heatmap'
-    | 'clustering_result' | 'decision_tree_result' | 'forecast_result' | 'pca_result' | 'insight_report';
+  type:
+    | "url_list"
+    | "query_result"
+    | "multi_query_result"
+    | "estimation"
+    | "error"
+    | "file_content"
+    | "document_search"
+    | "csv_table"
+    | "csv_aggregation"
+    | "csv_group_by"
+    | "csv_summary"
+    | "document_summary"
+    | "knowledge_search"
+    | "query_list"
+    | "document_answer"
+    | "document_upload_result"
+    | "recommendations"
+    | "column_profile"
+    | "smart_summary"
+    | "correlation_heatmap"
+    | "distribution_histogram"
+    | "anomaly_table"
+    | "trend_analysis"
+    | "duplicate_rows"
+    | "missing_heatmap"
+    | "clustering_result"
+    | "decision_tree_result"
+    | "forecast_result"
+    | "pca_result"
+    | "insight_report";
   data: unknown;
 }
 
@@ -83,7 +118,14 @@ export interface IntentOverlap {
 }
 
 export interface QueryChartConfig {
-  defaultType: 'line' | 'bar' | 'pie' | 'area' | 'stacked-bar' | 'stacked-area' | 'none';
+  defaultType:
+    | "line"
+    | "bar"
+    | "pie"
+    | "area"
+    | "stacked-bar"
+    | "stacked-area"
+    | "none";
   labelKey?: string;
   valueKeys?: string[];
   height?: number;
@@ -101,7 +143,7 @@ export interface ColumnConfig {
 
 export interface ConversationContext {
   sessionId: string;
-  history: Array<{ role: 'user' | 'bot'; text: string; timestamp: Date }>;
+  history: Array<{ role: "user" | "bot"; text: string; timestamp: Date }>;
   currentIntent?: string;
   pendingEntities?: Record<string, string>;
   lastApiResult?: unknown;
@@ -111,4 +153,8 @@ export interface ConversationContext {
   lastDateFilter?: string;
   /** Entities extracted from last classification (for pronoun resolution) */
   lastEntities?: ExtractedEntity[];
+  /** Chart/column config from the last executed query — preserved for follow-up rendering */
+  lastChartConfig?: Record<string, unknown>;
+  lastColumnConfig?: Record<string, unknown>;
+  lastColumnMetadata?: unknown[];
 }

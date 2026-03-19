@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { csrfHeaders } from '@/lib/csrf';
-import { EmbedCodeGenerator } from './components/EmbedCodeGenerator';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { csrfHeaders } from "@/lib/csrf";
+import { EmbedCodeGenerator } from "./components/EmbedCodeGenerator";
 
 interface GroupInfo {
   id: string;
@@ -23,7 +23,7 @@ export default function AdminGroupsPage() {
 
   const fetchGroups = async () => {
     try {
-      const res = await fetch('/api/admin/groups');
+      const res = await fetch("/api/admin/groups");
       const data = await res.json();
       setGroups(data.groups);
     } catch {
@@ -39,7 +39,10 @@ export default function AdminGroupsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/admin/groups/${id}`, { method: 'DELETE', headers: { ...csrfHeaders() } });
+      const res = await fetch(`/api/admin/groups/${id}`, {
+        method: "DELETE",
+        headers: { ...csrfHeaders() },
+      });
       if (res.ok) {
         setDeletingId(null);
         fetchGroups();
@@ -54,36 +57,51 @@ export default function AdminGroupsPage() {
   }
 
   return (
-    <div className="max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
+    <div>
+      <div className="flex items-center justify-between pb-6 mb-6 border-b border-gray-100">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Groups</h1>
-          <p className="text-sm text-gray-500">Manage chatbot groups and generate embed codes</p>
+          <h1 className="text-2xl font-semibold text-gray-900">Groups</h1>
+          <p className="text-sm text-gray-500">
+            Manage chatbot groups and generate embed codes
+          </p>
         </div>
         <Link
           href="/admin/onboard"
-          className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 transition-colors"
         >
           + Add Group
         </Link>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Description</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Sources</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-600">Actions</th>
+            <tr className="bg-gray-50/80 border-b border-gray-200">
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Name
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Description
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Sources
+              </th>
+              <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
             {groups.map((group) => (
-              <tr key={group.id} className="border-b border-gray-100 last:border-0">
+              <tr
+                key={group.id}
+                className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors"
+              >
                 <td className="px-4 py-3">
                   <div className="font-medium text-gray-900">{group.name}</div>
-                  <div className="text-xs text-gray-400 font-mono">{group.id}</div>
+                  <div className="text-xs text-gray-400 font-mono">
+                    {group.id}
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-gray-600">{group.description}</td>
                 <td className="px-4 py-3">
@@ -110,12 +128,14 @@ export default function AdminGroupsPage() {
                       Edit
                     </Link>
                     <button
-                      onClick={() => setEmbedId(embedId === group.id ? null : group.id)}
+                      onClick={() =>
+                        setEmbedId(embedId === group.id ? null : group.id)
+                      }
                       className="text-xs text-gray-600 hover:underline"
                     >
                       Embed
                     </button>
-                    {group.id !== 'default' && (
+                    {group.id !== "default" && (
                       <>
                         {deletingId === group.id ? (
                           <span className="flex items-center gap-1">
@@ -152,7 +172,7 @@ export default function AdminGroupsPage() {
 
       {/* Inline embed code panel */}
       {embedId && (
-        <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+        <div className="mt-4 p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">
             Embed Code for {groups.find((g) => g.id === embedId)?.name}
           </h3>

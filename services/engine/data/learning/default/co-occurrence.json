@@ -1,11 +1,15 @@
 {
   "user_profile": {
-    "performance": 1
+    "performance": 1,
+    "trading_risk_dashboard": 1
   },
   "performance": {
     "user_profile": 1,
     "hr_report_ratings": 1,
     "monthly_revenue": 1
+  },
+  "trading_risk_dashboard": {
+    "user_profile": 1
   },
   "monthly_revenue": {
     "sales_data": 10,
@@ -14,7 +18,10 @@
     "cash_position": 1,
     "aml_alerts": 1,
     "hr_report_ratings": 1,
-    "performance": 1
+    "performance": 1,
+    "employee_directory": 1,
+    "order_summary": 1,
+    "daily_orders": 1
   },
   "sales_data": {
     "monthly_revenue": 10,
@@ -22,10 +29,12 @@
     "aml_alerts": 1,
     "hr_report_salaries": 1,
     "hr_report_bonuses": 1,
-    "employee_compensation": 1
+    "employee_compensation": 1,
+    "customer_churn_copy": 1
   },
   "report_generator": {
-    "support_tickets": 1
+    "support_tickets": 1,
+    "regional_sales_support": 1
   },
   "support_tickets": {
     "report_generator": 1,
@@ -54,10 +63,10 @@
     "sales_data": 1
   },
   "pnl_availability": {
-    "pnl_summary": 3
+    "pnl_summary": 4
   },
   "pnl_summary": {
-    "pnl_availability": 3
+    "pnl_availability": 4
   },
   "employee_compensation": {
     "support_tickets": 1,
@@ -78,5 +87,36 @@
   "hr_report_ratings": {
     "performance": 1,
     "monthly_revenue": 1
+  },
+  "customer_churn_copy": {
+    "sales_data": 1
+  },
+  "order_summary": {
+    "daily_orders": 1,
+    "employee_directory": 1,
+    "monthly_revenue": 1
+  },
+  "daily_orders": {
+    "order_summary": 1,
+    "monthly_revenue": 1
+  },
+  "employee_directory": {
+    "monthly_revenue": 1,
+    "order_summary": 1
+  },
+  "regional_sales_support": {
+    "report_generator": 1
+  },
+  "service_reliability_report": {
+    "daily_commerce_engagement": 1,
+    "employee_full_review": 1
+  },
+  "daily_commerce_engagement": {
+    "service_reliability_report": 1,
+    "employee_full_review": 1
+  },
+  "employee_full_review": {
+    "service_reliability_report": 1,
+    "daily_commerce_engagement": 1
   }
 }

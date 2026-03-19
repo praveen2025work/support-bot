@@ -1,7 +1,8 @@
-'use client';
+"use client";
 
-import type { FavoriteItem, QueryInfo } from '@/types/dashboard';
-import { QueryCard } from './QueryCard';
+import type { FavoriteItem, QueryInfo } from "@/types/dashboard";
+import { X } from "lucide-react";
+import { QueryCard } from "./QueryCard";
 
 export function FavoritesPanel({
   favorites,
@@ -16,7 +17,10 @@ export function FavoritesPanel({
   userName?: string;
   availableQueries?: QueryInfo[];
   onRemove: (id: string) => Promise<void>;
-  onSaveFilters?: (favoriteId: string, filters: Record<string, string>) => Promise<void>;
+  onSaveFilters?: (
+    favoriteId: string,
+    filters: Record<string, string>,
+  ) => Promise<void>;
 }) {
   const getQueryFilters = (queryName: string) => {
     return availableQueries?.find((q) => q.name === queryName)?.filters;
@@ -46,9 +50,7 @@ export function FavoritesPanel({
                 title="Remove from favorites"
                 className="p-1 text-gray-400 hover:text-red-500 transition-colors"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X size={16} />
               </button>
             }
           />

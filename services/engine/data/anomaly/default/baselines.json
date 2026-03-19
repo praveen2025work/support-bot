@@ -8,8 +8,8 @@
     "max": 5963000,
     "p25": 5963000,
     "p75": 5963000,
-    "sampleCount": 19,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "sampleCount": 24,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "sales_data",
@@ -20,8 +20,8 @@
     "max": 18756,
     "p25": 18756,
     "p75": 18756,
-    "sampleCount": 19,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "sampleCount": 24,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "active_users",
@@ -32,8 +32,8 @@
     "max": 242040,
     "p25": 242040,
     "p75": 242040,
-    "sampleCount": 17,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "sampleCount": 24,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "active_users",
@@ -44,32 +44,32 @@
     "max": 769350,
     "p25": 769350,
     "p75": 769350,
-    "sampleCount": 17,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "sampleCount": 24,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "customer_churn",
     "columnName": "total",
-    "mean": 12100,
-    "stdDev": 5477.2255750516615,
+    "mean": 13766.666666666666,
+    "stdDev": 5055.250296034371,
     "min": 6100,
     "max": 17100,
     "p25": 6100,
     "p75": 17100,
-    "sampleCount": 22,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "sampleCount": 33,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "customer_churn",
     "columnName": "churned",
-    "mean": 572.3636363636364,
-    "stdDev": 299.7536178346455,
+    "mean": 663.5757575757576,
+    "stdDev": 276.66006165569905,
     "min": 244,
     "max": 846,
     "p25": 244,
     "p75": 846,
-    "sampleCount": 22,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "sampleCount": 33,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "error_rate",
@@ -80,8 +80,8 @@
     "max": 88,
     "p25": 88,
     "p75": 88,
-    "sampleCount": 5,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "sampleCount": 13,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "error_rate",
@@ -92,56 +92,56 @@
     "max": 136200,
     "p25": 136200,
     "p75": 136200,
-    "sampleCount": 5,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "sampleCount": 13,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "monthly_revenue",
     "columnName": "revenue",
-    "mean": 208000,
-    "stdDev": 0,
+    "mean": 424187.5,
+    "stdDev": 217728.39122114965,
     "min": 208000,
-    "max": 208000,
+    "max": 648000,
     "p25": 208000,
-    "p75": 208000,
-    "sampleCount": 16,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "p75": 648000,
+    "sampleCount": 48,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "daily_orders",
     "columnName": "orders",
-    "mean": 8662.25,
-    "stdDev": 1653.6755085263856,
+    "mean": 12929.9,
+    "stdDev": 4961.052034599113,
     "min": 5798,
-    "max": 9617,
+    "max": 18854,
     "p25": 9617,
-    "p75": 9617,
-    "sampleCount": 4,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "p75": 18854,
+    "sampleCount": 10,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "daily_orders",
     "columnName": "fulfilled",
-    "mean": 8563.25,
-    "stdDev": 1613.8383399523013,
+    "mean": 12801.1,
+    "stdDev": 4928.760421241836,
     "min": 5768,
-    "max": 9495,
+    "max": 18692,
     "p25": 9495,
-    "p75": 9495,
-    "sampleCount": 4,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "p75": 18692,
+    "sampleCount": 10,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "daily_orders",
     "columnName": "pending",
-    "mean": 99,
-    "stdDev": 39.83716857408418,
+    "mean": 128.8,
+    "stdDev": 37.94944004856989,
     "min": 30,
-    "max": 122,
+    "max": 162,
     "p25": 122,
-    "p75": 122,
-    "sampleCount": 4,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "p75": 162,
+    "sampleCount": 10,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "support_tickets",
@@ -153,19 +153,19 @@
     "p25": 1382593.0416666658,
     "p75": 1382593.0416666658,
     "sampleCount": 9,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "support_tickets",
     "columnName": "resolution_hours",
-    "mean": 96.89999999999999,
-    "stdDev": 0,
+    "mean": 96.90000000000002,
+    "stdDev": 2.842170943040401e-14,
     "min": 96.89999999999999,
     "max": 96.89999999999999,
     "p25": 96.89999999999999,
     "p75": 96.89999999999999,
-    "sampleCount": 11,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "sampleCount": 16,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "pnl_availability",
@@ -177,7 +177,7 @@
     "p25": 14410,
     "p75": 14410,
     "sampleCount": 2,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "pnl_availability",
@@ -189,7 +189,7 @@
     "p25": 921910.7472222222,
     "p75": 921910.7472222222,
     "sampleCount": 2,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "pnl_availability",
@@ -201,7 +201,7 @@
     "p25": 921930,
     "p75": 921930,
     "sampleCount": 13,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "pnl_availability",
@@ -213,7 +213,7 @@
     "p25": 921927,
     "p75": 921927,
     "sampleCount": 13,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "employee_compensation",
@@ -225,7 +225,7 @@
     "p25": 1251000,
     "p75": 1251000,
     "sampleCount": 4,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "employee_compensation",
@@ -237,7 +237,7 @@
     "p25": 188000,
     "p75": 188000,
     "sampleCount": 4,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "employee_compensation",
@@ -249,7 +249,7 @@
     "p25": 51.300000000000004,
     "p75": 51.300000000000004,
     "sampleCount": 4,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "hr_report_salaries",
@@ -260,8 +260,8 @@
     "max": 882000,
     "p25": 882000,
     "p75": 882000,
-    "sampleCount": 2,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "sampleCount": 7,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "hr_report_bonuses",
@@ -272,8 +272,8 @@
     "max": 43500,
     "p25": 43500,
     "p75": 43500,
-    "sampleCount": 1,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "sampleCount": 2,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "hr_report_bonuses",
@@ -284,8 +284,8 @@
     "max": 39600,
     "p25": 39600,
     "p75": 39600,
-    "sampleCount": 1,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "sampleCount": 2,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "hr_report_bonuses",
@@ -296,8 +296,8 @@
     "max": 49200,
     "p25": 49200,
     "p75": 49200,
-    "sampleCount": 1,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "sampleCount": 2,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "hr_report_bonuses",
@@ -308,8 +308,8 @@
     "max": 47000,
     "p25": 47000,
     "p75": 47000,
-    "sampleCount": 1,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "sampleCount": 2,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "hr_report_ratings",
@@ -321,7 +321,7 @@
     "p25": 34.9,
     "p75": 34.9,
     "sampleCount": 2,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "headcount",
@@ -332,8 +332,8 @@
     "max": 130,
     "p25": 130,
     "p75": 130,
-    "sampleCount": 1,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "sampleCount": 4,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "customer_churn_copy",
@@ -344,8 +344,8 @@
     "max": 17100,
     "p25": 17100,
     "p75": 17100,
-    "sampleCount": 1,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "sampleCount": 2,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   },
   {
     "queryName": "customer_churn_copy",
@@ -356,7 +356,859 @@
     "max": 846,
     "p25": 846,
     "p75": 846,
+    "sampleCount": 2,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "employee_metrics",
+    "columnName": "salary",
+    "mean": 3990000,
+    "stdDev": 0,
+    "min": 3990000,
+    "max": 3990000,
+    "p25": 3990000,
+    "p75": 3990000,
     "sampleCount": 1,
-    "lastUpdated": "2026-03-18T02:53:20.386Z"
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "employee_metrics",
+    "columnName": "tenure_months",
+    "mean": 727,
+    "stdDev": 0,
+    "min": 727,
+    "max": 727,
+    "p25": 727,
+    "p75": 727,
+    "sampleCount": 1,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "employee_metrics",
+    "columnName": "performance_score",
+    "mean": 127.30000000000001,
+    "stdDev": 0,
+    "min": 127.30000000000001,
+    "max": 127.30000000000001,
+    "p25": 127.30000000000001,
+    "p75": 127.30000000000001,
+    "sampleCount": 1,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "employee_metrics",
+    "columnName": "certifications",
+    "mean": 77,
+    "stdDev": 0,
+    "min": 77,
+    "max": 77,
+    "p25": 77,
+    "p75": 77,
+    "sampleCount": 1,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "hiring_pipeline",
+    "columnName": "applicants",
+    "mean": 265,
+    "stdDev": 0,
+    "min": 265,
+    "max": 265,
+    "p25": 265,
+    "p75": 265,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "hiring_pipeline",
+    "columnName": "screened",
+    "mean": 95,
+    "stdDev": 0,
+    "min": 95,
+    "max": 95,
+    "p25": 95,
+    "p75": 95,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "hiring_pipeline",
+    "columnName": "interviewed",
+    "mean": 26,
+    "stdDev": 0,
+    "min": 26,
+    "max": 26,
+    "p25": 26,
+    "p75": 26,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "hiring_pipeline",
+    "columnName": "offers",
+    "mean": 6,
+    "stdDev": 0,
+    "min": 6,
+    "max": 6,
+    "p25": 6,
+    "p75": 6,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "order_details",
+    "columnName": "OrderId",
+    "mean": 29,
+    "stdDev": 9.899494936611665,
+    "min": 15,
+    "max": 36,
+    "p25": 15,
+    "p75": 36,
+    "sampleCount": 6,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "order_details",
+    "columnName": "TotalAmount",
+    "mean": 56866.55333333332,
+    "stdDev": 28048.545416840345,
+    "min": 17199.92,
+    "max": 76699.87,
+    "p25": 17199.92,
+    "p75": 76699.87,
+    "sampleCount": 6,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "all-employees",
+    "columnName": "EmployeeId",
+    "mean": 120,
+    "stdDev": 0,
+    "min": 120,
+    "max": 120,
+    "p25": 120,
+    "p75": 120,
+    "sampleCount": 2,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "all-employees",
+    "columnName": "DepartmentId",
+    "mean": 47,
+    "stdDev": 0,
+    "min": 47,
+    "max": 47,
+    "p25": 47,
+    "p75": 47,
+    "sampleCount": 2,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "all-employees",
+    "columnName": "Salary",
+    "mean": 1722000,
+    "stdDev": 0,
+    "min": 1722000,
+    "max": 1722000,
+    "p25": 1722000,
+    "p75": 1722000,
+    "sampleCount": 2,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "employee_directory",
+    "columnName": "EmployeeId",
+    "mean": 103.16666666666667,
+    "stdDev": 37.64047762124646,
+    "min": 19,
+    "max": 120,
+    "p25": 120,
+    "p75": 120,
+    "sampleCount": 12,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "employee_directory",
+    "columnName": "Salary",
+    "mean": 1526666.6666666667,
+    "stdDev": 436778.61160495895,
+    "min": 550000,
+    "max": 1722000,
+    "p25": 1722000,
+    "p75": 1722000,
+    "sampleCount": 12,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "order_summary",
+    "columnName": "OrderCount",
+    "mean": 8,
+    "stdDev": 0,
+    "min": 8,
+    "max": 8,
+    "p25": 8,
+    "p75": 8,
+    "sampleCount": 2,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "order_summary",
+    "columnName": "TotalValue",
+    "mean": 76699.87000000001,
+    "stdDev": 0,
+    "min": 76699.87000000001,
+    "max": 76699.87000000001,
+    "p25": 76699.87000000001,
+    "p75": 76699.87000000001,
+    "sampleCount": 2,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "order_summary",
+    "columnName": "AvgOrderValue",
+    "mean": 42299.939999999995,
+    "stdDev": 0,
+    "min": 42299.939999999995,
+    "max": 42299.939999999995,
+    "p25": 42299.939999999995,
+    "p75": 42299.939999999995,
+    "sampleCount": 2,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "pnl_summary",
+    "columnName": "q1",
+    "mean": 6028571.428571428,
+    "stdDev": 582038.9916106148,
+    "min": 3930000,
+    "max": 6190000,
+    "p25": 6190000,
+    "p75": 6190000,
+    "sampleCount": 28,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "pnl_summary",
+    "columnName": "q2",
+    "mean": 6610000,
+    "stdDev": 612943.7168288782,
+    "min": 4400000,
+    "max": 6780000,
+    "p25": 6780000,
+    "p75": 6780000,
+    "sampleCount": 28,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "pnl_summary",
+    "columnName": "q3",
+    "mean": 7228571.428571428,
+    "stdDev": 654150.0171198958,
+    "min": 4870000,
+    "max": 7410000,
+    "p25": 7410000,
+    "p75": 7410000,
+    "sampleCount": 28,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "pnl_summary",
+    "columnName": "q4",
+    "mean": 8490000,
+    "stdDev": 757165.7678474378,
+    "min": 5760000,
+    "max": 8700000,
+    "p25": 8700000,
+    "p75": 8700000,
+    "sampleCount": 28,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "trading_risk_dashboard",
+    "columnName": "pnl_realized_pnl",
+    "mean": 14300000,
+    "stdDev": 0,
+    "min": 14300000,
+    "max": 14300000,
+    "p25": 14300000,
+    "p75": 14300000,
+    "sampleCount": 9,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "trading_risk_dashboard",
+    "columnName": "pnl_unrealized_pnl",
+    "mean": 1870000,
+    "stdDev": 0,
+    "min": 1870000,
+    "max": 1870000,
+    "p25": 1870000,
+    "p75": 1870000,
+    "sampleCount": 9,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "trading_risk_dashboard",
+    "columnName": "pnl_total_pnl",
+    "mean": 16170000,
+    "stdDev": 0,
+    "min": 16170000,
+    "max": 16170000,
+    "p25": 16170000,
+    "p75": 16170000,
+    "sampleCount": 9,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "trading_risk_dashboard",
+    "columnName": "pnl_trades",
+    "mean": 59450,
+    "stdDev": 0,
+    "min": 59450,
+    "max": 59450,
+    "p25": 59450,
+    "p75": 59450,
+    "sampleCount": 9,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "trading_risk_dashboard",
+    "columnName": "risk_var_95",
+    "mean": 9610000,
+    "stdDev": 0,
+    "min": 9610000,
+    "max": 9610000,
+    "p25": 9610000,
+    "p75": 9610000,
+    "sampleCount": 9,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "trading_risk_dashboard",
+    "columnName": "risk_var_99",
+    "mean": 16450000,
+    "stdDev": 0,
+    "min": 16450000,
+    "max": 16450000,
+    "p25": 16450000,
+    "p75": 16450000,
+    "sampleCount": 9,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "trading_risk_dashboard",
+    "columnName": "risk_stress_loss",
+    "mean": -31500000,
+    "stdDev": 0,
+    "min": -31500000,
+    "max": -31500000,
+    "p25": -31500000,
+    "p75": -31500000,
+    "sampleCount": 9,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "trading_risk_dashboard",
+    "columnName": "risk_exposure_gross",
+    "mean": 1680000000,
+    "stdDev": 0,
+    "min": 1680000000,
+    "max": 1680000000,
+    "p25": 1680000000,
+    "p75": 1680000000,
+    "sampleCount": 9,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "trading_risk_dashboard",
+    "columnName": "risk_exposure_net",
+    "mean": 161000000,
+    "stdDev": 0,
+    "min": 161000000,
+    "max": 161000000,
+    "p25": 161000000,
+    "p75": 161000000,
+    "sampleCount": 9,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "trading_risk_dashboard",
+    "columnName": "risk_risk_limit",
+    "mean": 18800000,
+    "stdDev": 0,
+    "min": 18800000,
+    "max": 18800000,
+    "p25": 18800000,
+    "p75": 18800000,
+    "sampleCount": 9,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "service_reliability_report",
+    "columnName": "err_errors",
+    "mean": 80,
+    "stdDev": 0,
+    "min": 80,
+    "max": 80,
+    "p25": 80,
+    "p75": 80,
+    "sampleCount": 4,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "service_reliability_report",
+    "columnName": "err_total",
+    "mean": 131000,
+    "stdDev": 0,
+    "min": 131000,
+    "max": 131000,
+    "p25": 131000,
+    "p75": 131000,
+    "sampleCount": 4,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "daily_commerce_engagement",
+    "columnName": "orders_orders",
+    "mean": 18854,
+    "stdDev": 0,
+    "min": 18854,
+    "max": 18854,
+    "p25": 18854,
+    "p75": 18854,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "daily_commerce_engagement",
+    "columnName": "orders_fulfilled",
+    "mean": 18692,
+    "stdDev": 0,
+    "min": 18692,
+    "max": 18692,
+    "p25": 18692,
+    "p75": 18692,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "daily_commerce_engagement",
+    "columnName": "orders_pending",
+    "mean": 162,
+    "stdDev": 0,
+    "min": 162,
+    "max": 162,
+    "p25": 162,
+    "p75": 162,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "daily_commerce_engagement",
+    "columnName": "users_daily_active",
+    "mean": 242040,
+    "stdDev": 0,
+    "min": 242040,
+    "max": 242040,
+    "p25": 242040,
+    "p75": 242040,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "daily_commerce_engagement",
+    "columnName": "users_monthly_active",
+    "mean": 769350,
+    "stdDev": 0,
+    "min": 769350,
+    "max": 769350,
+    "p25": 769350,
+    "p75": 769350,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "lending_book_with_pipeline",
+    "columnName": "book_outstanding",
+    "mean": 11230000000,
+    "stdDev": 0,
+    "min": 11230000000,
+    "max": 11230000000,
+    "p25": 11230000000,
+    "p75": 11230000000,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "lending_book_with_pipeline",
+    "columnName": "book_npl_count",
+    "mean": 921,
+    "stdDev": 0,
+    "min": 921,
+    "max": 921,
+    "p25": 921,
+    "p75": 921,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "lending_book_with_pipeline",
+    "columnName": "book_npl_amount",
+    "mean": 183700000,
+    "stdDev": 0,
+    "min": 183700000,
+    "max": 183700000,
+    "p25": 183700000,
+    "p75": 183700000,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "lending_book_with_pipeline",
+    "columnName": "book_provision",
+    "mean": 247000000,
+    "stdDev": 0,
+    "min": 247000000,
+    "max": 247000000,
+    "p25": 247000000,
+    "p75": 247000000,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "lending_book_with_pipeline",
+    "columnName": "pipe_pipeline_count",
+    "mean": 8136,
+    "stdDev": 0,
+    "min": 8136,
+    "max": 8136,
+    "p25": 8136,
+    "p75": 8136,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "lending_book_with_pipeline",
+    "columnName": "pipe_pipeline_value",
+    "mean": 2011000000,
+    "stdDev": 0,
+    "min": 2011000000,
+    "max": 2011000000,
+    "p25": 2011000000,
+    "p75": 2011000000,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "lending_book_with_pipeline",
+    "columnName": "pipe_avg_deal_size",
+    "mean": 10183312,
+    "stdDev": 0,
+    "min": 10183312,
+    "max": 10183312,
+    "p25": 10183312,
+    "p75": 10183312,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "lending_book_with_pipeline",
+    "columnName": "pipe_avg_days_to_close",
+    "mean": 347,
+    "stdDev": 0,
+    "min": 347,
+    "max": 347,
+    "p25": 347,
+    "p75": 347,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "lending_book_with_pipeline",
+    "columnName": "pipe_funded_mtd",
+    "mean": 781000000,
+    "stdDev": 0,
+    "min": 781000000,
+    "max": 781000000,
+    "p25": 781000000,
+    "p75": 781000000,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "lending_book_with_pipeline",
+    "columnName": "pipe_funded_count",
+    "mean": 4953,
+    "stdDev": 0,
+    "min": 4953,
+    "max": 4953,
+    "p25": 4953,
+    "p75": 4953,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "budget_headcount_review",
+    "columnName": "budget_budget",
+    "mean": 65000000,
+    "stdDev": 0,
+    "min": 65000000,
+    "max": 65000000,
+    "p25": 65000000,
+    "p75": 65000000,
+    "sampleCount": 4,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "budget_headcount_review",
+    "columnName": "budget_actual",
+    "mean": 64460000,
+    "stdDev": 0,
+    "min": 64460000,
+    "max": 64460000,
+    "p25": 64460000,
+    "p75": 64460000,
+    "sampleCount": 4,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "budget_headcount_review",
+    "columnName": "budget_variance",
+    "mean": 540000,
+    "stdDev": 0,
+    "min": 540000,
+    "max": 540000,
+    "p25": 540000,
+    "p75": 540000,
+    "sampleCount": 4,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "budget_headcount_review",
+    "columnName": "team_headcount",
+    "mean": 540,
+    "stdDev": 0,
+    "min": 540,
+    "max": 540,
+    "p25": 540,
+    "p75": 540,
+    "sampleCount": 4,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "budget_headcount_review",
+    "columnName": "team_avg_salary",
+    "mean": 1481000,
+    "stdDev": 0,
+    "min": 1481000,
+    "max": 1481000,
+    "p25": 1481000,
+    "p75": 1481000,
+    "sampleCount": 4,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "budget_headcount_review",
+    "columnName": "team_open_positions",
+    "mean": 62,
+    "stdDev": 0,
+    "min": 62,
+    "max": 62,
+    "p25": 62,
+    "p75": 62,
+    "sampleCount": 4,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "regional_sales_support",
+    "columnName": "sales_revenue",
+    "mean": 63432000,
+    "stdDev": 0,
+    "min": 63432000,
+    "max": 63432000,
+    "p25": 63432000,
+    "p75": 63432000,
+    "sampleCount": 4,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "regional_sales_support",
+    "columnName": "sales_units",
+    "mean": 199130,
+    "stdDev": 0,
+    "min": 199130,
+    "max": 199130,
+    "p25": 199130,
+    "p75": 199130,
+    "sampleCount": 4,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "regional_sales_support",
+    "columnName": "tickets_resolution_hours",
+    "mean": 1162.7999999999993,
+    "stdDev": 0,
+    "min": 1162.7999999999993,
+    "max": 1162.7999999999993,
+    "p25": 1162.7999999999993,
+    "p75": 1162.7999999999993,
+    "sampleCount": 4,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "employee_full_review",
+    "columnName": "sal_base_salary",
+    "mean": 882000,
+    "stdDev": 0,
+    "min": 882000,
+    "max": 882000,
+    "p25": 882000,
+    "p75": 882000,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "employee_full_review",
+    "columnName": "bon_q1_bonus",
+    "mean": 43500,
+    "stdDev": 0,
+    "min": 43500,
+    "max": 43500,
+    "p25": 43500,
+    "p75": 43500,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "employee_full_review",
+    "columnName": "bon_q2_bonus",
+    "mean": 39600,
+    "stdDev": 0,
+    "min": 39600,
+    "max": 39600,
+    "p25": 39600,
+    "p75": 39600,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "employee_full_review",
+    "columnName": "bon_q3_bonus",
+    "mean": 49200,
+    "stdDev": 0,
+    "min": 49200,
+    "max": 49200,
+    "p25": 49200,
+    "p75": 49200,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "employee_full_review",
+    "columnName": "bon_q4_bonus",
+    "mean": 47000,
+    "stdDev": 0,
+    "min": 47000,
+    "max": 47000,
+    "p25": 47000,
+    "p75": 47000,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "employee_full_review",
+    "columnName": "rat_performance_score",
+    "mean": 34.9,
+    "stdDev": 0,
+    "min": 34.9,
+    "max": 34.9,
+    "p25": 34.9,
+    "p75": 34.9,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "dept_metrics_compensation",
+    "columnName": "metrics_salary",
+    "mean": 9080000,
+    "stdDev": 0,
+    "min": 9080000,
+    "max": 9080000,
+    "p25": 9080000,
+    "p75": 9080000,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "dept_metrics_compensation",
+    "columnName": "metrics_tenure_months",
+    "mean": 1657,
+    "stdDev": 0,
+    "min": 1657,
+    "max": 1657,
+    "p25": 1657,
+    "p75": 1657,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "dept_metrics_compensation",
+    "columnName": "metrics_performance_score",
+    "mean": 277.20000000000005,
+    "stdDev": 0,
+    "min": 277.20000000000005,
+    "max": 277.20000000000005,
+    "p25": 277.20000000000005,
+    "p75": 277.20000000000005,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "dept_metrics_compensation",
+    "columnName": "metrics_certifications",
+    "mean": 176,
+    "stdDev": 0,
+    "min": 176,
+    "max": 176,
+    "p25": 176,
+    "p75": 176,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "dept_metrics_compensation",
+    "columnName": "comp_salary",
+    "mean": 7332000,
+    "stdDev": 0,
+    "min": 7332000,
+    "max": 7332000,
+    "p25": 7332000,
+    "p75": 7332000,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "dept_metrics_compensation",
+    "columnName": "comp_bonus",
+    "mean": 1054500,
+    "stdDev": 0,
+    "min": 1054500,
+    "max": 1054500,
+    "p25": 1054500,
+    "p75": 1054500,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
+  },
+  {
+    "queryName": "dept_metrics_compensation",
+    "columnName": "comp_rating",
+    "mean": 283.50000000000006,
+    "stdDev": 0,
+    "min": 283.50000000000006,
+    "max": 283.50000000000006,
+    "p25": 283.50000000000006,
+    "p75": 283.50000000000006,
+    "sampleCount": 3,
+    "lastUpdated": "2026-03-19T19:51:12.428Z"
   }
 ]

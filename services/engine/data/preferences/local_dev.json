@@ -1,45 +1,197 @@
 {
   "userId": "local_dev",
-  "favorites": [],
+  "favorites": [
+    {
+      "queryName": "monthly_revenue",
+      "groupId": "default",
+      "label": "monthly_revenue",
+      "defaultFilters": {},
+      "id": "1773872929673_ik62yv",
+      "createdAt": "2026-03-18T22:28:49.673Z"
+    },
+    {
+      "queryName": "headcount",
+      "groupId": "default",
+      "label": "headcount",
+      "defaultFilters": {},
+      "id": "1773873141792_f4p2cg",
+      "createdAt": "2026-03-18T22:32:21.792Z"
+    }
+  ],
   "subscriptions": [],
   "recentQueries": [
     {
-      "queryName": "query.execute",
+      "queryName": "headcount",
       "groupId": "default",
-      "userMessage": "run liquidity",
+      "userMessage": "run headcount",
       "intent": "query.execute",
-      "timestamp": "2026-03-18T03:42:04.039Z"
+      "timestamp": "2026-03-18T22:32:25.899Z",
+      "executionMs": 8
+    },
+    {
+      "queryName": "headcount",
+      "groupId": "default",
+      "userMessage": "run headcount",
+      "intent": "query.execute",
+      "timestamp": "2026-03-18T22:31:49.311Z",
+      "executionMs": 6
     },
     {
       "queryName": "query.list",
       "groupId": "default",
       "userMessage": "list queries",
       "intent": "query.list",
-      "timestamp": "2026-03-18T03:42:01.661Z"
+      "timestamp": "2026-03-18T22:31:40.101Z"
     },
     {
-      "queryName": "query.compare",
+      "queryName": "sales_data",
       "groupId": "default",
-      "userMessage": "/compare errors and performance",
-      "intent": "query.compare",
-      "timestamp": "2026-03-18T03:40:16.417Z"
-    },
-    {
-      "queryName": "query.multi",
-      "groupId": "default",
-      "userMessage": "run compare errors and performance",
-      "intent": "query.multi",
-      "timestamp": "2026-03-18T03:39:27.164Z"
-    },
-    {
-      "queryName": "active_users",
-      "groupId": "default",
-      "userMessage": "run active_users",
+      "userMessage": "run sales_data",
       "intent": "query.execute",
-      "timestamp": "2026-03-18T03:32:36.367Z",
+      "timestamp": "2026-03-18T22:30:44.019Z",
+      "executionMs": 80
+    },
+    {
+      "queryName": "query.list",
+      "groupId": "default",
+      "userMessage": "list queries",
+      "intent": "query.list",
+      "timestamp": "2026-03-18T22:30:40.024Z"
+    },
+    {
+      "queryName": "error_rate",
+      "groupId": "default",
+      "userMessage": "run error_rate",
+      "intent": "query.execute",
+      "timestamp": "2026-03-18T22:30:15.564Z",
       "executionMs": 4
+    },
+    {
+      "queryName": "query.list",
+      "groupId": "default",
+      "userMessage": "list queries",
+      "intent": "query.list",
+      "timestamp": "2026-03-18T22:30:09.597Z"
+    },
+    {
+      "queryName": "monthly_revenue",
+      "groupId": "default",
+      "userMessage": "run monthly_revenue",
+      "intent": "query.execute",
+      "timestamp": "2026-03-18T22:29:35.583Z",
+      "executionMs": 3
+    },
+    {
+      "queryName": "query.list",
+      "groupId": "default",
+      "userMessage": "list queries",
+      "intent": "query.list",
+      "timestamp": "2026-03-18T22:29:28.986Z"
+    },
+    {
+      "queryName": "monthly_revenue",
+      "groupId": "default",
+      "userMessage": "run monthly_revenue",
+      "intent": "query.execute",
+      "timestamp": "2026-03-18T22:28:50.820Z",
+      "executionMs": 6
+    },
+    {
+      "queryName": "daily_orders",
+      "groupId": "default",
+      "userMessage": "run daily_orders",
+      "intent": "query.execute",
+      "timestamp": "2026-03-18T22:24:29.903Z",
+      "executionMs": 8
     }
   ],
-  "dashboards": [],
-  "updatedAt": "2026-03-18T03:42:04.039Z"
+  "dashboards": [
+    {
+      "id": "pnl-executive-view",
+      "name": "P&L Executive View",
+      "cards": [
+        {
+          "id": "pnl_card_summary",
+          "queryName": "pnl_summary",
+          "groupId": "default",
+          "label": "P&L Income Statement",
+          "defaultFilters": { "fiscal_year": "FY2025" },
+          "autoRun": true,
+          "eventLink": { "mode": "auto" },
+          "createdAt": "2026-03-19T00:00:00.000Z"
+        },
+        {
+          "id": "pnl_card_detail",
+          "queryName": "pnl_detail",
+          "groupId": "default",
+          "label": "P&L Detail by GL Account",
+          "defaultFilters": { "fiscal_year": "FY2025", "fiscal_quarter": "Q1" },
+          "autoRun": true,
+          "eventLink": { "mode": "auto" },
+          "createdAt": "2026-03-19T00:00:00.000Z"
+        },
+        {
+          "id": "pnl_card_revenue_region",
+          "queryName": "revenue_by_region",
+          "groupId": "default",
+          "label": "Revenue by Region",
+          "defaultFilters": { "fiscal_year": "FY2025" },
+          "autoRun": true,
+          "eventLink": { "mode": "auto" },
+          "createdAt": "2026-03-19T00:00:00.000Z"
+        },
+        {
+          "id": "pnl_card_budget",
+          "queryName": "budget_vs_actual",
+          "groupId": "default",
+          "label": "Budget vs Actual",
+          "defaultFilters": { "fiscal_year": "FY2025" },
+          "autoRun": true,
+          "eventLink": { "mode": "auto" },
+          "createdAt": "2026-03-19T00:00:00.000Z"
+        }
+      ],
+      "layouts": [
+        {
+          "i": "pnl_card_summary",
+          "x": 0,
+          "y": 0,
+          "w": 6,
+          "h": 4,
+          "minW": 4,
+          "minH": 3
+        },
+        {
+          "i": "pnl_card_detail",
+          "x": 6,
+          "y": 0,
+          "w": 6,
+          "h": 4,
+          "minW": 4,
+          "minH": 3
+        },
+        {
+          "i": "pnl_card_revenue_region",
+          "x": 0,
+          "y": 4,
+          "w": 6,
+          "h": 4,
+          "minW": 4,
+          "minH": 3
+        },
+        {
+          "i": "pnl_card_budget",
+          "x": 6,
+          "y": 4,
+          "w": 6,
+          "h": 4,
+          "minW": 4,
+          "minH": 3
+        }
+      ],
+      "createdAt": "2026-03-19T00:00:00.000Z",
+      "updatedAt": "2026-03-19T00:00:00.000Z"
+    }
+  ],
+  "updatedAt": "2026-03-18T22:32:25.900Z"
 }

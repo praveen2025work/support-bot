@@ -1,11 +1,11 @@
-import { NlpService } from './nlp/nlp-service';
-import { ResponseGenerator } from './response/response-generator';
-import { SessionManager } from './session/session-manager';
-import { RecommendationEngine } from './recommendations/recommendation-engine';
-import { QueryRewriter } from './nlp/query-rewriter';
-import type { LearningService } from './learning/learning-service';
-import { logger } from '@/lib/logger';
-import type { ChatMessage, BotResponse, IntentOverlap } from './types';
+import { NlpService } from "./nlp/nlp-service";
+import { ResponseGenerator } from "./response/response-generator";
+import { SessionManager } from "./session/session-manager";
+import { RecommendationEngine } from "./recommendations/recommendation-engine";
+import { QueryRewriter } from "./nlp/query-rewriter";
+import type { LearningService } from "./learning/learning-service";
+import { logger } from "@/lib/logger";
+import type { ChatMessage, BotResponse, IntentOverlap } from "./types";
 
 export class ChatbotEngine {
   private initialized = false;
@@ -17,9 +17,9 @@ export class ChatbotEngine {
     private responseGenerator: ResponseGenerator,
     private sessionManager: SessionManager,
     private learningService?: LearningService,
-    groupId?: string
+    groupId?: string,
   ) {
-    this.recommendationEngine = new RecommendationEngine(groupId || 'default');
+    this.recommendationEngine = new RecommendationEngine(groupId || "default");
     this.queryRewriter = new QueryRewriter();
   }
 
@@ -27,7 +27,7 @@ export class ChatbotEngine {
     if (this.initialized) return;
     await this.nlpService.initialize();
     this.initialized = true;
-    logger.info('ChatbotEngine initialized');
+    logger.info("ChatbotEngine initialized");
   }
 
   /** Returns true if the engine (and its NLP model) has been initialized. */
@@ -38,27 +38,47 @@ export class ChatbotEngine {
   async processMessage(
     message: ChatMessage,
     explicitFilters?: Record<string, string>,
-    incomingHeaders?: Record<string, string>
+    incomingHeaders?: Record<string, string>,
+    followUpMode?: "local" | "requery",
   ): Promise<BotResponse> {
     await this.initialize();
 
-    const context = await this.sessionManager.getContext(message.sessionId);
+    const context = await this.sessionManager.getContext(
+      message.sessionId,
+      message.userId,
+    );
 
     context.history.push({
-      role: 'user',
+      role: "user",
       text: message.text,
       timestamp: message.timestamp,
     });
+
+    // Trim conversation history to prevent unbounded memory growth per session
+    const MAX_HISTORY = 40;
+    if (context.history.length > MAX_HISTORY) {
+      context.history = context.history.slice(-MAX_HISTORY);
+    }
 
     // Context-aware query rewriting (pronoun resolution, abbreviation expansion, etc.)
     const rewriteResult = this.queryRewriter.rewrite(message.text, context);
     const processedText = rewriteResult.rewritten;
     if (rewriteResult.rewrites.length > 0) {
-      logger.info({ original: message.text, rewritten: processedText, rewrites: rewriteResult.rewrites.length }, 'Query rewritten');
+      logger.info(
+        {
+          original: message.text,
+          rewritten: processedText,
+          rewrites: rewriteResult.rewrites.length,
+        },
+        "Query rewritten",
+      );
     }
 
     const hasQueryContext = !!(context.lastQueryName && context.lastApiResult);
-    const classification = await this.nlpService.classify(processedText, hasQueryContext);
+    const classification = await this.nlpService.classify(
+      processedText,
+      hasQueryContext,
+    );
 
     // Store entities in context for future pronoun resolution
     if (classification.entities.length > 0) {
@@ -72,24 +92,25 @@ export class ChatbotEngine {
         entities: classification.entities.map((e) => e.entity),
         source: classification.source,
       },
-      'Message classified'
+      "Message classified",
     );
 
     const response = await this.responseGenerator.generate(
       classification,
       context,
       explicitFilters,
-      incomingHeaders
+      incomingHeaders,
+      followUpMode,
     );
 
     // Attach recommendations (fire-and-forget, non-blocking)
     try {
-      if (!response.richContent || response.richContent.type !== 'error') {
+      if (!response.richContent || response.richContent.type !== "error") {
         const recs = await this.recommendationEngine.getRecommendations(
           context,
           classification,
           3,
-          message.userId
+          message.userId,
         );
         if (recs.length > 0) {
           response.recommendations = recs.map((r) => ({
@@ -100,16 +121,19 @@ export class ChatbotEngine {
         }
       }
     } catch (error) {
-      logger.debug({ error }, 'Recommendation engine failed — continuing without');
+      logger.debug(
+        { error },
+        "Recommendation engine failed — continuing without",
+      );
     }
 
     context.history.push({
-      role: 'bot',
+      role: "bot",
       text: response.text,
       timestamp: new Date(),
     });
 
-    await this.sessionManager.saveContext(context);
+    await this.sessionManager.saveContext(context, message.userId);
 
     // Log interaction for learning (fire-and-forget)
     if (this.learningService) {
@@ -121,7 +145,7 @@ export class ChatbotEngine {
           previousMessageText: message.previousMessageText,
         });
       } catch (error) {
-        logger.error({ error }, 'Learning service logging failed');
+        logger.error({ error }, "Learning service logging failed");
       }
     }
 
@@ -132,6 +156,11 @@ export class ChatbotEngine {
   async getIntentOverlaps(): Promise<IntentOverlap[]> {
     await this.initialize();
     return this.nlpService.getOverlaps();
+  }
+
+  /** Remove a session from the store (called on browser close). */
+  async closeSession(sessionId: string, userId?: string): Promise<void> {
+    await this.sessionManager.closeSession(sessionId, userId);
   }
 
   /** Clear the API client's query cache so the next request fetches fresh data. */

@@ -1,0 +1,511 @@
+{
+  "userId": "jdoe",
+  "sessions": {
+    "dashboard_jdoe_revenue_by_region_1773958053113": {
+      "context": {
+        "sessionId": "dashboard_jdoe_revenue_by_region_1773958053113",
+        "history": [
+          {
+            "role": "user",
+            "text": "run revenue_by_region",
+            "timestamp": "2026-03-19T22:07:33.287Z"
+          },
+          {
+            "role": "bot",
+            "text": "Here are the results for \"monthly_revenue\":",
+            "timestamp": "2026-03-19T22:07:33.358Z"
+          }
+        ],
+        "lastEntities": [
+          {
+            "entity": "query_name",
+            "value": "monthly_revenue",
+            "start": 4,
+            "end": 10
+          },
+          { "entity": "column_name", "value": "region", "start": 15, "end": 20 }
+        ],
+        "lastQueryName": "monthly_revenue",
+        "lastApiResult": {
+          "data": [
+            {
+              "month": "January",
+              "product": "Platform",
+              "region": "US",
+              "revenue": 125000
+            },
+            {
+              "month": "January",
+              "product": "Platform",
+              "region": "EU",
+              "revenue": 89000
+            },
+            {
+              "month": "February",
+              "product": "Platform",
+              "region": "US",
+              "revenue": 132000
+            },
+            {
+              "month": "February",
+              "product": "Platform",
+              "region": "EU",
+              "revenue": 94000
+            },
+            {
+              "month": "March",
+              "product": "Platform",
+              "region": "US",
+              "revenue": 141000
+            },
+            {
+              "month": "March",
+              "product": "API",
+              "region": "US",
+              "revenue": 67000
+            }
+          ],
+          "rowCount": 6,
+          "executionTime": 2000
+        },
+        "lastQueryColumns": ["month", "product", "region", "revenue"],
+        "lastChartConfig": {
+          "defaultType": "line",
+          "labelKey": "month",
+          "valueKeys": ["revenue", "target"],
+          "showLegend": true
+        },
+        "lastColumnConfig": {
+          "labelColumns": ["month"],
+          "valueColumns": ["revenue", "target"]
+        },
+        "lastColumnMetadata": [
+          { "column": "month", "detectedType": "date", "format": "month_name" },
+          { "column": "product", "detectedType": "string" },
+          { "column": "region", "detectedType": "string" },
+          { "column": "revenue", "detectedType": "integer" }
+        ]
+      },
+      "lastAccessedAt": 1773958053410
+    },
+    "dashboard_jdoe_budget_vs_actual_1773958053115": {
+      "context": {
+        "sessionId": "dashboard_jdoe_budget_vs_actual_1773958053115",
+        "history": [
+          {
+            "role": "user",
+            "text": "run budget_vs_actual",
+            "timestamp": "2026-03-19T22:07:33.288Z"
+          },
+          {
+            "role": "bot",
+            "text": "Here are the results for \"budget_vs_actual\":",
+            "timestamp": "2026-03-19T22:07:33.356Z"
+          }
+        ],
+        "lastEntities": [
+          {
+            "entity": "query_name",
+            "value": "budget_vs_actual",
+            "start": 4,
+            "end": 19
+          }
+        ],
+        "lastQueryName": "budget_vs_actual",
+        "lastApiResult": { "data": [], "rowCount": 0, "executionTime": 1301 },
+        "lastChartConfig": {
+          "defaultType": "bar",
+          "labelKey": "cost_center",
+          "valueKeys": ["budget", "actual"],
+          "showLegend": true
+        },
+        "lastColumnConfig": {
+          "labelColumns": ["cost_center", "category"],
+          "valueColumns": [
+            "budget",
+            "actual",
+            "variance",
+            "variance_pct",
+            "status"
+          ]
+        }
+      },
+      "lastAccessedAt": 1773958053359
+    },
+    "dashboard_jdoe_pnl_detail_1773958053112": {
+      "context": {
+        "sessionId": "dashboard_jdoe_pnl_detail_1773958053112",
+        "history": [
+          {
+            "role": "user",
+            "text": "run pnl_detail",
+            "timestamp": "2026-03-19T22:07:33.287Z"
+          },
+          {
+            "role": "bot",
+            "text": "Here are the results for \"pnl_summary\":",
+            "timestamp": "2026-03-19T22:07:33.316Z"
+          }
+        ],
+        "lastEntities": [
+          {
+            "entity": "query_name",
+            "value": "pnl_summary",
+            "start": 4,
+            "end": 6
+          },
+          {
+            "entity": "column_name",
+            "value": "description",
+            "start": 8,
+            "end": 13
+          }
+        ],
+        "lastQueryName": "pnl_summary",
+        "lastApiResult": {
+          "data": [
+            {
+              "line_item": "Revenue",
+              "region": "US",
+              "q1": 3250000,
+              "q2": 3480000,
+              "q3": 3710000,
+              "q4": 4120000
+            },
+            {
+              "line_item": "Revenue",
+              "region": "EU",
+              "q1": 1850000,
+              "q2": 1920000,
+              "q3": 2010000,
+              "q4": 2250000
+            },
+            {
+              "line_item": "COGS",
+              "region": "US",
+              "q1": -1140000,
+              "q2": -1180000,
+              "q3": -1220000,
+              "q4": -1300000
+            },
+            {
+              "line_item": "COGS",
+              "region": "EU",
+              "q1": -720000,
+              "q2": -730000,
+              "q3": -740000,
+              "q4": -780000
+            },
+            {
+              "line_item": "Gross Profit",
+              "region": "US",
+              "q1": 2110000,
+              "q2": 2300000,
+              "q3": 2490000,
+              "q4": 2820000
+            },
+            {
+              "line_item": "Gross Profit",
+              "region": "EU",
+              "q1": 1130000,
+              "q2": 1190000,
+              "q3": 1270000,
+              "q4": 1470000
+            },
+            {
+              "line_item": "OpEx",
+              "region": "US",
+              "q1": -1200000,
+              "q2": -1250000,
+              "q3": -1300000,
+              "q4": -1350000
+            },
+            {
+              "line_item": "Net Income",
+              "region": "US",
+              "q1": 910000,
+              "q2": 1050000,
+              "q3": 1190000,
+              "q4": 1470000
+            }
+          ],
+          "rowCount": 8,
+          "executionTime": 118
+        },
+        "lastQueryColumns": ["line_item", "region", "q1", "q2", "q3", "q4"],
+        "lastColumnMetadata": [
+          { "column": "line_item", "detectedType": "string" },
+          { "column": "region", "detectedType": "string" },
+          { "column": "q1", "detectedType": "id" },
+          { "column": "q2", "detectedType": "id" },
+          { "column": "q3", "detectedType": "id" },
+          { "column": "q4", "detectedType": "integer" }
+        ]
+      },
+      "lastAccessedAt": 1773958053369
+    },
+    "dashboard_jdoe_pnl_summary_1773958646664": {
+      "context": {
+        "sessionId": "dashboard_jdoe_pnl_summary_1773958646664",
+        "history": [
+          {
+            "role": "user",
+            "text": "run pnl_summary",
+            "timestamp": "2026-03-19T22:17:26.764Z"
+          },
+          {
+            "role": "bot",
+            "text": "Here are the results for \"pnl_summary\":",
+            "timestamp": "2026-03-19T22:17:26.777Z"
+          }
+        ],
+        "lastEntities": [
+          {
+            "entity": "query_name",
+            "value": "pnl_summary",
+            "start": 4,
+            "end": 6
+          }
+        ],
+        "lastQueryName": "pnl_summary",
+        "lastApiResult": {
+          "data": [
+            {
+              "line_item": "Revenue",
+              "region": "US",
+              "q1": 3250000,
+              "q2": 3480000,
+              "q3": 3710000,
+              "q4": 4120000
+            },
+            {
+              "line_item": "Revenue",
+              "region": "EU",
+              "q1": 1850000,
+              "q2": 1920000,
+              "q3": 2010000,
+              "q4": 2250000
+            },
+            {
+              "line_item": "COGS",
+              "region": "US",
+              "q1": -1140000,
+              "q2": -1180000,
+              "q3": -1220000,
+              "q4": -1300000
+            },
+            {
+              "line_item": "COGS",
+              "region": "EU",
+              "q1": -720000,
+              "q2": -730000,
+              "q3": -740000,
+              "q4": -780000
+            },
+            {
+              "line_item": "Gross Profit",
+              "region": "US",
+              "q1": 2110000,
+              "q2": 2300000,
+              "q3": 2490000,
+              "q4": 2820000
+            },
+            {
+              "line_item": "Gross Profit",
+              "region": "EU",
+              "q1": 1130000,
+              "q2": 1190000,
+              "q3": 1270000,
+              "q4": 1470000
+            },
+            {
+              "line_item": "OpEx",
+              "region": "US",
+              "q1": -1200000,
+              "q2": -1250000,
+              "q3": -1300000,
+              "q4": -1350000
+            },
+            {
+              "line_item": "Net Income",
+              "region": "US",
+              "q1": 910000,
+              "q2": 1050000,
+              "q3": 1190000,
+              "q4": 1470000
+            }
+          ],
+          "rowCount": 8,
+          "executionTime": 1769
+        },
+        "lastQueryColumns": ["line_item", "region", "q1", "q2", "q3", "q4"],
+        "lastColumnMetadata": [
+          { "column": "line_item", "detectedType": "string" },
+          { "column": "region", "detectedType": "string" },
+          { "column": "q1", "detectedType": "id" },
+          { "column": "q2", "detectedType": "id" },
+          { "column": "q3", "detectedType": "id" },
+          { "column": "q4", "detectedType": "integer" }
+        ]
+      },
+      "lastAccessedAt": 1773958646778
+    },
+    "dashboard_jdoe_budget_vs_actual_1773958646665": {
+      "context": {
+        "sessionId": "dashboard_jdoe_budget_vs_actual_1773958646665",
+        "history": [
+          {
+            "role": "user",
+            "text": "run budget_vs_actual",
+            "timestamp": "2026-03-19T22:17:26.853Z"
+          },
+          {
+            "role": "bot",
+            "text": "Here are the results for \"budget_vs_actual\":",
+            "timestamp": "2026-03-19T22:17:26.871Z"
+          }
+        ],
+        "lastEntities": [
+          {
+            "entity": "query_name",
+            "value": "budget_vs_actual",
+            "start": 4,
+            "end": 19
+          }
+        ],
+        "lastQueryName": "budget_vs_actual",
+        "lastApiResult": { "data": [], "rowCount": 0, "executionTime": 344 },
+        "lastChartConfig": {
+          "defaultType": "bar",
+          "labelKey": "cost_center",
+          "valueKeys": ["budget", "actual"],
+          "showLegend": true
+        },
+        "lastColumnConfig": {
+          "labelColumns": ["cost_center", "category"],
+          "valueColumns": [
+            "budget",
+            "actual",
+            "variance",
+            "variance_pct",
+            "status"
+          ]
+        }
+      },
+      "lastAccessedAt": 1773958646922
+    },
+    "dashboard_jdoe_pnl_detail_1773958646665": {
+      "context": {
+        "sessionId": "dashboard_jdoe_pnl_detail_1773958646665",
+        "history": [
+          {
+            "role": "user",
+            "text": "run pnl_detail",
+            "timestamp": "2026-03-19T22:17:26.851Z"
+          },
+          {
+            "role": "bot",
+            "text": "Here are the results for \"pnl_summary\":",
+            "timestamp": "2026-03-19T22:17:26.870Z"
+          }
+        ],
+        "lastEntities": [
+          {
+            "entity": "query_name",
+            "value": "pnl_summary",
+            "start": 4,
+            "end": 6
+          },
+          {
+            "entity": "column_name",
+            "value": "description",
+            "start": 8,
+            "end": 13
+          }
+        ],
+        "lastQueryName": "pnl_summary",
+        "lastApiResult": {
+          "data": [
+            {
+              "line_item": "Revenue",
+              "region": "US",
+              "q1": 3250000,
+              "q2": 3480000,
+              "q3": 3710000,
+              "q4": 4120000
+            },
+            {
+              "line_item": "Revenue",
+              "region": "EU",
+              "q1": 1850000,
+              "q2": 1920000,
+              "q3": 2010000,
+              "q4": 2250000
+            },
+            {
+              "line_item": "COGS",
+              "region": "US",
+              "q1": -1140000,
+              "q2": -1180000,
+              "q3": -1220000,
+              "q4": -1300000
+            },
+            {
+              "line_item": "COGS",
+              "region": "EU",
+              "q1": -720000,
+              "q2": -730000,
+              "q3": -740000,
+              "q4": -780000
+            },
+            {
+              "line_item": "Gross Profit",
+              "region": "US",
+              "q1": 2110000,
+              "q2": 2300000,
+              "q3": 2490000,
+              "q4": 2820000
+            },
+            {
+              "line_item": "Gross Profit",
+              "region": "EU",
+              "q1": 1130000,
+              "q2": 1190000,
+              "q3": 1270000,
+              "q4": 1470000
+            },
+            {
+              "line_item": "OpEx",
+              "region": "US",
+              "q1": -1200000,
+              "q2": -1250000,
+              "q3": -1300000,
+              "q4": -1350000
+            },
+            {
+              "line_item": "Net Income",
+              "region": "US",
+              "q1": 910000,
+              "q2": 1050000,
+              "q3": 1190000,
+              "q4": 1470000
+            }
+          ],
+          "rowCount": 8,
+          "executionTime": 141
+        },
+        "lastQueryColumns": ["line_item", "region", "q1", "q2", "q3", "q4"],
+        "lastColumnMetadata": [
+          { "column": "line_item", "detectedType": "string" },
+          { "column": "region", "detectedType": "string" },
+          { "column": "q1", "detectedType": "id" },
+          { "column": "q2", "detectedType": "id" },
+          { "column": "q3", "detectedType": "id" },
+          { "column": "q4", "detectedType": "integer" }
+        ]
+      },
+      "lastAccessedAt": 1773958646872
+    }
+  },
+  "updatedAt": "2026-03-19T22:17:26.923Z"
+}

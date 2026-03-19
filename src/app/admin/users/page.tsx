@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { csrfHeaders } from '@/lib/csrf';
+import { useState, useEffect } from "react";
+import { csrfHeaders } from "@/lib/csrf";
 
 interface User {
   id: string;
@@ -9,7 +9,7 @@ interface User {
   email: string;
   userid: string;
   brid: string;
-  role: 'admin' | 'viewer';
+  role: "admin" | "viewer";
   createdAt: string;
   updatedBy: string;
   updatedOn: string;
@@ -21,19 +21,19 @@ export default function UsersPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Form fields
-  const [formName, setFormName] = useState('');
-  const [formEmail, setFormEmail] = useState('');
-  const [formUserid, setFormUserid] = useState('');
-  const [formBrid, setFormBrid] = useState('');
-  const [formRole, setFormRole] = useState<'admin' | 'viewer'>('viewer');
+  const [formName, setFormName] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formUserid, setFormUserid] = useState("");
+  const [formBrid, setFormBrid] = useState("");
+  const [formRole, setFormRole] = useState<"admin" | "viewer">("viewer");
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/admin/users');
+      const res = await fetch("/api/admin/users");
       const data = await res.json();
       setUsers(data.users || []);
     } catch {
@@ -48,14 +48,14 @@ export default function UsersPage() {
   }, []);
 
   const resetForm = () => {
-    setFormName('');
-    setFormEmail('');
-    setFormUserid('');
-    setFormBrid('');
-    setFormRole('viewer');
+    setFormName("");
+    setFormEmail("");
+    setFormUserid("");
+    setFormBrid("");
+    setFormRole("viewer");
     setEditingId(null);
     setShowForm(false);
-    setError('');
+    setError("");
   };
 
   const startEdit = (user: User) => {
@@ -66,16 +66,16 @@ export default function UsersPage() {
     setFormRole(user.role);
     setEditingId(user.id);
     setShowForm(true);
-    setError('');
+    setError("");
   };
 
   const handleSave = async () => {
     if (!formName.trim() || !formEmail.trim() || !formUserid.trim()) {
-      setError('Name, email, and userid are required.');
+      setError("Name, email, and userid are required.");
       return;
     }
     setSaving(true);
-    setError('');
+    setError("");
     try {
       const payload = {
         name: formName.trim(),
@@ -83,34 +83,34 @@ export default function UsersPage() {
         userid: formUserid.trim(),
         brid: formBrid.trim(),
         role: formRole,
-        updatedBy: 'admin',
+        updatedBy: "admin",
       };
 
       let res: Response;
       if (editingId) {
         res = await fetch(`/api/admin/users/${editingId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", ...csrfHeaders() },
           body: JSON.stringify(payload),
         });
       } else {
-        res = await fetch('/api/admin/users', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
+        res = await fetch("/api/admin/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...csrfHeaders() },
           body: JSON.stringify(payload),
         });
       }
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || 'Failed to save user');
+        setError(data.error || "Failed to save user");
         return;
       }
 
       resetForm();
       fetchUsers();
     } catch {
-      setError('Failed to save user');
+      setError("Failed to save user");
     } finally {
       setSaving(false);
     }
@@ -118,17 +118,20 @@ export default function UsersPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE', headers: { ...csrfHeaders() } });
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "DELETE",
+        headers: { ...csrfHeaders() },
+      });
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || 'Failed to delete user');
+        setError(data.error || "Failed to delete user");
       } else {
-        setError('');
+        setError("");
       }
       setDeletingId(null);
       fetchUsers();
     } catch {
-      setError('Failed to delete user');
+      setError("Failed to delete user");
     }
   };
 
@@ -137,16 +140,21 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
+    <div>
+      <div className="flex items-center justify-between pb-6 mb-6 border-b border-gray-100">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Users</h1>
-          <p className="text-sm text-gray-500">Manage admin and viewer access</p>
+          <h1 className="text-2xl font-semibold text-gray-900">Users</h1>
+          <p className="text-sm text-gray-500">
+            Manage admin and viewer access
+          </p>
         </div>
         {!showForm && (
           <button
-            onClick={() => { resetForm(); setShowForm(true); }}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            onClick={() => {
+              resetForm();
+              setShowForm(true);
+            }}
+            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 transition-colors"
           >
             + Add User
           </button>
@@ -161,9 +169,9 @@ export default function UsersPage() {
 
       {/* Add/Edit Form */}
       {showForm && (
-        <div className="mb-6 p-5 bg-white rounded-lg border border-gray-200">
+        <div className="mb-6 p-5 bg-white rounded-xl shadow-sm border border-gray-200">
           <h2 className="text-sm font-semibold text-gray-700 mb-4">
-            {editingId ? 'Edit User' : 'Add New User'}
+            {editingId ? "Edit User" : "Add New User"}
           </h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -199,7 +207,9 @@ export default function UsersPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">BR ID</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                BR ID
+              </label>
               <input
                 value={formBrid}
                 onChange={(e) => setFormBrid(e.target.value)}
@@ -207,10 +217,14 @@ export default function UsersPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Role</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Role
+              </label>
               <select
                 value={formRole}
-                onChange={(e) => setFormRole(e.target.value as 'admin' | 'viewer')}
+                onChange={(e) =>
+                  setFormRole(e.target.value as "admin" | "viewer")
+                }
                 className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value="admin">Admin</option>
@@ -222,9 +236,9 @@ export default function UsersPage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
-              {saving ? 'Saving...' : editingId ? 'Update User' : 'Add User'}
+              {saving ? "Saving..." : editingId ? "Update User" : "Add User"}
             </button>
             <button
               onClick={resetForm}
@@ -237,39 +251,65 @@ export default function UsersPage() {
       )}
 
       {/* Users Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Email</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">User ID</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">BR ID</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Role</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Updated</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-600">Actions</th>
+            <tr className="bg-gray-50/80 border-b border-gray-200">
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Name
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Email
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                User ID
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                BR ID
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Role
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Updated
+              </th>
+              <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-gray-400 text-sm">
+                <td
+                  colSpan={7}
+                  className="px-4 py-6 text-center text-gray-400 text-sm"
+                >
                   No users found. Add the first admin user.
                 </td>
               </tr>
             ) : (
               users.map((user) => (
-                <tr key={user.id} className="border-b border-gray-100 last:border-0">
-                  <td className="px-4 py-3 font-medium text-gray-900">{user.name}</td>
+                <tr
+                  key={user.id}
+                  className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors"
+                >
+                  <td className="px-4 py-3 font-medium text-gray-900">
+                    {user.name}
+                  </td>
                   <td className="px-4 py-3 text-gray-600">{user.email}</td>
-                  <td className="px-4 py-3 font-mono text-gray-600">{user.userid}</td>
-                  <td className="px-4 py-3 font-mono text-gray-600">{user.brid || '-'}</td>
+                  <td className="px-4 py-3 font-mono text-gray-600">
+                    {user.userid}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-gray-600">
+                    {user.brid || "-"}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`inline-block px-2 py-0.5 text-xs rounded ${
-                        user.role === 'admin'
-                          ? 'bg-purple-100 text-purple-700'
-                          : 'bg-gray-100 text-gray-600'
+                        user.role === "admin"
+                          ? "bg-purple-100 text-purple-700"
+                          : "bg-gray-100 text-gray-600"
                       }`}
                     >
                       {user.role}

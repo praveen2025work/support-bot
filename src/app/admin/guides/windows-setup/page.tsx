@@ -1,11 +1,19 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
+import Link from "next/link";
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="mb-8">
-      <h2 className="text-base font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-200">{title}</h2>
+      <h2 className="text-base font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-200">
+        {title}
+      </h2>
       {children}
     </section>
   );
@@ -14,36 +22,67 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function CmdBlock({ label, children }: { label?: string; children: string }) {
   return (
     <div className="mb-3">
-      {label && <div className="text-[10px] font-medium text-gray-500 mb-1">{label}</div>}
+      {label && (
+        <div className="text-[10px] font-medium text-gray-500 mb-1">
+          {label}
+        </div>
+      )}
       <div className="bg-gray-900 rounded-lg p-3">
-        <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap">{children}</pre>
+        <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap">
+          {children}
+        </pre>
       </div>
     </div>
   );
 }
 
-function Badge({ color, children }: { color: string; children: React.ReactNode }) {
+function Badge({
+  color,
+  children,
+}: {
+  color: string;
+  children: React.ReactNode;
+}) {
   const colors: Record<string, string> = {
-    blue: 'bg-blue-100 text-blue-700',
-    green: 'bg-green-100 text-green-700',
-    red: 'bg-red-100 text-red-700',
-    purple: 'bg-purple-100 text-purple-700',
-    orange: 'bg-orange-100 text-orange-700',
+    blue: "bg-blue-100 text-blue-700",
+    green: "bg-green-100 text-green-700",
+    red: "bg-red-100 text-red-700",
+    purple: "bg-purple-100 text-purple-700",
+    orange: "bg-orange-100 text-orange-700",
   };
-  return <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${colors[color] || colors.blue}`}>{children}</span>;
+  return (
+    <span
+      className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${colors[color] || colors.blue}`}
+    >
+      {children}
+    </span>
+  );
 }
 
 function Code({ children }: { children: React.ReactNode }) {
-  return <code className="px-1.5 py-0.5 bg-gray-100 text-gray-800 rounded text-xs font-mono">{children}</code>;
+  return (
+    <code className="px-1.5 py-0.5 bg-gray-100 text-gray-800 rounded text-xs font-mono">
+      {children}
+    </code>
+  );
 }
 
 export default function WindowsSetupGuidePage() {
   return (
-    <div className="max-w-3xl">
+    <div className="mx-auto max-w-4xl">
       <div className="mb-6">
-        <Link href="/admin/guides" className="text-xs text-blue-600 hover:underline">&larr; All Guides</Link>
-        <h1 className="text-xl font-bold text-gray-900 mt-2">Windows Host Setup Guide</h1>
-        <p className="text-sm text-gray-500">Deploy the chatbot platform on Windows Server with IIS and PM2</p>
+        <Link
+          href="/admin/guides"
+          className="text-xs text-blue-600 hover:underline"
+        >
+          &larr; All Guides
+        </Link>
+        <h1 className="text-xl font-bold text-gray-900 mt-2">
+          Windows Host Setup Guide
+        </h1>
+        <p className="text-sm text-gray-500">
+          Deploy the chatbot platform on Windows Server with IIS and PM2
+        </p>
         <Badge color="orange">Admins &amp; DevOps</Badge>
       </div>
 
@@ -52,15 +91,21 @@ export default function WindowsSetupGuidePage() {
           <div className="grid grid-cols-2 gap-3 text-sm text-gray-600">
             <div className="p-3 bg-gray-50 rounded-lg">
               <div className="font-medium text-gray-700">Windows Server</div>
-              <div className="text-xs text-gray-500">2016 or later, or Windows 10/11</div>
+              <div className="text-xs text-gray-500">
+                2016 or later, or Windows 10/11
+              </div>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
               <div className="font-medium text-gray-700">IIS</div>
-              <div className="text-xs text-gray-500">With URL Rewrite &amp; ARR modules</div>
+              <div className="text-xs text-gray-500">
+                With URL Rewrite &amp; ARR modules
+              </div>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
               <div className="font-medium text-gray-700">Node.js 18+</div>
-              <div className="text-xs text-gray-500">Windows installer from nodejs.org</div>
+              <div className="text-xs text-gray-500">
+                Windows installer from nodejs.org
+              </div>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
               <div className="font-medium text-gray-700">Git for Windows</div>
@@ -70,7 +115,10 @@ export default function WindowsSetupGuidePage() {
         </Section>
 
         <Section title="1. Install Node.js">
-          <p className="text-sm text-gray-600 mb-3">Download the Windows installer from nodejs.org (LTS version 18 or later).</p>
+          <p className="text-sm text-gray-600 mb-3">
+            Download the Windows installer from nodejs.org (LTS version 18 or
+            later).
+          </p>
           <CmdBlock label="PowerShell — Verify installation">{`node --version    # Should show v18.x or later
 npm --version     # Should show v9.x or later`}</CmdBlock>
         </Section>
@@ -100,15 +148,17 @@ npm run build:prod`}</CmdBlock>
 
         <Section title="4. Configure Environment">
           <p className="text-sm text-gray-600 mb-3">
-            Choose the appropriate environment file based on your deployment mode.
-            Copy from <Code>.env.example</Code> and fill in your values.
+            Choose the appropriate environment file based on your deployment
+            mode. Copy from <Code>.env.example</Code> and fill in your values.
           </p>
 
           <div className="space-y-3">
             <div className="p-3 bg-green-50 rounded-lg border border-green-200">
               <div className="flex items-center gap-2 mb-2">
                 <Badge color="green">Demo Mode</Badge>
-                <span className="text-xs text-gray-500">Uses mock data, no real APIs needed</span>
+                <span className="text-xs text-gray-500">
+                  Uses mock data, no real APIs needed
+                </span>
               </div>
               <CmdBlock label="PowerShell">{`# Copy environment template
 copy .env.example .env.mock
@@ -122,7 +172,9 @@ copy .env.example .env.mock
             <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
               <div className="flex items-center gap-2 mb-2">
                 <Badge color="blue">Dev Mode</Badge>
-                <span className="text-xs text-gray-500">Real APIs and AD/SSO auth</span>
+                <span className="text-xs text-gray-500">
+                  Real APIs and AD/SSO auth
+                </span>
               </div>
               <CmdBlock label="PowerShell — Edit .env.dev with your values">{`copy .env.example .env.dev
 
@@ -137,7 +189,9 @@ copy .env.example .env.mock
             <div className="p-3 bg-red-50 rounded-lg border border-red-200">
               <div className="flex items-center gap-2 mb-2">
                 <Badge color="red">Production Mode</Badge>
-                <span className="text-xs text-gray-500">All real endpoints, secured</span>
+                <span className="text-xs text-gray-500">
+                  All real endpoints, secured
+                </span>
               </div>
               <CmdBlock label="PowerShell — Edit .env.prod with your values">{`copy .env.example .env.prod
 
@@ -154,7 +208,8 @@ copy .env.example .env.mock
           </div>
 
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700 mt-3">
-            <span className="font-medium">Alternative:</span> You can also set system-wide environment variables via PowerShell:
+            <span className="font-medium">Alternative:</span> You can also set
+            system-wide environment variables via PowerShell:
           </div>
           <CmdBlock label="PowerShell (Administrator) — System-wide env vars">{`[System.Environment]::SetEnvironmentVariable("NODE_ENV", "production", "Machine")
 [System.Environment]::SetEnvironmentVariable("ENGINE_PORT", "4001", "Machine")
@@ -169,52 +224,93 @@ copy .env.example .env.mock
 
         <Section title="5. Per-Query Authentication">
           <p className="text-sm text-gray-600 mb-3">
-            Each query can use a different authentication method. Configure per query in Admin &rarr; Groups &rarr; Queries.
+            Each query can use a different authentication method. Configure per
+            query in Admin &rarr; Groups &rarr; Queries.
           </p>
           <div className="overflow-x-auto mb-3">
             <table className="w-full text-xs border border-gray-200 rounded">
-              <thead><tr className="bg-gray-50">
-                <th className="px-3 py-2 text-left font-medium text-gray-600 border-b">Auth Type</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-600 border-b">How It Works</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-600 border-b">Windows Setup Notes</th>
-              </tr></thead>
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="px-3 py-2 text-left font-medium text-gray-600 border-b">
+                    Auth Type
+                  </th>
+                  <th className="px-3 py-2 text-left font-medium text-gray-600 border-b">
+                    How It Works
+                  </th>
+                  <th className="px-3 py-2 text-left font-medium text-gray-600 border-b">
+                    Windows Setup Notes
+                  </th>
+                </tr>
+              </thead>
               <tbody className="text-gray-700">
                 <tr>
-                  <td className="px-3 py-2 border-b"><Badge color="green">none</Badge></td>
-                  <td className="px-3 py-2 border-b">No auth headers — open API</td>
+                  <td className="px-3 py-2 border-b">
+                    <Badge color="green">none</Badge>
+                  </td>
+                  <td className="px-3 py-2 border-b">
+                    No auth headers — open API
+                  </td>
                   <td className="px-3 py-2 border-b">No setup needed</td>
                 </tr>
                 <tr className="bg-gray-50">
-                  <td className="px-3 py-2 border-b"><Badge color="blue">bearer</Badge></td>
-                  <td className="px-3 py-2 border-b">Global <Code>API_TOKEN</Code> sent as Bearer header</td>
-                  <td className="px-3 py-2 border-b">Set <Code>API_TOKEN</Code> in env file</td>
+                  <td className="px-3 py-2 border-b">
+                    <Badge color="blue">bearer</Badge>
+                  </td>
+                  <td className="px-3 py-2 border-b">
+                    Global <Code>API_TOKEN</Code> sent as Bearer header
+                  </td>
+                  <td className="px-3 py-2 border-b">
+                    Set <Code>API_TOKEN</Code> in env file
+                  </td>
                 </tr>
                 <tr>
-                  <td className="px-3 py-2 border-b"><Badge color="purple">windows</Badge></td>
-                  <td className="px-3 py-2 border-b">Forwards logged-in user&apos;s AD credentials</td>
-                  <td className="px-3 py-2 border-b">IIS must have Windows Auth enabled. Engine forwards cookies/auth headers from the user&apos;s browser session.</td>
+                  <td className="px-3 py-2 border-b">
+                    <Badge color="purple">windows</Badge>
+                  </td>
+                  <td className="px-3 py-2 border-b">
+                    Forwards logged-in user&apos;s AD credentials
+                  </td>
+                  <td className="px-3 py-2 border-b">
+                    IIS must have Windows Auth enabled. Engine forwards
+                    cookies/auth headers from the user&apos;s browser session.
+                  </td>
                 </tr>
                 <tr className="bg-gray-50">
-                  <td className="px-3 py-2 border-b"><Badge color="red">bam</Badge></td>
-                  <td className="px-3 py-2 border-b">Calls BAM URL &rarr; gets token &rarr; sends X-BAM-Token</td>
-                  <td className="px-3 py-2 border-b">Set <Code>bamTokenUrl</Code> per query in Admin UI</td>
+                  <td className="px-3 py-2 border-b">
+                    <Badge color="red">bam</Badge>
+                  </td>
+                  <td className="px-3 py-2 border-b">
+                    Calls BAM URL &rarr; gets token &rarr; sends X-BAM-Token
+                  </td>
+                  <td className="px-3 py-2 border-b">
+                    Set <Code>bamTokenUrl</Code> per query in Admin UI
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600">
-            <div className="font-medium text-gray-700 mb-1">Windows Auth Flow:</div>
+            <div className="font-medium text-gray-700 mb-1">
+              Windows Auth Flow:
+            </div>
             <pre className="font-mono text-[10px] text-gray-500">{`User (AD login) → Browser → IIS (Windows Auth) → UI (:3001) → Engine (:4001)
   → Engine forwards user's cookies/Authorization header → Tenant API (Windows Auth)`}</pre>
-            <p className="mt-2">The user authenticates once via IIS Windows Auth. The Engine transparently forwards their credentials to any query with <Code>authType: &quot;windows&quot;</Code>.</p>
+            <p className="mt-2">
+              The user authenticates once via IIS Windows Auth. The Engine
+              transparently forwards their credentials to any query with{" "}
+              <Code>authType: &quot;windows&quot;</Code>.
+            </p>
           </div>
 
           <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600 mt-3">
             <div className="font-medium text-gray-700 mb-1">BAM Auth Flow:</div>
             <pre className="font-mono text-[10px] text-gray-500">{`Engine → POST bamTokenUrl → { code, message, bamToken, redirectURL }
 Engine → GET/POST actual API endpoint with X-BAM-Token: <bamToken> header → data`}</pre>
-            <p className="mt-2">BAM tokens are cached for ~5 minutes to avoid repeated token calls.</p>
+            <p className="mt-2">
+              BAM tokens are cached for ~5 minutes to avoid repeated token
+              calls.
+            </p>
           </div>
         </Section>
 
@@ -223,7 +319,9 @@ Engine → GET/POST actual API endpoint with X-BAM-Token: <bamToken> header → 
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Badge color="green">Demo</Badge>
-                <span className="text-sm font-medium text-gray-700">All 3 services (mock data)</span>
+                <span className="text-sm font-medium text-gray-700">
+                  All 3 services (mock data)
+                </span>
               </div>
               <CmdBlock>{`# Start Mock API (demo only)
 pm2 start services\\mock-api\\server.js --name mock-api
@@ -241,7 +339,9 @@ pm2 save`}</CmdBlock>
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Badge color="red">Production</Badge>
-                <span className="text-sm font-medium text-gray-700">UI + Engine only (real APIs)</span>
+                <span className="text-sm font-medium text-gray-700">
+                  UI + Engine only (real APIs)
+                </span>
               </div>
               <CmdBlock>{`# Start Engine (connects to real tenant APIs)
 pm2 start services\\engine\\dist\\server.js --name chatbot-engine
@@ -258,7 +358,19 @@ pm2-startup install`}</CmdBlock>
 
         <Section title="Alternative: NSSM Service Manager">
           <p className="text-sm text-gray-600 mb-3">
-            Instead of PM2, you can use <a href="https://nssm.cc/" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">NSSM</a> (Non-Sucking Service Manager) to run Node.js processes as native Windows services with auto-restart, log rotation, and system tray management. See the full NSSM setup in <Code>docs/SETUP.md</Code> → &quot;Windows Deployment with NSSM&quot; section.
+            Instead of PM2, you can use{" "}
+            <a
+              href="https://nssm.cc/"
+              className="text-blue-600 hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              NSSM
+            </a>{" "}
+            (Non-Sucking Service Manager) to run Node.js processes as native
+            Windows services with auto-restart, log rotation, and system tray
+            management. See the full NSSM setup in <Code>docs/SETUP.md</Code> →
+            &quot;Windows Deployment with NSSM&quot; section.
           </p>
           <CmdBlock>{`# Install Engine as Windows service
 nssm install ChatbotEngine "C:\\Program Files\\nodejs\\node.exe"
@@ -276,11 +388,16 @@ nssm start ChatbotUI`}</CmdBlock>
         </Section>
 
         <Section title="7. Configure IIS Reverse Proxy">
-          <p className="text-sm text-gray-600 mb-3">Use IIS as a reverse proxy to route HTTP/HTTPS traffic to the Node.js services.</p>
+          <p className="text-sm text-gray-600 mb-3">
+            Use IIS as a reverse proxy to route HTTP/HTTPS traffic to the
+            Node.js services.
+          </p>
 
           <div className="space-y-3">
             <div>
-              <div className="text-xs font-semibold text-gray-700 mb-1">Step A: Enable IIS features</div>
+              <div className="text-xs font-semibold text-gray-700 mb-1">
+                Step A: Enable IIS features
+              </div>
               <CmdBlock label="PowerShell (Administrator)">{`# Enable IIS with required modules
 Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole
 Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServer
@@ -291,8 +408,12 @@ Enable-WindowsOptionalFeature -Online -FeatureName IIS-RequestFiltering
             </div>
 
             <div>
-              <div className="text-xs font-semibold text-gray-700 mb-1">Step B: Enable Windows Authentication in IIS</div>
-              <p className="text-xs text-gray-600 mb-2">Required for Windows Auth per-query authentication:</p>
+              <div className="text-xs font-semibold text-gray-700 mb-1">
+                Step B: Enable Windows Authentication in IIS
+              </div>
+              <p className="text-xs text-gray-600 mb-2">
+                Required for Windows Auth per-query authentication:
+              </p>
               <CmdBlock label="PowerShell (Administrator)">{`# Enable Windows Auth feature
 Enable-WindowsOptionalFeature -Online -FeatureName IIS-WindowsAuthentication
 
@@ -304,13 +425,24 @@ Enable-WindowsOptionalFeature -Online -FeatureName IIS-WindowsAuthentication
             </div>
 
             <div>
-              <div className="text-xs font-semibold text-gray-700 mb-1">Step C: Enable ARR Proxy</div>
-              <p className="text-xs text-gray-600 mb-2">In IIS Manager: Server &rarr; Application Request Routing &rarr; Server Proxy Settings &rarr; Enable proxy</p>
+              <div className="text-xs font-semibold text-gray-700 mb-1">
+                Step C: Enable ARR Proxy
+              </div>
+              <p className="text-xs text-gray-600 mb-2">
+                In IIS Manager: Server &rarr; Application Request Routing &rarr;
+                Server Proxy Settings &rarr; Enable proxy
+              </p>
             </div>
 
             <div>
-              <div className="text-xs font-semibold text-gray-700 mb-1">Step D: Add URL Rewrite rules</div>
-              <p className="text-xs text-gray-600 mb-2">Create a <code className="bg-gray-100 px-1 rounded">web.config</code> in your IIS site root:</p>
+              <div className="text-xs font-semibold text-gray-700 mb-1">
+                Step D: Add URL Rewrite rules
+              </div>
+              <p className="text-xs text-gray-600 mb-2">
+                Create a{" "}
+                <code className="bg-gray-100 px-1 rounded">web.config</code> in
+                your IIS site root:
+              </p>
               <CmdBlock>{`<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
   <system.webServer>
@@ -329,7 +461,9 @@ Enable-WindowsOptionalFeature -Online -FeatureName IIS-WindowsAuthentication
         </Section>
 
         <Section title="8. SSL Certificate">
-          <p className="text-sm text-gray-600 mb-3">Bind an SSL certificate to the IIS site for HTTPS access.</p>
+          <p className="text-sm text-gray-600 mb-3">
+            Bind an SSL certificate to the IIS site for HTTPS access.
+          </p>
           <CmdBlock label="PowerShell">{`# Import a PFX certificate
 Import-PfxCertificate -FilePath C:\\certs\\chatbot.pfx \\
   -CertStoreLocation Cert:\\LocalMachine\\My \\
@@ -374,8 +508,9 @@ pm2 stop chatbot-engine`}</CmdBlock>
 
         <Section title="ML Data Directories">
           <p className="text-sm text-gray-600 mb-3">
-            The Engine stores ML data (semantic search indexes, learning models, anomaly baselines, and user preferences)
-            under <Code>services\engine\data\</Code>. On Windows, use backslash paths:
+            The Engine stores ML data (semantic search indexes, learning models,
+            anomaly baselines, and user preferences) under{" "}
+            <Code>services\engine\data\</Code>. On Windows, use backslash paths:
           </p>
           <div className="bg-gray-50 rounded-lg p-4 font-mono text-xs text-gray-600 mb-3">
             <pre className="whitespace-pre-wrap">{`C:\\chatbot\\services\\engine\\data\\
@@ -387,56 +522,104 @@ pm2 stop chatbot-engine`}</CmdBlock>
 └── preferences\\          # User preference profiles for recommendations`}</pre>
           </div>
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
-            <span className="font-medium">Important:</span> Back up the <Code>services\engine\data\</Code> directory before upgrades or migrations.
-            These directories contain learned models and baselines that are rebuilt from interaction history.
-            Losing this data resets ML features to their initial state.
+            <span className="font-medium">Important:</span> Back up the{" "}
+            <Code>services\engine\data\</Code> directory before upgrades or
+            migrations. These directories contain learned models and baselines
+            that are rebuilt from interaction history. Losing this data resets
+            ML features to their initial state.
           </div>
         </Section>
 
         <Section title="Troubleshooting">
           <div className="space-y-3">
             <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-              <div className="text-xs font-semibold text-red-700">Port already in use</div>
+              <div className="text-xs font-semibold text-red-700">
+                Port already in use
+              </div>
               <div className="text-xs text-gray-600 mt-1">
-                Run <code className="bg-gray-100 px-1 rounded">netstat -ano | findstr :3000</code> to find the process, then <code className="bg-gray-100 px-1 rounded">taskkill /PID &lt;pid&gt; /F</code>
+                Run{" "}
+                <code className="bg-gray-100 px-1 rounded">
+                  netstat -ano | findstr :3000
+                </code>{" "}
+                to find the process, then{" "}
+                <code className="bg-gray-100 px-1 rounded">
+                  taskkill /PID &lt;pid&gt; /F
+                </code>
               </div>
             </div>
             <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-              <div className="text-xs font-semibold text-red-700">IIS 502 Bad Gateway</div>
-              <div className="text-xs text-gray-600 mt-1">Ensure PM2 services are running: <code className="bg-gray-100 px-1 rounded">pm2 list</code>. Check ARR proxy is enabled in IIS.</div>
-            </div>
-            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-              <div className="text-xs font-semibold text-red-700">PM2 services don&apos;t auto-start</div>
-              <div className="text-xs text-gray-600 mt-1">Run <code className="bg-gray-100 px-1 rounded">pm2-startup install</code> as Administrator, then <code className="bg-gray-100 px-1 rounded">pm2 save</code></div>
-            </div>
-            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-              <div className="text-xs font-semibold text-red-700">Windows Auth not working for queries</div>
+              <div className="text-xs font-semibold text-red-700">
+                IIS 502 Bad Gateway
+              </div>
               <div className="text-xs text-gray-600 mt-1">
-                Ensure IIS has Windows Authentication enabled (Step 7B). Verify the query has <code className="bg-gray-100 px-1 rounded">authType: &quot;windows&quot;</code>.
-                Check that the user&apos;s browser is sending NTLM/Kerberos headers (use browser dev tools &rarr; Network tab).
-                The Engine forwards these headers to the tenant API.
+                Ensure PM2 services are running:{" "}
+                <code className="bg-gray-100 px-1 rounded">pm2 list</code>.
+                Check ARR proxy is enabled in IIS.
               </div>
             </div>
             <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-              <div className="text-xs font-semibold text-red-700">BAM token fetch failing</div>
+              <div className="text-xs font-semibold text-red-700">
+                PM2 services don&apos;t auto-start
+              </div>
               <div className="text-xs text-gray-600 mt-1">
-                Check the <code className="bg-gray-100 px-1 rounded">bamTokenUrl</code> is reachable from the Engine host.
-                Verify the BAM endpoint returns <code className="bg-gray-100 px-1 rounded">{`{ code, message, bamToken, redirectURL }`}</code>.
-                Check Engine logs: <code className="bg-gray-100 px-1 rounded">pm2 logs chatbot-engine</code>
+                Run{" "}
+                <code className="bg-gray-100 px-1 rounded">
+                  pm2-startup install
+                </code>{" "}
+                as Administrator, then{" "}
+                <code className="bg-gray-100 px-1 rounded">pm2 save</code>
               </div>
             </div>
             <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-              <div className="text-xs font-semibold text-red-700">Environment variables not loading</div>
+              <div className="text-xs font-semibold text-red-700">
+                Windows Auth not working for queries
+              </div>
               <div className="text-xs text-gray-600 mt-1">
-                If using <Code>.env.prod</Code> file, ensure PM2 is started from the project root directory.
-                If using system env vars, restart the PowerShell session after setting them.
+                Ensure IIS has Windows Authentication enabled (Step 7B). Verify
+                the query has{" "}
+                <code className="bg-gray-100 px-1 rounded">
+                  authType: &quot;windows&quot;
+                </code>
+                . Check that the user&apos;s browser is sending NTLM/Kerberos
+                headers (use browser dev tools &rarr; Network tab). The Engine
+                forwards these headers to the tenant API.
               </div>
             </div>
             <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-              <div className="text-xs font-semibold text-red-700">CSV/XLSX file not found or columns not loading</div>
+              <div className="text-xs font-semibold text-red-700">
+                BAM token fetch failing
+              </div>
               <div className="text-xs text-gray-600 mt-1">
-                Verify the file exists at the resolved path. If using <Code>FILE_BASE_DIR</Code> or per-query <Code>fileBaseDir</Code>, check the full path: baseDir + filePath.
-                For CSV files saved from Excel, the engine auto-handles BOM encoding and delimiters (comma, tab, semicolon, pipe).
+                Check the{" "}
+                <code className="bg-gray-100 px-1 rounded">bamTokenUrl</code> is
+                reachable from the Engine host. Verify the BAM endpoint returns{" "}
+                <code className="bg-gray-100 px-1 rounded">{`{ code, message, bamToken, redirectURL }`}</code>
+                . Check Engine logs:{" "}
+                <code className="bg-gray-100 px-1 rounded">
+                  pm2 logs chatbot-engine
+                </code>
+              </div>
+            </div>
+            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+              <div className="text-xs font-semibold text-red-700">
+                Environment variables not loading
+              </div>
+              <div className="text-xs text-gray-600 mt-1">
+                If using <Code>.env.prod</Code> file, ensure PM2 is started from
+                the project root directory. If using system env vars, restart
+                the PowerShell session after setting them.
+              </div>
+            </div>
+            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+              <div className="text-xs font-semibold text-red-700">
+                CSV/XLSX file not found or columns not loading
+              </div>
+              <div className="text-xs text-gray-600 mt-1">
+                Verify the file exists at the resolved path. If using{" "}
+                <Code>FILE_BASE_DIR</Code> or per-query <Code>fileBaseDir</Code>
+                , check the full path: baseDir + filePath. For CSV files saved
+                from Excel, the engine auto-handles BOM encoding and delimiters
+                (comma, tab, semicolon, pipe).
               </div>
             </div>
           </div>

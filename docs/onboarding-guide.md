@@ -13,7 +13,7 @@ Paste this into any HTML page:
 ```html
 <script>
   window.ChatbotWidgetConfig = {
-    baseUrl: 'https://your-chatbot-host.com'
+    baseUrl: "https://your-chatbot-host.com",
   };
 </script>
 <script src="https://your-chatbot-host.com/widget/chatbot-widget.js"></script>
@@ -31,7 +31,34 @@ Contact the platform team to add the Chatbot app to your Teams workspace. Once i
 
 ---
 
-## 2. Register Your API as a Data Source
+## 2. Connect a Data Source
+
+The chatbot supports two types of data sources:
+
+### Option A: SQL Database (MSSQL or Oracle)
+
+If your data lives in SQL Server or Oracle, use the built-in SQL connectors — no API development needed.
+
+1. Go to **Admin → Connectors** in the chatbot UI
+2. Click **Add Connector** and choose MSSQL or Oracle
+3. Enter connection details (host, port, database, credentials)
+4. Click **Test Connection** to verify
+5. Go to the **Saved Queries** tab to create SQL queries
+6. **Publish** queries to make them available in Chat
+
+Saved queries support:
+
+- Simple `SELECT` statements
+- JOINs across multiple tables
+- Aggregations (`GROUP BY`, `COUNT`, `SUM`, etc.)
+- Dynamic filters with column mapping
+- Stored procedure execution
+
+For detailed setup, see [MSSQL Connector Guide](./mssql-connector-guide.md) or [Oracle Connector Guide](./oracle-connector-guide.md).
+
+### Option B: REST API
+
+If your data is served via a REST API, implement the query contract below.
 
 The chatbot connects to REST APIs to fetch data. To add your application's API:
 
@@ -59,15 +86,15 @@ Response format:
 ]
 ```
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `id` | Yes | Unique identifier for the query |
-| `name` | Yes | Machine-readable name (snake_case) |
-| `description` | Yes | Human-readable description |
-| `estimatedDuration` | No | Expected run time in ms |
-| `url` | No | Link to related dashboard/report |
-| `source` | No | Which application owns this query |
-| `filters` | No | Array of supported filter names |
+| Field               | Required | Description                        |
+| ------------------- | -------- | ---------------------------------- |
+| `id`                | Yes      | Unique identifier for the query    |
+| `name`              | Yes      | Machine-readable name (snake_case) |
+| `description`       | Yes      | Human-readable description         |
+| `estimatedDuration` | No       | Expected run time in ms            |
+| `url`               | No       | Link to related dashboard/report   |
+| `source`            | No       | Which application owns this query  |
+| `filters`           | No       | Array of supported filter names    |
 
 ### Step 2: Implement the Execute Endpoint
 
@@ -91,9 +118,7 @@ Response format:
 
 ```json
 {
-  "data": [
-    { "column1": "value1", "column2": "value2" }
-  ],
+  "data": [{ "column1": "value1", "column2": "value2" }],
   "rowCount": 42,
   "executionTime": 1230
 }
@@ -116,6 +141,7 @@ So the bot understands natural language references to your queries, add synonyms
 ```
 
 Example: if your query is `deployment_frequency`, add:
+
 ```json
 "deployment_frequency": ["deployment frequency", "deploy freq", "deployments", "how often we deploy"]
 ```
@@ -153,6 +179,7 @@ These features improve over time as more users interact with the platform. No ad
 The chatbot understands these types of requests:
 
 ### Run a Query
+
 ```
 "run the monthly revenue query"
 "execute active users"
@@ -162,6 +189,7 @@ The chatbot understands these types of requests:
 ```
 
 ### List Available Queries
+
 ```
 "what queries are available"
 "list all queries"
@@ -170,6 +198,7 @@ The chatbot understands these types of requests:
 ```
 
 ### Find a URL/Dashboard
+
 ```
 "find me a URL for error rate"
 "where is the performance dashboard"
@@ -177,6 +206,7 @@ The chatbot understands these types of requests:
 ```
 
 ### Get Time Estimation
+
 ```
 "how long will active users take"
 "estimate for monthly revenue"
@@ -184,6 +214,7 @@ The chatbot understands these types of requests:
 ```
 
 ### With Filters
+
 ```
 "run monthly revenue for this quarter"
 "show me active users filtered by region US"
@@ -192,6 +223,7 @@ The chatbot understands these types of requests:
 ```
 
 ### Multi-Source Queries
+
 ```
 "show me revenue and active users together"
 "run error rate and performance"
@@ -204,19 +236,20 @@ The chatbot understands these types of requests:
 
 ### Supported Filter Types
 
-| Filter | Example Values | How Users Say It |
-|--------|---------------|------------------|
-| `date_range` | today, this_week, this_month, this_quarter | "for today", "this month", "last quarter" |
-| `region` | US, EU, APAC | "in US", "for EU region" |
-| `team` | engineering, sales, marketing | "for engineering team" |
-| `environment` | production, staging, dev | "in production", "prod env" |
-| `severity` | critical, high, medium, low | "critical only", "high severity" |
+| Filter        | Example Values                             | How Users Say It                          |
+| ------------- | ------------------------------------------ | ----------------------------------------- |
+| `date_range`  | today, this_week, this_month, this_quarter | "for today", "this month", "last quarter" |
+| `region`      | US, EU, APAC                               | "in US", "for EU region"                  |
+| `team`        | engineering, sales, marketing              | "for engineering team"                    |
+| `environment` | production, staging, dev                   | "in production", "prod env"               |
+| `severity`    | critical, high, medium, low                | "critical only", "high severity"          |
 
 ### Custom Filters
 
 To add your own filter:
 
 1. Add the filter entity to `src/training/corpus.json`:
+
 ```json
 {
   "entities": {
@@ -231,16 +264,16 @@ To add your own filter:
 ```
 
 2. Add utterances that use the filter:
+
 ```json
 {
   "intent": "query.execute",
-  "utterances": [
-    "run @query_name filtered by @your_filter"
-  ]
+  "utterances": ["run @query_name filtered by @your_filter"]
 }
 ```
 
 3. Your API's execute endpoint receives the filter:
+
 ```json
 POST /api/queries/{id}/execute
 { "filters": { "your_filter": "value1" } }
@@ -255,6 +288,7 @@ The chatbot can combine data from multiple queries in a single response.
 ### How It Works
 
 When a user says "show me revenue and active users", the chatbot:
+
 1. Identifies both query names from the message
 2. Executes both queries in parallel against your API
 3. Returns combined results in a single response
@@ -268,6 +302,7 @@ POST /api/queries/batch
 ```
 
 Request:
+
 ```json
 {
   "queries": ["q1", "q3"],
@@ -276,6 +311,7 @@ Request:
 ```
 
 Response:
+
 ```json
 {
   "results": [
@@ -364,6 +400,8 @@ curl -X POST http://localhost:8080/api/queries/q1/execute \
 
 ## 8. Checklist for New Application Onboarding
 
+### REST API Integration
+
 - [ ] API returns queries at `GET /api/queries` in the documented format
 - [ ] API handles `POST /api/queries/{id}/execute` with filters
 - [ ] Query names added as entity synonyms in `corpus.json`
@@ -372,15 +410,31 @@ curl -X POST http://localhost:8080/api/queries/q1/execute \
 - [ ] Widget embedded in your application (or Teams bot added)
 - [ ] Users informed about supported commands (share Section 3)
 
+### SQL Database Integration
+
+- [ ] Connector service running (MSSQL on port 4002 or Oracle on port 4003)
+- [ ] Database connector created and tested in Admin → Connectors
+- [ ] Saved queries created with appropriate SQL and filters
+- [ ] Queries published to engine (showing "Published" badge)
+- [ ] Query names added as entity synonyms in `corpus.json`
+- [ ] Tested in Chat ("run query_name filter_key value")
+- [ ] Widget embedded in your application (or Teams bot added)
+
 ---
 
 ## 9. Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| Bot says "I didn't understand" | Add more utterance variations to `corpus.json` |
-| Bot says "Unable to fetch queries" | Check API_BASE_URL and API_TOKEN in `.env.local` |
-| Query not found | Ensure query name in corpus matches API response exactly |
-| Filters not applied | Verify your execute endpoint reads `filters` from request body |
-| Widget not appearing | Check browser console for CORS errors; ensure baseUrl is correct |
-| Slow responses | Check `estimatedDuration` in API; consider adding caching |
+| Problem                                     | Solution                                                                  |
+| ------------------------------------------- | ------------------------------------------------------------------------- |
+| Bot says "I didn't understand"              | Add more utterance variations to `corpus.json`                            |
+| Bot says "Unable to fetch queries"          | Check API_BASE_URL and API_TOKEN in `.env.local`                          |
+| Query not found                             | Ensure query name in corpus matches API response exactly                  |
+| Filters not applied                         | Verify your execute endpoint reads `filters` from request body            |
+| Widget not appearing                        | Check browser console for CORS errors; ensure baseUrl is correct          |
+| Slow responses                              | Check `estimatedDuration` in API; consider adding caching                 |
+| SQL connector not connecting                | Check database host/port, test with Admin → Connectors → Test Connection  |
+| SQL query returns all rows (filter ignored) | Check filter config has correct `column` mapping for JOIN queries         |
+| "Invalid column name" in SQL query          | Use the `column` field in filter config for aliased/qualified column refs |
+| SQL dates show raw ISO strings              | Upgrade to latest UI — date formatting is automatic                       |
+| Too many rows crashing browser              | Results are auto-capped at 500 rows in Chat; use filters to narrow        |
+| Published query not showing in Chat         | Clear engine cache by restarting engine, or wait for cache TTL (5 min)    |

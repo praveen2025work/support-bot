@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { usePathname } from 'next/navigation';
-import { useUser } from '@/contexts/UserContext';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { useState, useEffect, useRef } from 'react';
+import { usePathname } from "next/navigation";
+import { useUser } from "@/contexts/UserContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { useState, useEffect, useRef } from "react";
 
 interface GroupInfo {
   id: string;
@@ -34,20 +34,20 @@ export function AppHeader({
         setShowUserMenu(false);
       }
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const isActive = (path: string) => {
-    if (path === '/') return pathname === '/';
+    if (path === "/") return pathname === "/";
     return pathname.startsWith(path);
   };
 
   const navLinkClass = (path: string) =>
     `px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
       isActive(path)
-        ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-        : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+        ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+        : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
     }`;
 
   return (
@@ -64,12 +64,15 @@ export function AppHeader({
         {/* Group dropdown */}
         {groups && groups.length > 1 && onGroupChange && (
           <div className="flex items-center gap-2">
-            <label htmlFor="app-group-select" className="text-xs text-gray-500 font-medium">
+            <label
+              htmlFor="app-group-select"
+              className="text-xs text-gray-500 font-medium"
+            >
               Group:
             </label>
             <select
               id="app-group-select"
-              value={groupId || ''}
+              value={groupId || ""}
               onChange={(e) => onGroupChange(e.target.value)}
               className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
@@ -84,20 +87,20 @@ export function AppHeader({
 
         {/* Nav links */}
         <nav className="flex items-center gap-1">
-          <a href="/" className={navLinkClass('/')}>
+          <a href="/" className={navLinkClass("/")}>
             Chat
           </a>
-          <a href="/dashboard" className={navLinkClass('/dashboard')}>
+          <a href="/dashboard" className={navLinkClass("/dashboard")}>
             Dashboard
           </a>
+          <a href="/gridboard" className={navLinkClass("/gridboard")}>
+            Grid Board
+          </a>
           {isAdmin && (
-            <a href="/admin" className={navLinkClass('/admin')}>
+            <a href="/admin" className={navLinkClass("/admin")}>
               Admin
             </a>
           )}
-          <a href="/onboard" className={navLinkClass('/onboard')}>
-            + Add Group
-          </a>
         </nav>
 
         {/* Right side: extra actions + theme + user */}
@@ -125,7 +128,9 @@ export function AppHeader({
                       <p className="text-sm font-semibold text-gray-900">
                         {userInfo.displayName}
                       </p>
-                      <p className="text-xs text-gray-500">{userInfo.emailAddress}</p>
+                      <p className="text-xs text-gray-500">
+                        {userInfo.emailAddress}
+                      </p>
                     </div>
                     <div className="px-4 py-2 space-y-1 text-xs text-gray-600">
                       {userInfo.department && (

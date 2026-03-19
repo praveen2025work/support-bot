@@ -2,52 +2,26 @@
   "filters": {
     "date_range": {
       "label": "Date Range",
-      "type": "select",
-      "options": [
-        {
-          "value": "today",
-          "label": "Today"
-        },
-        {
-          "value": "this_week",
-          "label": "This Week"
-        },
-        {
-          "value": "this_month",
-          "label": "This Month"
-        },
-        {
-          "value": "last_week",
-          "label": "Last Week"
-        },
-        {
-          "value": "last_month",
-          "label": "Last Month"
-        },
-        {
-          "value": "last_quarter",
-          "label": "Last Quarter"
-        }
-      ],
+      "type": "date_range",
+      "options": [],
       "placeholder": null,
-      "dateFormat": "YYYY-MM-DD"
+      "dateFormat": "YYYY-MM-DD",
+      "presets": [
+        { "value": "today", "label": "Today" },
+        { "value": "this_week", "label": "This Week" },
+        { "value": "this_month", "label": "This Month" },
+        { "value": "last_week", "label": "Last Week" },
+        { "value": "last_month", "label": "Last Month" },
+        { "value": "last_quarter", "label": "Last Quarter" }
+      ]
     },
     "region": {
       "label": "Region",
-      "type": "select",
+      "type": "multi_select",
       "options": [
-        {
-          "value": "US",
-          "label": "US"
-        },
-        {
-          "value": "EU",
-          "label": "EU"
-        },
-        {
-          "value": "APAC",
-          "label": "APAC"
-        }
+        { "value": "US", "label": "US" },
+        { "value": "EU", "label": "EU" },
+        { "value": "APAC", "label": "APAC" }
       ],
       "placeholder": null
     },
@@ -55,18 +29,9 @@
       "label": "Environment",
       "type": "select",
       "options": [
-        {
-          "value": "production",
-          "label": "Production"
-        },
-        {
-          "value": "staging",
-          "label": "Staging"
-        },
-        {
-          "value": "dev",
-          "label": "Dev"
-        }
+        { "value": "production", "label": "Production" },
+        { "value": "staging", "label": "Staging" },
+        { "value": "dev", "label": "Dev" }
       ],
       "placeholder": null
     },
@@ -74,35 +39,125 @@
       "label": "Team",
       "type": "select",
       "options": [
-        {
-          "value": "engineering",
-          "label": "Engineering"
-        },
-        {
-          "value": "sales",
-          "label": "Sales"
-        },
-        {
-          "value": "marketing",
-          "label": "Marketing"
-        },
-        {
-          "value": "support",
-          "label": "Support"
-        }
+        { "value": "engineering", "label": "Engineering" },
+        { "value": "sales", "label": "Sales" },
+        { "value": "marketing", "label": "Marketing" },
+        { "value": "support", "label": "Support" }
       ],
       "placeholder": null
     },
     "severity": {
       "label": "Severity",
-      "type": "text",
-      "options": [],
-      "placeholder": "e.g. critical, high, medium, low"
+      "type": "select",
+      "options": [
+        { "value": "critical", "label": "Critical" },
+        { "value": "high", "label": "High" },
+        { "value": "medium", "label": "Medium" },
+        { "value": "low", "label": "Low" }
+      ],
+      "placeholder": null
     },
-    "isadmin": {
-      "label": "test",
+    "isactive": {
+      "label": "Is Active",
       "type": "boolean",
       "options": [],
+      "placeholder": null
+    },
+    "department": {
+      "label": "Department",
+      "type": "multi_select",
+      "options": [
+        { "value": "Engineering", "label": "Engineering" },
+        { "value": "Sales", "label": "Sales" },
+        { "value": "HR", "label": "HR" },
+        { "value": "Finance", "label": "Finance" }
+      ],
+      "placeholder": null,
+      "source": {
+        "url": "http://localhost:4002/api/filters/sample-mssql/departments",
+        "lastRefreshed": null
+      }
+    },
+    "salary": {
+      "label": "Salary Range",
+      "type": "number_range",
+      "options": [],
+      "placeholder": null,
+      "numberConfig": {
+        "min": 0,
+        "max": 500000,
+        "step": 1000
+      }
+    },
+    "hire_date": {
+      "label": "Hire Date",
+      "type": "date",
+      "options": [],
+      "placeholder": null,
+      "dateFormat": "YYYY-MM-DD"
+    },
+    "employee_name": {
+      "label": "Employee Name",
+      "type": "search",
+      "options": [],
+      "placeholder": "Search by name...",
+      "debounceMs": 300
+    },
+    "fiscal_year": {
+      "label": "Fiscal Year",
+      "type": "select",
+      "options": [
+        { "value": "FY2024", "label": "FY2024" },
+        { "value": "FY2025", "label": "FY2025" },
+        { "value": "FY2026", "label": "FY2026" }
+      ],
+      "placeholder": null
+    },
+    "fiscal_quarter": {
+      "label": "Fiscal Quarter",
+      "type": "select",
+      "options": [
+        { "value": "Q1", "label": "Q1" },
+        { "value": "Q2", "label": "Q2" },
+        { "value": "Q3", "label": "Q3" },
+        { "value": "Q4", "label": "Q4" }
+      ],
+      "placeholder": null
+    },
+    "business_unit": {
+      "label": "Business Unit",
+      "type": "multi_select",
+      "options": [
+        { "value": "Corporate", "label": "Corporate" },
+        { "value": "Retail Banking", "label": "Retail Banking" },
+        { "value": "Investment Banking", "label": "Investment Banking" },
+        { "value": "Wealth Management", "label": "Wealth Management" }
+      ],
+      "placeholder": null
+    },
+    "cost_center": {
+      "label": "Cost Center",
+      "type": "text",
+      "options": [],
+      "placeholder": "Enter cost center..."
+    },
+    "gl_account": {
+      "label": "GL Account",
+      "type": "search",
+      "options": [],
+      "placeholder": "Search GL account...",
+      "debounceMs": 300
+    },
+    "segment": {
+      "label": "Segment",
+      "type": "select",
+      "options": [
+        { "value": "Retail", "label": "Retail" },
+        { "value": "Corporate", "label": "Corporate" },
+        { "value": "SME", "label": "SME" },
+        { "value": "Mortgage", "label": "Mortgage" },
+        { "value": "Auto", "label": "Auto" }
+      ],
       "placeholder": null
     }
   }

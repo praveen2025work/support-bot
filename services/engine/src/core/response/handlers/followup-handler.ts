@@ -1,6 +1,10 @@
-import { logger } from '@/lib/logger';
-import type { QueryService } from '../../api-connector/query-service';
-import type { ClassificationResult, BotResponse, ConversationContext } from '../../types';
+import { logger } from "@/lib/logger";
+import type { QueryService } from "../../api-connector/query-service";
+import type {
+  ClassificationResult,
+  BotResponse,
+  ConversationContext,
+} from "../../types";
 import {
   groupBy,
   sortData,
@@ -8,7 +12,7 @@ import {
   parseGroupByFromText,
   parseSortFromText,
   type CsvData,
-} from '../../api-connector/csv-analyzer';
+} from "../../api-connector/csv-analyzer";
 import {
   FOLLOWUP_PATTERN,
   FOLLOWUP_NOISE,
@@ -20,10 +24,27 @@ import {
   VALUE_COMPARE_PATTERN,
   AGGREGATION_PATTERN,
   STOP_WORDS,
-} from '../constants';
-import { extractFilters, parseFilterFromText, mergeFilters } from './filter-utils';
-import { getLastUserText, rerunLastQueryWithFilters } from './query-handler';
-import { summarizeDocument } from './knowledge-handler';
+} from "../constants";
+import {
+  extractFilters,
+  parseFilterFromText,
+  mergeFilters,
+} from "./filter-utils";
+import { getLastUserText, rerunLastQueryWithFilters } from "./query-handler";
+import { summarizeDocument } from "./knowledge-handler";
+
+// ── Helpers ─────────────────────────────────────────────────────────
+
+/** Build chart/column metadata spread from context so follow-up charts render */
+function chartMetaFrom(context: ConversationContext): Record<string, unknown> {
+  return {
+    ...(context.lastChartConfig && { chartConfig: context.lastChartConfig }),
+    ...(context.lastColumnConfig && { columnConfig: context.lastColumnConfig }),
+    ...(context.lastColumnMetadata && {
+      columnMetadata: context.lastColumnMetadata,
+    }),
+  };
+}
 
 // ── Context extractors ──────────────────────────────────────────────
 
@@ -31,7 +52,9 @@ import { summarizeDocument } from './knowledge-handler';
  * Extract CSV-shaped data from context.lastApiResult.
  * Handles both CSV format ({ headers, rows }) and API format ({ data: [...] }).
  */
-export function extractCsvDataFromContext(context: ConversationContext): CsvData | null {
+export function extractCsvDataFromContext(
+  context: ConversationContext,
+): CsvData | null {
   const raw = context.lastApiResult as Record<string, unknown>;
   if (!raw) return null;
 
@@ -53,15 +76,17 @@ export function extractCsvDataFromContext(context: ConversationContext): CsvData
 /**
  * Extract document content from context.lastApiResult.
  */
-export function extractDocumentFromContext(context: ConversationContext): { content: string; filePath: string; format: string } | null {
+export function extractDocumentFromContext(
+  context: ConversationContext,
+): { content: string; filePath: string; format: string } | null {
   const raw = context.lastApiResult as Record<string, unknown>;
   if (!raw) return null;
   const content = raw.content as string | undefined;
   if (!content) return null;
   return {
     content,
-    filePath: (raw.filePath as string) ?? '',
-    format: (raw.format as string) ?? 'txt',
+    filePath: (raw.filePath as string) ?? "",
+    format: (raw.format as string) ?? "txt",
   };
 }
 
@@ -72,7 +97,7 @@ export function extractDocumentFromContext(context: ConversationContext): { cont
  */
 export function handleGroupByFollowUp(
   classification: ClassificationResult,
-  context: ConversationContext
+  context: ConversationContext,
 ): BotResponse | null {
   if (!context.lastApiResult || !context.lastQueryName) return null;
   const userText = getLastUserText(context);
@@ -84,27 +109,36 @@ export function handleGroupByFollowUp(
   const groupCol = parseGroupByFromText(userText, csvData.headers);
   if (!groupCol) {
     return {
-      text: `I couldn't find that column. Available columns: **${csvData.headers.join(', ')}**`,
+      text: `I couldn't find that column. Available columns: **${csvData.headers.join(", ")}**`,
       suggestions: csvData.headers.slice(0, 4).map((h) => `group by ${h}`),
       sessionId: context.sessionId,
-      intent: 'followup.group_by',
+      intent: "followup.group_by",
       confidence: 1,
     };
   }
 
   // Check for combined filter: "group by quarter for region US"
   let dataToGroup = csvData;
-  const filterMatch = userText.match(/\b(?:for|where|with|in)\s+(\w+)\s+(\w+)\s*$/i);
+  const filterMatch = userText.match(
+    /\b(?:for|where|with|in)\s+(\w+)\s+(\w+)\s*$/i,
+  );
   if (filterMatch) {
     const filterKey = filterMatch[1].toLowerCase();
     const filterVal = filterMatch[2];
-    const headerMatch = csvData.headers.find((h) => h.toLowerCase() === filterKey);
+    const headerMatch = csvData.headers.find(
+      (h) => h.toLowerCase() === filterKey,
+    );
     if (headerMatch) {
       const filteredRows = csvData.rows.filter(
-        (r) => String(r[headerMatch] ?? '').toLowerCase() === filterVal.toLowerCase()
+        (r) =>
+          String(r[headerMatch] ?? "").toLowerCase() ===
+          filterVal.toLowerCase(),
       );
       dataToGroup = { headers: csvData.headers, rows: filteredRows };
-      logger.info({ filterKey: headerMatch, filterVal, filtered: filteredRows.length }, 'Applied inline filter before group-by');
+      logger.info(
+        { filterKey: headerMatch, filterVal, filtered: filteredRows.length },
+        "Applied inline filter before group-by",
+      );
     }
   }
 
@@ -113,23 +147,29 @@ export function handleGroupByFollowUp(
     return {
       text: `No groups found when grouping "${context.lastQueryName}" by **${groupCol}**.`,
       sessionId: context.sessionId,
-      intent: 'followup.group_by',
+      intent: "followup.group_by",
       confidence: 1,
     };
   }
 
-  logger.info({ query: context.lastQueryName, groupCol, groups: result.groups.length }, 'Group-by follow-up');
+  logger.info(
+    { query: context.lastQueryName, groupCol, groups: result.groups.length },
+    "Group-by follow-up",
+  );
 
   return {
     text: `Here is "${context.lastQueryName}" grouped by **${result.groupColumn}** (${result.groups.length} groups, ${dataToGroup.rows.length} total rows):`,
-    richContent: { type: 'csv_group_by', data: result },
+    richContent: { type: "csv_group_by", data: result },
     suggestions: [
-      ...csvData.headers.filter((h) => h !== groupCol).slice(0, 2).map((h) => `group by ${h}`),
-      'summarize',
-      `sort by ${result.aggregatedColumns[0]?.column ?? 'count'} desc`,
+      ...csvData.headers
+        .filter((h) => h !== groupCol)
+        .slice(0, 2)
+        .map((h) => `group by ${h}`),
+      "summarize",
+      `sort by ${result.aggregatedColumns[0]?.column ?? "count"} desc`,
     ],
     sessionId: context.sessionId,
-    intent: 'followup.group_by',
+    intent: "followup.group_by",
     confidence: 1,
   };
 }
@@ -139,7 +179,7 @@ export function handleGroupByFollowUp(
  */
 export function handleSortFollowUp(
   classification: ClassificationResult,
-  context: ConversationContext
+  context: ConversationContext,
 ): BotResponse | null {
   if (!context.lastApiResult || !context.lastQueryName) return null;
   const userText = getLastUserText(context);
@@ -151,33 +191,51 @@ export function handleSortFollowUp(
   const sortReq = parseSortFromText(userText, csvData.headers);
   if (!sortReq) {
     return {
-      text: `I couldn't find that column to sort by. Available columns: **${csvData.headers.join(', ')}**`,
+      text: `I couldn't find that column to sort by. Available columns: **${csvData.headers.join(", ")}**`,
       suggestions: csvData.headers.slice(0, 4).map((h) => `sort by ${h} desc`),
       sessionId: context.sessionId,
-      intent: 'followup.sort',
+      intent: "followup.sort",
       confidence: 1,
     };
   }
 
   const sorted = sortData(csvData, sortReq);
   // Update context with sorted data
-  context.lastApiResult = { headers: sorted.headers, rows: sorted.rows, filePath: (context.lastApiResult as Record<string, unknown>)?.filePath, rowCount: sorted.rows.length };
+  context.lastApiResult = {
+    headers: sorted.headers,
+    rows: sorted.rows,
+    filePath: (context.lastApiResult as Record<string, unknown>)?.filePath,
+    rowCount: sorted.rows.length,
+  };
 
-  logger.info({ query: context.lastQueryName, sortCol: sortReq.column, dir: sortReq.direction }, 'Sort follow-up');
+  logger.info(
+    {
+      query: context.lastQueryName,
+      sortCol: sortReq.column,
+      dir: sortReq.direction,
+    },
+    "Sort follow-up",
+  );
 
   return {
     text: `Here is "${context.lastQueryName}" sorted by **${sortReq.column}** (${sortReq.direction}) — ${sorted.rows.length} rows:`,
     richContent: {
-      type: 'csv_table',
-      data: { headers: sorted.headers, rows: sorted.rows, filePath: (context.lastApiResult as Record<string, unknown>)?.filePath, rowCount: sorted.rows.length },
+      type: "csv_table",
+      data: {
+        headers: sorted.headers,
+        rows: sorted.rows,
+        filePath: (context.lastApiResult as Record<string, unknown>)?.filePath,
+        rowCount: sorted.rows.length,
+        ...chartMetaFrom(context),
+      },
     },
     suggestions: [
-      `sort by ${sortReq.column} ${sortReq.direction === 'desc' ? 'asc' : 'desc'}`,
-      'summarize',
+      `sort by ${sortReq.column} ${sortReq.direction === "desc" ? "asc" : "desc"}`,
+      "summarize",
       `top 5 by ${sortReq.column}`,
     ],
     sessionId: context.sessionId,
-    intent: 'followup.sort',
+    intent: "followup.sort",
     confidence: 1,
   };
 }
@@ -187,7 +245,7 @@ export function handleSortFollowUp(
  */
 export function handleSummaryFollowUp(
   classification: ClassificationResult,
-  context: ConversationContext
+  context: ConversationContext,
 ): BotResponse | null {
   if (!context.lastApiResult || !context.lastQueryName) return null;
   const userText = getLastUserText(context);
@@ -196,14 +254,21 @@ export function handleSummaryFollowUp(
   const csvData = extractCsvDataFromContext(context);
   if (csvData) {
     const summary = computeSummary(csvData);
-    logger.info({ query: context.lastQueryName, rowCount: summary.rowCount, cols: summary.columns.length }, 'Summary follow-up');
+    logger.info(
+      {
+        query: context.lastQueryName,
+        rowCount: summary.rowCount,
+        cols: summary.columns.length,
+      },
+      "Summary follow-up",
+    );
 
     return {
       text: `Summary of "${context.lastQueryName}" (${summary.rowCount} rows):`,
-      richContent: { type: 'csv_summary', data: summary },
+      richContent: { type: "csv_summary", data: summary },
       suggestions: csvData.headers.slice(0, 3).map((h) => `group by ${h}`),
       sessionId: context.sessionId,
-      intent: 'followup.summary',
+      intent: "followup.summary",
       confidence: 1,
     };
   }
@@ -212,16 +277,22 @@ export function handleSummaryFollowUp(
   const docData = extractDocumentFromContext(context);
   if (docData) {
     const docSummary = summarizeDocument(docData.content);
-    logger.info({ query: context.lastQueryName, sections: docSummary.sections.length }, 'Document summary follow-up');
+    logger.info(
+      { query: context.lastQueryName, sections: docSummary.sections.length },
+      "Document summary follow-up",
+    );
 
     return {
       text: docSummary.text,
-      richContent: { type: 'document_summary', data: docSummary },
-      suggestions: docSummary.keywords.length > 0
-        ? docSummary.keywords.slice(0, 4).map((k) => `search ${context.lastQueryName} for ${k}`)
-        : [`run ${context.lastQueryName}`],
+      richContent: { type: "document_summary", data: docSummary },
+      suggestions:
+        docSummary.keywords.length > 0
+          ? docSummary.keywords
+              .slice(0, 4)
+              .map((k) => `search ${context.lastQueryName} for ${k}`)
+          : [`run ${context.lastQueryName}`],
       sessionId: context.sessionId,
-      intent: 'followup.summary',
+      intent: "followup.summary",
       confidence: 1,
     };
   }
@@ -234,7 +305,7 @@ export function handleSummaryFollowUp(
  */
 export function handleTopNFollowUp(
   classification: ClassificationResult,
-  context: ConversationContext
+  context: ConversationContext,
 ): BotResponse | null {
   if (!context.lastApiResult || !context.lastQueryName) return null;
   const userText = getLastUserText(context);
@@ -244,46 +315,61 @@ export function handleTopNFollowUp(
   const csvData = extractCsvDataFromContext(context);
   if (!csvData) return null;
 
-  const isBottom = match[1].toLowerCase() === 'bottom';
+  const isBottom = match[1].toLowerCase() === "bottom";
   const n = parseInt(match[2], 10);
   const afterMatch = userText.substring(match.index! + match[0].length);
   const colMatch = afterMatch.match(/\b(?:by\s+)?(\w+)/i);
   let column: string | null = null;
   if (colMatch) {
     const term = colMatch[1];
-    column = csvData.headers.find((h) => h.toLowerCase() === term.toLowerCase()) ?? null;
-    if (!column) column = csvData.headers.find((h) => h.toLowerCase().includes(term.toLowerCase())) ?? null;
+    column =
+      csvData.headers.find((h) => h.toLowerCase() === term.toLowerCase()) ??
+      null;
+    if (!column)
+      column =
+        csvData.headers.find((h) =>
+          h.toLowerCase().includes(term.toLowerCase()),
+        ) ?? null;
   }
 
   if (!column) {
     return {
-      text: `Which column should I use? Available: **${csvData.headers.join(', ')}**`,
+      text: `Which column should I use? Available: **${csvData.headers.join(", ")}**`,
       suggestions: csvData.headers.slice(0, 4).map((h) => `top ${n} by ${h}`),
       sessionId: context.sessionId,
-      intent: 'followup.top_n',
+      intent: "followup.top_n",
       confidence: 1,
     };
   }
 
-  const direction: 'asc' | 'desc' = isBottom ? 'asc' : 'desc';
+  const direction: "asc" | "desc" = isBottom ? "asc" : "desc";
   const sorted = sortData(csvData, { column, direction });
   const topRows = sorted.rows.slice(0, n);
 
-  logger.info({ query: context.lastQueryName, n, column, isBottom }, 'Top-N follow-up');
+  logger.info(
+    { query: context.lastQueryName, n, column, isBottom },
+    "Top-N follow-up",
+  );
 
   return {
-    text: `${isBottom ? 'Bottom' : 'Top'} ${n} by **${column}** from "${context.lastQueryName}":`,
+    text: `${isBottom ? "Bottom" : "Top"} ${n} by **${column}** from "${context.lastQueryName}":`,
     richContent: {
-      type: 'csv_table',
-      data: { headers: sorted.headers, rows: topRows, filePath: (context.lastApiResult as Record<string, unknown>)?.filePath, rowCount: topRows.length },
+      type: "csv_table",
+      data: {
+        headers: sorted.headers,
+        rows: topRows,
+        filePath: (context.lastApiResult as Record<string, unknown>)?.filePath,
+        rowCount: topRows.length,
+        ...chartMetaFrom(context),
+      },
     },
     suggestions: [
-      `${isBottom ? 'top' : 'bottom'} ${n} by ${column}`,
-      'summarize',
+      `${isBottom ? "top" : "bottom"} ${n} by ${column}`,
+      "summarize",
       `group by ${csvData.headers.find((h) => h !== column) ?? csvData.headers[0]}`,
     ],
     sessionId: context.sessionId,
-    intent: 'followup.top_n',
+    intent: "followup.top_n",
     confidence: 1,
   };
 }
@@ -292,14 +378,31 @@ export function handleTopNFollowUp(
  * Parse a comparison operator and threshold from user text.
  * Supports: >, <, >=, <=, =>, =<, =, "greater than", "less than", etc.
  */
-function parseComparison(text: string): { column: string; op: string; threshold: number } | null {
+function parseComparison(
+  text: string,
+): { column: string; op: string; threshold: number } | null {
   // Order matters: check multi-word operators first, then symbols
   const patterns: { regex: RegExp; op: string }[] = [
-    { regex: /(\w+)\s+(?:greater\s+than\s+(?:or\s+)?equal(?:\s+to)?|>=|=>)\s*(\d+\.?\d*)%?/i, op: '>=' },
-    { regex: /(\w+)\s+(?:less\s+than\s+(?:or\s+)?equal(?:\s+to)?|<=|=<)\s*(\d+\.?\d*)%?/i, op: '<=' },
-    { regex: /(\w+)\s+(?:greater\s+than|more\s+than|above|over|>)\s*(\d+\.?\d*)%?/i, op: '>' },
-    { regex: /(\w+)\s+(?:less\s+than|below|under|<)\s*(\d+\.?\d*)%?/i, op: '<' },
-    { regex: /(\w+)\s+(?:equal\s+to|equals|=)\s*(\d+\.?\d*)%?/i, op: '=' },
+    {
+      regex:
+        /(\w+)\s+(?:greater\s+than\s+(?:or\s+)?equal(?:\s+to)?|>=|=>)\s*(\d+\.?\d*)%?/i,
+      op: ">=",
+    },
+    {
+      regex:
+        /(\w+)\s+(?:less\s+than\s+(?:or\s+)?equal(?:\s+to)?|<=|=<)\s*(\d+\.?\d*)%?/i,
+      op: "<=",
+    },
+    {
+      regex:
+        /(\w+)\s+(?:greater\s+than|more\s+than|above|over|>)\s*(\d+\.?\d*)%?/i,
+      op: ">",
+    },
+    {
+      regex: /(\w+)\s+(?:less\s+than|below|under|<)\s*(\d+\.?\d*)%?/i,
+      op: "<",
+    },
+    { regex: /(\w+)\s+(?:equal\s+to|equals|=)\s*(\d+\.?\d*)%?/i, op: "=" },
   ];
 
   for (const { regex, op } of patterns) {
@@ -316,7 +419,7 @@ function parseComparison(text: string): { column: string; op: string; threshold:
  */
 export function handleValueCompareFollowUp(
   classification: ClassificationResult,
-  context: ConversationContext
+  context: ConversationContext,
 ): BotResponse | null {
   if (!context.lastApiResult || !context.lastQueryName) return null;
   const userText = getLastUserText(context);
@@ -329,45 +432,72 @@ export function handleValueCompareFollowUp(
   if (!parsed) return null;
 
   // Match column name (fuzzy)
-  const colMatch = csvData.headers.find((h) => h.toLowerCase() === parsed.column.toLowerCase())
-    ?? csvData.headers.find((h) => h.toLowerCase().includes(parsed.column.toLowerCase()))
-    ?? csvData.headers.find((h) => parsed.column.toLowerCase().includes(h.toLowerCase()));
+  const colMatch =
+    csvData.headers.find(
+      (h) => h.toLowerCase() === parsed.column.toLowerCase(),
+    ) ??
+    csvData.headers.find((h) =>
+      h.toLowerCase().includes(parsed.column.toLowerCase()),
+    ) ??
+    csvData.headers.find((h) =>
+      parsed.column.toLowerCase().includes(h.toLowerCase()),
+    );
 
   if (!colMatch) {
     return {
-      text: `I couldn't find a column matching "${parsed.column}". Available columns: **${csvData.headers.join(', ')}**`,
-      suggestions: csvData.headers.slice(0, 4).map((h) => `${h} > ${parsed.threshold}`),
+      text: `I couldn't find a column matching "${parsed.column}". Available columns: **${csvData.headers.join(", ")}**`,
+      suggestions: csvData.headers
+        .slice(0, 4)
+        .map((h) => `${h} > ${parsed.threshold}`),
       sessionId: context.sessionId,
-      intent: 'followup.compare',
+      intent: "followup.compare",
       confidence: 1,
     };
   }
 
   const compare = (val: number): boolean => {
     switch (parsed.op) {
-      case '>': return val > parsed.threshold;
-      case '<': return val < parsed.threshold;
-      case '>=': return val >= parsed.threshold;
-      case '<=': return val <= parsed.threshold;
-      case '=': return val === parsed.threshold;
-      default: return false;
+      case ">":
+        return val > parsed.threshold;
+      case "<":
+        return val < parsed.threshold;
+      case ">=":
+        return val >= parsed.threshold;
+      case "<=":
+        return val <= parsed.threshold;
+      case "=":
+        return val === parsed.threshold;
+      default:
+        return false;
     }
   };
 
   const filteredRows = csvData.rows.filter((row) => {
     const raw = row[colMatch];
-    const num = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/[%$,]/g, ''));
+    const num =
+      typeof raw === "number"
+        ? raw
+        : parseFloat(String(raw).replace(/[%$,]/g, ""));
     return !isNaN(num) && compare(num);
   });
 
-  logger.info({ query: context.lastQueryName, column: colMatch, op: parsed.op, threshold: parsed.threshold, matched: filteredRows.length }, 'Value comparison follow-up');
+  logger.info(
+    {
+      query: context.lastQueryName,
+      column: colMatch,
+      op: parsed.op,
+      threshold: parsed.threshold,
+      matched: filteredRows.length,
+    },
+    "Value comparison follow-up",
+  );
 
   if (filteredRows.length === 0) {
     return {
       text: `No rows in "${context.lastQueryName}" where **${colMatch}** ${parsed.op} ${parsed.threshold}.`,
-      suggestions: [`${colMatch} > 0`, 'summarize', `sort by ${colMatch} desc`],
+      suggestions: [`${colMatch} > 0`, "summarize", `sort by ${colMatch} desc`],
       sessionId: context.sessionId,
-      intent: 'followup.compare',
+      intent: "followup.compare",
       confidence: 1,
     };
   }
@@ -375,16 +505,22 @@ export function handleValueCompareFollowUp(
   return {
     text: `Rows from "${context.lastQueryName}" where **${colMatch}** ${parsed.op} ${parsed.threshold} (${filteredRows.length} of ${csvData.rows.length} rows):`,
     richContent: {
-      type: 'csv_table',
-      data: { headers: csvData.headers, rows: filteredRows, filePath: (context.lastApiResult as Record<string, unknown>)?.filePath, rowCount: filteredRows.length },
+      type: "csv_table",
+      data: {
+        headers: csvData.headers,
+        rows: filteredRows,
+        filePath: (context.lastApiResult as Record<string, unknown>)?.filePath,
+        rowCount: filteredRows.length,
+        ...chartMetaFrom(context),
+      },
     },
     suggestions: [
-      `${colMatch} ${parsed.op === '>' ? '<' : '>'} ${parsed.threshold}`,
+      `${colMatch} ${parsed.op === ">" ? "<" : ">"} ${parsed.threshold}`,
       `sort by ${colMatch} desc`,
-      'summarize',
+      "summarize",
     ],
     sessionId: context.sessionId,
-    intent: 'followup.compare',
+    intent: "followup.compare",
     confidence: 1,
   };
 }
@@ -402,14 +538,16 @@ function parseDurationToHours(raw: string): number {
   const s = String(raw).trim().toLowerCase();
 
   // Already a plain number — return as-is
-  const plain = parseFloat(s.replace(/[%$,]/g, ''));
+  const plain = parseFloat(s.replace(/[%$,]/g, ""));
   if (!isNaN(plain) && /^[\d.,\-$%\s]+$/.test(s)) return plain;
 
   let totalHours = 0;
   let matched = false;
 
   // Format: "01 Day(s) 05:56:00" or "02 Day(s) 03:45:00"
-  const dayHmsMatch = s.match(/(\d+)\s*day\(?s?\)?\s+(\d{1,2}):(\d{2}):(\d{2})/);
+  const dayHmsMatch = s.match(
+    /(\d+)\s*day\(?s?\)?\s+(\d{1,2}):(\d{2}):(\d{2})/,
+  );
   if (dayHmsMatch) {
     totalHours += parseInt(dayHmsMatch[1], 10) * 24;
     totalHours += parseInt(dayHmsMatch[2], 10);
@@ -429,19 +567,31 @@ function parseDurationToHours(raw: string): number {
 
   // Match days: "1 day", "2 day(s)", "3d", "1.5 days"
   const dayMatch = s.match(/([\d.]+)\s*(?:day\(?s?\)?|d\b)/);
-  if (dayMatch) { totalHours += parseFloat(dayMatch[1]) * 24; matched = true; }
+  if (dayMatch) {
+    totalHours += parseFloat(dayMatch[1]) * 24;
+    matched = true;
+  }
 
   // Match hours: "4 hours", "2h", "1.5 hour(s)", "4 hr(s)"
   const hourMatch = s.match(/([\d.]+)\s*(?:hour\(?s?\)?|hr\(?s?\)?|h\b)/);
-  if (hourMatch) { totalHours += parseFloat(hourMatch[1]); matched = true; }
+  if (hourMatch) {
+    totalHours += parseFloat(hourMatch[1]);
+    matched = true;
+  }
 
   // Match minutes: "30 minutes", "45m", "30 min(s)"
   const minMatch = s.match(/([\d.]+)\s*(?:minute\(?s?\)?|min\(?s?\)?|m\b)/);
-  if (minMatch) { totalHours += parseFloat(minMatch[1]) / 60; matched = true; }
+  if (minMatch) {
+    totalHours += parseFloat(minMatch[1]) / 60;
+    matched = true;
+  }
 
   // Match seconds: "30 seconds", "45s", "30 sec(s)"
   const secMatch = s.match(/([\d.]+)\s*(?:second\(?s?\)?|sec\(?s?\)?|s\b)/);
-  if (secMatch) { totalHours += parseFloat(secMatch[1]) / 3600; matched = true; }
+  if (secMatch) {
+    totalHours += parseFloat(secMatch[1]) / 3600;
+    matched = true;
+  }
 
   return matched ? totalHours : NaN;
 }
@@ -452,31 +602,38 @@ function parseDurationToHours(raw: string): number {
 function formatDuration(hours: number): string {
   if (hours < 1) {
     const mins = Math.round(hours * 60);
-    return mins === 1 ? '1 minute' : `${mins} minutes`;
+    return mins === 1 ? "1 minute" : `${mins} minutes`;
   }
   const d = Math.floor(hours / 24);
   const remaining = hours - d * 24;
   const h = Math.floor(remaining);
   const m = Math.round((remaining - h) * 60);
   const parts: string[] = [];
-  if (d > 0) parts.push(`${d} day${d !== 1 ? 's' : ''}`);
+  if (d > 0) parts.push(`${d} day${d !== 1 ? "s" : ""}`);
   if (h > 0 || (d > 0 && m > 0)) parts.push(`${h}h`);
   if (m > 0) parts.push(`${m}m`);
-  return parts.length > 0 ? parts.join(' ') : `${hours.toFixed(2)} hours`;
+  return parts.length > 0 ? parts.join(" ") : `${hours.toFixed(2)} hours`;
 }
 
 /**
  * Detect whether a column contains duration strings (vs plain numbers).
  * Checks first few non-empty values.
  */
-function isDurationColumn(rows: Record<string, string | number>[], column: string): boolean {
+function isDurationColumn(
+  rows: Record<string, string | number>[],
+  column: string,
+): boolean {
   let durationCount = 0;
   const sample = rows.slice(0, 10);
   for (const row of sample) {
-    const val = String(row[column] ?? '').trim();
+    const val = String(row[column] ?? "").trim();
     if (!val) continue;
     // Match: "Day(s)", "hours", "min", etc. OR HH:MM:SS patterns OR "2d", "3h"
-    if (/(?:day|hour|minute|second|min|sec|hr)\(?s?\)?|(?:\d+\s*[dhms]\b)|^\d{1,2}:\d{2}:\d{2}$/i.test(val)) {
+    if (
+      /(?:day|hour|minute|second|min|sec|hr)\(?s?\)?|(?:\d+\s*[dhms]\b)|^\d{1,2}:\d{2}:\d{2}$/i.test(
+        val,
+      )
+    ) {
       durationCount++;
     }
   }
@@ -487,16 +644,25 @@ function isDurationColumn(rows: Record<string, string | number>[], column: strin
  * Parse aggregation operation and column from user text.
  * Supports: "avg resolution_hours", "calculate sum revenue", "max of priority", "count tickets"
  */
-function parseAggregation(text: string): { op: string; columnHint: string | null } | null {
-  const m = text.match(/\b(?:calculate\s+)?(avg|average|sum|total|min|max|mean|minimum|maximum|count)\b(?:\s+(?:of\s+)?([\w_]+))?/i);
+function parseAggregation(
+  text: string,
+): { op: string; columnHint: string | null } | null {
+  const m = text.match(
+    /\b(?:calculate\s+)?(avg|average|sum|total|min|max|mean|minimum|maximum|count)\b(?:\s+(?:of\s+)?([\w_]+))?/i,
+  );
   if (!m) return null;
   const rawOp = m[1].toLowerCase();
   const opMap: Record<string, string> = {
-    avg: 'avg', average: 'avg', mean: 'avg',
-    sum: 'sum', total: 'sum',
-    min: 'min', minimum: 'min',
-    max: 'max', maximum: 'max',
-    count: 'count',
+    avg: "avg",
+    average: "avg",
+    mean: "avg",
+    sum: "sum",
+    total: "sum",
+    min: "min",
+    minimum: "min",
+    max: "max",
+    maximum: "max",
+    count: "count",
   };
   return { op: opMap[rawOp] ?? rawOp, columnHint: m[2] ?? null };
 }
@@ -506,7 +672,7 @@ function parseAggregation(text: string): { op: string; columnHint: string | null
  */
 export function handleAggregationFollowUp(
   classification: ClassificationResult,
-  context: ConversationContext
+  context: ConversationContext,
 ): BotResponse | null {
   if (!context.lastApiResult || !context.lastQueryName) return null;
   const userText = getLastUserText(context);
@@ -519,12 +685,15 @@ export function handleAggregationFollowUp(
   if (!csvData) return null;
 
   // For count without a column, return row count
-  if (parsed.op === 'count' && !parsed.columnHint) {
+  if (parsed.op === "count" && !parsed.columnHint) {
     return {
       text: `**Count** of rows in "${context.lastQueryName}": **${csvData.rows.length}**`,
-      suggestions: ['summarize', ...csvData.headers.slice(0, 3).map((h) => `avg ${h}`)],
+      suggestions: [
+        "summarize",
+        ...csvData.headers.slice(0, 3).map((h) => `avg ${h}`),
+      ],
       sessionId: context.sessionId,
-      intent: 'followup.aggregation',
+      intent: "followup.aggregation",
       confidence: 1,
     };
   }
@@ -534,20 +703,32 @@ export function handleAggregationFollowUp(
   if (parsed.columnHint) {
     const hint = parsed.columnHint.toLowerCase();
     column = csvData.headers.find((h) => h.toLowerCase() === hint) ?? null;
-    if (!column) column = csvData.headers.find((h) => h.toLowerCase().replace(/_/g, '') === hint.replace(/_/g, '')) ?? null;
-    if (!column) column = csvData.headers.find((h) => h.toLowerCase().includes(hint) || hint.includes(h.toLowerCase())) ?? null;
+    if (!column)
+      column =
+        csvData.headers.find(
+          (h) => h.toLowerCase().replace(/_/g, "") === hint.replace(/_/g, ""),
+        ) ?? null;
+    if (!column)
+      column =
+        csvData.headers.find(
+          (h) =>
+            h.toLowerCase().includes(hint) || hint.includes(h.toLowerCase()),
+        ) ?? null;
   }
 
   if (!column) {
     const numericHeaders = csvData.headers.filter((h) => {
       const val = csvData.rows[0]?.[h];
-      return typeof val === 'number' || (typeof val === 'string' && !isNaN(parseFloat(val)));
+      return (
+        typeof val === "number" ||
+        (typeof val === "string" && !isNaN(parseFloat(val)))
+      );
     });
     return {
-      text: `Which column should I calculate the ${parsed.op} of? Available numeric columns: **${numericHeaders.join(', ')}**`,
+      text: `Which column should I calculate the ${parsed.op} of? Available numeric columns: **${numericHeaders.join(", ")}**`,
       suggestions: numericHeaders.slice(0, 4).map((h) => `${parsed.op} ${h}`),
       sessionId: context.sessionId,
-      intent: 'followup.aggregation',
+      intent: "followup.aggregation",
       confidence: 1,
     };
   }
@@ -559,8 +740,10 @@ export function handleAggregationFollowUp(
   const values = csvData.rows
     .map((r) => {
       const raw = r[column!];
-      if (typeof raw === 'number') return raw;
-      return hasDurations ? parseDurationToHours(String(raw)) : parseFloat(String(raw).replace(/[%$,]/g, ''));
+      if (typeof raw === "number") return raw;
+      return hasDurations
+        ? parseDurationToHours(String(raw))
+        : parseFloat(String(raw).replace(/[%$,]/g, ""));
     })
     .filter((v) => !isNaN(v));
 
@@ -569,7 +752,7 @@ export function handleAggregationFollowUp(
       text: `Column **${column}** has no numeric values to aggregate.`,
       suggestions: csvData.headers.slice(0, 4).map((h) => `${parsed.op} ${h}`),
       sessionId: context.sessionId,
-      intent: 'followup.aggregation',
+      intent: "followup.aggregation",
       confidence: 1,
     };
   }
@@ -577,49 +760,55 @@ export function handleAggregationFollowUp(
   let result: number;
   let opLabel: string;
   switch (parsed.op) {
-    case 'avg':
+    case "avg":
       result = values.reduce((a, b) => a + b, 0) / values.length;
-      opLabel = 'Average';
+      opLabel = "Average";
       break;
-    case 'sum':
+    case "sum":
       result = values.reduce((a, b) => a + b, 0);
-      opLabel = 'Sum';
+      opLabel = "Sum";
       break;
-    case 'min':
+    case "min":
       result = Math.min(...values);
-      opLabel = 'Min';
+      opLabel = "Min";
       break;
-    case 'max':
+    case "max":
       result = Math.max(...values);
-      opLabel = 'Max';
+      opLabel = "Max";
       break;
-    case 'count':
+    case "count":
       result = values.length;
-      opLabel = 'Count';
+      opLabel = "Count";
       break;
     default:
       return null;
   }
 
   // Format result: use duration format for duration columns, numeric otherwise
-  const formatted = parsed.op === 'count'
-    ? result.toString()
-    : hasDurations
-    ? `${formatDuration(result)} (${result.toFixed(2)} hrs)`
-    : Number.isInteger(result) ? result.toString() : result.toFixed(2);
-  logger.info({ query: context.lastQueryName, op: parsed.op, column, result }, 'Aggregation follow-up');
+  const formatted =
+    parsed.op === "count"
+      ? result.toString()
+      : hasDurations
+        ? `${formatDuration(result)} (${result.toFixed(2)} hrs)`
+        : Number.isInteger(result)
+          ? result.toString()
+          : result.toFixed(2);
+  logger.info(
+    { query: context.lastQueryName, op: parsed.op, column, result },
+    "Aggregation follow-up",
+  );
 
-  const otherOps = ['avg', 'sum', 'min', 'max'].filter((o) => o !== parsed.op);
+  const otherOps = ["avg", "sum", "min", "max"].filter((o) => o !== parsed.op);
 
   return {
     text: `**${opLabel}** of **${column}** in "${context.lastQueryName}" (${values.length} values): **${formatted}**`,
     suggestions: [
       ...otherOps.slice(0, 2).map((o) => `${o} ${column}`),
-      'summarize',
+      "summarize",
       `sort by ${column} desc`,
     ],
     sessionId: context.sessionId,
-    intent: 'followup.aggregation',
+    intent: "followup.aggregation",
     confidence: 1,
   };
 }
@@ -629,7 +818,7 @@ export function handleAggregationFollowUp(
  */
 export function handleFollowUp(
   classification: ClassificationResult,
-  context: ConversationContext
+  context: ConversationContext,
 ): BotResponse | null {
   if (!context.lastApiResult || !context.lastQueryName) return null;
 
@@ -649,10 +838,10 @@ export function handleFollowUp(
   if (!matchedCol) {
     if (columns.length > 0) {
       return {
-        text: `I couldn't find a field matching "${rawField}" in the ${context.lastQueryName} results. Available fields are: **${columns.join(', ')}**`,
+        text: `I couldn't find a field matching "${rawField}" in the ${context.lastQueryName} results. Available fields are: **${columns.join(", ")}**`,
         suggestions: columns.slice(0, 4).map((c) => `what is ${c}`),
         sessionId: context.sessionId,
-        intent: 'followup.field',
+        intent: "followup.field",
         confidence: classification.confidence,
       };
     }
@@ -666,27 +855,28 @@ export function handleFollowUp(
   if (rows.length === 1) {
     const value = rows[0][matchedCol];
     return {
-      text: `The **${matchedCol}** from the ${context.lastQueryName} result is: **${value ?? 'N/A'}**`,
+      text: `The **${matchedCol}** from the ${context.lastQueryName} result is: **${value ?? "N/A"}**`,
       suggestions: columns
         .filter((c) => c !== matchedCol)
         .slice(0, 4)
         .map((c) => `what is ${c}`),
       sessionId: context.sessionId,
-      intent: 'followup.field',
+      intent: "followup.field",
       confidence: 1,
     };
   }
 
-  const values = rows.slice(0, 10).map((r) => String(r[matchedCol] ?? 'N/A'));
-  const moreText = rows.length > 10 ? ` (showing first 10 of ${rows.length})` : '';
+  const values = rows.slice(0, 10).map((r) => String(r[matchedCol] ?? "N/A"));
+  const moreText =
+    rows.length > 10 ? ` (showing first 10 of ${rows.length})` : "";
   return {
-    text: `The **${matchedCol}** values from ${context.lastQueryName}${moreText}:\n${values.map((v, i) => `${i + 1}. ${v}`).join('\n')}`,
+    text: `The **${matchedCol}** values from ${context.lastQueryName}${moreText}:\n${values.map((v, i) => `${i + 1}. ${v}`).join("\n")}`,
     suggestions: columns
       .filter((c) => c !== matchedCol)
       .slice(0, 4)
       .map((c) => `what is ${c}`),
     sessionId: context.sessionId,
-    intent: 'followup.field',
+    intent: "followup.field",
     confidence: 1,
   };
 }
@@ -699,7 +889,7 @@ export async function handleFilterFollowUp(
   classification: ClassificationResult,
   context: ConversationContext,
   queryService: QueryService,
-  incomingHeaders?: Record<string, string>
+  incomingHeaders?: Record<string, string>,
 ): Promise<BotResponse | null> {
   if (!context.lastQueryName) return null;
 
@@ -712,8 +902,17 @@ export async function handleFilterFollowUp(
   const filters = mergeFilters(nlpFilters, textFilters);
   if (Object.keys(filters).length === 0) return null;
 
-  logger.info({ lastQuery: context.lastQueryName, filters, nlpFilters, textFilters }, 'Re-running last query with follow-up filters (default case)');
-  return rerunLastQueryWithFilters(context, filters, classification, queryService, incomingHeaders);
+  logger.info(
+    { lastQuery: context.lastQueryName, filters, nlpFilters, textFilters },
+    "Re-running last query with follow-up filters (default case)",
+  );
+  return rerunLastQueryWithFilters(
+    context,
+    filters,
+    classification,
+    queryService,
+    incomingHeaders,
+  );
 }
 
 /**
@@ -722,7 +921,7 @@ export async function handleFilterFollowUp(
  */
 export function handleDataOperation(
   classification: ClassificationResult,
-  context: ConversationContext
+  context: ConversationContext,
 ): BotResponse | null {
   const groupByResult = handleGroupByFollowUp(classification, context);
   if (groupByResult) return groupByResult;
@@ -751,7 +950,7 @@ export function handleDataOperation(
  */
 export function handleDataLookup(
   classification: ClassificationResult,
-  context: ConversationContext
+  context: ConversationContext,
 ): BotResponse | null {
   if (!context.lastApiResult || !context.lastQueryName) return null;
 
@@ -763,7 +962,7 @@ export function handleDataLookup(
 
   // Pattern A: "what is the <column> of <value>" or "status of Book X"
   const ofMatch = lower.match(
-    /(?:what(?:'s|\s+is|\s+are)?|show(?:\s+me)?|get|tell\s+me)\s+(?:the\s+)?(.+?)\s+(?:of|for)\s+(.+)/i
+    /(?:what(?:'s|\s+is|\s+are)?|show(?:\s+me)?|get|tell\s+me)\s+(?:the\s+)?(.+?)\s+(?:of|for)\s+(.+)/i,
   );
   if (ofMatch) {
     const colHint = ofMatch[1].trim();
@@ -774,34 +973,87 @@ export function handleDataLookup(
   // Pattern B: free-form value search — extract meaningful words and search data
   // e.g., "APAC books opened", "show opened APAC books"
   // Skip if it matches other follow-up patterns (group by, sort, etc.)
-  if (GROUP_BY_PATTERN.test(lower) || SORT_PATTERN.test(lower)
-    || SUMMARY_PATTERN.test(lower) || TOP_BOTTOM_PATTERN.test(lower)
-    || AGGREGATION_PATTERN.test(lower) || /\b(filter|where)\s+\w+\s*[=><]/i.test(lower)) {
+  if (
+    GROUP_BY_PATTERN.test(lower) ||
+    SORT_PATTERN.test(lower) ||
+    SUMMARY_PATTERN.test(lower) ||
+    TOP_BOTTOM_PATTERN.test(lower) ||
+    AGGREGATION_PATTERN.test(lower) ||
+    /\b(filter|where)\s+\w+\s*[=><]/i.test(lower)
+  ) {
     return null;
   }
 
   // Extract search terms by removing stop words and common noise
   const searchStopWords = new Set([
-    'what', 'is', 'are', 'the', 'a', 'an', 'of', 'for', 'from', 'in', 'with',
-    'show', 'me', 'get', 'find', 'tell', 'give', 'list', 'all', 'my', 'about',
-    'how', 'many', 'much', 'does', 'do', 'can', 'you', 'i', 'to', 'it', 'that',
-    'this', 'those', 'these', 'any', 'some', 'where', 'which', 'who', 'whom',
-    'run', 'query', 'data', 'result', 'results', 'please', 'just', 'only',
-    'down', 'every', 'each',
+    "what",
+    "is",
+    "are",
+    "the",
+    "a",
+    "an",
+    "of",
+    "for",
+    "from",
+    "in",
+    "with",
+    "show",
+    "me",
+    "get",
+    "find",
+    "tell",
+    "give",
+    "list",
+    "all",
+    "my",
+    "about",
+    "how",
+    "many",
+    "much",
+    "does",
+    "do",
+    "can",
+    "you",
+    "i",
+    "to",
+    "it",
+    "that",
+    "this",
+    "those",
+    "these",
+    "any",
+    "some",
+    "where",
+    "which",
+    "who",
+    "whom",
+    "run",
+    "query",
+    "data",
+    "result",
+    "results",
+    "please",
+    "just",
+    "only",
+    "down",
+    "every",
+    "each",
   ]);
   // Also treat exact column header names as noise (user may say "list product Widget Pro")
   const headerLower = new Set(csvData.headers.map((h) => h.toLowerCase()));
   const searchTerms = lower
-    .replace(/[^\w\s]/g, '')
+    .replace(/[^\w\s]/g, "")
     .split(/\s+/)
-    .filter((w) => w.length >= 2 && !searchStopWords.has(w) && !headerLower.has(w));
+    .filter(
+      (w) => w.length >= 2 && !searchStopWords.has(w) && !headerLower.has(w),
+    );
 
   if (searchTerms.length === 0) {
     // "list all products" / "list down all X" — strip words leave no search terms
     // Try to match a remaining hint word to a column name and return distinct values
     const listAllMatch = lower.match(/\blist\s+(?:down\s+)?(?:all\s+)?(.+)?/i);
     if (listAllMatch) {
-      const hint = (listAllMatch[1] || '').trim().replace(/[^\w\s]/g, '');
+      const hint = (listAllMatch[1] || "").trim().replace(/[^\w\s]/g, "");
       if (hint) {
         // Try to match hint to a column name (case-insensitive, partial match)
         const col = csvData.headers.find((h) => {
@@ -812,23 +1064,28 @@ export function handleDataLookup(
           const seen = new Set<string>();
           const uniqueVals: string[] = [];
           for (const r of csvData.rows) {
-            const v = String(r[col] ?? '');
-            if (v && !seen.has(v)) { seen.add(v); uniqueVals.push(v); }
+            const v = String(r[col] ?? "");
+            if (v && !seen.has(v)) {
+              seen.add(v);
+              uniqueVals.push(v);
+            }
           }
           return {
             text: `Found ${uniqueVals.length} unique value(s) in column "${col}":`,
             richContent: {
-              type: 'csv_table',
+              type: "csv_table",
               data: {
                 headers: [col],
                 rows: uniqueVals.slice(0, 50).map((v) => ({ [col]: v })),
-                filePath: (context.lastApiResult as Record<string, unknown>)?.filePath,
+                filePath: (context.lastApiResult as Record<string, unknown>)
+                  ?.filePath,
                 rowCount: uniqueVals.length,
+                ...chartMetaFrom(context),
               },
             },
-            suggestions: ['summarize', `group by ${col}`],
+            suggestions: ["summarize", `group by ${col}`],
             sessionId: context.sessionId,
-            intent: 'followup.data_lookup',
+            intent: "followup.data_lookup",
             confidence: 1,
           };
         }
@@ -838,17 +1095,22 @@ export function handleDataLookup(
       return {
         text: `Showing ${cap} of ${csvData.rows.length} row(s) from "${context.lastQueryName}":`,
         richContent: {
-          type: 'csv_table',
+          type: "csv_table",
           data: {
             headers: csvData.headers,
             rows: csvData.rows.slice(0, cap),
-            filePath: (context.lastApiResult as Record<string, unknown>)?.filePath,
+            filePath: (context.lastApiResult as Record<string, unknown>)
+              ?.filePath,
             rowCount: csvData.rows.length,
+            ...chartMetaFrom(context),
           },
         },
-        suggestions: ['summarize', ...csvData.headers.slice(0, 2).map((h) => `group by ${h}`)],
+        suggestions: [
+          "summarize",
+          ...csvData.headers.slice(0, 2).map((h) => `group by ${h}`),
+        ],
         sessionId: context.sessionId,
-        intent: 'followup.data_lookup',
+        intent: "followup.data_lookup",
         confidence: 1,
       };
     }
@@ -857,8 +1119,10 @@ export function handleDataLookup(
 
   // Try to find rows where any column value matches the search terms
   const matchedRows = csvData.rows.filter((row) => {
-    const rowValues = Object.values(row).map((v) => String(v ?? '').toLowerCase());
-    const rowText = rowValues.join(' ');
+    const rowValues = Object.values(row).map((v) =>
+      String(v ?? "").toLowerCase(),
+    );
+    const rowText = rowValues.join(" ");
     // Require all search terms to appear somewhere in the row
     return searchTerms.every((term) => rowText.includes(term));
   });
@@ -867,8 +1131,12 @@ export function handleDataLookup(
     // Try partial match: require at least 60% of terms to match
     const threshold = Math.max(1, Math.ceil(searchTerms.length * 0.6));
     const partialMatches = csvData.rows.filter((row) => {
-      const rowText = Object.values(row).map((v) => String(v ?? '').toLowerCase()).join(' ');
-      const matchCount = searchTerms.filter((term) => rowText.includes(term)).length;
+      const rowText = Object.values(row)
+        .map((v) => String(v ?? "").toLowerCase())
+        .join(" ");
+      const matchCount = searchTerms.filter((term) =>
+        rowText.includes(term),
+      ).length;
       return matchCount >= threshold;
     });
 
@@ -884,8 +1152,12 @@ export function handleDataLookup(
         for (const term of searchTerms) {
           const col = csvData.headers.find((h) => {
             const hl = h.toLowerCase();
-            return hl.includes(term) || term.includes(hl)
-              || hl + 's' === term || hl === term + 's';
+            return (
+              hl.includes(term) ||
+              term.includes(hl) ||
+              hl + "s" === term ||
+              hl === term + "s"
+            );
           });
           if (col) {
             if (!matchedCol) matchedCol = col;
@@ -898,23 +1170,28 @@ export function handleDataLookup(
           const seen = new Set<string>();
           const uniqueVals: string[] = [];
           for (const r of csvData.rows) {
-            const v = String(r[col] ?? '');
-            if (v && !seen.has(v)) { seen.add(v); uniqueVals.push(v); }
+            const v = String(r[col] ?? "");
+            if (v && !seen.has(v)) {
+              seen.add(v);
+              uniqueVals.push(v);
+            }
           }
           return {
             text: `Found ${uniqueVals.length} unique value(s) in column "${col}":`,
             richContent: {
-              type: 'csv_table',
+              type: "csv_table",
               data: {
                 headers: [col],
                 rows: uniqueVals.slice(0, 50).map((v) => ({ [col]: v })),
-                filePath: (context.lastApiResult as Record<string, unknown>)?.filePath,
+                filePath: (context.lastApiResult as Record<string, unknown>)
+                  ?.filePath,
                 rowCount: uniqueVals.length,
+                ...chartMetaFrom(context),
               },
             },
-            suggestions: ['summarize', `group by ${col}`],
+            suggestions: ["summarize", `group by ${col}`],
             sessionId: context.sessionId,
-            intent: 'followup.data_lookup',
+            intent: "followup.data_lookup",
             confidence: 1,
           };
         }
@@ -923,40 +1200,67 @@ export function handleDataLookup(
     }
     if (partialMatches.length > 20) return null; // Too many results, not specific enough
 
-    logger.info({ query: context.lastQueryName, terms: searchTerms, matched: partialMatches.length }, 'Data lookup: partial match');
+    logger.info(
+      {
+        query: context.lastQueryName,
+        terms: searchTerms,
+        matched: partialMatches.length,
+      },
+      "Data lookup: partial match",
+    );
 
     return {
-      text: `Found ${partialMatches.length} matching row(s) in "${context.lastQueryName}" for "${searchTerms.join(' ')}":`,
+      text: `Found ${partialMatches.length} matching row(s) in "${context.lastQueryName}" for "${searchTerms.join(" ")}":`,
       richContent: {
-        type: 'csv_table',
-        data: { headers: csvData.headers, rows: partialMatches, filePath: (context.lastApiResult as Record<string, unknown>)?.filePath, rowCount: partialMatches.length },
+        type: "csv_table",
+        data: {
+          headers: csvData.headers,
+          rows: partialMatches,
+          filePath: (context.lastApiResult as Record<string, unknown>)
+            ?.filePath,
+          rowCount: partialMatches.length,
+          ...chartMetaFrom(context),
+        },
       },
       suggestions: [
-        'summarize',
+        "summarize",
         ...csvData.headers.slice(0, 2).map((h) => `group by ${h}`),
       ],
       sessionId: context.sessionId,
-      intent: 'followup.data_lookup',
+      intent: "followup.data_lookup",
       confidence: 1,
     };
   }
 
   if (matchedRows.length > 20) return null; // Too many — not specific enough
 
-  logger.info({ query: context.lastQueryName, terms: searchTerms, matched: matchedRows.length }, 'Data lookup: exact match');
+  logger.info(
+    {
+      query: context.lastQueryName,
+      terms: searchTerms,
+      matched: matchedRows.length,
+    },
+    "Data lookup: exact match",
+  );
 
   return {
-    text: `Found ${matchedRows.length} matching row(s) in "${context.lastQueryName}" for "${searchTerms.join(' ')}":`,
+    text: `Found ${matchedRows.length} matching row(s) in "${context.lastQueryName}" for "${searchTerms.join(" ")}":`,
     richContent: {
-      type: 'csv_table',
-      data: { headers: csvData.headers, rows: matchedRows, filePath: (context.lastApiResult as Record<string, unknown>)?.filePath, rowCount: matchedRows.length },
+      type: "csv_table",
+      data: {
+        headers: csvData.headers,
+        rows: matchedRows,
+        filePath: (context.lastApiResult as Record<string, unknown>)?.filePath,
+        rowCount: matchedRows.length,
+        ...chartMetaFrom(context),
+      },
     },
     suggestions: [
-      'summarize',
+      "summarize",
       ...csvData.headers.slice(0, 2).map((h) => `group by ${h}`),
     ],
     sessionId: context.sessionId,
-    intent: 'followup.data_lookup',
+    intent: "followup.data_lookup",
     confidence: 1,
   };
 }
@@ -972,28 +1276,43 @@ function lookupByValue(
   context: ConversationContext,
 ): BotResponse | null {
   // Find the target column (e.g., "status")
-  const targetCol = csvData.headers.find((h) => h.toLowerCase() === colHint.toLowerCase())
-    ?? csvData.headers.find((h) => h.toLowerCase().replace(/[_\s]/g, '') === colHint.replace(/[_\s]/g, '').toLowerCase())
-    ?? csvData.headers.find((h) => {
-      const hWords = h.toLowerCase().replace(/([a-z])([A-Z])/g, '$1 $2').split(/[_\s]+/);
+  const targetCol =
+    csvData.headers.find((h) => h.toLowerCase() === colHint.toLowerCase()) ??
+    csvData.headers.find(
+      (h) =>
+        h.toLowerCase().replace(/[_\s]/g, "") ===
+        colHint.replace(/[_\s]/g, "").toLowerCase(),
+    ) ??
+    csvData.headers.find((h) => {
+      const hWords = h
+        .toLowerCase()
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .split(/[_\s]+/);
       return hWords.includes(colHint.toLowerCase());
-    })
-    ?? csvData.headers.find((h) => h.toLowerCase().includes(colHint.toLowerCase()));
+    }) ??
+    csvData.headers.find((h) =>
+      h.toLowerCase().includes(colHint.toLowerCase()),
+    );
 
   // Search for rows containing the value hint in any column
   const valueLower = valueHint.toLowerCase();
   const matchedRows = csvData.rows.filter((row) => {
     return Object.values(row).some((v) =>
-      String(v ?? '').toLowerCase().includes(valueLower)
+      String(v ?? "")
+        .toLowerCase()
+        .includes(valueLower),
     );
   });
 
   if (matchedRows.length === 0) {
     return {
       text: `No rows found in "${context.lastQueryName}" matching "${valueHint}".`,
-      suggestions: ['summarize', ...csvData.headers.slice(0, 3).map((h) => `group by ${h}`)],
+      suggestions: [
+        "summarize",
+        ...csvData.headers.slice(0, 3).map((h) => `group by ${h}`),
+      ],
       sessionId: context.sessionId,
-      intent: 'followup.data_lookup',
+      intent: "followup.data_lookup",
       confidence: 1,
     };
   }
@@ -1002,16 +1321,24 @@ function lookupByValue(
   if (targetCol && matchedRows.length <= 10) {
     const values = matchedRows.map((row) => {
       // Build a label from the first text column that contains the search value
-      const labelCol = csvData.headers.find((h) =>
-        h !== targetCol && String(row[h] ?? '').toLowerCase().includes(valueLower)
-      ) || csvData.headers[0];
-      return `**${row[labelCol]}** → ${targetCol}: **${row[targetCol] ?? 'N/A'}**`;
+      const labelCol =
+        csvData.headers.find(
+          (h) =>
+            h !== targetCol &&
+            String(row[h] ?? "")
+              .toLowerCase()
+              .includes(valueLower),
+        ) || csvData.headers[0];
+      return `**${row[labelCol]}** → ${targetCol}: **${row[targetCol] ?? "N/A"}**`;
     });
     return {
-      text: `Here is the **${targetCol}** for "${valueHint}" from "${context.lastQueryName}":\n${values.join('\n')}`,
-      suggestions: csvData.headers.filter((h) => h !== targetCol).slice(0, 3).map((h) => `what is ${h} of ${valueHint}`),
+      text: `Here is the **${targetCol}** for "${valueHint}" from "${context.lastQueryName}":\n${values.join("\n")}`,
+      suggestions: csvData.headers
+        .filter((h) => h !== targetCol)
+        .slice(0, 3)
+        .map((h) => `what is ${h} of ${valueHint}`),
       sessionId: context.sessionId,
-      intent: 'followup.data_lookup',
+      intent: "followup.data_lookup",
       confidence: 1,
     };
   }
@@ -1021,15 +1348,21 @@ function lookupByValue(
   return {
     text: `Found ${matchedRows.length} row(s) matching "${valueHint}" in "${context.lastQueryName}":`,
     richContent: {
-      type: 'csv_table',
-      data: { headers: csvData.headers, rows: displayRows, filePath: (context.lastApiResult as Record<string, unknown>)?.filePath, rowCount: displayRows.length },
+      type: "csv_table",
+      data: {
+        headers: csvData.headers,
+        rows: displayRows,
+        filePath: (context.lastApiResult as Record<string, unknown>)?.filePath,
+        rowCount: displayRows.length,
+        ...chartMetaFrom(context),
+      },
     },
     suggestions: [
-      'summarize',
+      "summarize",
       ...csvData.headers.slice(0, 2).map((h) => `group by ${h}`),
     ],
     sessionId: context.sessionId,
-    intent: 'followup.data_lookup',
+    intent: "followup.data_lookup",
     confidence: 1,
   };
 }
@@ -1039,13 +1372,16 @@ function lookupByValue(
 /**
  * Fuzzy-match user's field words against actual column names.
  */
-function fuzzyMatchColumn(fieldWords: string[], columns: string[]): string | null {
-  const joined = fieldWords.join('');
-  const joinedSpaced = fieldWords.join(' ');
+function fuzzyMatchColumn(
+  fieldWords: string[],
+  columns: string[],
+): string | null {
+  const joined = fieldWords.join("");
+  const joinedSpaced = fieldWords.join(" ");
 
   for (const col of columns) {
     const colLower = col.toLowerCase();
-    const colNoUnderscore = colLower.replace(/_/g, '');
+    const colNoUnderscore = colLower.replace(/_/g, "");
 
     if (colLower === joinedSpaced || colLower === joined) return col;
     if (colNoUnderscore === joined) return col;
@@ -1056,9 +1392,12 @@ function fuzzyMatchColumn(fieldWords: string[], columns: string[]): string | nul
   }
 
   for (const col of columns) {
-    const colLower = col.toLowerCase().replace(/_/g, '');
+    const colLower = col.toLowerCase().replace(/_/g, "");
     for (const word of fieldWords) {
-      if (word.length >= 3 && (colLower.includes(word) || word.includes(colLower))) {
+      if (
+        word.length >= 3 &&
+        (colLower.includes(word) || word.includes(colLower))
+      ) {
         return col;
       }
     }

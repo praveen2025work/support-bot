@@ -90,6 +90,34 @@ export interface DrillDownConfig {
   label?: string; // display label for the drill-down option
 }
 
+// ── Grid Board View Preferences ──────────────────────────────────
+
+export interface ConditionalFormatRule {
+  id: string;
+  column: string;
+  operator: "gt" | "lt" | "eq" | "neq" | "contains" | "between";
+  value: string;
+  value2?: string;
+  style: { bg?: string; color?: string; bold?: boolean };
+}
+
+export interface GridBoardView {
+  id: string;
+  queryName: string;
+  viewName: string;
+  columnOrder: string[];
+  hiddenColumns: string[];
+  columnWidths: Record<string, number>;
+  pinnedColumns: string[];
+  sortConfig: Array<{ column: string; direction: "asc" | "desc" }>;
+  groupByColumn?: string;
+  clientFilters: Record<string, { operator: string; value: string }>;
+  pageSize: number;
+  conditionalFormats: ConditionalFormatRule[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** A named, persistent dashboard */
 export interface Dashboard {
   id: string; // URL-safe slug

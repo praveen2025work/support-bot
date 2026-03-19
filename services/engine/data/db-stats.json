@@ -1,111 +1,26 @@
 {
   "queryStats": [
     {
-      "id": "stat_1773804304909_is2j",
-      "queryName": "error_rate",
+      "id": "stat_1773958646949_zd5r",
+      "queryName": "pnl_summary",
       "success": true,
       "durationMs": 2,
-      "timestamp": "2026-03-18T03:25:04.909Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773804712260_ce2m",
-      "queryName": "monthly_revenue",
-      "success": true,
-      "durationMs": 6,
-      "timestamp": "2026-03-18T03:31:52.260Z",
+      "timestamp": "2026-03-19T22:17:26.949Z",
       "filters": {
-        "date_range": "this_month",
-        "region": "US"
+        "fiscal_year": "FY2025",
+        "fiscal_quarter": "Q1"
       }
     },
     {
-      "id": "stat_1773804716433_uom5",
-      "queryName": "monthly_revenue",
+      "id": "stat_1773958647009_uym3",
+      "queryName": "budget_vs_actual",
       "success": true,
       "durationMs": 3,
-      "timestamp": "2026-03-18T03:31:56.433Z",
+      "timestamp": "2026-03-19T22:17:27.009Z",
       "filters": {
-        "date_range": "this_month",
-        "region": "US"
+        "fiscal_year": "FY2024",
+        "fiscal_quarter": "Q1"
       }
-    },
-    {
-      "id": "stat_1773804756450_tqoj",
-      "queryName": "monthly_revenue",
-      "success": true,
-      "durationMs": 2,
-      "timestamp": "2026-03-18T03:32:36.450Z",
-      "filters": {
-        "date_range": "this_month",
-        "region": "US"
-      }
-    },
-    {
-      "id": "stat_1773805026113_zs17",
-      "queryName": "monthly_revenue",
-      "success": true,
-      "durationMs": 6,
-      "timestamp": "2026-03-18T03:37:06.113Z",
-      "filters": {
-        "date_range": "this_month"
-      }
-    },
-    {
-      "id": "stat_1773805047422_9fzk",
-      "queryName": "sales_data",
-      "success": true,
-      "durationMs": 1,
-      "timestamp": "2026-03-18T03:37:27.422Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773805051346_74gu",
-      "queryName": "support_tickets",
-      "success": true,
-      "durationMs": 2,
-      "timestamp": "2026-03-18T03:37:31.346Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773805053318_tnh0",
-      "queryName": "employee_metrics",
-      "success": true,
-      "durationMs": 1,
-      "timestamp": "2026-03-18T03:37:33.318Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773805055837_udx7",
-      "queryName": "pnl_availability",
-      "success": true,
-      "durationMs": 3,
-      "timestamp": "2026-03-18T03:37:35.837Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773805167437_5amr",
-      "queryName": "performance",
-      "success": true,
-      "durationMs": 7,
-      "timestamp": "2026-03-18T03:39:27.437Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773805167444_nq4p",
-      "queryName": "error_rate",
-      "success": true,
-      "durationMs": 7,
-      "timestamp": "2026-03-18T03:39:27.444Z",
-      "filters": {}
-    },
-    {
-      "id": "stat_1773805216442_n6wx",
-      "queryName": "performance",
-      "success": true,
-      "durationMs": 2,
-      "timestamp": "2026-03-18T03:40:16.442Z",
-      "filters": {}
     }
   ]
 }

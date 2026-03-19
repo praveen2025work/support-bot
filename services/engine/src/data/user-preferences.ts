@@ -71,6 +71,34 @@ export interface Dashboard {
   updatedAt: string;
 }
 
+// ── Grid Board View Preferences ───────────────────────────────────
+
+export interface ConditionalFormatRule {
+  id: string;
+  column: string;
+  operator: "gt" | "lt" | "eq" | "neq" | "contains" | "between";
+  value: string;
+  value2?: string;
+  style: { bg?: string; color?: string; bold?: boolean };
+}
+
+export interface GridBoardView {
+  id: string;
+  queryName: string;
+  viewName: string;
+  columnOrder: string[];
+  hiddenColumns: string[];
+  columnWidths: Record<string, number>;
+  pinnedColumns: string[];
+  sortConfig: Array<{ column: string; direction: "asc" | "desc" }>;
+  groupByColumn?: string;
+  clientFilters: Record<string, { operator: string; value: string }>;
+  pageSize: number;
+  conditionalFormats: ConditionalFormatRule[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface UserPreferences {
   userId: string;
   favorites: FavoriteItem[];
@@ -78,6 +106,7 @@ export interface UserPreferences {
   recentQueries: RecentQuery[];
   dashboards: Dashboard[];
   activeDashboardId?: string;
+  gridBoardViews: GridBoardView[];
   updatedAt: string;
 }
 
@@ -98,6 +127,7 @@ function defaultPrefs(userId: string): UserPreferences {
     subscriptions: [],
     recentQueries: [],
     dashboards: [],
+    gridBoardViews: [],
     updatedAt: new Date().toISOString(),
   };
 }
@@ -491,6 +521,75 @@ export class UserPreferencesStore {
       dash.updatedAt = new Date().toISOString();
       await this.write(prefs);
       return dash;
+    });
+  }
+  // ── Grid Board View Methods ────────────────────────────────────────
+
+  async listGridBoardViews(
+    userId: string,
+    queryName?: string,
+  ): Promise<GridBoardView[]> {
+    const prefs = await this.read(userId);
+    const views = prefs.gridBoardViews || [];
+    return queryName ? views.filter((v) => v.queryName === queryName) : views;
+  }
+
+  async getGridBoardView(
+    userId: string,
+    viewId: string,
+  ): Promise<GridBoardView | null> {
+    const prefs = await this.read(userId);
+    return (prefs.gridBoardViews || []).find((v) => v.id === viewId) || null;
+  }
+
+  async createGridBoardView(
+    userId: string,
+    input: Omit<GridBoardView, "id" | "createdAt" | "updatedAt">,
+  ): Promise<GridBoardView> {
+    return this.withLock(userId, async () => {
+      const prefs = await this.read(userId);
+      if (!prefs.gridBoardViews) prefs.gridBoardViews = [];
+      const now = new Date().toISOString();
+      const view: GridBoardView = {
+        ...input,
+        id: uid(),
+        createdAt: now,
+        updatedAt: now,
+      };
+      prefs.gridBoardViews.push(view);
+      await this.write(prefs);
+      return view;
+    });
+  }
+
+  async updateGridBoardView(
+    userId: string,
+    viewId: string,
+    partial: Partial<Omit<GridBoardView, "id" | "createdAt">>,
+  ): Promise<GridBoardView | null> {
+    return this.withLock(userId, async () => {
+      const prefs = await this.read(userId);
+      const view = (prefs.gridBoardViews || []).find((v) => v.id === viewId);
+      if (!view) return null;
+      Object.assign(view, partial, {
+        id: viewId,
+        updatedAt: new Date().toISOString(),
+      });
+      await this.write(prefs);
+      return view;
+    });
+  }
+
+  async deleteGridBoardView(userId: string, viewId: string): Promise<boolean> {
+    return this.withLock(userId, async () => {
+      const prefs = await this.read(userId);
+      const before = (prefs.gridBoardViews || []).length;
+      prefs.gridBoardViews = (prefs.gridBoardViews || []).filter(
+        (v) => v.id !== viewId,
+      );
+      if (prefs.gridBoardViews.length === before) return false;
+      await this.write(prefs);
+      return true;
     });
   }
 }

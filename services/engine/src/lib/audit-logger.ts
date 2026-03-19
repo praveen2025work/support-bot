@@ -1,10 +1,10 @@
-import { promises as fs } from 'fs';
-import { logger } from './logger';
-import { paths } from './env-config';
+import { promises as fs } from "fs";
+import { logger } from "./logger";
+import { paths } from "./env-config";
 
 export interface AuditEntry {
   timestamp: string;
-  action: 'create' | 'update' | 'delete' | 'upload';
+  action: "create" | "update" | "delete" | "upload" | "refresh";
   resource: string; // e.g., 'query', 'group', 'filter', 'template', 'user', 'settings', 'file', 'intent'
   resourceId?: string;
   groupId?: string;
@@ -20,17 +20,19 @@ async function ensureAuditDir() {
   await fs.mkdir(AUDIT_DIR, { recursive: true });
 }
 
-export async function logAudit(entry: Omit<AuditEntry, 'timestamp'>): Promise<void> {
+export async function logAudit(
+  entry: Omit<AuditEntry, "timestamp">,
+): Promise<void> {
   try {
     await ensureAuditDir();
     const fullEntry: AuditEntry = {
       ...entry,
       timestamp: new Date().toISOString(),
     };
-    await fs.appendFile(AUDIT_FILE, JSON.stringify(fullEntry) + '\n');
-    logger.info({ audit: fullEntry }, 'Audit log entry');
+    await fs.appendFile(AUDIT_FILE, JSON.stringify(fullEntry) + "\n");
+    logger.info({ audit: fullEntry }, "Audit log entry");
   } catch (err) {
-    logger.error({ err }, 'Failed to write audit log');
+    logger.error({ err }, "Failed to write audit log");
   }
 }
 
@@ -42,14 +44,21 @@ export async function getAuditLog(options?: {
 }): Promise<AuditEntry[]> {
   try {
     await ensureAuditDir();
-    const content = await fs.readFile(AUDIT_FILE, 'utf-8');
-    let entries = content.trim().split('\n')
+    const content = await fs.readFile(AUDIT_FILE, "utf-8");
+    let entries = content
+      .trim()
+      .split("\n")
       .filter(Boolean)
-      .map(line => JSON.parse(line) as AuditEntry);
+      .map((line) => JSON.parse(line) as AuditEntry);
 
-    if (options?.resource) entries = entries.filter(e => e.resource === options.resource);
-    if (options?.groupId) entries = entries.filter(e => e.groupId === options.groupId);
-    if (options?.since) { const since = options.since; entries = entries.filter(e => e.timestamp >= since); }
+    if (options?.resource)
+      entries = entries.filter((e) => e.resource === options.resource);
+    if (options?.groupId)
+      entries = entries.filter((e) => e.groupId === options.groupId);
+    if (options?.since) {
+      const since = options.since;
+      entries = entries.filter((e) => e.timestamp >= since);
+    }
 
     entries.reverse(); // newest first
     if (options?.limit) entries = entries.slice(0, options.limit);

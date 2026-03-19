@@ -1,0 +1,21 @@
+[
+  {
+    "id": "sample-mssql",
+    "name": "Sample SQL Server",
+    "type": "mssql",
+    "host": "localhost",
+    "port": 1433,
+    "database": "SampleDB",
+    "defaultSchema": "dbo",
+    "authType": "sql_auth",
+    "username": "sa",
+    "maxPoolSize": 10,
+    "connectionTimeout": 30000,
+    "requestTimeout": 60000,
+    "maxRows": 10000,
+    "allowedSchemas": [],
+    "readOnly": true,
+    "createdAt": "2026-03-19T02:01:30.096Z",
+    "updatedAt": "2026-03-19T02:01:30.096Z"
+  }
+]
