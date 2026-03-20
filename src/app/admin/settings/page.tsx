@@ -11,6 +11,9 @@ interface PlatformConfig {
   apiBaseUrl: string;
   mockApiUrl: string;
   enabledPlatforms: string[];
+  stompBrokerUrl: string;
+  stompDestination: string;
+  stompEnabled: boolean;
 }
 
 export default function SettingsPage() {
@@ -22,17 +25,28 @@ export default function SettingsPage() {
     apiBaseUrl: "",
     mockApiUrl: "http://localhost:8080",
     enabledPlatforms: ["web", "widget"],
+    stompBrokerUrl: "",
+    stompDestination: "/topic/notifications",
+    stompEnabled: false,
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [activeSection, setActiveSection] = useState("nlp");
+
+  // Read initial section from URL query param (e.g. ?section=stomp)
+  const [activeSection, setActiveSection] = useState(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("section") || "nlp";
+    }
+    return "nlp";
+  });
 
   // Load current settings from constants (read-only display for now)
   useEffect(() => {
     fetch("/api/admin/settings")
       .then((r) => r.json())
       .then((d) => {
-        if (d.config) setConfig(d.config);
+        if (d.config) setConfig((prev) => ({ ...prev, ...d.config }));
       })
       .catch(() => {});
   }, []);
@@ -52,9 +66,46 @@ export default function SettingsPage() {
     }
   };
 
+  // Load STOMP config from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("chatbot_stomp_config");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setConfig((prev) => ({
+          ...prev,
+          stompBrokerUrl: parsed.brokerUrl || "",
+          stompDestination: parsed.destination || "/topic/notifications",
+          stompEnabled: parsed.enabled ?? false,
+        }));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleSaveStomp = () => {
+    const stompConfig = {
+      brokerUrl: config.stompBrokerUrl,
+      destination: config.stompDestination,
+      enabled: config.stompEnabled,
+    };
+    localStorage.setItem("chatbot_stomp_config", JSON.stringify(stompConfig));
+    // Also set on window for immediate use by useStompNotifications
+    if (typeof window !== "undefined") {
+      (window as unknown as Record<string, unknown>).__STOMP_BROKER_URL__ =
+        config.stompBrokerUrl || undefined;
+      (window as unknown as Record<string, unknown>).__STOMP_DESTINATION__ =
+        config.stompDestination || undefined;
+    }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
   const sections = [
     { id: "nlp", label: "NLP Pipeline" },
     { id: "api", label: "API & Cache" },
+    { id: "stomp", label: "STOMP / Live" },
     { id: "platforms", label: "Platforms" },
     { id: "about", label: "About" },
   ];
@@ -234,6 +285,135 @@ export default function SettingsPage() {
                     disable caching. Default: 5 minutes
                   </p>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === "stomp" && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 className="text-sm font-semibold text-gray-700 mb-1">
+                STOMP / Live Notifications
+              </h2>
+              <p className="text-xs text-gray-400 mb-4">
+                Configure the WebSocket STOMP broker for real-time dashboard
+                card refresh. These settings are stored in the browser and can
+                be changed per environment.
+              </p>
+
+              <div className="space-y-4">
+                <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={config.stompEnabled}
+                    onChange={(e) =>
+                      setConfig({ ...config, stompEnabled: e.target.checked })
+                    }
+                    className="w-4 h-4 text-cyan-600 rounded"
+                  />
+                  <div>
+                    <div className="text-sm font-medium text-gray-700">
+                      Enable STOMP Notifications
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      Master switch — when off, no WebSocket connections are
+                      made regardless of per-dashboard toggles
+                    </div>
+                  </div>
+                </label>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                    STOMP Broker URL
+                  </label>
+                  <input
+                    value={config.stompBrokerUrl}
+                    onChange={(e) =>
+                      setConfig({ ...config, stompBrokerUrl: e.target.value })
+                    }
+                    placeholder="ws://localhost:15674/ws"
+                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 font-mono"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    WebSocket endpoint for the STOMP broker. Falls back to{" "}
+                    <code className="bg-gray-100 px-1 rounded text-[10px]">
+                      NEXT_PUBLIC_STOMP_BROKER_URL
+                    </code>{" "}
+                    env var if empty.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                    Subscription Destination
+                  </label>
+                  <input
+                    value={config.stompDestination}
+                    onChange={(e) =>
+                      setConfig({ ...config, stompDestination: e.target.value })
+                    }
+                    placeholder="/topic/notifications"
+                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 font-mono"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    STOMP topic to subscribe to. Messages must include{" "}
+                    <code className="bg-gray-100 px-1 rounded text-[10px]">
+                      {`{"application":"chatbot"}`}
+                    </code>{" "}
+                    to be processed.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-blue-50 border border-blue-100">
+                  <h4 className="text-xs font-semibold text-blue-700 mb-1">
+                    Environment Quick Switch
+                  </h4>
+                  <p className="text-xs text-blue-600 mb-2">
+                    Click a preset to fill in the broker URL for common
+                    environments:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      {
+                        label: "Local (RabbitMQ)",
+                        url: "ws://localhost:15674/ws",
+                      },
+                      {
+                        label: "Local (ActiveMQ)",
+                        url: "ws://localhost:61614/ws",
+                      },
+                      {
+                        label: "Dev",
+                        url: "wss://stomp-dev.yourcompany.com/ws",
+                      },
+                      { label: "QA", url: "wss://stomp-qa.yourcompany.com/ws" },
+                      { label: "Prod", url: "wss://stomp.yourcompany.com/ws" },
+                    ].map((preset) => (
+                      <button
+                        key={preset.label}
+                        onClick={() =>
+                          setConfig({ ...config, stompBrokerUrl: preset.url })
+                        }
+                        className="px-2.5 py-1 text-[11px] font-medium text-blue-700 bg-white border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center gap-3">
+                <button
+                  onClick={handleSaveStomp}
+                  className="px-4 py-2 text-sm bg-cyan-600 text-white rounded-lg shadow-sm hover:bg-cyan-700"
+                >
+                  Save STOMP Settings
+                </button>
+                {saved && (
+                  <span className="text-xs text-green-600">
+                    Settings saved successfully
+                  </span>
+                )}
               </div>
             </div>
           )}

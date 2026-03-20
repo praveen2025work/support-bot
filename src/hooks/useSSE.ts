@@ -12,7 +12,7 @@ export function useSSE(url: string, enabled = true) {
   const [events, setEvents] = useState<SSEEvent[]>([]);
   const [connected, setConnected] = useState(false);
   const sourceRef = useRef<EventSource | null>(null);
-  const connectRef = useRef<() => void>();
+  const connectRef = useRef<() => void>(undefined as unknown as () => void);
 
   const connect = useCallback(() => {
     if (!enabled) return;

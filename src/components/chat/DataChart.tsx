@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -17,20 +17,32 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from 'recharts';
+  Treemap,
+  ReferenceLine,
+} from "recharts";
 
 const COLORS = [
-  '#3b82f6',
-  '#6366f1',
-  '#8b5cf6',
-  '#06b6d4',
-  '#10b981',
-  '#f59e0b',
-  '#ef4444',
-  '#ec4899',
+  "#3b82f6",
+  "#6366f1",
+  "#8b5cf6",
+  "#06b6d4",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#ec4899",
 ];
 
-export type ChartType = 'line' | 'bar' | 'pie' | 'area' | 'stacked-bar' | 'stacked-area' | 'none';
+export type ChartType =
+  | "line"
+  | "bar"
+  | "pie"
+  | "area"
+  | "stacked-bar"
+  | "stacked-area"
+  | "gauge"
+  | "waterfall"
+  | "treemap"
+  | "none";
 
 export interface ChartConfig {
   defaultType?: ChartType;
@@ -51,7 +63,7 @@ export interface ColumnConfig {
 
 export interface DetectedColumnMeta {
   column: string;
-  detectedType: 'date' | 'integer' | 'decimal' | 'id' | 'string';
+  detectedType: "date" | "integer" | "decimal" | "id" | "string";
   format?: string;
 }
 
@@ -75,11 +87,11 @@ const ID_NAME_PATTERN =
 
 function isDateColumn(key: string, data: Record<string, unknown>[]): boolean {
   if (DATE_NAME_PATTERN.test(key)) return true;
-  const sample = data.slice(0, 5).map((r) => String(r[key] ?? ''));
+  const sample = data.slice(0, 5).map((r) => String(r[key] ?? ""));
   return sample.every(
     (v) =>
       /^\d{4}[-/]/.test(v) ||
-      /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(v)
+      /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(v),
   );
 }
 
@@ -88,10 +100,10 @@ function detectChartType(
   headers?: string[],
   config?: ChartConfig,
   columnConfig?: ColumnConfig,
-  columnMetadata?: DetectedColumnMeta[]
+  columnMetadata?: DetectedColumnMeta[],
 ): ChartDetection {
   if (!data || data.length < 2)
-    return { type: 'none', labelKey: '', numericKeys: [] };
+    return { type: "none", labelKey: "", numericKeys: [] };
 
   const keys = headers ?? Object.keys(data[0]);
 
@@ -102,48 +114,79 @@ function detectChartType(
   }
 
   // Build exclusion sets from columnConfig
-  const idSet = new Set((columnConfig?.idColumns || []).map((c) => c.toLowerCase()));
-  const dateExcludeSet = new Set((columnConfig?.dateColumns || []).map((c) => c.toLowerCase()));
-  const ignoreSet = new Set((columnConfig?.ignoreColumns || []).map((c) => c.toLowerCase()));
+  const idSet = new Set(
+    (columnConfig?.idColumns || []).map((c) => c.toLowerCase()),
+  );
+  const dateExcludeSet = new Set(
+    (columnConfig?.dateColumns || []).map((c) => c.toLowerCase()),
+  );
+  const ignoreSet = new Set(
+    (columnConfig?.ignoreColumns || []).map((c) => c.toLowerCase()),
+  );
 
   // If columnConfig specifies labelColumns, use first; else fall back to chartConfig
   const configLabelKey = columnConfig?.labelColumns?.[0]
-    ? keys.find((k) => k.toLowerCase() === columnConfig.labelColumns![0].toLowerCase())
-    : config?.labelKey && keys.includes(config.labelKey) ? config.labelKey : undefined;
+    ? keys.find(
+        (k) => k.toLowerCase() === columnConfig.labelColumns![0].toLowerCase(),
+      )
+    : config?.labelKey && keys.includes(config.labelKey)
+      ? config.labelKey
+      : undefined;
 
   // If columnConfig specifies valueColumns, use those; else fall back to chartConfig
-  const explicitValueKeys = columnConfig?.valueColumns && columnConfig.valueColumns.length > 0
-    ? columnConfig.valueColumns.map((vc) => keys.find((k) => k.toLowerCase() === vc.toLowerCase())).filter(Boolean) as string[]
-    : config?.valueKeys?.filter((k) => keys.includes(k));
+  const explicitValueKeys =
+    columnConfig?.valueColumns && columnConfig.valueColumns.length > 0
+      ? (columnConfig.valueColumns
+          .map((vc) => keys.find((k) => k.toLowerCase() === vc.toLowerCase()))
+          .filter(Boolean) as string[])
+      : config?.valueKeys?.filter((k) => keys.includes(k));
 
-  const numericKeys = explicitValueKeys && explicitValueKeys.length > 0
-    ? explicitValueKeys
-    : keys.filter((key) => {
-        const keyLower = key.toLowerCase();
-        // Skip columns marked as ID, date, or ignored via columnConfig
-        if (idSet.has(keyLower) || dateExcludeSet.has(keyLower) || ignoreSet.has(keyLower)) return false;
-        // Use engine-detected metadata if available
-        const meta = metaMap.get(keyLower);
-        if (meta) {
-          // Skip date, id, and string columns from numeric keys
-          if (meta.detectedType === 'date' || meta.detectedType === 'id' || meta.detectedType === 'string') return false;
-          // integer and decimal are numeric
-          if (meta.detectedType === 'integer' || meta.detectedType === 'decimal') return true;
-        }
-        // Fallback: name-based and value-based detection
-        if (ID_NAME_PATTERN.test(key)) return false;
-        if (DATE_EXCLUDE_PATTERN.test(key)) return false;
-        const numericCount = data.filter((row) => {
-          const val = row[key];
-          return (
-            val !== null && val !== undefined && val !== '' && !isNaN(Number(val))
-          );
-        }).length;
-        return numericCount / data.length > 0.8;
-      });
+  const numericKeys =
+    explicitValueKeys && explicitValueKeys.length > 0
+      ? explicitValueKeys
+      : keys.filter((key) => {
+          const keyLower = key.toLowerCase();
+          // Skip columns marked as ID, date, or ignored via columnConfig
+          if (
+            idSet.has(keyLower) ||
+            dateExcludeSet.has(keyLower) ||
+            ignoreSet.has(keyLower)
+          )
+            return false;
+          // Use engine-detected metadata if available
+          const meta = metaMap.get(keyLower);
+          if (meta) {
+            // Skip date, id, and string columns from numeric keys
+            if (
+              meta.detectedType === "date" ||
+              meta.detectedType === "id" ||
+              meta.detectedType === "string"
+            )
+              return false;
+            // integer and decimal are numeric
+            if (
+              meta.detectedType === "integer" ||
+              meta.detectedType === "decimal"
+            )
+              return true;
+          }
+          // Fallback: name-based and value-based detection
+          if (ID_NAME_PATTERN.test(key)) return false;
+          if (DATE_EXCLUDE_PATTERN.test(key)) return false;
+          const numericCount = data.filter((row) => {
+            const val = row[key];
+            return (
+              val !== null &&
+              val !== undefined &&
+              val !== "" &&
+              !isNaN(Number(val))
+            );
+          }).length;
+          return numericCount / data.length > 0.8;
+        });
 
   if (numericKeys.length === 0)
-    return { type: 'none', labelKey: '', numericKeys: [] };
+    return { type: "none", labelKey: "", numericKeys: [] };
 
   const nonNumericKeys = keys.filter((k) => !numericKeys.includes(k));
 
@@ -152,25 +195,31 @@ function detectChartType(
   if (!configLabelKey && columnMetadata) {
     const dateCol = keys.find((k) => {
       const meta = metaMap.get(k.toLowerCase());
-      return meta?.detectedType === 'date' && !numericKeys.includes(k);
+      return meta?.detectedType === "date" && !numericKeys.includes(k);
     });
     if (dateCol) autoLabelKey = dateCol;
   }
 
-  const labelKey = configLabelKey || autoLabelKey || nonNumericKeys[0] || keys[0];
+  const labelKey =
+    configLabelKey || autoLabelKey || nonNumericKeys[0] || keys[0];
 
   // If config specifies a default type, use it
-  if (config?.defaultType && config.defaultType !== 'none') {
-    return { type: config.defaultType, labelKey, numericKeys: numericKeys.slice(0, 3) };
+  if (config?.defaultType && config.defaultType !== "none") {
+    return {
+      type: config.defaultType,
+      labelKey,
+      numericKeys: numericKeys.slice(0, 3),
+    };
   }
 
   // Auto-detection: check if label is a date column (metadata first, then fallback)
   const labelMeta = metaMap.get(labelKey.toLowerCase());
-  const labelIsDate = labelMeta?.detectedType === 'date' || isDateColumn(labelKey, data);
+  const labelIsDate =
+    labelMeta?.detectedType === "date" || isDateColumn(labelKey, data);
 
   // Date label + numeric columns -> LineChart
   if (labelIsDate && numericKeys.length >= 1) {
-    return { type: 'line', labelKey, numericKeys: numericKeys.slice(0, 3) };
+    return { type: "line", labelKey, numericKeys: numericKeys.slice(0, 3) };
   }
 
   // Single numeric + few categories -> PieChart
@@ -179,25 +228,28 @@ function detectChartType(
     data.length <= 8 &&
     nonNumericKeys.length >= 1
   ) {
-    return { type: 'pie', labelKey, numericKeys };
+    return { type: "pie", labelKey, numericKeys };
   }
 
   // String label + numeric columns -> BarChart
   if (nonNumericKeys.length >= 1 && numericKeys.length >= 1) {
-    return { type: 'bar', labelKey, numericKeys: numericKeys.slice(0, 3) };
+    return { type: "bar", labelKey, numericKeys: numericKeys.slice(0, 3) };
   }
 
-  return { type: 'none', labelKey: '', numericKeys: [] };
+  return { type: "none", labelKey: "", numericKeys: [] };
 }
 
 const CHART_TYPE_ICONS: { type: ChartType; label: string; icon: string }[] = [
-  { type: 'bar', label: 'Bar', icon: '▐' },
-  { type: 'stacked-bar', label: 'Stacked', icon: '▊' },
-  { type: 'line', label: 'Line', icon: '⟋' },
-  { type: 'area', label: 'Area', icon: '▨' },
-  { type: 'stacked-area', label: 'Stack Area', icon: '▩' },
-  { type: 'pie', label: 'Pie', icon: '◕' },
-  { type: 'none', label: 'Hide', icon: '▭' },
+  { type: "bar", label: "Bar", icon: "▐" },
+  { type: "stacked-bar", label: "Stacked", icon: "▊" },
+  { type: "line", label: "Line", icon: "⟋" },
+  { type: "area", label: "Area", icon: "▨" },
+  { type: "stacked-area", label: "Stack Area", icon: "▩" },
+  { type: "pie", label: "Pie", icon: "◕" },
+  { type: "gauge", label: "Gauge", icon: "◔" },
+  { type: "waterfall", label: "Waterfall", icon: "▟" },
+  { type: "treemap", label: "Treemap", icon: "▦" },
+  { type: "none", label: "Hide", icon: "▭" },
 ];
 
 function ChartToolbar({
@@ -216,8 +268,8 @@ function ChartToolbar({
           onClick={() => onTypeChange(type)}
           className={`px-1.5 py-0.5 text-[10px] rounded border transition-colors ${
             activeType === type
-              ? 'bg-blue-50 border-blue-300 text-blue-700 font-medium'
-              : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300'
+              ? "bg-blue-50 border-blue-300 text-blue-700 font-medium"
+              : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300"
           }`}
           title={label}
         >
@@ -242,13 +294,18 @@ export function DataChart({
   columnConfig?: ColumnConfig;
   columnMetadata?: DetectedColumnMeta[];
 }) {
-  const detection = useMemo(() => detectChartType(data, headers, chartConfig, columnConfig, columnMetadata), [data, headers, chartConfig, columnConfig, columnMetadata]);
+  const detection = useMemo(
+    () =>
+      detectChartType(data, headers, chartConfig, columnConfig, columnMetadata),
+    [data, headers, chartConfig, columnConfig, columnMetadata],
+  );
   const [overrideType, setOverrideType] = useState<ChartType | null>(null);
 
   const activeType = overrideType ?? detection.type;
 
   const chartData = useMemo(() => {
-    if (detection.labelKey === '' && detection.numericKeys.length === 0) return [];
+    if (detection.labelKey === "" && detection.numericKeys.length === 0)
+      return [];
     return data.slice(0, 30).map((row) => {
       const entry: Record<string, unknown> = {
         [detection.labelKey]: row[detection.labelKey],
@@ -263,12 +320,13 @@ export function DataChart({
   if (detection.numericKeys.length === 0) return null;
 
   const chartHeight = chartConfig?.height || 220;
-  const showLegend = chartConfig?.showLegend ?? detection.numericKeys.length > 1;
+  const showLegend =
+    chartConfig?.showLegend ?? detection.numericKeys.length > 1;
   const stacked = chartConfig?.stacked ?? false;
 
   const renderChart = () => {
     switch (activeType) {
-      case 'line':
+      case "line":
         return (
           <ResponsiveContainer width="100%" height={chartHeight}>
             <LineChart
@@ -298,7 +356,7 @@ export function DataChart({
           </ResponsiveContainer>
         );
 
-      case 'bar':
+      case "bar":
         return (
           <ResponsiveContainer width="100%" height={chartHeight}>
             <BarChart
@@ -320,14 +378,14 @@ export function DataChart({
                   dataKey={key}
                   fill={COLORS[i % COLORS.length]}
                   radius={[2, 2, 0, 0]}
-                  stackId={stacked ? 'stack' : undefined}
+                  stackId={stacked ? "stack" : undefined}
                 />
               ))}
             </BarChart>
           </ResponsiveContainer>
         );
 
-      case 'stacked-bar':
+      case "stacked-bar":
         return (
           <ResponsiveContainer width="100%" height={chartHeight}>
             <BarChart
@@ -356,7 +414,7 @@ export function DataChart({
           </ResponsiveContainer>
         );
 
-      case 'area':
+      case "area":
         return (
           <ResponsiveContainer width="100%" height={chartHeight}>
             <AreaChart
@@ -381,14 +439,14 @@ export function DataChart({
                   fill={COLORS[i % COLORS.length]}
                   fillOpacity={0.15}
                   strokeWidth={2}
-                  stackId={stacked ? 'stack' : undefined}
+                  stackId={stacked ? "stack" : undefined}
                 />
               ))}
             </AreaChart>
           </ResponsiveContainer>
         );
 
-      case 'stacked-area':
+      case "stacked-area":
         return (
           <ResponsiveContainer width="100%" height={chartHeight}>
             <AreaChart
@@ -420,7 +478,35 @@ export function DataChart({
           </ResponsiveContainer>
         );
 
-      case 'pie':
+      case "pie": {
+        const RADIAN = Math.PI / 180;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const renderPieLabel = (props: any) => {
+          const cx = Number(props.cx ?? 0);
+          const cy = Number(props.cy ?? 0);
+          const midAngle = Number(props.midAngle ?? 0);
+          const oR = Number(props.outerRadius ?? 0);
+          const percent = Number(props.percent ?? 0);
+          const name = String(props.name ?? "");
+          const radius = oR + 18;
+          const x = cx + radius * Math.cos(-midAngle * RADIAN);
+          const y = cy + radius * Math.sin(-midAngle * RADIAN);
+          if (percent < 0.03) return null;
+          const displayName = name.length > 12 ? name.slice(0, 11) + "…" : name;
+          return (
+            <text
+              x={x}
+              y={y}
+              fill="currentColor"
+              textAnchor={x > cx ? "start" : "end"}
+              dominantBaseline="central"
+              fontSize={10}
+              className="text-gray-600 dark:text-gray-400"
+            >
+              {`${displayName} ${(percent * 100).toFixed(0)}%`}
+            </text>
+          );
+        };
         return (
           <ResponsiveContainer width="100%" height={chartHeight}>
             <PieChart>
@@ -430,23 +516,198 @@ export function DataChart({
                 nameKey={detection.labelKey}
                 cx="50%"
                 cy="50%"
-                outerRadius={75}
-                label={({ name, percent }: { name?: string; percent?: number }) =>
-                  `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`
-                }
-                labelLine={false}
+                outerRadius={Math.min(chartHeight * 0.3, 75)}
+                innerRadius={Math.min(chartHeight * 0.15, 35)}
+                label={renderPieLabel}
+                labelLine={{
+                  stroke: "currentColor",
+                  strokeWidth: 0.5,
+                  strokeOpacity: 0.4,
+                }}
                 fontSize={10}
+                paddingAngle={1}
               >
                 {chartData.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip contentStyle={{ fontSize: 11 }} />
+              <Legend
+                layout="horizontal"
+                verticalAlign="bottom"
+                align="center"
+                iconSize={8}
+                wrapperStyle={{ fontSize: 10, paddingTop: 4 }}
+              />
             </PieChart>
           </ResponsiveContainer>
         );
+      }
 
-      case 'none':
+      case "gauge": {
+        // Gauge: show first numeric value as a semi-circular dial
+        const gaugeValue = Number(
+          chartData[0]?.[detection.numericKeys[0]] ?? 0,
+        );
+        const allValues = chartData.map((r) =>
+          Number(r[detection.numericKeys[0]] ?? 0),
+        );
+        const gaugeMax = Math.max(...allValues, 100);
+        const ratio = Math.min(Math.max(gaugeValue / gaugeMax, 0), 1);
+        const gaugeColor =
+          ratio < 0.6 ? "#10b981" : ratio < 0.8 ? "#f59e0b" : "#ef4444";
+        const gaugeData = [
+          { name: "value", value: ratio * 100 },
+          { name: "empty", value: (1 - ratio) * 100 },
+        ];
+        return (
+          <ResponsiveContainer width="100%" height={chartHeight}>
+            <PieChart>
+              <Pie
+                data={gaugeData}
+                cx="50%"
+                cy="70%"
+                startAngle={180}
+                endAngle={0}
+                innerRadius="60%"
+                outerRadius="80%"
+                dataKey="value"
+                stroke="none"
+              >
+                <Cell fill={gaugeColor} />
+                <Cell fill="#e5e7eb" />
+              </Pie>
+              <text
+                x="50%"
+                y="65%"
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="fill-gray-800 dark:fill-gray-200"
+                fontSize={20}
+                fontWeight={700}
+              >
+                {gaugeValue.toLocaleString()}
+              </text>
+              <text
+                x="50%"
+                y="80%"
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="fill-gray-400"
+                fontSize={10}
+              >
+                {detection.numericKeys[0]} (max {gaugeMax.toLocaleString()})
+              </text>
+            </PieChart>
+          </ResponsiveContainer>
+        );
+      }
+
+      case "waterfall": {
+        let cumulative = 0;
+        const waterfallData = chartData.map((row) => {
+          const val = Number(row[detection.numericKeys[0]] ?? 0);
+          const start = cumulative;
+          cumulative += val;
+          return {
+            name: String(row[detection.labelKey] ?? ""),
+            invisible: Math.min(start, cumulative),
+            visible: Math.abs(val),
+            value: val,
+            isPositive: val >= 0,
+          };
+        });
+        return (
+          <ResponsiveContainer width="100%" height={chartHeight}>
+            <BarChart
+              data={waterfallData}
+              margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#9ca3af" />
+              <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" />
+              <Tooltip
+                contentStyle={{ fontSize: 11 }}
+                formatter={(v: unknown, name: unknown) =>
+                  String(name) === "invisible" ? null : [Number(v), "Value"]
+                }
+              />
+              <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
+              <Bar dataKey="invisible" stackId="waterfall" fill="transparent" />
+              <Bar dataKey="visible" stackId="waterfall" radius={[2, 2, 0, 0]}>
+                {waterfallData.map((entry, i) => (
+                  <Cell
+                    key={i}
+                    fill={entry.isPositive ? "#10b981" : "#ef4444"}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        );
+      }
+
+      case "treemap": {
+        const treemapData = chartData.map((row, i) => ({
+          name: String(row[detection.labelKey] ?? `Item ${i + 1}`),
+          size: Math.abs(Number(row[detection.numericKeys[0]] ?? 0)),
+          fill: COLORS[i % COLORS.length],
+        }));
+        const TreemapContent = (props: Record<string, unknown>) => {
+          const { x, y, width, height, name, fill } = props as {
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+            name: string;
+            fill: string;
+          };
+          if ((width as number) < 40 || (height as number) < 25) return null;
+          const label =
+            String(name ?? "").length > 15
+              ? String(name ?? "").slice(0, 14) + "…"
+              : String(name ?? "");
+          return (
+            <g>
+              <rect
+                x={x}
+                y={y}
+                width={width}
+                height={height}
+                fill={fill}
+                stroke="#fff"
+                strokeWidth={2}
+                rx={4}
+              />
+              <text
+                x={x + width / 2}
+                y={y + height / 2}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill="#fff"
+                fontSize={10}
+                fontWeight={600}
+              >
+                {label}
+              </text>
+            </g>
+          );
+        };
+        return (
+          <ResponsiveContainer width="100%" height={chartHeight}>
+            <Treemap
+              data={treemapData}
+              dataKey="size"
+              nameKey="name"
+              content={<TreemapContent />}
+            >
+              <Tooltip contentStyle={{ fontSize: 11 }} />
+            </Treemap>
+          </ResponsiveContainer>
+        );
+      }
+
+      case "none":
       default:
         return null;
     }

@@ -1410,11 +1410,9 @@ export function EditableDataGrid({
                   >
                     <span className="flex items-center">
                       {isPinned && (
-                        <Pin
-                          size={10}
-                          className="mr-1 text-gray-500"
-                          title="Pinned"
-                        />
+                        <span title="Pinned">
+                          <Pin size={10} className="mr-1 text-gray-500" />
+                        </span>
                       )}
                       {col}
                       {getSortIndicator(col)}

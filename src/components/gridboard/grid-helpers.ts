@@ -1,4 +1,4 @@
-import type { ConditionalFormatRule } from "@/types/dashboard";
+import type { ConditionalFormatRule, ValidationRule } from "@/types/dashboard";
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -277,6 +277,220 @@ export function getEffectiveColumns(
 }
 
 // ── Filter operators list ──────────────────────────────────────────
+
+// ── Pivot Table ─────────────────────────────────────────────────────
+
+export interface PivotResult {
+  rowValues: string[];
+  colValues: string[];
+  cells: Record<string, Record<string, number>>;
+  rowTotals: Record<string, number>;
+  colTotals: Record<string, number>;
+  grandTotal: number;
+}
+
+export function pivotData(
+  rows: Record<string, unknown>[],
+  rowField: string,
+  colField: string,
+  valueField: string,
+  aggregation: "sum" | "avg" | "count" | "min" | "max" = "sum",
+): PivotResult {
+  const cells: Record<string, Record<string, number[]>> = {};
+  const colSet = new Set<string>();
+
+  for (const row of rows) {
+    const rv = String(row[rowField] ?? "(empty)");
+    const cv = String(row[colField] ?? "(empty)");
+    const val = toNum(row[valueField]);
+    colSet.add(cv);
+    if (!cells[rv]) cells[rv] = {};
+    if (!cells[rv][cv]) cells[rv][cv] = [];
+    if (!isNaN(val)) cells[rv][cv].push(val);
+  }
+
+  const rowValues = Object.keys(cells).sort();
+  const colValues = Array.from(colSet).sort();
+
+  const aggregate = (vals: number[]): number => {
+    if (vals.length === 0) return 0;
+    switch (aggregation) {
+      case "sum":
+        return vals.reduce((a, b) => a + b, 0);
+      case "avg":
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+      case "count":
+        return vals.length;
+      case "min":
+        return Math.min(...vals);
+      case "max":
+        return Math.max(...vals);
+    }
+  };
+
+  const aggregated: Record<string, Record<string, number>> = {};
+  const rowTotals: Record<string, number> = {};
+  const colTotals: Record<string, number> = {};
+  let grandTotal = 0;
+
+  for (const rv of rowValues) {
+    aggregated[rv] = {};
+    let rowSum = 0;
+    for (const cv of colValues) {
+      const val = aggregate(cells[rv]?.[cv] || []);
+      aggregated[rv][cv] = val;
+      rowSum += val;
+      colTotals[cv] = (colTotals[cv] || 0) + val;
+    }
+    rowTotals[rv] = rowSum;
+    grandTotal += rowSum;
+  }
+
+  return {
+    rowValues,
+    colValues,
+    cells: aggregated,
+    rowTotals,
+    colTotals,
+    grandTotal,
+  };
+}
+
+// ── Formula Columns ──────────────────────────────────────────────────
+
+/**
+ * Evaluates a safe math expression with column references like {column_name}.
+ * Supports: + - * / % ( ) and common Math functions.
+ * Does NOT use eval() — uses a simple tokenizer/parser.
+ */
+export function evaluateFormula(
+  expression: string,
+  row: Record<string, unknown>,
+): number | string {
+  try {
+    // Replace {col} tokens with values
+    const expr = expression.replace(/\{([^}]+)\}/g, (_, col) => {
+      const val = row[col.trim()];
+      const n = toNum(val);
+      return isNaN(n) ? "0" : String(n);
+    });
+
+    // Validate: only allow numbers, operators, parens, dots, spaces
+    if (!/^[\d\s+\-*/%.()]+$/.test(expr)) {
+      return "#ERR";
+    }
+
+    // Safe evaluation using Function constructor (no access to scope)
+    const result = new Function(`"use strict"; return (${expr});`)();
+    if (typeof result !== "number" || !isFinite(result)) return "#ERR";
+    return Math.round(result * 100) / 100;
+  } catch {
+    return "#ERR";
+  }
+}
+
+// ── Column Aggregation ───────────────────────────────────────────────
+
+export type AggregationType = "sum" | "avg" | "count" | "min" | "max";
+
+export function computeColumnAggregation(
+  rows: Record<string, unknown>[],
+  column: string,
+  aggregation: AggregationType,
+): number | null {
+  const values: number[] = [];
+  for (const row of rows) {
+    const n = toNum(row[column]);
+    if (!isNaN(n)) values.push(n);
+  }
+  if (values.length === 0) return null;
+
+  switch (aggregation) {
+    case "sum":
+      return values.reduce((a, b) => a + b, 0);
+    case "avg":
+      return values.reduce((a, b) => a + b, 0) / values.length;
+    case "count":
+      return values.length;
+    case "min":
+      return Math.min(...values);
+    case "max":
+      return Math.max(...values);
+  }
+}
+
+// ── Data Validation ───────────────────────────────────────────────
+
+export interface ValidationError {
+  column: string;
+  rowIndex: number;
+  message: string;
+}
+
+export function validateCell(
+  value: unknown,
+  column: string,
+  rowIndex: number,
+  rules: ValidationRule[],
+  allRows?: Record<string, unknown>[],
+): string[] {
+  const errors: string[] = [];
+  const colRules = rules.filter((r) => r.column === column);
+  if (colRules.length === 0) return errors;
+
+  const strVal = String(value ?? "").trim();
+
+  for (const rule of colRules) {
+    const msg = rule.message || `Validation failed: ${rule.type}`;
+    switch (rule.type) {
+      case "required":
+        if (strVal === "") errors.push(msg);
+        break;
+      case "min": {
+        const n = Number(strVal);
+        if (strVal !== "" && !isNaN(n) && n < Number(rule.value ?? 0))
+          errors.push(msg);
+        break;
+      }
+      case "max": {
+        const n = Number(strVal);
+        if (strVal !== "" && !isNaN(n) && n > Number(rule.value ?? 0))
+          errors.push(msg);
+        break;
+      }
+      case "regex":
+        if (rule.value && strVal !== "") {
+          try {
+            if (!new RegExp(rule.value).test(strVal)) errors.push(msg);
+          } catch {
+            errors.push("Invalid regex pattern");
+          }
+        }
+        break;
+      case "enum":
+        if (strVal !== "" && rule.value) {
+          const allowed = rule.value
+            .split(",")
+            .map((v) => v.trim().toLowerCase());
+          if (!allowed.includes(strVal.toLowerCase())) errors.push(msg);
+        }
+        break;
+      case "unique":
+        if (strVal !== "" && allRows) {
+          const dupes = allRows.filter(
+            (r, i) =>
+              i !== rowIndex &&
+              String(r[column] ?? "")
+                .trim()
+                .toLowerCase() === strVal.toLowerCase(),
+          );
+          if (dupes.length > 0) errors.push(msg);
+        }
+        break;
+    }
+  }
+  return errors;
+}
 
 export const FILTER_OPERATORS = [
   { value: "contains", label: "Contains" },

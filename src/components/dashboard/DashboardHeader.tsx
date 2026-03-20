@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { AppHeader } from '@/components/AppHeader';
+import { AppHeader } from "@/components/AppHeader";
 
 interface GroupInfo {
   id: string;
@@ -13,13 +13,13 @@ export function DashboardHeader({
   groups,
   onGroupChange,
   onAddFavorite,
-  addLabel = '+ Add Favorite',
+  addLabel = "+ Add Favorite",
 }: {
   userName?: string;
   groupId: string;
   groups: GroupInfo[];
   onGroupChange: (id: string) => void;
-  onAddFavorite: () => void;
+  onAddFavorite?: () => void;
   addLabel?: string;
 }) {
   return (
