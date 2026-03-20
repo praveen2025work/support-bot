@@ -5,9 +5,23 @@ import {
   TablePagination,
   exportToCsv,
 } from "@/components/chat/TablePagination";
+import {
+  Pin,
+  Filter,
+  ArrowUp,
+  ArrowDown,
+  ChevronRight,
+  ChevronDown,
+} from "lucide-react";
 import { GridToolbar } from "./GridToolbar";
 import { ColumnHeaderMenu } from "./ColumnHeaderMenu";
-import type { GridBoardView, ConditionalFormatRule } from "@/types/dashboard";
+import type {
+  GridBoardView,
+  ConditionalFormatRule,
+  FormulaColumn,
+  ValidationRule,
+  ChangeEntry,
+} from "@/types/dashboard";
 import {
   isNumericColumn,
   multiColumnSort,
@@ -17,9 +31,21 @@ import {
   applyConditionalFormat,
   reorderColumns,
   getEffectiveColumns,
+  evaluateFormula,
+  computeColumnAggregation,
+  validateCell,
   type SortEntry,
   type ClientFilter as ClientFilterType,
+  type AggregationType,
 } from "./grid-helpers";
+import { PivotTable } from "./PivotTable";
+import { SparklineCell } from "./SparklineCell";
+import { useGridKeyboard } from "./useGridKeyboard";
+import { ValidationIndicator } from "./ValidationIndicator";
+import { ChangeHistoryPanel } from "./ChangeHistoryPanel";
+import { ImportModal } from "./ImportModal";
+import { FindReplaceBar } from "./FindReplaceBar";
+import { History, Search, Upload, Snowflake } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -157,6 +183,55 @@ export function EditableDataGrid({
   // ── Save state ──
   const [saving, setSaving] = useState(false);
 
+  // ── Pivot mode ──
+  const [pivotMode, setPivotMode] = useState(false);
+  const [pivotConfig, setPivotConfig] = useState({
+    rowField: initialColumns[0] || "",
+    colField: initialColumns[1] || "",
+    valueField: initialColumns[2] || "",
+    aggregation: "sum" as "sum" | "avg" | "count" | "min" | "max",
+  });
+
+  // ── Formula columns ──
+  const [formulaColumns, setFormulaColumns] = useState<FormulaColumn[]>(
+    viewConfig?.formulaColumns || [],
+  );
+
+  // ── Column aggregation bar ──
+  const [columnAggregations, setColumnAggregations] = useState<
+    Record<string, AggregationType>
+  >((viewConfig?.columnAggregations || {}) as Record<string, AggregationType>);
+  const [showAggregationBar, setShowAggregationBar] = useState(
+    Object.keys(viewConfig?.columnAggregations || {}).length > 0,
+  );
+
+  // ── Keyboard navigation ──
+  const [focusedCell, setFocusedCell] = useState<[number, number] | null>(null);
+
+  // ── Batch 4: Validation ──
+  const [validationRules, setValidationRules] = useState<ValidationRule[]>(
+    viewConfig?.validationRules || [],
+  );
+
+  // ── Batch 4: Change history ──
+  const [changeHistory, setChangeHistory] = useState<ChangeEntry[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // ── Batch 4: Import modal ──
+  const [showImport, setShowImport] = useState(false);
+
+  // ── Batch 4: Find & Replace ──
+  const [showFindReplace, setShowFindReplace] = useState(false);
+  const [findHighlight, setFindHighlight] = useState<{
+    rowIndex: number;
+    column: string;
+  } | null>(null);
+
+  // ── Batch 4: Frozen rows ──
+  const [frozenRowIndices, setFrozenRowIndices] = useState<Set<number>>(
+    new Set(viewConfig?.frozenRowIndices || []),
+  );
+
   // ── Column drag state ──
   const [dragCol, setDragCol] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
@@ -263,6 +338,40 @@ export function EditableDataGrid({
     ? groups.reduce((sum, g) => sum + g.rows.length, 0)
     : sortedRows.length;
 
+  // ── Validation errors ──
+  const validationErrors = useMemo(() => {
+    if (validationRules.length === 0) return new Map<string, string[]>();
+    const errors = new Map<string, string[]>();
+    rows.forEach((row, rowIdx) => {
+      if (deletedRows.has(rowIdx)) return;
+      effectiveColumns.forEach((col) => {
+        const cellErrors = validateCell(
+          row[col],
+          col,
+          rowIdx,
+          validationRules,
+          rows,
+        );
+        if (cellErrors.length > 0) {
+          errors.set(`${rowIdx}:${col}`, cellErrors);
+        }
+      });
+    });
+    return errors;
+  }, [rows, validationRules, effectiveColumns, deletedRows]);
+
+  // ── Ctrl+F shortcut ──
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+        e.preventDefault();
+        setShowFindReplace(true);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
+
   // ── Cell editing ──
 
   const startEdit = useCallback(
@@ -303,6 +412,20 @@ export function EditableDataGrid({
         }
         return next;
       });
+
+      // Record change history
+      setChangeHistory((prev) => [
+        ...prev,
+        {
+          id: `ch_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          timestamp: new Date().toISOString(),
+          userId: "current_user",
+          rowIndex: rowIdx,
+          column: col,
+          oldValue: oldVal,
+          newValue: newVal,
+        },
+      ]);
     }
 
     setEditingCell(null);
@@ -668,6 +791,168 @@ export function EditableDataGrid({
     return summary;
   }, [showSummary, effectiveColumns, numericCols, filteredRows]);
 
+  // ── Formula column values ──
+  const formulaColumnNames = useMemo(
+    () => formulaColumns.map((fc) => `fx:${fc.name}`),
+    [formulaColumns],
+  );
+
+  // ── Aggregation bar ──
+  const aggregationValues = useMemo(() => {
+    if (!showAggregationBar) return null;
+    const result: Record<string, string> = {};
+    for (const col of effectiveColumns) {
+      const aggType = columnAggregations[col];
+      if (aggType && numericCols.has(col)) {
+        const val = computeColumnAggregation(filteredRows, col, aggType);
+        result[col] =
+          val !== null
+            ? val.toLocaleString(undefined, { maximumFractionDigits: 2 })
+            : "-";
+      }
+    }
+    return result;
+  }, [
+    showAggregationBar,
+    effectiveColumns,
+    columnAggregations,
+    numericCols,
+    filteredRows,
+  ]);
+
+  // ── Keyboard navigation ──
+  const { containerRef: gridContainerRef } = useGridKeyboard({
+    totalRows: visibleRows?.length ?? 0,
+    totalCols: effectiveColumns.length,
+    focusedCell,
+    onFocusChange: (row, col) => setFocusedCell([row, col]),
+    onStartEdit: (row, col) => {
+      if (visibleRows && visibleRows[row]) {
+        startEdit(visibleRows[row].originalIndex, effectiveColumns[col]);
+      }
+    },
+    onCancelEdit: cancelEdit,
+    isEditing: !!editingCell,
+    getCellValue: (row, col) => {
+      if (!visibleRows?.[row]) return "";
+      return formatValue(visibleRows[row].row[effectiveColumns[col]]);
+    },
+    readOnly,
+  });
+
+  // ── Import handler ──
+  const handleImport = useCallback(
+    (data: Record<string, unknown>[], mode: "append" | "replace") => {
+      if (mode === "replace") {
+        setRows(data);
+        setDirtyMap(new Map());
+        setAddedRows(new Set());
+        setDeletedRows(new Set());
+      } else {
+        const startIdx = rows.length;
+        setRows((prev) => [...prev, ...data]);
+        setAddedRows((prev) => {
+          const next = new Set(prev);
+          data.forEach((_, i) => next.add(startIdx + i));
+          return next;
+        });
+      }
+    },
+    [rows.length],
+  );
+
+  // ── Find & Replace handlers ──
+  const handleFindReplace = useCallback(
+    (rowIndex: number, column: string, newValue: string) => {
+      const oldVal = String(rows[rowIndex]?.[column] ?? "");
+      if (oldVal === newValue) return;
+      setRows((prev) => {
+        const next = [...prev];
+        next[rowIndex] = { ...next[rowIndex], [column]: newValue };
+        return next;
+      });
+      setDirtyMap((prev) => {
+        const next = new Map(prev);
+        const rowDirty = new Map(next.get(rowIndex) || new Map());
+        rowDirty.set(column, { oldValue: oldVal, newValue });
+        next.set(rowIndex, rowDirty);
+        return next;
+      });
+      setChangeHistory((prev) => [
+        ...prev,
+        {
+          id: `ch_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          timestamp: new Date().toISOString(),
+          userId: "current_user",
+          rowIndex,
+          column,
+          oldValue: oldVal,
+          newValue,
+        },
+      ]);
+    },
+    [rows],
+  );
+
+  const handleFindReplaceAll = useCallback(
+    (
+      matches: Array<{ rowIndex: number; column: string }>,
+      replaceTerm: string,
+    ) => {
+      setRows((prev) => {
+        const next = [...prev];
+        for (const match of matches) {
+          const oldVal = String(next[match.rowIndex]?.[match.column] ?? "");
+          next[match.rowIndex] = {
+            ...next[match.rowIndex],
+            [match.column]: replaceTerm,
+          };
+          setDirtyMap((dm) => {
+            const nxt = new Map(dm);
+            const rowDirty = new Map(nxt.get(match.rowIndex) || new Map());
+            rowDirty.set(match.column, {
+              oldValue: oldVal,
+              newValue: replaceTerm,
+            });
+            nxt.set(match.rowIndex, rowDirty);
+            return nxt;
+          });
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  // ── History undo ──
+  const handleHistoryUndo = useCallback((entry: ChangeEntry) => {
+    setRows((prev) => {
+      const next = [...prev];
+      if (next[entry.rowIndex]) {
+        next[entry.rowIndex] = {
+          ...next[entry.rowIndex],
+          [entry.column]: entry.oldValue,
+        };
+      }
+      return next;
+    });
+    setChangeHistory((prev) => prev.filter((e) => e.id !== entry.id));
+  }, []);
+
+  // ── Frozen row toggle ──
+  const toggleFreezeRow = useCallback(
+    (rowIndex: number) => {
+      setFrozenRowIndices((prev) => {
+        const next = new Set(prev);
+        if (next.has(rowIndex)) next.delete(rowIndex);
+        else next.add(rowIndex);
+        emitViewChange({ frozenRowIndices: Array.from(next) });
+        return next;
+      });
+    },
+    [emitViewChange],
+  );
+
   // ── Export ──
 
   const handleExport = useCallback(() => {
@@ -720,8 +1005,12 @@ export function EditableDataGrid({
     if (idx < 0) return null;
     const entry = sortConfig[idx];
     return (
-      <span className="ml-1 text-blue-600 text-[10px]">
-        {entry.direction === "asc" ? "▲" : "▼"}
+      <span className="ml-1 text-blue-600 text-[10px] inline-flex items-center">
+        {entry.direction === "asc" ? (
+          <ArrowUp size={10} />
+        ) : (
+          <ArrowDown size={10} />
+        )}
         {sortConfig.length > 1 && <sup>{idx + 1}</sup>}
       </span>
     );
@@ -741,6 +1030,11 @@ export function EditableDataGrid({
     const isPinned = pinnedColumns.includes(col);
     const cfStyle = applyConditionalFormat(row[col], col, conditionalFormats);
     const width = columnWidths[col];
+    const cellValidationErrors =
+      validationErrors.get(`${originalIndex}:${col}`) || [];
+    const isFindMatch =
+      findHighlight?.rowIndex === originalIndex &&
+      findHighlight?.column === col;
 
     return (
       <td
@@ -754,12 +1048,14 @@ export function EditableDataGrid({
             : {}),
           ...((cfStyle as React.CSSProperties) || {}),
         }}
-        className={`px-3 py-1.5 border-r border-gray-100 ${
+        className={`px-3 py-1.5 border-r border-gray-100 relative ${
           isNum ? "text-right font-mono" : ""
         } ${isDirty ? "bg-amber-50" : ""} ${
           isDeleted ? "line-through text-gray-400" : ""
         } ${!readOnly && !isDeleted ? "cursor-cell" : ""} ${
           isPinned ? "bg-white" : ""
+        } ${isFindMatch ? "!bg-yellow-200 ring-2 ring-yellow-400" : ""} ${
+          cellValidationErrors.length > 0 ? "!bg-red-50" : ""
         }`}
       >
         {isEditing ? (
@@ -773,10 +1069,18 @@ export function EditableDataGrid({
             type={isNum ? "number" : "text"}
           />
         ) : (
-          <span className="block truncate max-w-[300px]" title={cellVal}>
+          <span
+            className={`block truncate max-w-[300px] ${
+              isNum && !cfStyle && parseFloat(cellVal) < 0
+                ? "text-red-600 dark:text-red-400"
+                : ""
+            }`}
+            title={cellVal}
+          >
             {cellVal}
           </span>
         )}
+        <ValidationIndicator errors={cellValidationErrors} />
       </td>
     );
   };
@@ -789,13 +1093,27 @@ export function EditableDataGrid({
     const isAdded = addedRows.has(originalIndex);
     const isDeleted = deletedRows.has(originalIndex);
     const isSelected = selectedRows.has(originalIndex);
+    const isFrozen = frozenRowIndices.has(originalIndex);
 
     return (
       <tr
         key={originalIndex}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          toggleFreezeRow(originalIndex);
+        }}
         className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
           isAdded ? "bg-green-50" : ""
-        } ${isDeleted ? "bg-red-50/50" : ""} ${isSelected ? "bg-blue-50/50" : ""}`}
+        } ${isDeleted ? "bg-red-50/50" : ""} ${isSelected ? "bg-blue-50/50" : ""} ${
+          isFrozen ? "bg-blue-50/30 sticky z-[6]" : ""
+        }`}
+        style={
+          isFrozen
+            ? {
+                top: `${Array.from(frozenRowIndices).sort().indexOf(originalIndex) * 32 + 36}px`,
+              }
+            : undefined
+        }
       >
         {/* Checkbox */}
         {!readOnly && (
@@ -810,7 +1128,10 @@ export function EditableDataGrid({
         )}
         {/* Row number */}
         <td className="px-2 py-1.5 text-xs text-gray-400 border-r border-gray-100 w-[42px]">
-          {displayNum}
+          <span className="flex items-center gap-0.5">
+            {isFrozen && <Snowflake size={10} className="text-blue-400" />}
+            {displayNum}
+          </span>
         </td>
         {/* Data cells */}
         {effectiveColumns.map((col) => renderCell(row, originalIndex, col))}
@@ -850,6 +1171,143 @@ export function EditableDataGrid({
         onClearView={onClearView || (() => {})}
       />
 
+      {/* Pivot / Aggregation / Batch 4 toggles */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={() => setPivotMode(!pivotMode)}
+          className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors ${
+            pivotMode
+              ? "bg-purple-50 text-purple-700 border-purple-300"
+              : "text-gray-500 bg-white border-gray-200 hover:bg-gray-50"
+          }`}
+        >
+          Pivot
+        </button>
+        <button
+          onClick={() => setShowAggregationBar(!showAggregationBar)}
+          className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors ${
+            showAggregationBar
+              ? "bg-green-50 text-green-700 border-green-300"
+              : "text-gray-500 bg-white border-gray-200 hover:bg-gray-50"
+          }`}
+        >
+          Aggregation
+        </button>
+        <button
+          onClick={() => setShowFindReplace(!showFindReplace)}
+          className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors ${
+            showFindReplace
+              ? "bg-amber-50 text-amber-700 border-amber-300"
+              : "text-gray-500 bg-white border-gray-200 hover:bg-gray-50"
+          }`}
+          title="Find & Replace (Ctrl+F)"
+        >
+          <Search size={12} />
+          Find
+        </button>
+        {!readOnly && (
+          <button
+            onClick={() => setShowImport(true)}
+            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border text-gray-500 bg-white border-gray-200 hover:bg-gray-50 transition-colors"
+            title="Import CSV/TSV data"
+          >
+            <Upload size={12} />
+            Import
+          </button>
+        )}
+        <button
+          onClick={() => setShowHistory(true)}
+          className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors ${
+            changeHistory.length > 0
+              ? "bg-blue-50 text-blue-700 border-blue-300"
+              : "text-gray-500 bg-white border-gray-200 hover:bg-gray-50"
+          }`}
+          title="Change History"
+        >
+          <History size={12} />
+          History
+          {changeHistory.length > 0 && (
+            <span className="ml-0.5 bg-blue-600 text-white text-[9px] px-1 rounded-full">
+              {changeHistory.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Pivot config & view */}
+      {pivotMode && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 flex-wrap text-xs">
+            <label className="text-gray-500">Row:</label>
+            <select
+              value={pivotConfig.rowField}
+              onChange={(e) =>
+                setPivotConfig((p) => ({ ...p, rowField: e.target.value }))
+              }
+              className="border border-gray-300 rounded px-2 py-1 text-xs"
+            >
+              {initialColumns.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <label className="text-gray-500">Col:</label>
+            <select
+              value={pivotConfig.colField}
+              onChange={(e) =>
+                setPivotConfig((p) => ({ ...p, colField: e.target.value }))
+              }
+              className="border border-gray-300 rounded px-2 py-1 text-xs"
+            >
+              {initialColumns.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <label className="text-gray-500">Value:</label>
+            <select
+              value={pivotConfig.valueField}
+              onChange={(e) =>
+                setPivotConfig((p) => ({ ...p, valueField: e.target.value }))
+              }
+              className="border border-gray-300 rounded px-2 py-1 text-xs"
+            >
+              {initialColumns.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <label className="text-gray-500">Agg:</label>
+            <select
+              value={pivotConfig.aggregation}
+              onChange={(e) =>
+                setPivotConfig((p) => ({
+                  ...p,
+                  aggregation: e.target.value as typeof p.aggregation,
+                }))
+              }
+              className="border border-gray-300 rounded px-2 py-1 text-xs"
+            >
+              <option value="sum">Sum</option>
+              <option value="avg">Average</option>
+              <option value="count">Count</option>
+              <option value="min">Min</option>
+              <option value="max">Max</option>
+            </select>
+          </div>
+          <PivotTable
+            data={filteredRows}
+            rowField={pivotConfig.rowField}
+            colField={pivotConfig.colField}
+            valueField={pivotConfig.valueField}
+            aggregation={pivotConfig.aggregation}
+          />
+        </div>
+      )}
+
       {/* Info bar */}
       <div className="flex items-center gap-3 text-xs text-gray-500">
         <span>
@@ -869,8 +1327,23 @@ export function EditableDataGrid({
         {saving && <span className="text-amber-600">Saving...</span>}
       </div>
 
+      {/* Find & Replace Bar */}
+      <FindReplaceBar
+        isOpen={showFindReplace}
+        onClose={() => setShowFindReplace(false)}
+        rows={rows}
+        columns={effectiveColumns}
+        onReplace={handleFindReplace}
+        onReplaceAll={handleFindReplaceAll}
+        onHighlightMatch={setFindHighlight}
+      />
+
       {/* Table */}
-      <div className="overflow-auto border border-gray-200 rounded-lg max-h-[65vh]">
+      <div
+        ref={gridContainerRef}
+        tabIndex={0}
+        className="overflow-auto border border-gray-200 rounded-lg max-h-[65vh] focus:outline-none focus:ring-2 focus:ring-blue-300"
+      >
         <table className="w-full text-sm border-collapse">
           <thead className="sticky top-0 z-10">
             <tr className="bg-gray-50">
@@ -937,14 +1410,16 @@ export function EditableDataGrid({
                   >
                     <span className="flex items-center">
                       {isPinned && (
-                        <span className="mr-1 text-[10px]" title="Pinned">
-                          📌
-                        </span>
+                        <Pin
+                          size={10}
+                          className="mr-1 text-gray-500"
+                          title="Pinned"
+                        />
                       )}
                       {col}
                       {getSortIndicator(col)}
                       {hasFilter && (
-                        <span className="ml-1 text-[10px]">🔍</span>
+                        <Filter size={10} className="ml-1 text-blue-600" />
                       )}
                       <ColumnHeaderMenu
                         column={col}
@@ -973,6 +1448,17 @@ export function EditableDataGrid({
             </tr>
           </thead>
           <tbody>
+            {/* Frozen rows rendered at top */}
+            {frozenRowIndices.size > 0 &&
+              !groups &&
+              Array.from(frozenRowIndices)
+                .sort()
+                .map((frozenIdx) => {
+                  if (frozenIdx >= rows.length || deletedRows.has(frozenIdx))
+                    return null;
+                  return renderRow(rows[frozenIdx], frozenIdx, frozenIdx + 1);
+                })}
+
             {/* Grouped view */}
             {groups
               ? groups.map((group) => {
@@ -992,8 +1478,12 @@ export function EditableDataGrid({
                           colSpan={effectiveColumns.length + (readOnly ? 1 : 2)}
                           className="px-3 py-2 text-xs font-semibold text-gray-700"
                         >
-                          <span className="mr-2">
-                            {isCollapsed ? "▶" : "▼"}
+                          <span className="mr-2 inline-flex">
+                            {isCollapsed ? (
+                              <ChevronRight size={14} />
+                            ) : (
+                              <ChevronDown size={14} />
+                            )}
                           </span>
                           <span className="text-gray-500">
                             {groupByColumn}:
@@ -1040,6 +1530,50 @@ export function EditableDataGrid({
                 ))}
               </tr>
             )}
+
+            {/* Aggregation bar */}
+            {showAggregationBar && (
+              <tr className="bg-green-50 border-t-2 border-green-200 sticky bottom-0">
+                {!readOnly && <td className="px-1 py-1" />}
+                <td className="px-2 py-1 text-[10px] text-green-600 font-semibold">
+                  Agg
+                </td>
+                {effectiveColumns.map((col) => (
+                  <td key={col} className="px-1 py-1">
+                    {numericCols.has(col) ? (
+                      <div className="flex items-center gap-1">
+                        <select
+                          value={columnAggregations[col] || ""}
+                          onChange={(e) => {
+                            const val = e.target.value as AggregationType | "";
+                            setColumnAggregations((prev) => {
+                              const next = { ...prev };
+                              if (val) next[col] = val;
+                              else delete next[col];
+                              emitViewChange({ columnAggregations: next });
+                              return next;
+                            });
+                          }}
+                          className="text-[10px] border border-green-200 rounded px-0.5 py-0.5 bg-white"
+                        >
+                          <option value="">-</option>
+                          <option value="sum">Sum</option>
+                          <option value="avg">Avg</option>
+                          <option value="count">Count</option>
+                          <option value="min">Min</option>
+                          <option value="max">Max</option>
+                        </select>
+                        {aggregationValues?.[col] && (
+                          <span className="text-[10px] text-green-700 font-mono font-semibold">
+                            {aggregationValues[col]}
+                          </span>
+                        )}
+                      </div>
+                    ) : null}
+                  </td>
+                ))}
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -1053,6 +1587,31 @@ export function EditableDataGrid({
           onExport={handleExport}
         />
       )}
+
+      {/* Validation error count */}
+      {validationErrors.size > 0 && (
+        <div className="text-xs text-red-600 flex items-center gap-1">
+          <span className="w-2 h-2 bg-red-500 rounded-full inline-block" />
+          {validationErrors.size} validation error
+          {validationErrors.size > 1 ? "s" : ""}
+        </div>
+      )}
+
+      {/* Change History Panel */}
+      <ChangeHistoryPanel
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+        history={changeHistory}
+        onUndo={handleHistoryUndo}
+      />
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+        existingColumns={initialColumns}
+        onImport={handleImport}
+      />
     </div>
   );
 }

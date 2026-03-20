@@ -170,6 +170,9 @@ export function MessageBubble({
   onCellClick,
   drillDownConfig,
   onDrillDown,
+  displayMode,
+  compactAuto,
+  hideExecutionTime,
 }: {
   message: Message;
   onAction?: (text: string) => void;
@@ -192,6 +195,12 @@ export function MessageBubble({
     column: string,
     value: string,
   ) => void;
+  /** Display mode: auto (both), table only, or chart only */
+  displayMode?: "auto" | "table" | "chart";
+  /** When auto mode, use compact tab toggle instead of stacking both */
+  compactAuto?: boolean;
+  /** Hide "Completed in Xms" badge (used in dashboard grid where header shows it) */
+  hideExecutionTime?: boolean;
 }) {
   const isUser = message.role === "user";
 
@@ -226,6 +235,8 @@ export function MessageBubble({
               onCellClick={onCellClick}
               drillDownConfig={drillDownConfig}
               onDrillDown={onDrillDown}
+              displayMode={displayMode}
+              compactAuto={compactAuto}
             />
           </div>
         ) : null}
@@ -258,7 +269,7 @@ export function MessageBubble({
             message.sourceName ||
             message.confidence != null) && (
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              {message.executionMs != null && (
+              {message.executionMs != null && !hideExecutionTime && (
                 <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
                   Completed in {message.executionMs}ms
                 </span>
@@ -313,6 +324,8 @@ function RichContentRenderer({
   onCellClick,
   drillDownConfig,
   onDrillDown,
+  displayMode,
+  compactAuto,
 }: {
   richContent: NonNullable<Message["richContent"]>;
   onExecuteQuery?: (queryName: string, filters: Record<string, string>) => void;
@@ -327,6 +340,8 @@ function RichContentRenderer({
     column: string,
     value: string,
   ) => void;
+  displayMode?: "auto" | "table" | "chart";
+  compactAuto?: boolean;
 }) {
   switch (richContent.type) {
     case "url_list": {
@@ -358,6 +373,8 @@ function RichContentRenderer({
           onCellClick={onCellClick}
           drillDownConfig={drillDownConfig}
           onDrillDown={onDrillDown}
+          displayMode={displayMode}
+          compactAuto={compactAuto}
         />
       );
     }
@@ -377,6 +394,8 @@ function RichContentRenderer({
                 onCellClick={onCellClick}
                 drillDownConfig={drillDownConfig}
                 onDrillDown={onDrillDown}
+                displayMode={displayMode}
+                compactAuto={compactAuto}
               />
             </div>
           ))}
@@ -474,14 +493,28 @@ function RichContentRenderer({
                       key={i}
                       className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}
                     >
-                      {csvData.headers.map((h) => (
-                        <td
-                          key={h}
-                          className="px-2 py-1 border-b border-gray-100"
-                        >
-                          {String(row[h] ?? "")}
-                        </td>
-                      ))}
+                      {csvData.headers.map((h) => {
+                        const val = row[h];
+                        const num =
+                          typeof val === "number"
+                            ? val
+                            : parseFloat(String(val ?? ""));
+                        const isNum =
+                          typeof val === "number" ||
+                          (!isNaN(num) && String(val ?? "").trim() !== "");
+                        return (
+                          <td
+                            key={h}
+                            className={`px-2 py-1 border-b border-gray-100 ${
+                              isNum && num < 0
+                                ? "text-red-600 dark:text-red-400"
+                                : ""
+                            }`}
+                          >
+                            {String(val ?? "")}
+                          </td>
+                        );
+                      })}
                     </tr>
                   )}
                 />
@@ -1212,7 +1245,7 @@ function RichContentRenderer({
                 </tr>
               </thead>
               <tbody>
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {}
                 {anomalyData.outlierRows
                   .slice(0, 30)
                   .map((o: any, i: number) => (
@@ -1600,6 +1633,8 @@ function QueryResultTable({
   onDrillDown,
   editable = false,
   queryName,
+  displayMode,
+  compactAuto = true,
 }: {
   result: QueryResultData & {
     chartConfig?: Record<string, unknown>;
@@ -1618,6 +1653,10 @@ function QueryResultTable({
   ) => void;
   editable?: boolean;
   queryName?: string;
+  /** Display mode: auto (both), table only, or chart only */
+  displayMode?: "auto" | "table" | "chart";
+  /** When auto mode, use compact tab toggle instead of stacking both */
+  compactAuto?: boolean;
 }) {
   const [pageRange, setPageRange] = useState({ start: 0, end: 10 });
   const [sortCol, setSortCol] = useState<string | null>(null);
@@ -1635,6 +1674,8 @@ function QueryResultTable({
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+  // Auto mode: tab toggle between table and chart (defaults to table)
+  const [autoTab, setAutoTab] = useState<"table" | "chart">("table");
   const rows = result.data || [];
   const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
 
@@ -1849,187 +1890,243 @@ function QueryResultTable({
       </div>
       {rows.length > 0 && (
         <>
-          <div className="mt-1 overflow-x-auto">
-            <table className="min-w-full text-xs border border-gray-200 rounded">
-              <thead>
-                <tr className="bg-gray-50">
-                  {columns.map((key) => {
-                    const hasDrillDown = drillDownMap.has(key);
-                    const isSorted = sortCol === key;
-                    return (
-                      <th
-                        key={key}
-                        className={`px-2 py-1 text-left font-medium border-b cursor-pointer select-none hover:bg-gray-100 ${
-                          hasDrillDown ? "text-blue-600" : "text-gray-600"
-                        }`}
-                        title={
-                          hasDrillDown
-                            ? `Drill down: ${drillDownMap.get(key)!.label || drillDownMap.get(key)!.targetQuery}`
-                            : "Click to sort"
-                        }
-                        onClick={() => handleSort(key)}
-                      >
-                        <span className="inline-flex items-center gap-0.5">
-                          {key}
-                          {hasDrillDown && (
-                            <ArrowRight className="w-3 h-3 text-blue-400" />
-                          )}
-                          {isSorted && (
-                            <span className="text-blue-500 text-[9px] ml-0.5">
-                              {sortDir === "asc" ? "▲" : "▼"}
-                            </span>
-                          )}
-                        </span>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {pagedData.map((row, i) => {
-                  const highlighted = isRowHighlighted(row);
-                  return (
-                    <tr
-                      key={i}
-                      className={`border-b border-gray-100 ${highlighted ? "bg-yellow-50" : ""}`}
-                    >
-                      {Object.entries(row).map(([key, val], j) => {
-                        const dd = drillDownMap.get(key);
-                        const hasDrillDown = !!dd && !!onDrillDown;
-                        const hasEventClick = onCellClick && cardId;
-                        const actualRowIdx = pageRange.start + i;
-                        const isEditingThis =
-                          editingCell?.row === actualRowIdx &&
-                          editingCell?.col === key;
-                        const cellDirty = dirtyMap.get(actualRowIdx)?.has(key);
-                        const displayVal = cellDirty
-                          ? dirtyMap.get(actualRowIdx)!.get(key)!.newValue
-                          : val;
+          {/* Auto mode: compact tab toggle (only when compactAuto is enabled) */}
+          {displayMode === "auto" && compactAuto && (
+            <div className="flex items-center gap-0.5 mt-1 mb-1">
+              <button
+                onClick={() => setAutoTab("table")}
+                className={`px-2 py-0.5 text-[10px] font-medium rounded-l-md border transition-colors ${
+                  autoTab === "table"
+                    ? "bg-blue-50 text-blue-700 border-blue-300"
+                    : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+                }`}
+              >
+                Table
+              </button>
+              <button
+                onClick={() => setAutoTab("chart")}
+                className={`px-2 py-0.5 text-[10px] font-medium rounded-r-md border border-l-0 transition-colors ${
+                  autoTab === "chart"
+                    ? "bg-blue-50 text-blue-700 border-blue-300"
+                    : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+                }`}
+              >
+                Chart
+              </button>
+            </div>
+          )}
+          {(displayMode === "auto"
+            ? compactAuto
+              ? autoTab === "table"
+              : true
+            : displayMode !== "chart") && (
+            <>
+              <div className="mt-1 overflow-x-auto">
+                <table className="min-w-full text-xs border border-gray-200 rounded">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      {columns.map((key) => {
+                        const hasDrillDown = drillDownMap.has(key);
+                        const isSorted = sortCol === key;
                         return (
-                          <td
-                            key={j}
-                            className={`px-2 py-1 ${
-                              hasDrillDown
-                                ? "text-blue-600 underline decoration-dotted cursor-pointer hover:bg-blue-50 hover:text-blue-800"
-                                : hasEventClick
-                                  ? "cursor-pointer hover:bg-blue-50"
-                                  : editable
-                                    ? "cursor-cell"
-                                    : ""
-                            } ${highlighted && String(val) === highlightValue ? "bg-yellow-100 font-semibold" : ""} ${cellDirty ? "bg-amber-50" : ""}`}
-                            onClick={() => {
-                              if (hasDrillDown) {
-                                onDrillDown!(
-                                  dd!.targetQuery,
-                                  dd!.targetFilter,
-                                  key,
-                                  String(val),
-                                );
-                              } else if (hasEventClick) {
-                                onCellClick!(key, val);
-                              }
-                            }}
-                            onDoubleClick={() =>
-                              startCellEdit(actualRowIdx, key)
-                            }
+                          <th
+                            key={key}
+                            className={`px-2 py-1 text-left font-medium border-b cursor-pointer select-none hover:bg-gray-100 ${
+                              hasDrillDown ? "text-blue-600" : "text-gray-600"
+                            }`}
                             title={
                               hasDrillDown
-                                ? `Drill down: ${dd!.label || dd!.targetQuery}`
-                                : editable
-                                  ? "Double-click to edit"
-                                  : undefined
+                                ? `Drill down: ${drillDownMap.get(key)!.label || drillDownMap.get(key)!.targetQuery}`
+                                : "Click to sort"
                             }
+                            onClick={() => handleSort(key)}
                           >
-                            {isEditingThis ? (
-                              <input
-                                ref={editInputRef}
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onBlur={commitCellEdit}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") commitCellEdit();
-                                  else if (e.key === "Escape")
-                                    setEditingCell(null);
-                                }}
-                                className="w-full px-1 py-0 text-xs border border-blue-400 rounded outline-none bg-white"
-                              />
-                            ) : (
-                              formatCellValue(displayVal)
-                            )}
-                          </td>
+                            <span className="inline-flex items-center gap-0.5">
+                              {key}
+                              {hasDrillDown && (
+                                <ArrowRight className="w-3 h-3 text-blue-400" />
+                              )}
+                              {isSorted && (
+                                <span className="text-blue-500 text-[9px] ml-0.5">
+                                  {sortDir === "asc" ? "▲" : "▼"}
+                                </span>
+                              )}
+                            </span>
+                          </th>
                         );
                       })}
                     </tr>
-                  );
-                })}
-              </tbody>
-              {showSummary && summaryStats && (
-                <tfoot>
-                  <tr className="bg-gray-100 border-t-2 border-gray-300">
-                    {columns.map((col) => {
-                      const s = summaryStats[col];
-                      if (!s) return <td key={col} className="px-2 py-1.5" />;
-                      if (s.sum !== undefined) {
-                        return (
-                          <td
-                            key={col}
-                            className="px-2 py-1.5 font-semibold text-gray-700"
-                          >
-                            <div className="leading-tight">
-                              <span className="text-[10px] text-gray-400">
-                                Sum{" "}
-                              </span>
-                              <span>{s.sum.toLocaleString()}</span>
-                            </div>
-                            <div className="leading-tight">
-                              <span className="text-[10px] text-gray-400">
-                                Avg{" "}
-                              </span>
-                              <span>{s.avg!.toLocaleString()}</span>
-                            </div>
-                          </td>
-                        );
-                      }
+                  </thead>
+                  <tbody>
+                    {pagedData.map((row, i) => {
+                      const highlighted = isRowHighlighted(row);
                       return (
-                        <td
-                          key={col}
-                          className="px-2 py-1.5 text-gray-500 italic"
+                        <tr
+                          key={i}
+                          className={`border-b border-gray-100 ${highlighted ? "bg-yellow-50" : ""}`}
                         >
-                          {s.distinct} unique
-                        </td>
+                          {Object.entries(row).map(([key, val], j) => {
+                            const dd = drillDownMap.get(key);
+                            const hasDrillDown = !!dd && !!onDrillDown;
+                            const hasEventClick = onCellClick && cardId;
+                            const actualRowIdx = pageRange.start + i;
+                            const isEditingThis =
+                              editingCell?.row === actualRowIdx &&
+                              editingCell?.col === key;
+                            const cellDirty = dirtyMap
+                              .get(actualRowIdx)
+                              ?.has(key);
+                            const displayVal = cellDirty
+                              ? dirtyMap.get(actualRowIdx)!.get(key)!.newValue
+                              : val;
+                            const numVal =
+                              typeof displayVal === "number"
+                                ? displayVal
+                                : parseFloat(String(displayVal ?? ""));
+                            const isNumeric =
+                              typeof displayVal === "number" ||
+                              (!isNaN(numVal) &&
+                                String(displayVal ?? "").trim() !== "");
+                            const numColor =
+                              !hasDrillDown && isNumeric && numVal < 0
+                                ? "text-red-600 dark:text-red-400"
+                                : "";
+                            return (
+                              <td
+                                key={j}
+                                className={`px-2 py-1 ${
+                                  hasDrillDown
+                                    ? "text-blue-600 underline decoration-dotted cursor-pointer hover:bg-blue-50 hover:text-blue-800"
+                                    : hasEventClick
+                                      ? "cursor-pointer hover:bg-blue-50"
+                                      : editable
+                                        ? "cursor-cell"
+                                        : ""
+                                } ${numColor} ${highlighted && String(val) === highlightValue ? "bg-yellow-100 font-semibold" : ""} ${cellDirty ? "bg-amber-50" : ""}`}
+                                onClick={() => {
+                                  if (hasDrillDown) {
+                                    onDrillDown!(
+                                      dd!.targetQuery,
+                                      dd!.targetFilter,
+                                      key,
+                                      String(val),
+                                    );
+                                  } else if (hasEventClick) {
+                                    onCellClick!(key, val);
+                                  }
+                                }}
+                                onDoubleClick={() =>
+                                  startCellEdit(actualRowIdx, key)
+                                }
+                                title={
+                                  hasDrillDown
+                                    ? `Drill down: ${dd!.label || dd!.targetQuery}`
+                                    : editable
+                                      ? "Double-click to edit"
+                                      : undefined
+                                }
+                              >
+                                {isEditingThis ? (
+                                  <input
+                                    ref={editInputRef}
+                                    value={editValue}
+                                    onChange={(e) =>
+                                      setEditValue(e.target.value)
+                                    }
+                                    onBlur={commitCellEdit}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") commitCellEdit();
+                                      else if (e.key === "Escape")
+                                        setEditingCell(null);
+                                    }}
+                                    className="w-full px-1 py-0 text-xs border border-blue-400 rounded outline-none bg-white"
+                                  />
+                                ) : (
+                                  formatCellValue(displayVal)
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
                       );
                     })}
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-          </div>
-          {rows.length > 10 && (
-            <TablePagination
-              totalRows={rows.length}
-              onPageChange={(start, end) => setPageRange({ start, end })}
-              onExport={() =>
-                exportToCsv(
-                  rows as Record<string, unknown>[],
-                  "query-results.csv",
-                )
-              }
-            />
-          )}
-          <Suspense
-            fallback={
-              <div className="h-64 flex items-center justify-center text-[var(--text-muted)]">
-                Loading chart…
+                  </tbody>
+                  {showSummary && summaryStats && (
+                    <tfoot>
+                      <tr className="bg-gray-100 border-t-2 border-gray-300">
+                        {columns.map((col) => {
+                          const s = summaryStats[col];
+                          if (!s)
+                            return <td key={col} className="px-2 py-1.5" />;
+                          if (s.sum !== undefined) {
+                            return (
+                              <td
+                                key={col}
+                                className="px-2 py-1.5 font-semibold text-gray-700"
+                              >
+                                <div className="leading-tight">
+                                  <span className="text-[10px] text-gray-400">
+                                    Sum{" "}
+                                  </span>
+                                  <span>{s.sum.toLocaleString()}</span>
+                                </div>
+                                <div className="leading-tight">
+                                  <span className="text-[10px] text-gray-400">
+                                    Avg{" "}
+                                  </span>
+                                  <span>{s.avg!.toLocaleString()}</span>
+                                </div>
+                              </td>
+                            );
+                          }
+                          return (
+                            <td
+                              key={col}
+                              className="px-2 py-1.5 text-gray-500 italic"
+                            >
+                              {s.distinct} unique
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
               </div>
-            }
-          >
-            <DataChart
-              data={rows}
-              chartConfig={result.chartConfig}
-              columnConfig={result.columnConfig}
-              columnMetadata={result.columnMetadata}
-            />
-          </Suspense>
+              {rows.length > 10 && (
+                <TablePagination
+                  totalRows={rows.length}
+                  onPageChange={(start, end) => setPageRange({ start, end })}
+                  onExport={() =>
+                    exportToCsv(
+                      rows as Record<string, unknown>[],
+                      "query-results.csv",
+                    )
+                  }
+                />
+              )}
+            </>
+          )}
+          {(displayMode === "auto"
+            ? compactAuto
+              ? autoTab === "chart"
+              : true
+            : displayMode !== "table") && (
+            <Suspense
+              fallback={
+                <div className="h-64 flex items-center justify-center text-[var(--text-muted)]">
+                  Loading chart…
+                </div>
+              }
+            >
+              <DataChart
+                data={rows}
+                chartConfig={result.chartConfig}
+                columnConfig={result.columnConfig}
+                columnMetadata={result.columnMetadata}
+              />
+            </Suspense>
+          )}
         </>
       )}
     </div>

@@ -1,7 +1,29 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { Paperclip, Plus, Trash2, LogOut } from "lucide-react";
+import {
+  Paperclip,
+  Plus,
+  Trash2,
+  LogOut,
+  BarChart3,
+  Table2,
+  LayoutGrid,
+  ToggleLeft,
+  ToggleRight,
+} from "lucide-react";
+
+type DisplayMode = "auto" | "table" | "chart";
+
+const DISPLAY_OPTIONS: {
+  value: DisplayMode;
+  label: string;
+  icon: typeof BarChart3;
+}[] = [
+  { value: "auto", label: "Auto", icon: LayoutGrid },
+  { value: "table", label: "Table", icon: Table2 },
+  { value: "chart", label: "Chart", icon: BarChart3 },
+];
 
 export function ChatInput({
   onSend,
@@ -10,6 +32,12 @@ export function ChatInput({
   onClearChat,
   onDisconnect,
   onFileSelect,
+  platform = "web",
+  displayMode = "auto",
+  onDisplayModeChange,
+  compactAuto = true,
+  onCompactAutoChange,
+  hasResults = false,
 }: {
   onSend: (text: string) => void;
   disabled: boolean;
@@ -17,6 +45,12 @@ export function ChatInput({
   onClearChat: () => void;
   onDisconnect: () => void;
   onFileSelect?: (file: File) => void;
+  platform?: "web" | "widget";
+  displayMode?: DisplayMode;
+  onDisplayModeChange?: (mode: DisplayMode) => void;
+  compactAuto?: boolean;
+  onCompactAutoChange?: (compact: boolean) => void;
+  hasResults?: boolean;
 }) {
   const [text, setText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -37,6 +71,50 @@ export function ChatInput({
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
     [onFileSelect],
+  );
+
+  const displayControls = hasResults && onDisplayModeChange && (
+    <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5 bg-gray-100 rounded-md p-0.5">
+        {DISPLAY_OPTIONS.map((opt) => {
+          const Icon = opt.icon;
+          const active = displayMode === opt.value;
+          return (
+            <button
+              key={opt.value}
+              onClick={() => onDisplayModeChange(opt.value)}
+              className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                active
+                  ? "bg-white text-blue-700 shadow-sm"
+                  : "text-gray-400 hover:text-gray-600"
+              }`}
+              title={`${opt.label} view`}
+            >
+              <Icon size={10} />
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+      {displayMode === "auto" && onCompactAutoChange && (
+        <button
+          onClick={() => onCompactAutoChange(!compactAuto)}
+          className="flex items-center gap-0.5 text-[10px] text-gray-400 hover:text-gray-600 transition-colors"
+          title={
+            compactAuto
+              ? "Compact: tab toggle (click to stack)"
+              : "Stacked: table + chart (click for tabs)"
+          }
+        >
+          {compactAuto ? (
+            <ToggleRight size={12} className="text-blue-500" />
+          ) : (
+            <ToggleLeft size={12} />
+          )}
+          <span>{compactAuto ? "Compact" : "Stacked"}</span>
+        </button>
+      )}
+    </div>
   );
 
   return (
@@ -81,35 +159,78 @@ export function ChatInput({
           Send
         </button>
       </div>
-      {/* Session actions */}
-      <div className="flex items-center justify-center gap-3 px-3 pb-2 pt-0">
-        <button
-          onClick={onNewSession}
-          className="text-[11px] text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-1"
-          title="Start a new conversation session"
-        >
-          <Plus size={12} />
-          New Session
-        </button>
-        <span className="text-gray-200">|</span>
-        <button
-          onClick={onClearChat}
-          disabled={disabled}
-          className="text-[11px] text-gray-400 hover:text-orange-500 transition-colors flex items-center gap-1 disabled:opacity-50"
-          title="Clear all messages"
-        >
-          <Trash2 size={12} />
-          Clear Chat
-        </button>
-        <span className="text-gray-200">|</span>
-        <button
-          onClick={onDisconnect}
-          className="text-[11px] text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1"
-          title="Disconnect and end session"
-        >
-          <LogOut size={12} />
-          Disconnect
-        </button>
+      {/* Session actions + display controls */}
+      <div className="flex items-center justify-center gap-2 px-3 pb-2 pt-0">
+        {platform === "widget" ? (
+          <>
+            {/* Widget: icon-only session buttons to save space */}
+            <button
+              onClick={onNewSession}
+              className="p-1.5 rounded-md text-gray-400 hover:text-blue-600 hover:bg-gray-100 transition-colors"
+              title="New Session"
+            >
+              <Plus size={14} />
+            </button>
+            <button
+              onClick={onClearChat}
+              disabled={disabled}
+              className="p-1.5 rounded-md text-gray-400 hover:text-orange-500 hover:bg-gray-100 transition-colors disabled:opacity-50"
+              title="Clear Chat"
+            >
+              <Trash2 size={14} />
+            </button>
+            <button
+              onClick={onDisconnect}
+              className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-gray-100 transition-colors"
+              title="Disconnect"
+            >
+              <LogOut size={14} />
+            </button>
+            {displayControls && (
+              <>
+                <span className="text-gray-200">|</span>
+                {displayControls}
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Web: labeled session buttons */}
+            <button
+              onClick={onNewSession}
+              className="text-[11px] text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-1"
+              title="Start a new conversation session"
+            >
+              <Plus size={12} />
+              New Session
+            </button>
+            <span className="text-gray-200">|</span>
+            <button
+              onClick={onClearChat}
+              disabled={disabled}
+              className="text-[11px] text-gray-400 hover:text-orange-500 transition-colors flex items-center gap-1 disabled:opacity-50"
+              title="Clear all messages"
+            >
+              <Trash2 size={12} />
+              Clear Chat
+            </button>
+            <span className="text-gray-200">|</span>
+            <button
+              onClick={onDisconnect}
+              className="text-[11px] text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1"
+              title="Disconnect and end session"
+            >
+              <LogOut size={12} />
+              Disconnect
+            </button>
+            {displayControls && (
+              <>
+                <span className="text-gray-200">|</span>
+                {displayControls}
+              </>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

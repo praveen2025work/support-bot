@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useRef } from 'react';
-import { MessageBubble } from './MessageBubble';
-import type { Message } from '@/hooks/useChat';
+import { useEffect, useRef } from "react";
+import { MessageBubble } from "./MessageBubble";
+import type { Message } from "@/hooks/useChat";
 
 interface StarterCard {
   label: string;
@@ -11,10 +11,26 @@ interface StarterCard {
 }
 
 const STARTER_CARDS: StarterCard[] = [
-  { label: 'List queries', description: 'See all available queries you can run', action: 'list queries' },
-  { label: 'Get help', description: 'Learn what I can do and see examples', action: 'help' },
-  { label: 'Run a query', description: 'Execute a query and see live results', action: 'run monthly_revenue' },
-  { label: 'Find URLs', description: 'Search for relevant links and docs', action: 'find urls for monthly_revenue' },
+  {
+    label: "List queries",
+    description: "See all available queries you can run",
+    action: "list queries",
+  },
+  {
+    label: "Get help",
+    description: "Learn what I can do and see examples",
+    action: "help",
+  },
+  {
+    label: "Run a query",
+    description: "Execute a query and see live results",
+    action: "run monthly_revenue",
+  },
+  {
+    label: "Find URLs",
+    description: "Search for relevant links and docs",
+    action: "find urls for monthly_revenue",
+  },
 ];
 
 export function MessageList({
@@ -25,6 +41,8 @@ export function MessageList({
   onExecuteQuery,
   onRetry,
   onFeedback,
+  displayMode = "auto",
+  compactAuto = true,
 }: {
   messages: Message[];
   isLoading: boolean;
@@ -32,19 +50,27 @@ export function MessageList({
   onAction?: (text: string) => void;
   onExecuteQuery?: (queryName: string, filters: Record<string, string>) => void;
   onRetry?: (text: string) => void;
-  onFeedback?: (messageId: string, type: 'positive' | 'negative', correction?: string) => void;
+  onFeedback?: (
+    messageId: string,
+    type: "positive" | "negative",
+    correction?: string,
+  ) => void;
+  displayMode?: "auto" | "table" | "chart";
+  compactAuto?: boolean;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
   return (
     <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
       {messages.length === 0 && (
         <div className="flex flex-col items-center justify-center mt-10 px-4">
-          <p className="text-lg font-medium text-gray-700">What can I help you with?</p>
+          <p className="text-lg font-medium text-gray-700">
+            What can I help you with?
+          </p>
           <p className="text-sm text-gray-400 mt-1 mb-6">
             Pick an option below or type your own question.
           </p>
@@ -55,15 +81,28 @@ export function MessageList({
                 onClick={() => onAction?.(card.action)}
                 className="flex flex-col items-start text-left rounded-xl border border-gray-200 bg-white px-4 py-3 hover:border-blue-400 hover:bg-blue-50 transition-colors shadow-sm"
               >
-                <span className="text-sm font-medium text-gray-800">{card.label}</span>
-                <span className="text-xs text-gray-400 mt-0.5">{card.description}</span>
+                <span className="text-sm font-medium text-gray-800">
+                  {card.label}
+                </span>
+                <span className="text-xs text-gray-400 mt-0.5">
+                  {card.description}
+                </span>
               </button>
             ))}
           </div>
         </div>
       )}
       {messages.map((msg) => (
-        <MessageBubble key={msg.id} message={msg} onAction={onAction} onExecuteQuery={onExecuteQuery} onRetry={onRetry} onFeedback={onFeedback} />
+        <MessageBubble
+          key={msg.id}
+          message={msg}
+          onAction={onAction}
+          onExecuteQuery={onExecuteQuery}
+          onRetry={onRetry}
+          onFeedback={onFeedback}
+          displayMode={displayMode}
+          compactAuto={compactAuto}
+        />
       ))}
       {isLoading && (
         <div className="flex justify-start mb-3">
@@ -75,7 +114,9 @@ export function MessageList({
                 <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]" />
               </div>
               {loadingStatus && (
-                <span className="text-xs text-gray-500 ml-1">{loadingStatus}</span>
+                <span className="text-xs text-gray-500 ml-1">
+                  {loadingStatus}
+                </span>
               )}
             </div>
           </div>

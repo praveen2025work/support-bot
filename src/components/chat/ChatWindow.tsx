@@ -50,6 +50,8 @@ function useEngineStatus() {
   return status;
 }
 
+export type DisplayMode = "auto" | "table" | "chart";
+
 export function ChatWindow({
   platform = "web",
   groupId,
@@ -74,6 +76,10 @@ export function ChatWindow({
   } = useChat(platform, groupId, userName);
   const { userInfo } = useUser();
   const engineStatus = useEngineStatus();
+  const [displayMode, setDisplayMode] = useState<DisplayMode>("auto");
+  const [compactAuto, setCompactAuto] = useState(true);
+
+  const hasResults = messages.some((m) => m.role === "bot" && m.richContent);
 
   const lastBotMessage = [...messages].reverse().find((m) => m.role === "bot");
   const suggestions = lastBotMessage?.suggestions || [];
@@ -236,6 +242,8 @@ export function ChatWindow({
             onExecuteQuery={executeQuery}
             onRetry={retryMessage}
             onFeedback={submitFeedback}
+            displayMode={displayMode}
+            compactAuto={compactAuto}
           />
 
           {suggestions.length > 0 && !isLoading && (
@@ -249,6 +257,12 @@ export function ChatWindow({
             onClearChat={handleClearChat}
             onDisconnect={handleDisconnect}
             onFileSelect={uploadFile}
+            platform={platform}
+            displayMode={displayMode}
+            onDisplayModeChange={setDisplayMode}
+            compactAuto={compactAuto}
+            onCompactAutoChange={setCompactAuto}
+            hasResults={hasResults}
           />
         </div>
       </FileDropZone>
