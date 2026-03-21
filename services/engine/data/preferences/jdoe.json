@@ -4,51 +4,27 @@
   "subscriptions": [],
   "recentQueries": [
     {
-      "queryName": "budget_vs_actual",
-      "groupId": "default",
-      "userMessage": "run budget_vs_actual",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:57:23.757Z",
-      "executionMs": 5
-    },
-    {
       "queryName": "monthly_revenue",
       "groupId": "default",
       "userMessage": "run revenue_by_region",
       "intent": "query.execute",
-      "timestamp": "2026-03-21T01:57:23.705Z",
-      "executionMs": 7
+      "timestamp": "2026-03-21T17:34:53.901Z",
+      "executionMs": 1
+    },
+    {
+      "queryName": "budget_vs_actual",
+      "groupId": "default",
+      "userMessage": "run budget_vs_actual",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T17:34:53.900Z",
+      "executionMs": 8
     },
     {
       "queryName": "pnl_summary",
       "groupId": "default",
       "userMessage": "run pnl_detail",
       "intent": "query.execute",
-      "timestamp": "2026-03-21T01:57:23.627Z",
-      "executionMs": 5
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:57:23.583Z",
-      "executionMs": 4
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:49:40.021Z",
-      "executionMs": 9
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:47:09.136Z",
+      "timestamp": "2026-03-21T17:34:53.847Z",
       "executionMs": 2
     },
     {
@@ -56,15 +32,7 @@
       "groupId": "default",
       "userMessage": "run pnl_summary",
       "intent": "query.execute",
-      "timestamp": "2026-03-21T01:47:01.025Z",
-      "executionMs": 4
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:46:50.648Z",
+      "timestamp": "2026-03-21T17:34:53.788Z",
       "executionMs": 2
     },
     {
@@ -72,15 +40,47 @@
       "groupId": "default",
       "userMessage": "run pnl_summary",
       "intent": "query.execute",
-      "timestamp": "2026-03-21T01:46:42.460Z",
-      "executionMs": 4
+      "timestamp": "2026-03-21T17:22:05.408Z",
+      "executionMs": 2
     },
     {
       "queryName": "pnl_summary",
       "groupId": "default",
-      "userMessage": "run pnl_summary",
+      "userMessage": "run pnl_detail",
       "intent": "query.execute",
-      "timestamp": "2026-03-21T01:46:32.002Z",
+      "timestamp": "2026-03-21T17:22:05.401Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "budget_vs_actual",
+      "groupId": "default",
+      "userMessage": "run budget_vs_actual",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T17:22:05.376Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "monthly_revenue",
+      "groupId": "default",
+      "userMessage": "run revenue_by_region",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T17:22:05.365Z",
+      "executionMs": 1
+    },
+    {
+      "queryName": "budget_vs_actual",
+      "groupId": "default",
+      "userMessage": "run budget_vs_actual",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T17:20:04.354Z",
+      "executionMs": 3
+    },
+    {
+      "queryName": "pnl_summary",
+      "groupId": "default",
+      "userMessage": "run pnl_detail",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T17:20:04.290Z",
       "executionMs": 1
     },
     {
@@ -88,55 +88,23 @@
       "groupId": "default",
       "userMessage": "run pnl_summary",
       "intent": "query.execute",
-      "timestamp": "2026-03-21T01:46:31.934Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:46:21.506Z",
-      "executionMs": 2
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:46:21.459Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:46:10.982Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:46:05.426Z",
-      "executionMs": 2
-    },
-    {
-      "queryName": "budget_vs_actual",
-      "groupId": "default",
-      "userMessage": "run budget_vs_actual",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:46:04.766Z",
-      "executionMs": 3
+      "timestamp": "2026-03-21T17:20:04.277Z",
+      "executionMs": 1
     },
     {
       "queryName": "monthly_revenue",
       "groupId": "default",
       "userMessage": "run revenue_by_region",
       "intent": "query.execute",
-      "timestamp": "2026-03-21T01:46:04.739Z",
+      "timestamp": "2026-03-21T17:20:04.236Z",
+      "executionMs": 1
+    },
+    {
+      "queryName": "pnl_summary",
+      "groupId": "default",
+      "userMessage": "run pnl_detail",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T17:12:01.655Z",
       "executionMs": 3
     },
     {
@@ -144,7 +112,15 @@
       "groupId": "default",
       "userMessage": "run pnl_summary",
       "intent": "query.execute",
-      "timestamp": "2026-03-21T01:46:04.718Z",
+      "timestamp": "2026-03-21T17:11:11.480Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "monthly_revenue",
+      "groupId": "default",
+      "userMessage": "run revenue_by_region",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T17:10:18.728Z",
       "executionMs": 2
     },
     {
@@ -152,127 +128,7 @@
       "groupId": "default",
       "userMessage": "run pnl_detail",
       "intent": "query.execute",
-      "timestamp": "2026-03-21T01:46:04.684Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "monthly_revenue",
-      "groupId": "default",
-      "userMessage": "run revenue_by_region",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:44:16.346Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_detail",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:44:16.295Z",
-      "executionMs": 4
-    },
-    {
-      "queryName": "budget_vs_actual",
-      "groupId": "default",
-      "userMessage": "run budget_vs_actual",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:43:03.115Z",
-      "executionMs": 4
-    },
-    {
-      "queryName": "monthly_revenue",
-      "groupId": "default",
-      "userMessage": "run revenue_by_region",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:43:03.062Z",
-      "executionMs": 6
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_detail",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:43:02.988Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:43:02.943Z",
-      "executionMs": 2
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:42:55.905Z",
-      "executionMs": 9
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:36:08.727Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:35:53.206Z",
-      "executionMs": 2
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:35:37.671Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:35:22.287Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:34:51.007Z",
-      "executionMs": 2
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:34:21.875Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "monthly_revenue",
-      "groupId": "default",
-      "userMessage": "run revenue_by_region",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:33:50.025Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_detail",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:33:49.959Z",
+      "timestamp": "2026-03-21T17:10:17.744Z",
       "executionMs": 3
     },
     {
@@ -280,7 +136,7 @@
       "groupId": "default",
       "userMessage": "run budget_vs_actual",
       "intent": "query.execute",
-      "timestamp": "2026-03-21T01:33:49.927Z",
+      "timestamp": "2026-03-21T17:10:17.699Z",
       "executionMs": 3
     },
     {
@@ -288,103 +144,55 @@
       "groupId": "default",
       "userMessage": "run pnl_summary",
       "intent": "query.execute",
-      "timestamp": "2026-03-21T01:33:49.906Z",
-      "executionMs": 2
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:32:10.845Z",
-      "executionMs": 2
-    },
-    {
-      "queryName": "budget_vs_actual",
-      "groupId": "default",
-      "userMessage": "run budget_vs_actual",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:31:42.006Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:31:42.003Z",
-      "executionMs": 10
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_detail",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:31:41.986Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "monthly_revenue",
-      "groupId": "default",
-      "userMessage": "run revenue_by_region",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:31:41.956Z",
-      "executionMs": 6
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_detail",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:30:09.904Z",
-      "executionMs": 6
-    },
-    {
-      "queryName": "budget_vs_actual",
-      "groupId": "default",
-      "userMessage": "run budget_vs_actual",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:30:09.899Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "monthly_revenue",
-      "groupId": "default",
-      "userMessage": "run revenue_by_region",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:30:09.898Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:30:09.854Z",
-      "executionMs": 6
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-21T01:30:09.792Z",
+      "timestamp": "2026-03-21T17:10:17.636Z",
       "executionMs": 4
     },
     {
       "queryName": "pnl_summary",
       "groupId": "default",
-      "userMessage": "run pnl_summary",
+      "userMessage": "run pnl_detail",
       "intent": "query.execute",
-      "timestamp": "2026-03-21T01:22:57.006Z",
+      "timestamp": "2026-03-21T17:10:01.325Z",
+      "executionMs": 3
+    },
+    {
+      "queryName": "budget_vs_actual",
+      "groupId": "default",
+      "userMessage": "run budget_vs_actual",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T17:10:00.658Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "pnl_summary",
+      "groupId": "default",
+      "userMessage": "run pnl_detail",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T17:10:00.551Z",
       "executionMs": 5
     },
     {
-      "queryName": "pnl_summary",
+      "queryName": "monthly_revenue",
       "groupId": "default",
-      "userMessage": "run pnl_summary",
+      "userMessage": "run revenue_by_region",
       "intent": "query.execute",
-      "timestamp": "2026-03-21T01:22:47.365Z",
+      "timestamp": "2026-03-21T17:10:00.517Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "budget_vs_actual",
+      "groupId": "default",
+      "userMessage": "run budget_vs_actual",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T17:10:00.516Z",
+      "executionMs": 3
+    },
+    {
+      "queryName": "monthly_revenue",
+      "groupId": "default",
+      "userMessage": "run revenue_by_region",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T17:10:00.498Z",
       "executionMs": 2
     },
     {
@@ -392,15 +200,207 @@
       "groupId": "default",
       "userMessage": "run pnl_summary",
       "intent": "query.execute",
-      "timestamp": "2026-03-21T01:22:30.382Z",
-      "executionMs": 24
+      "timestamp": "2026-03-21T17:10:00.464Z",
+      "executionMs": 7
+    },
+    {
+      "queryName": "monthly_revenue",
+      "groupId": "default",
+      "userMessage": "run revenue_by_region",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T17:04:00.296Z",
+      "executionMs": 2
     },
     {
       "queryName": "pnl_summary",
       "groupId": "default",
       "userMessage": "run pnl_summary",
       "intent": "query.execute",
-      "timestamp": "2026-03-21T01:22:13.731Z",
+      "timestamp": "2026-03-21T17:04:00.296Z",
+      "executionMs": 4
+    },
+    {
+      "queryName": "budget_vs_actual",
+      "groupId": "default",
+      "userMessage": "run budget_vs_actual",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T17:04:00.283Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "pnl_summary",
+      "groupId": "default",
+      "userMessage": "run pnl_detail",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T17:04:00.244Z",
+      "executionMs": 6
+    },
+    {
+      "queryName": "monthly_revenue",
+      "groupId": "default",
+      "userMessage": "run revenue_by_region",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T14:33:22.662Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "budget_vs_actual",
+      "groupId": "default",
+      "userMessage": "run budget_vs_actual",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T14:33:22.544Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "pnl_summary",
+      "groupId": "default",
+      "userMessage": "run pnl_detail",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T14:33:21.371Z",
+      "executionMs": 4
+    },
+    {
+      "queryName": "pnl_summary",
+      "groupId": "default",
+      "userMessage": "run pnl_summary",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T14:33:21.319Z",
+      "executionMs": 8
+    },
+    {
+      "queryName": "budget_vs_actual",
+      "groupId": "default",
+      "userMessage": "run budget_vs_actual",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T14:31:07.647Z",
+      "executionMs": 3
+    },
+    {
+      "queryName": "monthly_revenue",
+      "groupId": "default",
+      "userMessage": "run revenue_by_region",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T14:31:07.647Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "pnl_summary",
+      "groupId": "default",
+      "userMessage": "run pnl_summary",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T14:31:07.622Z",
+      "executionMs": 3
+    },
+    {
+      "queryName": "pnl_summary",
+      "groupId": "default",
+      "userMessage": "run pnl_detail",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T14:31:07.594Z",
+      "executionMs": 3
+    },
+    {
+      "queryName": "pnl_summary",
+      "groupId": "default",
+      "userMessage": "run pnl_summary",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T14:28:54.995Z",
+      "executionMs": 17
+    },
+    {
+      "queryName": "monthly_revenue",
+      "groupId": "default",
+      "userMessage": "run revenue_by_region",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T14:28:54.995Z",
+      "executionMs": 3
+    },
+    {
+      "queryName": "budget_vs_actual",
+      "groupId": "default",
+      "userMessage": "run budget_vs_actual",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T14:28:54.963Z",
+      "executionMs": 4
+    },
+    {
+      "queryName": "pnl_summary",
+      "groupId": "default",
+      "userMessage": "run pnl_detail",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T14:28:54.944Z",
+      "executionMs": 34
+    },
+    {
+      "queryName": "monthly_revenue",
+      "groupId": "default",
+      "userMessage": "run revenue_by_region",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T02:21:28.743Z",
+      "executionMs": 1
+    },
+    {
+      "queryName": "budget_vs_actual",
+      "groupId": "default",
+      "userMessage": "run budget_vs_actual",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T02:21:28.695Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "pnl_summary",
+      "groupId": "default",
+      "userMessage": "run pnl_detail",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T02:21:28.688Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "pnl_summary",
+      "groupId": "default",
+      "userMessage": "run pnl_summary",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T02:21:28.640Z",
+      "executionMs": 1
+    },
+    {
+      "queryName": "budget_vs_actual",
+      "groupId": "default",
+      "userMessage": "run budget_vs_actual",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T02:20:55.213Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "monthly_revenue",
+      "groupId": "default",
+      "userMessage": "run revenue_by_region",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T02:20:55.159Z",
+      "executionMs": 7
+    },
+    {
+      "queryName": "pnl_summary",
+      "groupId": "default",
+      "userMessage": "run pnl_detail",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T02:20:55.089Z",
+      "executionMs": 3
+    },
+    {
+      "queryName": "pnl_summary",
+      "groupId": "default",
+      "userMessage": "run pnl_summary",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T02:20:55.039Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "daily_orders",
+      "groupId": "default",
+      "userMessage": "run daily_orders",
+      "intent": "query.execute",
+      "timestamp": "2026-03-21T02:20:10.985Z",
       "executionMs": 2
     }
   ],
@@ -411,8 +411,8 @@
       "cards": [
         {
           "queryName": "monthly_revenue",
-          "groupId": "mitr-ai",
-          "label": "Monthly Revenue",
+          "groupId": "default",
+          "label": "monthly_revenue",
           "defaultFilters": {
             "region": "US"
           },
@@ -420,37 +420,44 @@
           "eventLink": {
             "mode": "auto"
           },
-          "id": "1773873403849_6c6lqf",
-          "createdAt": "2026-03-18T22:36:43.849Z",
-          "userId": "jdoe"
+          "displayMode": "auto",
+          "stompEnabled": false,
+          "id": "1774058950600_tsfic4",
+          "createdAt": "2026-03-21T02:09:10.600Z",
+          "userId": "jdoe",
+          "compactAuto": false
         },
         {
           "queryName": "daily_orders",
-          "groupId": "mitr-ai",
-          "label": "Daily Orders",
+          "groupId": "default",
+          "label": "daily_orders",
           "defaultFilters": {},
           "autoRun": true,
           "eventLink": {
             "mode": "auto"
           },
-          "id": "1773873406887_kbukb7",
-          "createdAt": "2026-03-18T22:36:46.887Z"
+          "displayMode": "auto",
+          "stompEnabled": false,
+          "id": "1774059099418_ylzh5e",
+          "createdAt": "2026-03-21T02:11:39.418Z",
+          "userId": "jdoe",
+          "compactAuto": false
         }
       ],
       "layouts": [
         {
-          "i": "1773873403849_6c6lqf",
-          "x": 0,
-          "y": 0,
+          "i": "1774058950600_tsfic4",
+          "x": 4,
+          "y": 12,
           "w": 6,
           "h": 6,
           "minW": 3,
           "minH": 4
         },
         {
-          "i": "1773873406887_kbukb7",
-          "x": 4,
-          "y": 6,
+          "i": "1774059099418_ylzh5e",
+          "x": 0,
+          "y": 18,
           "w": 6,
           "h": 6,
           "minW": 3,
@@ -458,7 +465,7 @@
         }
       ],
       "createdAt": "2026-03-18T22:36:39.044Z",
-      "updatedAt": "2026-03-20T03:09:42.629Z",
+      "updatedAt": "2026-03-21T02:11:50.474Z",
       "simpleMode": false
     },
     {
@@ -567,7 +574,7 @@
         }
       ],
       "createdAt": "2026-03-19T00:00:00.000Z",
-      "updatedAt": "2026-03-21T01:47:06.527Z",
+      "updatedAt": "2026-03-21T17:22:09.183Z",
       "workflowStatus": "draft",
       "workflowHistory": [
         {
@@ -612,16 +619,8 @@
         "fontFamily": "system",
         "cardStyle": "glass"
       }
-    },
-    {
-      "id": "test",
-      "name": "test",
-      "cards": [],
-      "layouts": [],
-      "createdAt": "2026-03-20T23:37:32.201Z",
-      "updatedAt": "2026-03-20T23:37:32.201Z"
     }
   ],
-  "updatedAt": "2026-03-21T02:02:48.235Z",
+  "updatedAt": "2026-03-21T17:34:53.902Z",
   "activeDashboardId": "pnl-executive-view"
 }

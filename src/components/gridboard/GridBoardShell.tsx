@@ -270,8 +270,8 @@ export function GridBoardShell() {
 
   // Save current grid state as a new view
   const handleSaveViewAs = useCallback(
-    (name: string) => {
-      saveViewAs(name, {});
+    (name: string, visibility: "private" | "public" = "private") => {
+      saveViewAs(name, {}, visibility);
     },
     [saveViewAs],
   );

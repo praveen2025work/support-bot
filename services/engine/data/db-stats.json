@@ -1,124 +1,29 @@
 {
   "queryStats": [
     {
-      "id": "stat_1774056079186_d9xy",
-      "queryName": "pnl_summary",
+      "id": "stat_1774115219014_2hns",
+      "queryName": "employee_compensation",
       "success": true,
-      "durationMs": 3,
-      "timestamp": "2026-03-21T01:21:19.186Z",
-      "filters": {
-        "fiscal_year": "FY2025",
-        "fiscal_quarter": "Q1"
-      }
+      "durationMs": 80,
+      "timestamp": "2026-03-21T17:46:59.014Z",
+      "filters": {}
     },
     {
-      "id": "stat_1774056094623_j96s",
-      "queryName": "pnl_summary",
+      "id": "stat_1774115219016_pjj0",
+      "queryName": "employee_metrics",
       "success": true,
-      "durationMs": 2,
-      "timestamp": "2026-03-21T01:21:34.623Z",
-      "filters": {
-        "fiscal_year": "FY2025",
-        "fiscal_quarter": "Q1"
-      }
+      "durationMs": 69,
+      "timestamp": "2026-03-21T17:46:59.016Z",
+      "filters": {}
     },
     {
-      "id": "stat_1774056114321_3zw4",
-      "queryName": "pnl_summary",
+      "id": "stat_1774115279820_1oxh",
+      "queryName": "monthly_revenue",
       "success": true,
-      "durationMs": 2,
-      "timestamp": "2026-03-21T01:21:54.321Z",
+      "durationMs": 14,
+      "timestamp": "2026-03-21T17:47:59.820Z",
       "filters": {
-        "fiscal_year": "FY2025",
-        "fiscal_quarter": "Q1"
-      }
-    },
-    {
-      "id": "stat_1774056133789_piew",
-      "queryName": "pnl_summary",
-      "success": true,
-      "durationMs": 2,
-      "timestamp": "2026-03-21T01:22:13.789Z",
-      "filters": {
-        "fiscal_year": "FY2025",
-        "fiscal_quarter": "Q1"
-      }
-    },
-    {
-      "id": "stat_1774056150497_tmcu",
-      "queryName": "pnl_summary",
-      "success": true,
-      "durationMs": 24,
-      "timestamp": "2026-03-21T01:22:30.497Z",
-      "filters": {
-        "fiscal_year": "FY2025",
-        "fiscal_quarter": "Q1"
-      }
-    },
-    {
-      "id": "stat_1774056167437_uj5s",
-      "queryName": "pnl_summary",
-      "success": true,
-      "durationMs": 2,
-      "timestamp": "2026-03-21T01:22:47.437Z",
-      "filters": {
-        "fiscal_year": "FY2025",
-        "fiscal_quarter": "Q1"
-      }
-    },
-    {
-      "id": "stat_1774056177020_vl9b",
-      "queryName": "pnl_summary",
-      "success": true,
-      "durationMs": 5,
-      "timestamp": "2026-03-21T01:22:57.020Z",
-      "filters": {
-        "fiscal_year": "FY2025",
-        "fiscal_quarter": "Q1"
-      }
-    },
-    {
-      "id": "stat_1774057780300_94d2",
-      "queryName": "pnl_summary",
-      "success": true,
-      "durationMs": 9,
-      "timestamp": "2026-03-21T01:49:40.300Z",
-      "filters": {
-        "fiscal_year": "FY2025",
-        "fiscal_quarter": "Q1"
-      }
-    },
-    {
-      "id": "stat_1774058243724_cif3",
-      "queryName": "pnl_summary",
-      "success": true,
-      "durationMs": 4,
-      "timestamp": "2026-03-21T01:57:23.724Z",
-      "filters": {
-        "fiscal_year": "FY2025",
-        "fiscal_quarter": "Q1"
-      }
-    },
-    {
-      "id": "stat_1774058243775_usbu",
-      "queryName": "pnl_summary",
-      "success": true,
-      "durationMs": 5,
-      "timestamp": "2026-03-21T01:57:23.775Z",
-      "filters": {
-        "fiscal_year": "FY2025",
-        "fiscal_quarter": "Q1"
-      }
-    },
-    {
-      "id": "stat_1774058243791_rsoo",
-      "queryName": "budget_vs_actual",
-      "success": true,
-      "durationMs": 5,
-      "timestamp": "2026-03-21T01:57:23.791Z",
-      "filters": {
-        "fiscal_year": "FY2025",
-        "fiscal_quarter": "Q1"
+        "date_range": "this_month"
       }
     }
   ]

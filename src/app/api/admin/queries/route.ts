@@ -18,6 +18,29 @@ interface ColumnConfig {
   ignoreColumns?: string[];
 }
 
+interface ActionConfig {
+  url: string;
+  label?: string;
+  contextFields?: string[];
+  metadata?: Record<string, string>;
+}
+
+interface CombinedConfig {
+  subQueries: Array<{
+    queryName: string;
+    prefix?: string;
+    filters?: Record<string, string>;
+    maxRows?: number;
+  }>;
+  joinType: "inner" | "left" | "right" | "full";
+  joinKeys: { left: string; right: string };
+  additionalJoins?: Array<{
+    joinType: "inner" | "left" | "right" | "full";
+    leftKey: string;
+    rightKey: string;
+  }>;
+}
+
 interface QueryRecord {
   id: string;
   name: string;
@@ -26,7 +49,7 @@ interface QueryRecord {
   url: string;
   source: string;
   filters: FilterBinding[];
-  type: "api" | "url" | "document" | "csv" | "xlsx";
+  type: "api" | "url" | "document" | "csv" | "xlsx" | "combined";
   filePath?: string;
   fileBaseDir?: string;
   sheetName?: string;
@@ -36,6 +59,9 @@ interface QueryRecord {
   authType?: "none" | "bearer" | "windows" | "bam";
   bamTokenUrl?: string;
   columnConfig?: ColumnConfig;
+  actionConfig?: ActionConfig;
+  combinedConfig?: CombinedConfig;
+  chartConfig?: Record<string, unknown>;
 }
 
 /** Sanitize a sheet name to a valid query name suffix (snake_case). */
@@ -225,6 +251,8 @@ export async function POST(request: NextRequest) {
           bamTokenUrl: body.bamTokenUrl || "",
           ...(body.columnConfig && { columnConfig: body.columnConfig }),
           ...(body.chartConfig && { chartConfig: body.chartConfig }),
+          ...(body.actionConfig && { actionConfig: body.actionConfig }),
+          ...(body.combinedConfig && { combinedConfig: body.combinedConfig }),
         };
 
         if (existingIdx !== -1) {
@@ -306,6 +334,12 @@ export async function PATCH(request: NextRequest) {
         query.bamTokenUrl = updates.bamTokenUrl;
       if (updates.columnConfig !== undefined)
         query.columnConfig = updates.columnConfig || undefined;
+      if (updates.actionConfig !== undefined)
+        query.actionConfig = updates.actionConfig || undefined;
+      if (updates.combinedConfig !== undefined)
+        query.combinedConfig = updates.combinedConfig || undefined;
+      if (updates.chartConfig !== undefined)
+        query.chartConfig = updates.chartConfig || undefined;
 
       queries[idx] = query;
       db.queries = queries;

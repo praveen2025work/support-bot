@@ -13,6 +13,8 @@ import {
   Trash2,
   Undo2,
   Download,
+  Globe,
+  Lock,
 } from "lucide-react";
 import type { ConditionalFormatRule, GridBoardView } from "@/types/dashboard";
 import { FILTER_OPERATORS } from "./grid-helpers";
@@ -47,7 +49,7 @@ interface GridToolbarProps {
   // View callbacks
   onLoadView: (viewId: string) => void;
   onSaveView: () => void;
-  onSaveViewAs: (name: string) => void;
+  onSaveViewAs: (name: string, visibility: "private" | "public") => void;
   onDeleteView: (viewId: string) => void;
   onClearView: () => void;
 }
@@ -88,6 +90,9 @@ export function GridToolbar({
   const [showViewMenu, setShowViewMenu] = useState(false);
   const [saveAsName, setSaveAsName] = useState("");
   const [showSaveAsInput, setShowSaveAsInput] = useState(false);
+  const [saveAsVisibility, setSaveAsVisibility] = useState<
+    "private" | "public"
+  >("private");
 
   // Format modal state
   const [fmtCol, setFmtCol] = useState("");
@@ -164,11 +169,20 @@ export function GridToolbar({
                   }`}
                 >
                   <span
+                    className="flex items-center gap-1"
                     onClick={() => {
                       onLoadView(v.id);
                       setShowViewMenu(false);
                     }}
                   >
+                    {v.visibility === "public" ? (
+                      <Globe
+                        size={10}
+                        className="text-green-500 flex-shrink-0"
+                      />
+                    ) : (
+                      <Lock size={10} className="text-gray-400 flex-shrink-0" />
+                    )}
                     {v.viewName}
                   </span>
                   <button
@@ -225,18 +239,43 @@ export function GridToolbar({
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && saveAsName.trim()) {
-                        onSaveViewAs(saveAsName.trim());
+                        onSaveViewAs(saveAsName.trim(), saveAsVisibility);
                         setSaveAsName("");
+                        setSaveAsVisibility("private");
                         setShowSaveAsInput(false);
                         setShowViewMenu(false);
                       }
                     }}
                   />
                   <button
+                    onClick={() =>
+                      setSaveAsVisibility(
+                        saveAsVisibility === "private" ? "public" : "private",
+                      )
+                    }
+                    className={`px-1.5 py-1 rounded text-xs ${
+                      saveAsVisibility === "public"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-500"
+                    }`}
+                    title={
+                      saveAsVisibility === "public"
+                        ? "Public — visible to all users"
+                        : "Private — only you"
+                    }
+                  >
+                    {saveAsVisibility === "public" ? (
+                      <Globe size={12} />
+                    ) : (
+                      <Lock size={12} />
+                    )}
+                  </button>
+                  <button
                     onClick={() => {
                       if (saveAsName.trim()) {
-                        onSaveViewAs(saveAsName.trim());
+                        onSaveViewAs(saveAsName.trim(), saveAsVisibility);
                         setSaveAsName("");
+                        setSaveAsVisibility("private");
                         setShowSaveAsInput(false);
                         setShowViewMenu(false);
                       }

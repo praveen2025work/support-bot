@@ -42,7 +42,15 @@
           "targetFilter": "segment",
           "label": "View Revenue by Segment"
         }
-      ]
+      ],
+      "filePath": "",
+      "baseUrl": "",
+      "method": "",
+      "authType": "none",
+      "bamTokenUrl": "",
+      "actionConfig": {
+        "url": "https://www.google.com/"
+      }
     },
     {
       "id": "q2",

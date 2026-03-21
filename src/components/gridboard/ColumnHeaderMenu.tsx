@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 import {
   ArrowUp,
   ArrowDown,
@@ -31,7 +31,7 @@ interface ColumnHeaderMenuProps {
   onGroupBy: (col: string | null) => void;
 }
 
-export function ColumnHeaderMenu({
+export const ColumnHeaderMenu = memo(function ColumnHeaderMenu({
   column,
   sortConfig,
   isPinned,
@@ -298,4 +298,4 @@ export function ColumnHeaderMenu({
       )}
     </div>
   );
-}
+});

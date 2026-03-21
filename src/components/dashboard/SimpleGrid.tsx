@@ -92,6 +92,12 @@ export function SimpleGrid({
 
   // ── Drag handlers ──────────────────────────────────────────────────────────
   const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
+    // Only allow drag when initiated from the card-drag-handle area
+    const target = e.target as HTMLElement;
+    if (!target.closest(".card-drag-handle")) {
+      e.preventDefault();
+      return;
+    }
     setDragId(id);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", id);

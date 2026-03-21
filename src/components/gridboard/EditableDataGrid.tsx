@@ -78,7 +78,7 @@ interface EditableDataGridProps {
   activeView?: GridBoardView | null;
   onLoadView?: (viewId: string) => void;
   onSaveView?: () => void;
-  onSaveViewAs?: (name: string) => void;
+  onSaveViewAs?: (name: string, visibility: "private" | "public") => void;
   onDeleteView?: (viewId: string) => void;
   onClearView?: () => void;
 }

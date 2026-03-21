@@ -25,6 +25,8 @@ import {
   Trash2,
   FileDown,
   ExternalLink,
+  ClipboardCopy,
+  Check,
 } from "lucide-react";
 
 // ── Memory management constants ────────────────────────────────
@@ -259,6 +261,7 @@ export function QueryCard({
     "local",
   );
   const [refreshingFilter, setRefreshingFilter] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const sessionIdRef = useRef(
     `dashboard_${userName}_${queryName}_${Date.now()}`,
   );
@@ -699,6 +702,44 @@ export function QueryCard({
     sessionIdRef.current = `dashboard_${userName}_${queryName}_${Date.now()}`;
   };
 
+  const handleCopy = useCallback(() => {
+    // Try table data first
+    const lastResult = [...messages]
+      .reverse()
+      .find(
+        (m) =>
+          m.role === "bot" &&
+          m.richContent?.type === "query_result" &&
+          m.richContent.data,
+      );
+    let text = "";
+    if (lastResult?.richContent?.data) {
+      const rows = (
+        lastResult.richContent.data as { data?: Record<string, unknown>[] }
+      ).data;
+      if (rows && rows.length > 0) {
+        const headers = Object.keys(rows[0]);
+        text = [
+          headers.join("\t"),
+          ...rows.map((r) => headers.map((h) => String(r[h] ?? "")).join("\t")),
+        ].join("\n");
+      }
+    }
+    // Fall back to last bot text
+    if (!text) {
+      const lastBot = [...messages].reverse().find((m) => m.role === "bot");
+      text = lastBot?.text || "";
+    }
+    if (!text) return;
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => {});
+  }, [messages]);
+
   const handleFilterChange = (key: string, value: string) => {
     const updated = { ...currentFilters, [key]: value };
     setCurrentFilters(updated);
@@ -990,7 +1031,13 @@ export function QueryCard({
             ref={scrollContainerRef}
             className="flex-1 overflow-y-scroll overflow-x-hidden px-3 py-2 space-y-1 min-h-0 scrollbar-hide"
           >
-            {messages.map((msg) => (
+            {(readOnly
+              ? messages.filter(
+                  (m) =>
+                    !(m.role === "user" && /^run\s+\S+$/i.test(m.text.trim())),
+                )
+              : messages
+            ).map((msg) => (
               <div key={msg.id}>
                 <MessageBubble
                   message={{
@@ -1117,6 +1164,14 @@ export function QueryCard({
             Refresh
           </button>
           <button
+            onClick={handleCopy}
+            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
+            title="Copy to clipboard"
+          >
+            {copied ? <Check size={14} /> : <ClipboardCopy size={14} />}
+            {copied ? "Copied!" : "Copy"}
+          </button>
+          <button
             onClick={() => {
               const lastResult = [...messages]
                 .reverse()
@@ -1224,6 +1279,15 @@ export function QueryCard({
               >
                 <Trash2 size={14} />
                 Clear
+              </button>
+              <button
+                onClick={handleCopy}
+                disabled={!hasRun}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
+                title="Copy to clipboard"
+              >
+                {copied ? <Check size={14} /> : <ClipboardCopy size={14} />}
+                {copied ? "Copied!" : "Copy"}
               </button>
               <button
                 onClick={() => {

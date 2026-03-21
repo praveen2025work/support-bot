@@ -1,0 +1,19 @@
+[
+  {
+    "id": "9f563285-49be-40d4-accb-b3c95e391273",
+    "userId": "john.doe@company.com",
+    "queryName": "monthly_revenue",
+    "viewName": "My Test View",
+    "visibility": "private",
+    "columnOrder": [],
+    "hiddenColumns": [],
+    "columnWidths": {},
+    "pinnedColumns": [],
+    "sortConfig": [],
+    "clientFilters": {},
+    "pageSize": 25,
+    "conditionalFormats": [],
+    "createdAt": "2026-03-21T17:48:39.576Z",
+    "updatedAt": "2026-03-21T17:48:39.576Z"
+  }
+]

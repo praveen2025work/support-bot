@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 interface SparklineCellProps {
   values: number[];
   type?: "line" | "bar";
@@ -8,7 +10,7 @@ interface SparklineCellProps {
   color?: string;
 }
 
-export function SparklineCell({
+export const SparklineCell = memo(function SparklineCell({
   values,
   type = "line",
   width = 80,
@@ -90,4 +92,4 @@ export function SparklineCell({
       )}
     </svg>
   );
-}
+});

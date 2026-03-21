@@ -164,8 +164,11 @@ export interface SparklineConfig {
 
 export interface GridBoardView {
   id: string;
+  userId: string;
   queryName: string;
   viewName: string;
+  /** "private" = only visible to owner, "public" = visible to all users */
+  visibility: "private" | "public";
   columnOrder: string[];
   hiddenColumns: string[];
   columnWidths: Record<string, number>;

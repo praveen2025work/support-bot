@@ -14,6 +14,7 @@ interface UseGridBoardViewsReturn {
   saveViewAs: (
     viewName: string,
     config: Partial<GridBoardView>,
+    visibility?: "private" | "public",
   ) => Promise<GridBoardView | null>;
   deleteView: (viewId: string) => Promise<boolean>;
   clearActiveView: () => void;
@@ -96,6 +97,7 @@ export function useGridBoardViews(
     async (
       viewName: string,
       config: Partial<GridBoardView>,
+      visibility: "private" | "public" = "private",
     ): Promise<GridBoardView | null> => {
       if (!userId || !queryName) return null;
       try {
@@ -106,6 +108,7 @@ export function useGridBoardViews(
             userId,
             queryName,
             viewName,
+            visibility,
             columnOrder: config.columnOrder || [],
             hiddenColumns: config.hiddenColumns || [],
             columnWidths: config.columnWidths || {},
