@@ -18,6 +18,10 @@ import { sessionRouter } from "./routes/session";
 import { uploadRouter } from "./routes/upload";
 import { urlIngestRouter } from "./routes/url-ingest";
 import { logger } from "./lib/logger";
+import {
+  startScheduleExecutor,
+  stopScheduleExecutor,
+} from "./core/scheduler/schedule-executor";
 import { tenantContextMiddleware } from "./middleware/tenant-context";
 
 const app = express();
@@ -130,7 +134,11 @@ app.use(
 
 const server = app.listen(PORT, () => {
   logger.info(`Engine server running at http://localhost:${PORT}`);
+  // eslint-disable-next-line no-console -- Startup message for operator visibility
   console.log(`Engine server running at http://localhost:${PORT}`);
+
+  // Start the schedule executor (checks every 60s for due schedules)
+  startScheduleExecutor();
 });
 
 // ---------------------------------------------------------------------------
@@ -138,6 +146,7 @@ const server = app.listen(PORT, () => {
 // ---------------------------------------------------------------------------
 async function shutdown(signal: string) {
   logger.info({ signal }, "Shutting down gracefully...");
+  stopScheduleExecutor();
   // Stop accepting new connections and close existing ones
   server.close(() => {
     logger.info("HTTP server closed");

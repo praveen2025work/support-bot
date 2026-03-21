@@ -21,7 +21,8 @@
     "performance": 1,
     "employee_directory": 1,
     "order_summary": 1,
-    "daily_orders": 1
+    "daily_orders": 1,
+    "employee_full_review": 1
   },
   "sales_data": {
     "monthly_revenue": 10,
@@ -117,6 +118,17 @@
   },
   "employee_full_review": {
     "service_reliability_report": 1,
-    "daily_commerce_engagement": 1
+    "daily_commerce_engagement": 1,
+    "lending_book_with_pipeline": 2,
+    "monthly_revenue": 1,
+    "dept_metrics_compensation": 1
+  },
+  "lending_book_with_pipeline": {
+    "employee_full_review": 2,
+    "dept_metrics_compensation": 1
+  },
+  "dept_metrics_compensation": {
+    "employee_full_review": 1,
+    "lending_book_with_pipeline": 1
   }
 }

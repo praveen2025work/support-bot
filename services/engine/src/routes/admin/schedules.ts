@@ -1,55 +1,78 @@
-import { Router, Request, Response } from 'express';
-import { listSchedules, createSchedule, updateSchedule, deleteSchedule } from '../../core/scheduler/schedule-service';
+import { Router, Request, Response } from "express";
+import {
+  listSchedules,
+  createSchedule,
+  updateSchedule,
+  deleteSchedule,
+} from "../../core/scheduler/schedule-service";
 
 const router = Router();
 
-router.get('/', async (req: Request, res: Response) => {
+router.get("/", async (req: Request, res: Response) => {
   try {
     const userId = req.query.userId as string | undefined;
     const schedules = await listSchedules(userId);
     res.json({ schedules });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to list schedules' });
+  } catch (_error) {
+    res.status(500).json({ error: "Failed to list schedules" });
   }
 });
 
-router.post('/', async (req: Request, res: Response) => {
+router.post("/", async (req: Request, res: Response) => {
   try {
-    const { queryName, groupId, userId, cronExpression, filters, label } = req.body;
+    const {
+      queryName,
+      groupId,
+      userId,
+      cronExpression,
+      filters,
+      label,
+      recipients,
+    } = req.body;
     if (!queryName || !cronExpression || !userId) {
-      res.status(400).json({ error: 'queryName, cronExpression, and userId are required' });
+      res
+        .status(400)
+        .json({ error: "queryName, cronExpression, and userId are required" });
       return;
     }
-    const schedule = await createSchedule({ queryName, groupId: groupId || 'default', userId, cronExpression, filters, label });
+    const schedule = await createSchedule({
+      queryName,
+      groupId: groupId || "default",
+      userId,
+      cronExpression,
+      filters,
+      label,
+      recipients,
+    });
     res.status(201).json({ schedule });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to create schedule' });
+  } catch (_error) {
+    res.status(500).json({ error: "Failed to create schedule" });
   }
 });
 
-router.patch('/:id', async (req: Request, res: Response) => {
+router.patch("/:id", async (req: Request, res: Response) => {
   try {
     const schedule = await updateSchedule(req.params.id, req.body);
     if (!schedule) {
-      res.status(404).json({ error: 'Schedule not found' });
+      res.status(404).json({ error: "Schedule not found" });
       return;
     }
     res.json({ schedule });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to update schedule' });
+  } catch (_error) {
+    res.status(500).json({ error: "Failed to update schedule" });
   }
 });
 
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const deleted = await deleteSchedule(req.params.id);
     if (!deleted) {
-      res.status(404).json({ error: 'Schedule not found' });
+      res.status(404).json({ error: "Schedule not found" });
       return;
     }
     res.json({ ok: true });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to delete schedule' });
+  } catch (_error) {
+    res.status(500).json({ error: "Failed to delete schedule" });
   }
 });
 

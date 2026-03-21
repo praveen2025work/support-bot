@@ -1,6 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import {
+  ArrowUp,
+  ArrowDown,
+  Check,
+  X,
+  Pin,
+  PinOff,
+  EyeOff,
+  BarChart3,
+  Search,
+  ChevronDown,
+} from "lucide-react";
 import type { SortEntry, ClientFilter } from "./grid-helpers";
 import { FILTER_OPERATORS } from "./grid-helpers";
 
@@ -69,7 +81,7 @@ export function ColumnHeaderMenu({
         className="ml-1 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
         title="Column menu"
       >
-        ▾
+        <ChevronDown size={12} />
       </button>
 
       {open && (
@@ -82,9 +94,9 @@ export function ColumnHeaderMenu({
             }}
             className={itemClass}
           >
-            ↑ Sort Ascending
+            <ArrowUp size={12} className="inline mr-1" /> Sort Ascending
             {currentSort?.direction === "asc" && (
-              <span className="ml-1 text-blue-600">✓</span>
+              <Check size={12} className="inline ml-1 text-blue-600" />
             )}
           </button>
           <button
@@ -94,9 +106,9 @@ export function ColumnHeaderMenu({
             }}
             className={itemClass}
           >
-            ↓ Sort Descending
+            <ArrowDown size={12} className="inline mr-1" /> Sort Descending
             {currentSort?.direction === "desc" && (
-              <span className="ml-1 text-blue-600">✓</span>
+              <Check size={12} className="inline ml-1 text-blue-600" />
             )}
           </button>
           {sortConfig.length > 0 && (
@@ -108,7 +120,7 @@ export function ColumnHeaderMenu({
                 }}
                 className={itemClass}
               >
-                ↑ Add to Sort (Asc)
+                <ArrowUp size={12} className="inline mr-1" /> Add to Sort (Asc)
               </button>
               <button
                 onClick={() => {
@@ -117,7 +129,8 @@ export function ColumnHeaderMenu({
                 }}
                 className={itemClass}
               >
-                ↓ Add to Sort (Desc)
+                <ArrowDown size={12} className="inline mr-1" /> Add to Sort
+                (Desc)
               </button>
             </>
           )}
@@ -129,7 +142,7 @@ export function ColumnHeaderMenu({
               }}
               className={itemClass}
             >
-              ✕ Clear Sort
+              <X size={12} className="inline mr-1" /> Clear Sort
               {sortIndex >= 0 && (
                 <span className="ml-1 text-gray-400">#{sortIndex + 1}</span>
               )}
@@ -147,7 +160,7 @@ export function ColumnHeaderMenu({
               }}
               className={itemClass}
             >
-              📌 Unpin Column
+              <PinOff size={12} className="inline mr-1" /> Unpin Column
             </button>
           ) : (
             <button
@@ -157,7 +170,7 @@ export function ColumnHeaderMenu({
               }}
               className={itemClass}
             >
-              📌 Pin to Left
+              <Pin size={12} className="inline mr-1" /> Pin to Left
             </button>
           )}
 
@@ -169,7 +182,7 @@ export function ColumnHeaderMenu({
             }}
             className={itemClass}
           >
-            👁 Hide Column
+            <EyeOff size={12} className="inline mr-1" /> Hide Column
           </button>
 
           <div className="border-t border-gray-100 my-1" />
@@ -183,7 +196,7 @@ export function ColumnHeaderMenu({
               }}
               className={itemClass}
             >
-              📊 Remove Grouping
+              <BarChart3 size={12} className="inline mr-1" /> Remove Grouping
             </button>
           ) : (
             <button
@@ -193,7 +206,8 @@ export function ColumnHeaderMenu({
               }}
               className={itemClass}
             >
-              📊 Group by this Column
+              <BarChart3 size={12} className="inline mr-1" /> Group by this
+              Column
             </button>
           )}
 
@@ -204,7 +218,8 @@ export function ColumnHeaderMenu({
             onClick={() => setShowFilter(!showFilter)}
             className={itemClass}
           >
-            🔍 Filter{clientFilter ? " (active)" : ""}
+            <Search size={12} className="inline mr-1" /> Filter
+            {clientFilter ? " (active)" : ""}
           </button>
 
           {showFilter && (

@@ -155,6 +155,9 @@ Chatbot/
 │   │   │   │   ├── settings.json    # Runtime settings (thresholds, cache TTL)
 │   │   │   │   └── group-config.ts  # Group config loader & validator
 │   │   │   ├── core/
+│   │   │   │   ├── types.ts               # Core type definitions (ChatMessage, BotResponse, etc.)
+│   │   │   │   ├── constants.ts           # Intent & threshold constants
+│   │   │   │   ├── engine.ts              # Main engine orchestrator
 │   │   │   │   ├── api-connector/
 │   │   │   │   │   ├── api-client.ts       # HTTP client (retry + circuit breaker)
 │   │   │   │   │   ├── query-service.ts    # Query execution & auth resolution
@@ -162,9 +165,28 @@ Chatbot/
 │   │   │   │   │   ├── bam-auth.ts         # BAM token authentication
 │   │   │   │   │   └── types.ts            # Query & auth type definitions
 │   │   │   │   ├── nlp/
-│   │   │   │   │   └── nlp-service.ts      # NLP classifier (nlpjs + fuzzy)
+│   │   │   │   │   └── nlp-service.ts      # NLP classifier (nlpjs + fuzzy + ensemble)
+│   │   │   │   ├── anomaly/
+│   │   │   │   │   ├── anomaly-detector.ts # Statistical, seasonal & business rule detection
+│   │   │   │   │   └── types.ts            # MetricBaseline, SeasonalBaseline, BusinessRule, AnomalyEvent
+│   │   │   │   ├── learning/
+│   │   │   │   │   ├── learning-service.ts # Interaction logging, review queue, auto-learn
+│   │   │   │   │   ├── signal-processor.ts # Temporal decay (7-day half-life), corpus updates
+│   │   │   │   │   └── types.ts            # InteractionLog, ReviewItem, SignalAggregate
+│   │   │   │   ├── recommendations/
+│   │   │   │   │   ├── recommendation-engine.ts  # ML recommendations (co-occurrence, collaborative filtering)
+│   │   │   │   │   └── interaction-tracker.ts    # User-query interaction recording
 │   │   │   │   └── response/
-│   │   │   │       └── handlers/           # Response handler modules
+│   │   │   │       ├── response-generator.ts     # Central response dispatcher
+│   │   │   │       ├── smart-suggestions.ts      # Context-aware suggestion ranking (5 signals)
+│   │   │   │       ├── cross-surface-actions.ts  # Pin/GridBoard/Export action generation
+│   │   │   │       ├── templates.ts              # Response templates (incl. 7 error variants)
+│   │   │   │       ├── constants.ts              # Regex patterns for intent detection
+│   │   │   │       └── handlers/
+│   │   │   │           ├── conversational-handler.ts # confirm, negate, clarify
+│   │   │   │           ├── action-handler.ts         # export, undo
+│   │   │   │           ├── followup-handler.ts       # group_by, sort, filter, top_n, aggregation
+│   │   │   │           └── ...                       # Other response handlers
 │   │   │   ├── lib/
 │   │   │   │   ├── config.ts        # Environment config loader
 │   │   │   │   ├── logger.ts        # Pino logger
@@ -192,6 +214,7 @@ Chatbot/
 │   │   │           ├── faq.ts       # FAQ management
 │   │   │           ├── import.ts    # CSV/XLSX import
 │   │   │           ├── learning.ts  # Learning stats
+│   │   │           ├── anomaly.ts   # Anomaly baselines, config, history, business rules
 │   │   │           └── logs.ts      # Log viewer
 │   │   ├── docs/
 │   │   │   └── openapi.yaml         # OpenAPI 3.0 spec
@@ -275,6 +298,66 @@ Chatbot/
 ├── docker-compose.dev.yml            # Dev: engine + UI (real APIs)
 └── docker-compose.prod.yml           # Prod: engine + UI
 ```
+
+---
+
+## Engine Core Modules
+
+The engine's `core/` directory contains the main processing pipeline. Here's a developer reference for the key modules:
+
+### NLP & Intent Classification
+
+- **40 intents**, **626 training utterances** in `src/training/corpus.json`
+- Ensemble classifier: NLP.js (50%) + TF-IDF (30%) + Pattern matching (20%)
+- 5 conversational intents: `confirm`, `negate`, `clarify`, `export`, `undo`
+- 13 ML analysis intents: `analysis.profile`, `analysis.smart_summary`, `analysis.correlation`, `analysis.distribution`, `analysis.anomaly`, `analysis.trend`, `analysis.duplicates`, `analysis.missing`, `analysis.cluster`, `analysis.decision_tree`, `analysis.forecast`, `analysis.pca`, `analysis.report`
+
+### Response Pipeline
+
+`engine.ts` → `response-generator.ts` → handler → `smart-suggestions.ts` + `cross-surface-actions.ts`
+
+1. **engine.ts** — Orchestrates NLP classification, query execution, and response generation. Fetches ML recommendations before generating response.
+2. **response-generator.ts** — Central dispatcher. Routes intents to handlers, tracks follow-up chain state, stores anomalies/analysis type in context.
+3. **smart-suggestions.ts** — Ranks suggestions from 5 sources: anomaly data (0.95), analysis context (0.80), chain-aware (0.75), ML recommendations (0.60), handler defaults (0.50). Returns top 5.
+4. **cross-surface-actions.ts** — Generates action buttons: "Pin to Dashboard" (query/followup/analysis), "Open in GridBoard" (tabular data), "Export as CSV" (non-error content).
+
+### Anomaly Detection
+
+Located in `core/anomaly/`. Three detection methods:
+
+| Method             | How It Works                                            | Data                                              |
+| ------------------ | ------------------------------------------------------- | ------------------------------------------------- |
+| **Statistical**    | Z-score + IQR against `MetricBaseline`                  | `baselines.json`                                  |
+| **Seasonal**       | Day-of-week adjusted baselines                          | `SeasonalBaseline` built from snapshot timestamps |
+| **Business Rules** | Admin-defined threshold rules (e.g., `error_rate > 5%`) | `AnomalyConfig.businessRules`                     |
+
+Admin endpoints in `routes/admin/anomaly.ts`:
+
+- `GET /baselines` — Current baselines
+- `GET|PUT /config` — Detection config
+- `POST /rebuild-baselines` — Force rebuild
+- `GET /history` — Anomaly event log
+- `POST /history/:id/acknowledge` — Acknowledge event
+- `GET|POST /rules`, `DELETE /rules/:id` — Business rule CRUD
+
+### Learning System
+
+Located in `core/learning/`. Key behaviors:
+
+- **Interaction logging** — Every classified message is logged with surface, userId, and confidence
+- **Review queue** — Low-confidence messages (< threshold) are queued with priority scoring: `priority = ((1 - confidence) × 100) + (frequencyBoost × 20)`
+- **Auto-learn** — High-positive-signal utterances are auto-promoted to the training corpus
+- **Temporal decay** — Signals have a 7-day half-life: `decay = 0.5^(age / 7 days)`. Recent signals count more.
+- **Cross-surface tracking** — `surface` field tracks which UI (chat, dashboard, gridboard, widget, admin) generated the interaction
+- **Signal aggregates** — `lastSignalAt` timestamps enable decayed scoring
+
+### Follow-Up Chaining
+
+Context tracks a `followUpChain: FollowUpStep[]` — an ordered list of operations applied to query results. Operations: `group_by`, `sort`, `filter`, `top_n`, `aggregation`, `summary`. Chain resets on new query execution. Max 20 steps. "Undo" pops the last step.
+
+### Templates
+
+`response/templates.ts` — Response templates including 7 error variants: `no_results`, `permission_denied`, `rate_limited`, `timeout`, `partial_results`, `data_source_error`, `empty_query`.
 
 ---
 

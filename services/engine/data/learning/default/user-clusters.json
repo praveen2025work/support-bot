@@ -1,22 +1,6 @@
 [
   {
     "clusterId": 0,
-    "userIds": ["local_dev"],
-    "topQueries": [
-      "sales_data",
-      "active_users",
-      "customer_churn",
-      "performance",
-      "monthly_revenue",
-      "daily_orders",
-      "support_tickets",
-      "pnl_availability",
-      "employee_compensation",
-      "hr_report_salaries"
-    ]
-  },
-  {
-    "clusterId": 1,
     "userIds": ["jdoe"],
     "topQueries": [
       "sales_data",
@@ -29,6 +13,22 @@
       "all-employees",
       "employee_directory",
       "order_summary"
+    ]
+  },
+  {
+    "clusterId": 1,
+    "userIds": ["local_dev"],
+    "topQueries": [
+      "sales_data",
+      "active_users",
+      "customer_churn",
+      "performance",
+      "monthly_revenue",
+      "daily_orders",
+      "support_tickets",
+      "pnl_availability",
+      "employee_compensation",
+      "hr_report_salaries"
     ]
   }
 ]

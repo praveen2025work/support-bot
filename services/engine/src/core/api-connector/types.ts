@@ -130,6 +130,15 @@ export const QuerySchema = z.object({
         .optional(),
     })
     .optional(),
+  // Action panel configuration — external UI launched from card header
+  actionConfig: z
+    .object({
+      url: z.string(),
+      label: z.string().optional(),
+      contextFields: z.array(z.string()).optional(),
+      metadata: z.record(z.string(), z.string()).optional(),
+    })
+    .optional(),
   // Drill-down configuration — defines which columns link to sub-queries
   drillDown: z
     .array(

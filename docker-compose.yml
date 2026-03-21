@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 # ═══════════════════════════════════════════════════════
 # DEMO MODE — all 3 services
@@ -10,7 +10,7 @@ services:
   ui:
     build: .
     ports:
-      - '3001:3001'
+      - "3001:3001"
     environment:
       - NODE_ENV=production
       - ENGINE_URL=http://engine:4001
@@ -22,10 +22,10 @@ services:
   engine:
     build: ./services/engine
     ports:
-      - '4001:4001'
+      - "4001:4001"
     environment:
       - NODE_ENV=production
-      - ENGINE_PORT=4000
+      - ENGINE_PORT=4001
       - API_BASE_URL=http://mock-api:8080/api
       - UI_ORIGIN=http://ui:3001
       # No USER_INFO_URL → mock user fallback
@@ -33,6 +33,26 @@ services:
     depends_on:
       - mock-api
     restart: unless-stopped
+
+  # ── Optional: MSSQL Connector (no-code SQL APIs) ──
+  # mssql-connector:
+  #   build: ./services/mssql-connector
+  #   ports:
+  #     - '4002:4002'
+  #   environment:
+  #     - MSSQL_PORT=4002
+  #     - ENCRYPTION_SECRET=change-me
+  #   restart: unless-stopped
+
+  # ── Optional: Oracle Connector (no-code SQL APIs) ──
+  # oracle-connector:
+  #   build: ./services/oracle-connector
+  #   ports:
+  #     - '4003:4003'
+  #   environment:
+  #     - ORACLE_PORT=4003
+  #     - ENCRYPTION_SECRET=change-me
+  #   restart: unless-stopped
 
   # ── Service 3: Mock API (sample data — demo only) ──
   mock-api:
@@ -42,5 +62,5 @@ services:
       - ./services/mock-api:/app
     command: sh -c "npm install --production 2>/dev/null; npm start"
     ports:
-      - '8080:8080'
+      - "8080:8080"
     restart: unless-stopped

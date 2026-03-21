@@ -58,8 +58,61 @@ export interface DashboardCard {
   defaultFilters: Record<string, string>;
   autoRun: boolean;
   eventLink: EventLinkConfig;
+  /** Display mode: auto, table, chart */
+  displayMode?: "auto" | "table" | "chart";
+  notes?: string;
+  refreshIntervalSec?: number;
+  /** Enable STOMP WebSocket live refresh for this card */
+  stompEnabled?: boolean;
   migratedFromFavoriteId?: string;
   createdAt: string;
+}
+
+export interface DashboardTab {
+  id: string;
+  name: string;
+  cardIds: string[];
+  order: number;
+}
+
+export interface DashboardShareEntry {
+  userId: string;
+  permission: "view" | "edit";
+}
+
+export interface DashboardSharing {
+  isPublic?: boolean;
+  sharedWith: DashboardShareEntry[];
+  ownerId: string;
+}
+
+export interface FilterDependency {
+  parentFilter: string;
+  childFilter: string;
+  sourceUrl?: string;
+}
+
+export interface DashboardParameter {
+  id: string;
+  name: string;
+  label: string;
+  type: "text" | "select" | "date" | "daterange" | "number";
+  defaultValue: string;
+  options?: string[];
+  min?: number;
+  max?: number;
+}
+
+export interface KpiCardConfig {
+  title: string;
+  queryName: string;
+  valueField: string;
+  previousValueField?: string;
+  unit?: string;
+  prefix?: string;
+  format?: "number" | "currency" | "percent";
+  thresholds?: { warning: number; danger: number };
+  trendLabel?: string;
 }
 
 export interface Dashboard {
@@ -67,6 +120,18 @@ export interface Dashboard {
   name: string;
   cards: DashboardCard[];
   layouts: CardLayout[];
+  simpleMode?: boolean;
+  globalRefreshSec?: number;
+  tabs?: DashboardTab[];
+  activeTabId?: string;
+  sharing?: DashboardSharing;
+  filterDependencies?: FilterDependency[];
+  /** Master toggle for STOMP WebSocket live notifications on this dashboard */
+  stompEnabled?: boolean;
+  /** Dashboard parameters for global filters */
+  parameters?: DashboardParameter[];
+  /** KPI scorecard cards at the top of the dashboard */
+  kpiCards?: KpiCardConfig[];
   createdAt: string;
   updatedAt: string;
 }
@@ -333,7 +398,23 @@ export class UserPreferencesStore {
   async updateDashboard(
     userId: string,
     dashboardId: string,
-    partial: Partial<Pick<Dashboard, "name" | "cards" | "layouts">>,
+    partial: Partial<
+      Pick<
+        Dashboard,
+        | "name"
+        | "cards"
+        | "layouts"
+        | "simpleMode"
+        | "globalRefreshSec"
+        | "tabs"
+        | "activeTabId"
+        | "sharing"
+        | "filterDependencies"
+        | "stompEnabled"
+        | "parameters"
+        | "kpiCards"
+      >
+    >,
   ): Promise<Dashboard | null> {
     return this.withLock(userId, async () => {
       const prefs = await this.read(userId);
@@ -342,6 +423,21 @@ export class UserPreferencesStore {
       if (partial.name !== undefined) dash.name = partial.name;
       if (partial.cards !== undefined) dash.cards = partial.cards;
       if (partial.layouts !== undefined) dash.layouts = partial.layouts;
+      if (partial.simpleMode !== undefined)
+        dash.simpleMode = partial.simpleMode;
+      if (partial.globalRefreshSec !== undefined)
+        dash.globalRefreshSec = partial.globalRefreshSec;
+      if (partial.tabs !== undefined) dash.tabs = partial.tabs;
+      if (partial.activeTabId !== undefined)
+        dash.activeTabId = partial.activeTabId;
+      if (partial.sharing !== undefined) dash.sharing = partial.sharing;
+      if (partial.filterDependencies !== undefined)
+        dash.filterDependencies = partial.filterDependencies;
+      if (partial.stompEnabled !== undefined)
+        dash.stompEnabled = partial.stompEnabled;
+      if (partial.parameters !== undefined)
+        dash.parameters = partial.parameters;
+      if (partial.kpiCards !== undefined) dash.kpiCards = partial.kpiCards;
       dash.updatedAt = new Date().toISOString();
       await this.write(prefs);
       return dash;
@@ -523,6 +619,146 @@ export class UserPreferencesStore {
       return dash;
     });
   }
+  async exportDashboard(
+    userId: string,
+    dashboardId: string,
+  ): Promise<Dashboard | null> {
+    const prefs = await this.read(userId);
+    return (prefs.dashboards || []).find((d) => d.id === dashboardId) || null;
+  }
+
+  async importDashboard(
+    userId: string,
+    dashboardData: Dashboard,
+  ): Promise<Dashboard> {
+    return this.withLock(userId, async () => {
+      const prefs = await this.read(userId);
+      if (!prefs.dashboards) prefs.dashboards = [];
+      // Regenerate IDs to avoid conflicts
+      const now = new Date().toISOString();
+      const idMap = new Map<string, string>();
+      const newCards = dashboardData.cards.map((c) => {
+        const newId = uid();
+        idMap.set(c.id, newId);
+        return { ...c, id: newId, createdAt: now };
+      });
+      const newLayouts = dashboardData.layouts.map((l) => ({
+        ...l,
+        i: idMap.get(l.i) || l.i,
+      }));
+      const newTabs = dashboardData.tabs?.map((t) => ({
+        ...t,
+        id: uid(),
+        cardIds: t.cardIds.map((cid) => idMap.get(cid) || cid),
+      }));
+      const baseSlug = slugify(dashboardData.name + "-imported");
+      let id = baseSlug;
+      let suffix = 1;
+      while (prefs.dashboards.some((d) => d.id === id)) {
+        id = `${baseSlug}-${suffix++}`;
+      }
+      const imported: Dashboard = {
+        id,
+        name: dashboardData.name + " (imported)",
+        cards: newCards,
+        layouts: newLayouts,
+        simpleMode: dashboardData.simpleMode,
+        globalRefreshSec: dashboardData.globalRefreshSec,
+        tabs: newTabs,
+        filterDependencies: dashboardData.filterDependencies,
+        createdAt: now,
+        updatedAt: now,
+      };
+      prefs.dashboards.push(imported);
+      prefs.activeDashboardId = id;
+      await this.write(prefs);
+      return imported;
+    });
+  }
+
+  /**
+   * Find a dashboard by ID across ALL users. Returns the dashboard, its owner,
+   * and the requesting user's permission level ('owner' | 'edit' | 'view' | null).
+   */
+  async findDashboardAcrossUsers(
+    requestingUserId: string,
+    dashboardId: string,
+  ): Promise<{
+    dashboard: Dashboard;
+    ownerId: string;
+    permission: "owner" | "edit" | "view" | null;
+  } | null> {
+    try {
+      const files = await fs.readdir(PREFS_DIR);
+      for (const file of files) {
+        if (!file.endsWith(".json") || file.endsWith(".tmp")) continue;
+        try {
+          const raw = await fs.readFile(path.join(PREFS_DIR, file), "utf-8");
+          const prefs: UserPreferences = JSON.parse(raw);
+          const dash = (prefs.dashboards || []).find(
+            (d) => d.id === dashboardId,
+          );
+          if (!dash) continue;
+          const ownerId = prefs.userId;
+          if (ownerId === requestingUserId) {
+            return { dashboard: dash, ownerId, permission: "owner" };
+          }
+          if (dash.sharing?.isPublic) {
+            return { dashboard: dash, ownerId, permission: "view" };
+          }
+          const shareEntry = dash.sharing?.sharedWith?.find(
+            (s) => s.userId === requestingUserId,
+          );
+          if (shareEntry) {
+            return {
+              dashboard: dash,
+              ownerId,
+              permission: shareEntry.permission,
+            };
+          }
+          // Dashboard exists but user has no access
+          return { dashboard: dash, ownerId, permission: null };
+        } catch {
+          // skip invalid files
+        }
+      }
+    } catch {
+      // preferences dir may not exist
+    }
+    return null;
+  }
+
+  async getSharedDashboards(
+    userId: string,
+  ): Promise<Array<{ dashboard: Dashboard; ownerId: string }>> {
+    // Scan all preference files for dashboards shared with this user
+    const results: Array<{ dashboard: Dashboard; ownerId: string }> = [];
+    try {
+      const files = await fs.readdir(PREFS_DIR);
+      for (const file of files) {
+        if (!file.endsWith(".json") || file.endsWith(".tmp")) continue;
+        try {
+          const raw = await fs.readFile(path.join(PREFS_DIR, file), "utf-8");
+          const prefs: UserPreferences = JSON.parse(raw);
+          if (prefs.userId === userId) continue; // skip own dashboards
+          for (const d of prefs.dashboards || []) {
+            if (
+              d.sharing?.isPublic ||
+              d.sharing?.sharedWith?.some((s) => s.userId === userId)
+            ) {
+              results.push({ dashboard: d, ownerId: prefs.userId });
+            }
+          }
+        } catch {
+          // skip invalid files
+        }
+      }
+    } catch {
+      // preferences dir may not exist yet
+    }
+    return results;
+  }
+
   // ── Grid Board View Methods ────────────────────────────────────────
 
   async listGridBoardViews(

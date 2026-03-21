@@ -8,7 +8,7 @@ RUN npm run build
 FROM node:18-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-ENV ENGINE_PORT=4000
+ENV ENGINE_PORT=4001
 
 RUN addgroup --system --gid 1001 engine && \
     adduser --system --uid 1001 engine
@@ -23,6 +23,6 @@ COPY --from=builder /app/src/core/response/templates.ts ./src/core/response/temp
 RUN mkdir -p data/logs data/knowledge && chown -R engine:engine data
 
 USER engine
-EXPOSE 4000
+EXPOSE 4001
 
 CMD ["node", "dist/server.js"]

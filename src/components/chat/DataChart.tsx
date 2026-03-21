@@ -222,6 +222,35 @@ function detectChartType(
     return { type: "line", labelKey, numericKeys: numericKeys.slice(0, 3) };
   }
 
+  // Gauge: single row with 1 numeric value (KPI-like)
+  if (data.length === 1 && numericKeys.length === 1) {
+    return { type: "gauge", labelKey, numericKeys };
+  }
+
+  // Treemap: many categories (>8) with a single numeric value
+  if (
+    numericKeys.length === 1 &&
+    data.length > 8 &&
+    nonNumericKeys.length >= 1
+  ) {
+    return { type: "treemap", labelKey, numericKeys };
+  }
+
+  // Waterfall: sequential categories with mixed positive/negative values
+  if (
+    numericKeys.length === 1 &&
+    nonNumericKeys.length >= 1 &&
+    data.length >= 3 &&
+    data.length <= 20
+  ) {
+    const values = data.map((row) => Number(row[numericKeys[0]]) || 0);
+    const hasPositive = values.some((v) => v > 0);
+    const hasNegative = values.some((v) => v < 0);
+    if (hasPositive && hasNegative) {
+      return { type: "waterfall", labelKey, numericKeys };
+    }
+  }
+
   // Single numeric + few categories -> PieChart
   if (
     numericKeys.length === 1 &&

@@ -95,36 +95,42 @@ export class ChatbotEngine {
       "Message classified",
     );
 
-    const response = await this.responseGenerator.generate(
-      classification,
-      context,
-      explicitFilters,
-      incomingHeaders,
-      followUpMode,
-    );
-
-    // Attach recommendations (fire-and-forget, non-blocking)
+    // Fetch recommendations before generating response so they can influence suggestions
+    let recommendations: Awaited<
+      ReturnType<RecommendationEngine["getRecommendations"]>
+    > = [];
     try {
-      if (!response.richContent || response.richContent.type !== "error") {
-        const recs = await this.recommendationEngine.getRecommendations(
+      if (!(context.lastApiResult === undefined && !context.lastQueryName)) {
+        recommendations = await this.recommendationEngine.getRecommendations(
           context,
           classification,
           3,
           message.userId,
         );
-        if (recs.length > 0) {
-          response.recommendations = recs.map((r) => ({
-            type: r.type,
-            name: r.name,
-            reason: r.reason,
-          }));
-        }
       }
     } catch (error) {
       logger.debug(
         { error },
         "Recommendation engine failed — continuing without",
       );
+    }
+
+    const response = await this.responseGenerator.generate(
+      classification,
+      context,
+      explicitFilters,
+      incomingHeaders,
+      followUpMode,
+      recommendations,
+    );
+
+    // Attach recommendations metadata to the response
+    if (recommendations.length > 0) {
+      response.recommendations = recommendations.map((r) => ({
+        type: r.type,
+        name: r.name,
+        reason: r.reason,
+      }));
     }
 
     context.history.push({

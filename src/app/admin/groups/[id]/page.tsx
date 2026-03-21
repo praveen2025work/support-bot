@@ -57,6 +57,12 @@ interface QueryRecord {
   authType?: "none" | "bearer" | "windows" | "bam";
   bamTokenUrl?: string;
   columnConfig?: ColumnConfigData;
+  actionConfig?: {
+    url: string;
+    label?: string;
+    contextFields?: string[];
+    metadata?: Record<string, string>;
+  };
   combinedConfig?: {
     subQueries: Array<{
       queryName: string;
@@ -138,6 +144,12 @@ export default function GroupDetailPage() {
   const [customFilterBinding, setCustomFilterBinding] = useState<
     "body" | "query_param" | "path"
   >("body");
+
+  // Action panel config
+  const [qActionUrl, setQActionUrl] = useState("");
+  const [qActionLabel, setQActionLabel] = useState("");
+  const [qActionContextFields, setQActionContextFields] = useState("");
+  const [qActionMetadata, setQActionMetadata] = useState("");
 
   // Combined query config
   const [qCombinedSubQueries, setQCombinedSubQueries] = useState<
@@ -339,6 +351,10 @@ export default function GroupDetailPage() {
     setFetchColumnsError("");
     setCustomFilterKey("");
     setCustomFilterBinding("body");
+    setQActionUrl("");
+    setQActionLabel("");
+    setQActionContextFields("");
+    setQActionMetadata("");
     setQCombinedSubQueries([
       { queryName: "", prefix: "" },
       { queryName: "", prefix: "" },
@@ -379,6 +395,17 @@ export default function GroupDetailPage() {
     );
     setDiscoveredColumns([]);
     setFetchColumnsError("");
+    // Action config
+    setQActionUrl(q.actionConfig?.url || "");
+    setQActionLabel(q.actionConfig?.label || "");
+    setQActionContextFields(q.actionConfig?.contextFields?.join(", ") || "");
+    setQActionMetadata(
+      q.actionConfig?.metadata
+        ? Object.entries(q.actionConfig.metadata)
+            .map(([k, v]) => `${k}=${v}`)
+            .join(", ")
+        : "",
+    );
     // Combined config
     if (q.combinedConfig) {
       setQCombinedSubQueries(
@@ -441,6 +468,10 @@ export default function GroupDetailPage() {
     setFetchColumnsError("");
     setCustomFilterKey("");
     setCustomFilterBinding("body");
+    setQActionUrl("");
+    setQActionLabel("");
+    setQActionContextFields("");
+    setQActionMetadata("");
     setQCombinedSubQueries([
       { queryName: "", prefix: "" },
       { queryName: "", prefix: "" },
@@ -490,6 +521,17 @@ export default function GroupDetailPage() {
     );
     setDiscoveredColumns([]);
     setFetchColumnsError("");
+    // Action config (clone it too)
+    setQActionUrl(q.actionConfig?.url || "");
+    setQActionLabel(q.actionConfig?.label || "");
+    setQActionContextFields(q.actionConfig?.contextFields?.join(", ") || "");
+    setQActionMetadata(
+      q.actionConfig?.metadata
+        ? Object.entries(q.actionConfig.metadata)
+            .map(([k, v]) => `${k}=${v}`)
+            .join(", ")
+        : "",
+    );
     // Combined config
     if (q.combinedConfig) {
       setQCombinedSubQueries(
@@ -758,6 +800,37 @@ export default function GroupDetailPage() {
                   : {}),
               }
             : undefined,
+        actionConfig: (() => {
+          const url = qActionUrl.trim();
+          if (!url) return undefined;
+          const parseList = (s: string) =>
+            s
+              .split(",")
+              .map((x) => x.trim())
+              .filter(Boolean);
+          const parseMeta = (s: string) => {
+            const entries = s
+              .split(",")
+              .map((x) => x.trim())
+              .filter(Boolean);
+            const obj: Record<string, string> = {};
+            for (const entry of entries) {
+              const [k, ...rest] = entry.split("=");
+              if (k?.trim() && rest.length)
+                obj[k.trim()] = rest.join("=").trim();
+            }
+            return Object.keys(obj).length > 0 ? obj : undefined;
+          };
+          const cf = parseList(qActionContextFields);
+          return {
+            url,
+            ...(qActionLabel.trim() ? { label: qActionLabel.trim() } : {}),
+            ...(cf.length ? { contextFields: cf } : {}),
+            ...(parseMeta(qActionMetadata)
+              ? { metadata: parseMeta(qActionMetadata) }
+              : {}),
+          };
+        })(),
       };
 
       if (editingQueryId) {
@@ -794,6 +867,7 @@ export default function GroupDetailPage() {
       );
       setTimeout(() => setQSuccess(""), 5000);
     } catch (err) {
+      // eslint-disable-next-line no-console -- Useful for admin debugging
       console.error("Save query error:", err);
       setQError(
         `Failed to save query: ${err instanceof Error ? err.message : String(err)}`,
@@ -2204,6 +2278,95 @@ export default function GroupDetailPage() {
                       )}
                     </div>
                   )}
+
+                  {/* Action Panel Configuration */}
+                  <div className="mb-3">
+                    <details className="group">
+                      <summary className="text-xs font-semibold text-orange-600 cursor-pointer select-none flex items-center gap-1">
+                        <span className="transition-transform group-open:rotate-90">
+                          &#9654;
+                        </span>
+                        Action Panel Configuration
+                        {qActionUrl.trim() && (
+                          <span className="ml-1 text-[10px] font-normal text-green-600">
+                            (configured)
+                          </span>
+                        )}
+                      </summary>
+                      <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-lg space-y-2">
+                        <p className="text-[11px] text-orange-600">
+                          Configure an external UI that opens as a right-side
+                          panel when the action icon is clicked on dashboard
+                          cards using this query.
+                        </p>
+                        <div>
+                          <label className="block text-[11px] font-medium text-gray-600 mb-0.5">
+                            External App URL{" "}
+                            <span className="text-red-400 font-normal">*</span>
+                          </label>
+                          <input
+                            value={qActionUrl}
+                            onChange={(e) => setQActionUrl(e.target.value)}
+                            placeholder="e.g. https://app.example.com/action or /internal/action-form"
+                            className="w-full text-xs border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-medium text-gray-600 mb-0.5">
+                            Button Label{" "}
+                            <span className="text-gray-400 font-normal">
+                              (default: &quot;Open Action&quot;)
+                            </span>
+                          </label>
+                          <input
+                            value={qActionLabel}
+                            onChange={(e) => setQActionLabel(e.target.value)}
+                            placeholder="e.g. Review in ServiceNow"
+                            className="w-full text-xs border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-medium text-gray-600 mb-0.5">
+                            Context Fields{" "}
+                            <span className="text-gray-400 font-normal">
+                              (comma-separated column names sent to external
+                              app)
+                            </span>
+                          </label>
+                          <input
+                            value={qActionContextFields}
+                            onChange={(e) =>
+                              setQActionContextFields(e.target.value)
+                            }
+                            placeholder="e.g. ticket_id, status, assignee"
+                            className="w-full text-xs border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                          />
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            These fields from query results/filters are included
+                            in the postMessage context payload.
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-medium text-gray-600 mb-0.5">
+                            Static Metadata{" "}
+                            <span className="text-gray-400 font-normal">
+                              (key=value pairs, comma-separated)
+                            </span>
+                          </label>
+                          <input
+                            value={qActionMetadata}
+                            onChange={(e) => setQActionMetadata(e.target.value)}
+                            placeholder="e.g. app=servicenow, env=production"
+                            className="w-full text-xs border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                          />
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            Static key-value pairs passed to the external UI for
+                            routing or configuration.
+                          </p>
+                        </div>
+                      </div>
+                    </details>
+                  </div>
 
                   <div className="flex gap-2 mt-4">
                     <button

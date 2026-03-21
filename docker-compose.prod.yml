@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 # ═══════════════════════════════════════════════════════
 # PRODUCTION — UI + Engine only (no Mock API)
@@ -11,7 +11,7 @@ services:
   ui:
     build: .
     ports:
-      - '3001:3001'
+      - "3001:3001"
     env_file: .env.prod
     environment:
       - ENGINE_URL=http://engine:4001
@@ -23,8 +23,30 @@ services:
   engine:
     build: ./services/engine
     ports:
-      - '4001:4001'
+      - "4001:4001"
     env_file: .env.prod
     environment:
       - UI_ORIGIN=http://ui:3001
     restart: unless-stopped
+
+  # ── Optional: MSSQL Connector (no-code SQL APIs) ──
+  # mssql-connector:
+  #   build: ./services/mssql-connector
+  #   ports:
+  #     - '4002:4002'
+  #   env_file: .env.prod
+  #   environment:
+  #     - MSSQL_PORT=4002
+  #     - ENCRYPTION_SECRET=change-me
+  #   restart: unless-stopped
+
+  # ── Optional: Oracle Connector (no-code SQL APIs) ──
+  # oracle-connector:
+  #   build: ./services/oracle-connector
+  #   ports:
+  #     - '4003:4003'
+  #   env_file: .env.prod
+  #   environment:
+  #     - ORACLE_PORT=4003
+  #     - ENCRYPTION_SECRET=change-me
+  #   restart: unless-stopped

@@ -1,13 +1,13 @@
-import { promises as fsp } from 'fs';
-import { logger } from '@/lib/logger';
-import { generateId } from '@/lib/generate-id';
-import { SignalProcessor } from './signal-processor';
-import { invalidateEngine } from '@/lib/singleton';
-import { paths } from '@/lib/env-config';
+import { promises as fsp } from "fs";
+import { logger } from "@/lib/logger";
+import { generateId } from "@/lib/generate-id";
+import { SignalProcessor } from "./signal-processor";
+import { invalidateEngine } from "@/lib/singleton";
+import { paths } from "@/lib/env-config";
 import {
   LEARNING_CONFIDENCE_THRESHOLD,
   AUTO_LEARN_PROCESS_INTERVAL,
-} from '../constants';
+} from "../constants";
 import type {
   InteractionLog,
   ReviewItem,
@@ -15,8 +15,8 @@ import type {
   SignalAggregate,
   LearningStats,
   FeedbackType,
-} from './types';
-import type { ClassificationResult } from '../types';
+} from "./types";
+import type { ClassificationResult } from "../types";
 
 export class LearningService {
   private dir: string;
@@ -49,7 +49,14 @@ export class LearningService {
 
   async logInteraction(
     classification: ClassificationResult,
-    message: { text: string; sessionId: string; feedbackType?: FeedbackType; previousMessageText?: string }
+    message: {
+      text: string;
+      sessionId: string;
+      feedbackType?: FeedbackType;
+      previousMessageText?: string;
+      surface?: InteractionLog["surface"];
+      userId?: string;
+    },
   ): Promise<void> {
     await this.initPromise;
 
@@ -63,15 +70,20 @@ export class LearningService {
       confidence: classification.confidence,
       source: classification.source,
       entities: classification.entities,
-      feedbackType: message.feedbackType || 'normal',
+      feedbackType: message.feedbackType || "normal",
       previousMessageText: message.previousMessageText,
+      surface: message.surface || "chat",
+      userId: message.userId,
     };
 
     await this.appendJsonl(this.interactionsPath, entry);
     this.interactionCount++;
 
     // Queue for review if low confidence
-    if (classification.confidence < LEARNING_CONFIDENCE_THRESHOLD && classification.intent !== 'None') {
+    if (
+      classification.confidence < LEARNING_CONFIDENCE_THRESHOLD &&
+      classification.intent !== "None"
+    ) {
       await this.addToReviewQueue(entry);
     }
 
@@ -85,6 +97,19 @@ export class LearningService {
   }
 
   private async addToReviewQueue(entry: InteractionLog): Promise<void> {
+    // Compute priority: lower confidence + higher frequency = higher priority
+    const existing = await this.readJsonl<ReviewItem>(this.reviewQueuePath);
+    const sameMessage = existing.filter(
+      (r) =>
+        r.userMessage.toLowerCase().trim() ===
+        entry.userMessage.toLowerCase().trim(),
+    );
+    // Priority formula: inversely proportional to confidence, boosted by repetition
+    const frequencyBoost = Math.min(sameMessage.length, 5); // cap at 5
+    const priority = Math.round(
+      (1 - entry.confidence) * 100 + frequencyBoost * 20,
+    );
+
     const item: ReviewItem = {
       id: generateId(),
       timestamp: entry.timestamp,
@@ -92,30 +117,42 @@ export class LearningService {
       detectedIntent: entry.intent,
       confidence: entry.confidence,
       groupId: this.groupId,
-      status: 'pending',
+      status: "pending",
+      priority,
     };
     await this.appendJsonl(this.reviewQueuePath, item);
-    logger.debug({ message: entry.userMessage, confidence: entry.confidence }, 'Added to review queue');
+    logger.debug(
+      { message: entry.userMessage, confidence: entry.confidence, priority },
+      "Added to review queue",
+    );
   }
 
   private async processFeedbackSignal(entry: InteractionLog): Promise<void> {
     const aggregates = await this.readSignalAggregates();
     const normalized = this.processor.normalizeUtterance(entry.userMessage);
 
-    if (entry.feedbackType === 'suggestion_click') {
+    const now = new Date().toISOString();
+    if (entry.feedbackType === "suggestion_click") {
       // Positive signal: user confirmed by clicking suggestion
       const key = normalized;
       if (!aggregates[key]) {
         aggregates[key] = { intent: entry.intent, positive: 0, negative: 0 };
       }
       aggregates[key].positive++;
+      aggregates[key].lastSignalAt = now;
       await this.writeSignalAggregates(aggregates);
-    } else if (entry.feedbackType === 'rephrase' || entry.feedbackType === 'retry') {
+    } else if (
+      entry.feedbackType === "rephrase" ||
+      entry.feedbackType === "retry"
+    ) {
       // Negative signal: user rephrased or retried — penalize previous utterance
       if (entry.previousMessageText) {
-        const prevKey = this.processor.normalizeUtterance(entry.previousMessageText);
+        const prevKey = this.processor.normalizeUtterance(
+          entry.previousMessageText,
+        );
         if (aggregates[prevKey]) {
           aggregates[prevKey].negative++;
+          aggregates[prevKey].lastSignalAt = now;
           await this.writeSignalAggregates(aggregates);
         }
       }
@@ -126,23 +163,34 @@ export class LearningService {
     await this.initPromise;
     const items = await this.readJsonl<ReviewItem>(this.reviewQueuePath);
     const filtered = status ? items.filter((i) => i.status === status) : items;
-    return filtered.slice(-limit).reverse();
+    // Sort by priority (highest first), then by recency
+    const sorted = filtered.sort((a, b) => {
+      const pa = a.priority ?? 0;
+      const pb = b.priority ?? 0;
+      if (pb !== pa) return pb - pa;
+      return b.timestamp.localeCompare(a.timestamp);
+    });
+    return sorted.slice(0, limit);
   }
 
   async resolveReviewItem(id: string, correctIntent: string): Promise<boolean> {
     await this.initPromise;
     const items = await this.readJsonl<ReviewItem>(this.reviewQueuePath);
     const item = items.find((i) => i.id === id);
-    if (!item || item.status !== 'pending') return false;
+    if (!item || item.status !== "pending") return false;
 
-    item.status = 'resolved';
+    item.status = "resolved";
     item.correctIntent = correctIntent;
     item.resolvedAt = new Date().toISOString();
     await this.writeJsonl(this.reviewQueuePath, items);
 
     // Add to corpus
     const corpusPath = await this.processor.getCorpusPath(this.groupId);
-    const added = await this.processor.addToCorpus(item.userMessage, correctIntent, corpusPath);
+    const added = await this.processor.addToCorpus(
+      item.userMessage,
+      correctIntent,
+      corpusPath,
+    );
 
     if (added) {
       const learned: AutoLearnedItem = {
@@ -151,11 +199,14 @@ export class LearningService {
         utterance: item.userMessage,
         intent: correctIntent,
         positiveSignals: 0,
-        source: 'admin_review',
+        source: "admin_review",
       };
       await this.appendJsonl(this.autoLearnedPath, learned);
       invalidateEngine(this.groupId);
-      logger.info({ utterance: item.userMessage, intent: correctIntent }, 'Admin-resolved and added to corpus');
+      logger.info(
+        { utterance: item.userMessage, intent: correctIntent },
+        "Admin-resolved and added to corpus",
+      );
     }
 
     return true;
@@ -165,9 +216,9 @@ export class LearningService {
     await this.initPromise;
     const items = await this.readJsonl<ReviewItem>(this.reviewQueuePath);
     const item = items.find((i) => i.id === id);
-    if (!item || item.status !== 'pending') return false;
+    if (!item || item.status !== "pending") return false;
 
-    item.status = 'dismissed';
+    item.status = "dismissed";
     item.resolvedAt = new Date().toISOString();
     await this.writeJsonl(this.reviewQueuePath, items);
     return true;
@@ -175,49 +226,72 @@ export class LearningService {
 
   async getAutoLearnedItems(limit = 50): Promise<AutoLearnedItem[]> {
     await this.initPromise;
-    return (await this.readJsonl<AutoLearnedItem>(this.autoLearnedPath)).slice(-limit).reverse();
+    return (await this.readJsonl<AutoLearnedItem>(this.autoLearnedPath))
+      .slice(-limit)
+      .reverse();
   }
 
   async getStats(): Promise<LearningStats> {
     await this.initPromise;
-    const interactions = await this.readJsonl<InteractionLog>(this.interactionsPath);
+    const interactions = await this.readJsonl<InteractionLog>(
+      this.interactionsPath,
+    );
     const reviewItems = await this.readJsonl<ReviewItem>(this.reviewQueuePath);
-    const autoLearned = await this.readJsonl<AutoLearnedItem>(this.autoLearnedPath);
+    const autoLearned = await this.readJsonl<AutoLearnedItem>(
+      this.autoLearnedPath,
+    );
 
     // Confidence distribution
     const buckets = [
-      { bucket: '0-0.3', min: 0, max: 0.3, count: 0 },
-      { bucket: '0.3-0.5', min: 0.3, max: 0.5, count: 0 },
-      { bucket: '0.5-0.65', min: 0.5, max: 0.65, count: 0 },
-      { bucket: '0.65-0.8', min: 0.65, max: 0.8, count: 0 },
-      { bucket: '0.8-1.0', min: 0.8, max: 1.01, count: 0 },
+      { bucket: "0-0.3", min: 0, max: 0.3, count: 0 },
+      { bucket: "0.3-0.5", min: 0.3, max: 0.5, count: 0 },
+      { bucket: "0.5-0.65", min: 0.5, max: 0.65, count: 0 },
+      { bucket: "0.65-0.8", min: 0.65, max: 0.8, count: 0 },
+      { bucket: "0.8-1.0", min: 0.8, max: 1.01, count: 0 },
     ];
     for (const i of interactions) {
-      const b = buckets.find((b) => i.confidence >= b.min && i.confidence < b.max);
+      const b = buckets.find(
+        (b) => i.confidence >= b.min && i.confidence < b.max,
+      );
       if (b) b.count++;
     }
 
     // Recent activity (last 7 days)
     const now = new Date();
-    const recentActivity: LearningStats['recentActivity'] = [];
+    const recentActivity: LearningStats["recentActivity"] = [];
     for (let d = 6; d >= 0; d--) {
       const date = new Date(now);
       date.setDate(date.getDate() - d);
       const dateStr = date.toISOString().slice(0, 10);
       recentActivity.push({
         date: dateStr,
-        interactions: interactions.filter((i) => i.timestamp.startsWith(dateStr)).length,
-        learned: autoLearned.filter((a) => a.timestamp.startsWith(dateStr)).length,
+        interactions: interactions.filter((i) =>
+          i.timestamp.startsWith(dateStr),
+        ).length,
+        learned: autoLearned.filter((a) => a.timestamp.startsWith(dateStr))
+          .length,
       });
+    }
+
+    // Surface breakdown
+    const surfaceBreakdown: Record<string, number> = {};
+    for (const i of interactions) {
+      const surface = (i as InteractionLog).surface || "chat";
+      surfaceBreakdown[surface] = (surfaceBreakdown[surface] || 0) + 1;
     }
 
     return {
       totalInteractions: interactions.length,
-      pendingReview: reviewItems.filter((r) => r.status === 'pending').length,
-      autoLearned: autoLearned.filter((a) => a.source === 'auto').length,
-      resolvedByAdmin: reviewItems.filter((r) => r.status === 'resolved').length,
-      confidenceDistribution: buckets.map(({ bucket, count }) => ({ bucket, count })),
+      pendingReview: reviewItems.filter((r) => r.status === "pending").length,
+      autoLearned: autoLearned.filter((a) => a.source === "auto").length,
+      resolvedByAdmin: reviewItems.filter((r) => r.status === "resolved")
+        .length,
+      confidenceDistribution: buckets.map(({ bucket, count }) => ({
+        bucket,
+        count,
+      })),
       recentActivity,
+      surfaceBreakdown: surfaceBreakdown as LearningStats["surfaceBreakdown"],
     };
   }
 
@@ -230,8 +304,18 @@ export class LearningService {
 
     for (const [utterance, signals] of Object.entries(aggregates)) {
       if (this.processor.shouldAutoPromote(signals)) {
-        if (!(await this.processor.isAlreadyInCorpus(utterance, signals.intent, corpusPath))) {
-          const added = await this.processor.addToCorpus(utterance, signals.intent, corpusPath);
+        if (
+          !(await this.processor.isAlreadyInCorpus(
+            utterance,
+            signals.intent,
+            corpusPath,
+          ))
+        ) {
+          const added = await this.processor.addToCorpus(
+            utterance,
+            signals.intent,
+            corpusPath,
+          );
           if (added) {
             const learned: AutoLearnedItem = {
               id: generateId(),
@@ -239,7 +323,7 @@ export class LearningService {
               utterance,
               intent: signals.intent,
               positiveSignals: signals.positive,
-              source: 'auto',
+              source: "auto",
             };
             await this.appendJsonl(this.autoLearnedPath, learned);
             promoted++;
@@ -256,7 +340,10 @@ export class LearningService {
 
     if (promoted > 0) {
       invalidateEngine(this.groupId);
-      logger.info({ promoted, groupId: this.groupId }, 'Auto-learned utterances promoted to corpus');
+      logger.info(
+        { promoted, groupId: this.groupId },
+        "Auto-learned utterances promoted to corpus",
+      );
     }
 
     return { promoted, queued: Object.keys(aggregates).length };
@@ -266,9 +353,9 @@ export class LearningService {
 
   private async appendJsonl<T>(filePath: string, data: T): Promise<void> {
     try {
-      await fsp.appendFile(filePath, JSON.stringify(data) + '\n', 'utf-8');
+      await fsp.appendFile(filePath, JSON.stringify(data) + "\n", "utf-8");
     } catch (error) {
-      logger.error({ error, filePath }, 'Failed to append JSONL');
+      logger.error({ error, filePath }, "Failed to append JSONL");
     }
   }
 
@@ -279,42 +366,52 @@ export class LearningService {
       return [];
     }
     try {
-      const content = (await fsp.readFile(filePath, 'utf-8')).trim();
+      const content = (await fsp.readFile(filePath, "utf-8")).trim();
       if (!content) return [];
-      return content.split('\n').map((line) => JSON.parse(line) as T);
+      return content.split("\n").map((line) => JSON.parse(line) as T);
     } catch (error) {
-      logger.error({ error, filePath }, 'Failed to read JSONL');
+      logger.error({ error, filePath }, "Failed to read JSONL");
       return [];
     }
   }
 
   private async writeJsonl<T>(filePath: string, items: T[]): Promise<void> {
     try {
-      const content = items.map((i) => JSON.stringify(i)).join('\n') + (items.length ? '\n' : '');
-      await fsp.writeFile(filePath, content, 'utf-8');
+      const content =
+        items.map((i) => JSON.stringify(i)).join("\n") +
+        (items.length ? "\n" : "");
+      await fsp.writeFile(filePath, content, "utf-8");
     } catch (error) {
-      logger.error({ error, filePath }, 'Failed to write JSONL');
+      logger.error({ error, filePath }, "Failed to write JSONL");
     }
   }
 
-  private async readSignalAggregates(): Promise<Record<string, SignalAggregate>> {
+  private async readSignalAggregates(): Promise<
+    Record<string, SignalAggregate>
+  > {
     try {
       await fsp.access(this.signalAggregatesPath);
     } catch {
       return {};
     }
     try {
-      return JSON.parse(await fsp.readFile(this.signalAggregatesPath, 'utf-8'));
+      return JSON.parse(await fsp.readFile(this.signalAggregatesPath, "utf-8"));
     } catch {
       return {};
     }
   }
 
-  private async writeSignalAggregates(data: Record<string, SignalAggregate>): Promise<void> {
+  private async writeSignalAggregates(
+    data: Record<string, SignalAggregate>,
+  ): Promise<void> {
     try {
-      await fsp.writeFile(this.signalAggregatesPath, JSON.stringify(data, null, 2), 'utf-8');
+      await fsp.writeFile(
+        this.signalAggregatesPath,
+        JSON.stringify(data, null, 2),
+        "utf-8",
+      );
     } catch (error) {
-      logger.error({ error }, 'Failed to write signal aggregates');
+      logger.error({ error }, "Failed to write signal aggregates");
     }
   }
 }
@@ -322,7 +419,9 @@ export class LearningService {
 // Singleton map per group
 const services = new Map<string, LearningService>();
 
-export function getLearningService(groupId: string = 'default'): LearningService {
+export function getLearningService(
+  groupId: string = "default",
+): LearningService {
   let svc = services.get(groupId);
   if (!svc) {
     svc = new LearningService(groupId);

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { promises as fs } from "fs";
-import path from "path";
+import _path from "path";
 import { getGroupConfig, getGroupConfigs } from "@/config/group-config";
 import { ApiClient } from "@/core/api-connector/api-client";
 import { paths } from "@/lib/env-config";
@@ -62,6 +62,7 @@ queriesRouter.get("/queries", async (req: Request, res: Response) => {
         type: q.type ?? "api",
         ...(q.drillDown ? { drillDown: q.drillDown } : {}),
         ...(q.combinedConfig ? { combinedConfig: q.combinedConfig } : {}),
+        ...(q.actionConfig ? { actionConfig: q.actionConfig } : {}),
       })),
     });
   } catch (error) {

@@ -615,7 +615,218 @@ npm run start:prod     # Production build, real APIs`}</pre>
           </p>
         </Section>
 
-        <Section title="4. Intent & Entity Configuration">
+        <Section title="4. Combined Queries (Joins)">
+          <p className="text-sm text-gray-600 mb-3">
+            Combined queries join data from two or more sub-queries into a
+            single result set using a hash-join algorithm. Use them to correlate
+            data across different sources — for example, joining error rates
+            from one API with latency metrics from another, or combining CSV and
+            XLSX data.
+          </p>
+
+          <div className="text-xs text-gray-500 mb-3">
+            Schema:{" "}
+            <FileRef path="services/engine/src/core/api-connector/types.ts" /> |
+            Join engine:{" "}
+            <FileRef path="services/engine/src/core/api-connector/join-engine.ts" />
+          </div>
+
+          <div className="text-sm font-medium text-gray-700 mb-2">
+            combinedConfig Schema
+          </div>
+          <div className="overflow-x-auto mb-4">
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Field
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Type
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Description
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                {[
+                  [
+                    "subQueries[].queryName",
+                    "string (required)",
+                    "Name of an existing query to execute as a sub-query",
+                  ],
+                  [
+                    "subQueries[].prefix",
+                    "string (optional)",
+                    'Column prefix to avoid naming conflicts (e.g. "err", "perf")',
+                  ],
+                  [
+                    "subQueries[].filters",
+                    "Record<string,string>",
+                    "Per-query filter overrides applied at execution time",
+                  ],
+                  [
+                    "subQueries[].maxRows",
+                    "number (optional)",
+                    "Limit rows per sub-query before joining (prevents memory issues with large files)",
+                  ],
+                  [
+                    "joinType",
+                    'enum (default: "inner")',
+                    "Join type: inner, left, right, or full",
+                  ],
+                  [
+                    "joinKeys.left",
+                    "string (required)",
+                    "Column name from the first (left) sub-query result to join on",
+                  ],
+                  [
+                    "joinKeys.right",
+                    "string (required)",
+                    "Column name from the second (right) sub-query result to join on",
+                  ],
+                  [
+                    "additionalJoins[]",
+                    "array (optional)",
+                    "For 3+ way joins — each entry has joinType, leftKey, and rightKey",
+                  ],
+                ].map(([field, type, desc]) => (
+                  <tr key={field} className="border-t border-gray-100">
+                    <td className="px-3 py-2 font-mono">{field}</td>
+                    <td className="px-3 py-2">{type}</td>
+                    <td className="px-3 py-2">{desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="text-sm font-medium text-gray-700 mb-2">
+            Join Types
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-xs text-gray-600 mb-4">
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="font-medium text-gray-700 mb-1">Inner Join</div>
+              <div>
+                Only rows with matching keys in both datasets. Default behavior.
+              </div>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="font-medium text-gray-700 mb-1">Left Join</div>
+              <div>
+                All rows from the left dataset. Unmatched right columns are
+                null.
+              </div>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="font-medium text-gray-700 mb-1">Right Join</div>
+              <div>
+                All rows from the right dataset. Unmatched left columns are
+                null.
+              </div>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="font-medium text-gray-700 mb-1">
+                Full Outer Join
+              </div>
+              <div>
+                All rows from both datasets. Unmatched columns are null on
+                either side.
+              </div>
+            </div>
+          </div>
+
+          <div className="text-sm font-medium text-gray-700 mb-2">
+            Example: Two-Way Join (API + API)
+          </div>
+          <div className="bg-gray-50 rounded-lg p-4 mb-4">
+            <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap">{`{
+  "name": "service_reliability_report",
+  "description": "Error rates joined with latency percentiles per microservice",
+  "type": "combined",
+  "combinedConfig": {
+    "subQueries": [
+      { "queryName": "error_rate", "prefix": "err" },
+      { "queryName": "performance", "prefix": "perf" }
+    ],
+    "joinType": "inner",
+    "joinKeys": {
+      "left": "err_service",
+      "right": "perf_service"
+    }
+  }
+}`}</pre>
+          </div>
+
+          <div className="text-sm font-medium text-gray-700 mb-2">
+            Example: Three-Way Join with additionalJoins (XLSX + XLSX + XLSX)
+          </div>
+          <div className="bg-gray-50 rounded-lg p-4 mb-4">
+            <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap">{`{
+  "name": "employee_full_review",
+  "description": "Salaries, bonuses, and performance ratings per employee",
+  "type": "combined",
+  "combinedConfig": {
+    "subQueries": [
+      { "queryName": "hr_report_salaries", "prefix": "sal" },
+      { "queryName": "hr_report_bonuses", "prefix": "bon" },
+      { "queryName": "hr_report_ratings", "prefix": "rat" }
+    ],
+    "joinType": "inner",
+    "joinKeys": {
+      "left": "sal_employee",
+      "right": "bon_employee"
+    },
+    "additionalJoins": [
+      {
+        "joinType": "inner",
+        "leftKey": "sal_employee",
+        "rightKey": "rat_employee"
+      }
+    ]
+  }
+}`}</pre>
+          </div>
+
+          <div className="text-sm font-medium text-gray-700 mb-2">
+            How It Works
+          </div>
+          <div className="space-y-1 text-sm text-gray-600 mb-3">
+            <div>
+              1. All sub-queries execute{" "}
+              <span className="font-medium">in parallel</span> for performance.
+            </div>
+            <div>
+              2. Column prefixes are applied to avoid naming conflicts (e.g.{" "}
+              <Code>err_service</Code>, <Code>perf_service</Code>).
+            </div>
+            <div>
+              3. The join engine performs sequential hash-joins:{" "}
+              <Code>(q1 JOIN q2) JOIN q3</Code>.
+            </div>
+            <div>
+              4. The joined result is returned as a normal query result (table +
+              chart).
+            </div>
+          </div>
+
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 mb-3">
+            <span className="font-medium">Tip:</span> Use the Admin &rarr;
+            Groups &rarr; Queries &rarr; Preview button to test combined query
+            results before publishing. The preview API (
+            <Code>/api/queries/preview</Code>) supports combined queries.
+          </div>
+
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+            <span className="font-medium">Note:</span> Sub-queries must already
+            exist as standalone queries. You can join across different source
+            types — API with CSV, XLSX with XLSX, etc. Use <Code>maxRows</Code>{" "}
+            on large file-based sub-queries to limit memory usage.
+          </div>
+        </Section>
+
+        <Section title="5. Intent & Entity Configuration">
           <p className="text-sm text-gray-600 mb-3">
             Intents define what the bot understands. Entities define named
             values it can extract. The NLP model trains on these definitions to
@@ -893,7 +1104,7 @@ npm run start:prod     # Production build, real APIs`}</pre>
           </p>
         </Section>
 
-        <Section title="5. Response Templates">
+        <Section title="6. Response Templates">
           <p className="text-sm text-gray-600 mb-3">
             Templates control what the bot says for static intents (greeting,
             help, farewell, unknown). The system uses a two-tier approach: base
@@ -1083,7 +1294,7 @@ npm run start:prod     # Production build, real APIs`}</pre>
           </p>
         </Section>
 
-        <Section title="6. Filter Configuration">
+        <Section title="7. Filter Configuration">
           <p className="text-sm text-gray-600 mb-3">
             Filters define UI controls for narrowing query results.
           </p>
@@ -1115,7 +1326,7 @@ npm run start:prod     # Production build, real APIs`}</pre>
           </p>
         </Section>
 
-        <Section title="7. Adding a New Query (End-to-End)">
+        <Section title="8. Adding a New Query (End-to-End)">
           <div className="space-y-3">
             <div className="flex gap-3">
               <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-700 text-xs font-bold flex items-center justify-center shrink-0">
@@ -1169,7 +1380,7 @@ npm run start:prod     # Production build, real APIs`}</pre>
           </div>
         </Section>
 
-        <Section title="8. Learning System">
+        <Section title="9. Learning System">
           <p className="text-sm text-gray-600 mb-3">
             The bot continuously improves through a self-learning system that
             captures user interactions, identifies patterns, and promotes
@@ -1418,7 +1629,7 @@ Bot:  "The department from user_profile is: Engineering"`}</pre>
           </div>
         </Section>
 
-        <Section title="9. ML Features">
+        <Section title="10. ML Features">
           <p className="text-sm text-gray-600 mb-3">
             The platform includes three ML-powered features that enhance query
             discovery, recommendations, and result monitoring.
@@ -1471,7 +1682,7 @@ Bot:  "The department from user_profile is: Engineering"`}</pre>
           </div>
         </Section>
 
-        <Section title="10. Widget Embedding">
+        <Section title="11. Widget Embedding">
           <p className="text-sm text-gray-600 mb-3">
             To embed the chatbot in an external application, use the embed code
             from Admin &rarr; Groups &rarr; Embed.
@@ -1506,6 +1717,211 @@ Bot:  "The department from user_profile is: Engineering"`}</pre>
 </script>
 <script src="https://your-domain/widget/chatbot-widget.js"></script>`}</pre>
           </div>
+        </Section>
+
+        <Section title="12. Action Panel Configuration">
+          <p className="text-sm text-gray-600 mb-3">
+            The Action Panel allows dashboard cards to open external
+            applications in a resizable side panel. Configure it per-query using{" "}
+            <Code>actionConfig</Code> in the query definition.
+          </p>
+
+          <div className="bg-gray-50 rounded-lg p-4 mb-3">
+            <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap">{`// In query definition (db.json or connector config)
+{
+  "name": "pnl_summary",
+  "actionConfig": {
+    "url": "http://external-app:5050",
+    "label": "P&L Drill-Down Analysis",
+    "contextFields": ["fiscal_year", "region"],
+    "metadata": {
+      "department": "Finance",
+      "brid": "BR001"
+    }
+  }
+}`}</pre>
+          </div>
+
+          <div className="overflow-x-auto mb-3">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Field
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Required
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Description
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                {[
+                  [
+                    "url",
+                    "Yes",
+                    "URL of the external application (absolute or relative)",
+                  ],
+                  [
+                    "label",
+                    "No",
+                    "Title shown in the panel header (defaults to 'Action: {card label}')",
+                  ],
+                  [
+                    "contextFields",
+                    "No",
+                    "Filter keys to include in the context payload",
+                  ],
+                  [
+                    "metadata",
+                    "No",
+                    "Additional key-value pairs passed to the external app via extra",
+                  ],
+                ].map(([field, req, desc]) => (
+                  <tr key={field} className="border-t border-gray-100">
+                    <td className="px-3 py-2 font-mono">{field}</td>
+                    <td className="px-3 py-2">{req}</td>
+                    <td className="px-3 py-2">{desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="text-sm text-gray-600 mb-2">
+            The dashboard sends a <Code>chatbot:context</Code> postMessage
+            (v1.0) to the iframe with the full card context. The external app
+            can also read context from URL query parameters as a fallback.
+          </p>
+          <p className="text-sm text-gray-600">
+            Environment variable fallback: set{" "}
+            <Code>NEXT_PUBLIC_ACTION_PANEL_URL</Code> to apply a default action
+            URL to all cards without explicit actionConfig.
+          </p>
+        </Section>
+
+        <Section title="13. Scheduled Reports Configuration">
+          <p className="text-sm text-gray-600 mb-3">
+            Scheduled reports allow automated dashboard execution and email
+            delivery on a cron schedule.
+          </p>
+
+          <div className="space-y-2 text-sm text-gray-600 mb-3">
+            <div>
+              <span className="font-medium">Engine-side setup:</span> The
+              schedule executor runs inside the Engine and checks for due
+              schedules every 60 seconds.
+            </div>
+            <div>
+              <span className="font-medium">Email setup:</span> Configure SMTP
+              settings via environment variables:
+            </div>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4 mb-3">
+            <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap">{`# .env
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=noreply@example.com
+SMTP_PASS=your-password
+SMTP_FROM=noreply@example.com`}</pre>
+          </div>
+
+          <div className="space-y-2 text-sm text-gray-600">
+            <div>
+              <span className="font-medium">Cron format:</span> Standard 5-field
+              cron (<Code>minute hour day-of-month month day-of-week</Code>).
+              Examples:
+            </div>
+          </div>
+          <div className="overflow-x-auto mt-2">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Expression
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Schedule
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                {[
+                  ["0 9 * * 1-5", "Weekdays at 9:00 AM"],
+                  ["0 8 * * 1", "Every Monday at 8:00 AM"],
+                  ["0 */6 * * *", "Every 6 hours"],
+                  ["30 17 1 * *", "1st of each month at 5:30 PM"],
+                ].map(([expr, desc]) => (
+                  <tr key={expr} className="border-t border-gray-100">
+                    <td className="px-3 py-2 font-mono">{expr}</td>
+                    <td className="px-3 py-2">{desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+
+        <Section title="14. Alert Threshold Configuration">
+          <p className="text-sm text-gray-600 mb-3">
+            Alerts can be configured per dashboard card to monitor metric
+            thresholds. When a card&apos;s data crosses a threshold, an alert
+            badge appears on the card header.
+          </p>
+
+          <div className="bg-gray-50 rounded-lg p-4 mb-3">
+            <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap">{`// Alert configuration structure
+{
+  "column": "total_revenue",
+  "operator": "<",         // <, >, <=, >=, ==, !=
+  "value": 100000,
+  "severity": "critical",  // info, warning, critical
+  "label": "Revenue below target"
+}`}</pre>
+          </div>
+
+          <p className="text-sm text-gray-600">
+            Alerts are configured through the card settings UI. They are stored
+            as part of the dashboard configuration and evaluated each time the
+            card data refreshes.
+          </p>
+        </Section>
+
+        <Section title="15. XLSX / XLS File Sources">
+          <p className="text-sm text-gray-600 mb-3">
+            Upload Excel files to create queries automatically. Each sheet in
+            the workbook becomes a separate query.
+          </p>
+
+          <div className="space-y-2 text-sm text-gray-600 mb-3">
+            <div>
+              <span className="font-medium">Auto-registration:</span> Place{" "}
+              <Code>.xlsx</Code> or <Code>.xls</Code> files in the configured
+              file directory. The Engine detects them on startup and registers
+              each sheet as a query.
+            </div>
+            <div>
+              <span className="font-medium">Sheet naming:</span> Queries are
+              named as <Code>filename_sheetname</Code> (e.g.,{" "}
+              <Code>finance_revenue</Code> from <Code>finance.xlsx</Code> sheet
+              &quot;revenue&quot;).
+            </div>
+            <div>
+              <span className="font-medium">Column detection:</span> Headers are
+              auto-detected from the first row. Data types (numeric, date, text)
+              are inferred from values.
+            </div>
+          </div>
+
+          <p className="text-sm text-gray-600">
+            Set <Code>FILE_BASE_DIR</Code> environment variable to specify the
+            directory where file-based data sources are stored. Per-query
+            override is available via <Code>fileBaseDir</Code> in the query
+            definition.
+          </p>
         </Section>
       </div>
     </div>

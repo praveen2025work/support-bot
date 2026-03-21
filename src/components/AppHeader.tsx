@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUser } from "@/contexts/UserContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -43,30 +44,41 @@ export function AppHeader({
     return pathname.startsWith(path);
   };
 
-  const navLinkClass = (path: string) =>
-    `px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-      isActive(path)
-        ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-        : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-    }`;
-
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <header
+      className="border-b sticky top-0 z-50"
+      style={{
+        backgroundColor: "hsl(var(--card))",
+        borderColor: "hsl(var(--border))",
+      }}
+    >
       <div className="px-4 py-2 flex items-center gap-3 flex-wrap">
         {/* Branding */}
-        <a href="/" className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+        <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold"
+            style={{
+              backgroundColor: "hsl(var(--primary))",
+              color: "hsl(var(--primary-foreground))",
+            }}
+          >
             M
           </div>
-          <span className="text-sm font-semibold text-gray-900">MITR AI</span>
-        </a>
+          <span
+            className="text-sm font-semibold"
+            style={{ color: "hsl(var(--foreground))" }}
+          >
+            MITR AI
+          </span>
+        </Link>
 
         {/* Group dropdown */}
         {groups && groups.length > 1 && onGroupChange && (
           <div className="flex items-center gap-2">
             <label
               htmlFor="app-group-select"
-              className="text-xs text-gray-500 font-medium"
+              className="text-xs font-medium"
+              style={{ color: "hsl(var(--muted-foreground))" }}
             >
               Group:
             </label>
@@ -74,7 +86,12 @@ export function AppHeader({
               id="app-group-select"
               value={groupId || ""}
               onChange={(e) => onGroupChange(e.target.value)}
-              className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="text-xs rounded-lg px-2 py-1.5 border focus:outline-none focus:ring-1"
+              style={{
+                backgroundColor: "hsl(var(--card))",
+                borderColor: "hsl(var(--border))",
+                color: "hsl(var(--foreground))",
+              }}
             >
               {groups.map((g) => (
                 <option key={g.id} value={g.id}>
@@ -87,20 +104,37 @@ export function AppHeader({
 
         {/* Nav links */}
         <nav className="flex items-center gap-1">
-          <a href="/" className={navLinkClass("/")}>
-            Chat
-          </a>
-          <a href="/dashboard" className={navLinkClass("/dashboard")}>
-            Dashboard
-          </a>
-          <a href="/gridboard" className={navLinkClass("/gridboard")}>
-            Grid Board
-          </a>
-          {isAdmin && (
-            <a href="/admin" className={navLinkClass("/admin")}>
-              Admin
+          {[
+            { href: "/", label: "Chat" },
+            { href: "/dashboard", label: "Dashboard" },
+            { href: "/gridboard", label: "Grid Board" },
+            { href: "/features", label: "Features" },
+            ...(isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
+          ].map(({ href, label }) => (
+            <a
+              key={href}
+              href={href}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
+              style={{
+                backgroundColor: isActive(href)
+                  ? "hsl(var(--primary) / 0.1)"
+                  : "transparent",
+                color: isActive(href)
+                  ? "hsl(var(--primary))"
+                  : "hsl(var(--muted-foreground))",
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive(href))
+                  e.currentTarget.style.backgroundColor = "hsl(var(--muted))";
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive(href))
+                  e.currentTarget.style.backgroundColor = "transparent";
+              }}
+            >
+              {label}
             </a>
-          )}
+          ))}
         </nav>
 
         {/* Right side: extra actions + theme + user */}
@@ -111,49 +145,94 @@ export function AppHeader({
           {/* User avatar / dropdown */}
           <div className="relative" ref={menuRef}>
             {userLoading ? (
-              <div className="w-7 h-7 rounded-full bg-gray-200 animate-pulse" />
+              <div
+                className="w-7 h-7 rounded-full animate-pulse"
+                style={{ backgroundColor: "hsl(var(--muted))" }}
+              />
             ) : userInfo ? (
               <>
                 <button
                   onClick={() => setShowUserMenu((v) => !v)}
-                  className="w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-semibold flex items-center justify-center hover:bg-blue-700 transition-colors"
+                  className="w-7 h-7 rounded-full text-xs font-semibold flex items-center justify-center transition-colors"
+                  style={{
+                    backgroundColor: "hsl(var(--primary))",
+                    color: "hsl(var(--primary-foreground))",
+                  }}
                   title={userInfo.displayName}
                 >
                   {userInfo.givenName?.[0]}
                   {userInfo.surname?.[0]}
                 </button>
                 {showUserMenu && (
-                  <div className="absolute right-0 top-9 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-2">
-                    <div className="px-4 py-2 border-b border-gray-100">
-                      <p className="text-sm font-semibold text-gray-900">
+                  <div
+                    className="absolute right-0 top-9 w-64 rounded-lg shadow-lg z-50 py-2 border"
+                    style={{
+                      backgroundColor: "hsl(var(--popover))",
+                      borderColor: "hsl(var(--border))",
+                      color: "hsl(var(--popover-foreground))",
+                    }}
+                  >
+                    <div
+                      className="px-4 py-2 border-b"
+                      style={{ borderColor: "hsl(var(--border))" }}
+                    >
+                      <p
+                        className="text-sm font-semibold"
+                        style={{ color: "hsl(var(--foreground))" }}
+                      >
                         {userInfo.displayName}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p
+                        className="text-xs"
+                        style={{ color: "hsl(var(--muted-foreground))" }}
+                      >
                         {userInfo.emailAddress}
                       </p>
                     </div>
-                    <div className="px-4 py-2 space-y-1 text-xs text-gray-600">
+                    <div className="px-4 py-2 space-y-1 text-xs">
                       {userInfo.department && (
                         <div className="flex justify-between">
-                          <span className="text-gray-400">Department</span>
-                          <span>{userInfo.department}</span>
+                          <span
+                            style={{ color: "hsl(var(--muted-foreground))" }}
+                          >
+                            Department
+                          </span>
+                          <span style={{ color: "hsl(var(--foreground))" }}>
+                            {userInfo.department}
+                          </span>
                         </div>
                       )}
                       {userInfo.role && (
                         <div className="flex justify-between">
-                          <span className="text-gray-400">Role</span>
-                          <span>{userInfo.role}</span>
+                          <span
+                            style={{ color: "hsl(var(--muted-foreground))" }}
+                          >
+                            Role
+                          </span>
+                          <span style={{ color: "hsl(var(--foreground))" }}>
+                            {userInfo.role}
+                          </span>
                         </div>
                       )}
                       {userInfo.location && (
                         <div className="flex justify-between">
-                          <span className="text-gray-400">Location</span>
-                          <span>{userInfo.location}</span>
+                          <span
+                            style={{ color: "hsl(var(--muted-foreground))" }}
+                          >
+                            Location
+                          </span>
+                          <span style={{ color: "hsl(var(--foreground))" }}>
+                            {userInfo.location}
+                          </span>
                         </div>
                       )}
                       <div className="flex justify-between">
-                        <span className="text-gray-400">Employee ID</span>
-                        <span>{userInfo.employeeId}</span>
+                        <span style={{ color: "hsl(var(--muted-foreground))" }}>
+                          Employee ID
+                        </span>
+                        <span style={{ color: "hsl(var(--foreground))" }}>
+                          {userInfo.employeeId}
+                        </span>
                       </div>
                     </div>
                   </div>

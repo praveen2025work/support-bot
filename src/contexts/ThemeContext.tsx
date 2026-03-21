@@ -26,7 +26,7 @@ const ThemeContext = createContext<ThemeContextValue>({
 function getInitialTheme(): Theme {
   if (typeof window === "undefined") return "light";
   const stored = localStorage.getItem("theme") as Theme | null;
-  if (stored) return stored;
+  if (stored === "light" || stored === "dark") return stored;
   return window.matchMedia("(prefers-color-scheme: dark)").matches
     ? "dark"
     : "light";
@@ -43,10 +43,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!mountedRef.current) return;
     const root = document.documentElement;
+    // Remove old multi-theme classes in case any linger
+    root.classList.remove(
+      "dark",
+      "light",
+      "banking-blue",
+      "regulatory-green",
+      "blue",
+      "dark-blue",
+    );
     if (theme === "dark") {
       root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
     }
     localStorage.setItem("theme", theme);
   }, [theme]);

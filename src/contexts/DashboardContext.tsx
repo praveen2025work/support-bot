@@ -8,7 +8,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import type { EventLinkConfig } from "@/types/dashboard";
+import type { EventLinkConfig, FilterDependency } from "@/types/dashboard";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -69,6 +69,14 @@ interface DashboardContextValue {
   saveFilterPreset: (name: string) => void;
   loadFilterPreset: (id: string) => void;
   deleteFilterPreset: (id: string) => void;
+
+  // Filter dependency chains
+  filterDependencies: FilterDependency[];
+  setFilterDependencies: (deps: FilterDependency[]) => void;
+  getFilterOptions: (
+    filterKey: string,
+    parentValues: Record<string, string>,
+  ) => Promise<string[]>;
 }
 
 // ── Provider ─────────────────────────────────────────────────────────
@@ -100,6 +108,9 @@ const DashboardContext = createContext<DashboardContextValue>({
   saveFilterPreset: () => {},
   loadFilterPreset: () => {},
   deleteFilterPreset: () => {},
+  filterDependencies: [],
+  setFilterDependencies: () => {},
+  getFilterOptions: async () => [],
 });
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
@@ -110,6 +121,39 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [sharedFilterGeneration, setSharedFilterGeneration] = useState(0);
   const [activeEvents, setActiveEvents] = useState<DashboardEvent[]>([]);
   const cardLinkConfigsRef = useRef<Map<string, EventLinkConfig>>(new Map());
+
+  // ── Filter dependencies ──
+  const [filterDependencies, setFilterDependencies] = useState<
+    FilterDependency[]
+  >([]);
+
+  const getFilterOptions = useCallback(
+    async (
+      filterKey: string,
+      parentValues: Record<string, string>,
+    ): Promise<string[]> => {
+      const dep = filterDependencies.find((d) => d.childFilter === filterKey);
+      if (!dep) return [];
+      const parentValue = parentValues[dep.parentFilter];
+      if (!parentValue) return [];
+      if (dep.sourceUrl) {
+        try {
+          const url = dep.sourceUrl.replace(
+            "{value}",
+            encodeURIComponent(parentValue),
+          );
+          const res = await fetch(url);
+          if (!res.ok) return [];
+          const data = await res.json();
+          return Array.isArray(data) ? data : data.options || [];
+        } catch {
+          return [];
+        }
+      }
+      return [];
+    },
+    [filterDependencies],
+  );
 
   // ── Filter presets (bookmarks) ──
   const PRESETS_KEY = "dashboard_filter_presets";
@@ -319,6 +363,9 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         saveFilterPreset,
         loadFilterPreset,
         deleteFilterPreset,
+        filterDependencies,
+        setFilterDependencies,
+        getFilterOptions,
       }}
     >
       {children}

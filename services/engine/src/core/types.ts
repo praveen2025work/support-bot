@@ -71,6 +71,16 @@ export interface BotResponse {
   totalColumns?: number;
   estimatedSizeKB?: number;
   truncated?: boolean;
+  /** Cross-surface actions the UI can render (e.g. "pin to dashboard", "open in gridboard") */
+  crossSurfaceActions?: CrossSurfaceAction[];
+}
+
+/** Action that enables navigation or data sharing between surfaces. */
+export interface CrossSurfaceAction {
+  type: "pin_to_dashboard" | "open_in_gridboard" | "ask_in_chat" | "export";
+  label: string;
+  /** Payload for the action (query name, filters, etc.) */
+  payload: Record<string, unknown>;
 }
 
 export interface RichContent {
@@ -141,6 +151,13 @@ export interface ColumnConfig {
   ignoreColumns?: string[];
 }
 
+/** Tracks a single follow-up operation in a chain (e.g. group → sort → top-5). */
+export interface FollowUpStep {
+  operation: string; // e.g. "group_by", "sort", "top_n", "filter", "aggregation"
+  description: string; // human-readable, e.g. "group by region"
+  timestamp: string;
+}
+
 export interface ConversationContext {
   sessionId: string;
   history: Array<{ role: "user" | "bot"; text: string; timestamp: Date }>;
@@ -157,4 +174,15 @@ export interface ConversationContext {
   lastChartConfig?: Record<string, unknown>;
   lastColumnConfig?: Record<string, unknown>;
   lastColumnMetadata?: unknown[];
+  /** Ordered chain of follow-up operations applied to the current query result */
+  followUpChain?: FollowUpStep[];
+  /** Last analysis type run on the data (for contextual follow-up suggestions) */
+  lastAnalysisType?: string;
+  /** Anomalies detected in the last query result */
+  lastAnomalies?: Array<{
+    columnName: string;
+    severity: "info" | "warning" | "critical";
+    direction: "spike" | "drop";
+    message: string;
+  }>;
 }

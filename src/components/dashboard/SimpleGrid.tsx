@@ -29,6 +29,7 @@ interface SimpleGridProps {
   cols?: number;
   rowHeight?: number;
   gap?: number;
+  readOnly?: boolean;
   onLayoutChange?: (layout: GridItem[]) => void;
   children: ReactNode[];
 }
@@ -38,6 +39,7 @@ export function SimpleGrid({
   cols = 12,
   rowHeight = 80,
   gap = 16,
+  readOnly = false,
   onLayoutChange,
   children,
 }: SimpleGridProps) {
@@ -263,35 +265,39 @@ export function SimpleGrid({
               position: "relative",
               overflow: "hidden",
             }}
-            draggable={!isResizing}
-            onDragStart={(e) => handleDragStart(e, item.i)}
-            onDragOver={(e) => handleDragOver(e, item.i)}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, item.i)}
-            onDragEnd={handleDragEnd}
+            draggable={!isResizing && !readOnly}
+            onDragStart={
+              readOnly ? undefined : (e) => handleDragStart(e, item.i)
+            }
+            onDragOver={readOnly ? undefined : (e) => handleDragOver(e, item.i)}
+            onDragLeave={readOnly ? undefined : handleDragLeave}
+            onDrop={readOnly ? undefined : (e) => handleDrop(e, item.i)}
+            onDragEnd={readOnly ? undefined : handleDragEnd}
           >
             {child}
-            {/* Resize handle — pinned to outer container bottom-right */}
-            <div
-              className="resize-handle"
-              onMouseDown={(e) => handleResizeStart(e, item.i)}
-              style={{
-                position: "absolute",
-                right: 0,
-                bottom: 0,
-                width: 20,
-                height: 20,
-                cursor: "se-resize",
-                zIndex: 10,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "inherit",
-              }}
-              title="Drag to resize"
-            >
-              <GripVertical size={10} style={{ opacity: 0.4 }} />
-            </div>
+            {/* Resize handle — hidden in readOnly mode */}
+            {!readOnly && (
+              <div
+                className="resize-handle"
+                onMouseDown={(e) => handleResizeStart(e, item.i)}
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  bottom: 0,
+                  width: 20,
+                  height: 20,
+                  cursor: "se-resize",
+                  zIndex: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "inherit",
+                }}
+                title="Drag to resize"
+              >
+                <GripVertical size={10} style={{ opacity: 0.4 }} />
+              </div>
+            )}
           </div>
         );
       })}

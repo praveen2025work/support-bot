@@ -45,7 +45,27 @@ import {
 import { handleSemanticSearch } from "./handlers/semantic-search-handler";
 import { handleAnalysis } from "./handlers/analysis-handler";
 import { handleCompare } from "./handlers/compare-handler";
+import {
+  handleConfirm,
+  handleNegate,
+  handleClarify,
+} from "./handlers/conversational-handler";
+import { handleExport, handleUndo } from "./handlers/action-handler";
 import { ExpertiseAdapter } from "../composer/expertise-adapter";
+import {
+  generateSmartSuggestions,
+  recordFollowUpStep,
+  resetFollowUpChain,
+} from "./smart-suggestions";
+import { generateCrossSurfaceActions } from "./cross-surface-actions";
+import {
+  EXPORT_PATTERN,
+  UNDO_PATTERN,
+  CONFIRM_PATTERN,
+  NEGATE_PATTERN,
+  CLARIFY_PATTERN,
+} from "./constants";
+import type { Recommendation } from "../recommendations/recommendation-engine";
 
 /**
  * Simple Levenshtein distance for typo tolerance on short keywords.
@@ -189,6 +209,7 @@ export class ResponseGenerator {
     explicitFilters?: Record<string, string>,
     incomingHeaders?: Record<string, string>,
     followUpMode?: "local" | "requery",
+    recommendations?: Recommendation[],
   ): Promise<BotResponse> {
     const { intent } = classification;
 
@@ -219,7 +240,82 @@ export class ResponseGenerator {
       /* expertise adaptation is non-critical */
     }
 
+    // Track follow-up chain and store analysis/anomaly context
+    this.trackContextState(intent, response, context);
+
+    // Enhance suggestions with ML-powered smart suggestions
+    try {
+      response.suggestions = generateSmartSuggestions(context, {
+        handlerSuggestions: response.suggestions,
+        columns: context.lastQueryColumns,
+        recommendations,
+        currentOperation: this.intentToOperation(intent),
+      });
+    } catch {
+      /* smart suggestions are non-critical — keep handler suggestions */
+    }
+
+    // Generate cross-surface action buttons
+    try {
+      const actions = generateCrossSurfaceActions(response, context);
+      if (actions.length > 0) {
+        response.crossSurfaceActions = actions;
+      }
+    } catch {
+      /* cross-surface actions are non-critical */
+    }
+
     return response;
+  }
+
+  /** Map intent to follow-up operation name and update context state. */
+  private trackContextState(
+    intent: string,
+    response: BotResponse,
+    context: ConversationContext,
+  ): void {
+    // Reset chain when a new query is executed
+    if (intent === INTENTS.QUERY_EXECUTE || intent === INTENTS.QUERY_MULTI) {
+      resetFollowUpChain(context);
+      // Store anomalies for smart suggestions
+      if (response.anomalies && response.anomalies.length > 0) {
+        context.lastAnomalies = response.anomalies.map((a) => ({
+          columnName: a.columnName,
+          severity: a.severity,
+          direction: a.direction,
+          message: a.message,
+        }));
+      }
+      return;
+    }
+
+    // Track follow-up operations
+    const operation = this.intentToOperation(intent);
+    if (operation) {
+      const userText =
+        context.history.length > 0
+          ? (context.history[context.history.length - 1]?.text ?? "")
+          : "";
+      recordFollowUpStep(context, operation, userText);
+    }
+
+    // Track analysis type
+    if (intent.startsWith("analysis.")) {
+      context.lastAnalysisType = intent;
+    }
+  }
+
+  private intentToOperation(intent: string): string | undefined {
+    const map: Record<string, string> = {
+      [INTENTS.FOLLOWUP_GROUP_BY]: "group_by",
+      [INTENTS.FOLLOWUP_SORT]: "sort",
+      [INTENTS.FOLLOWUP_FILTER]: "filter",
+      [INTENTS.FOLLOWUP_SUMMARY]: "summary",
+      [INTENTS.FOLLOWUP_TOP_N]: "top_n",
+      [INTENTS.FOLLOWUP_AGGREGATION]: "aggregation",
+      [INTENTS.FOLLOWUP_DATA_LOOKUP]: "data_lookup",
+    };
+    return map[intent];
   }
 
   private async dispatch(
@@ -486,7 +582,39 @@ export class ResponseGenerator {
         };
       }
 
+      // Conversational intents
+      case INTENTS.CONFIRM:
+        return handleConfirm(classification, context);
+      case INTENTS.NEGATE:
+        return handleNegate(classification, context);
+      case INTENTS.CLARIFY:
+        return handleClarify(classification, context);
+
+      // Action intents
+      case INTENTS.EXPORT:
+        return handleExport(classification, context);
+      case INTENTS.UNDO:
+        return handleUndo(classification, context);
+
       default: {
+        // Pattern-based detection for new intents (when NLP didn't classify them)
+        const userText = getLastUserText(context);
+        if (EXPORT_PATTERN.test(userText) && context.lastQueryName) {
+          return handleExport(classification, context);
+        }
+        if (UNDO_PATTERN.test(userText)) {
+          return handleUndo(classification, context);
+        }
+        if (CONFIRM_PATTERN.test(userText)) {
+          return handleConfirm(classification, context);
+        }
+        if (NEGATE_PATTERN.test(userText)) {
+          return handleNegate(classification, context);
+        }
+        if (CLARIFY_PATTERN.test(userText)) {
+          return handleClarify(classification, context);
+        }
+
         // Data operation follow-ups (must come before filter to prevent misclassification)
         const dataOpResult = handleDataOperation(classification, context);
         if (dataOpResult) return dataOpResult;

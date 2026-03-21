@@ -206,8 +206,9 @@
   },
   "find outliers": {
     "intent": "analysis.anomaly",
-    "positive": 1,
-    "negative": 0
+    "positive": 2,
+    "negative": 1,
+    "lastSignalAt": "2026-03-20T17:19:18.060Z"
   },
   "what is sal_base_salary": {
     "intent": "followup.data_lookup",
@@ -273,5 +274,35 @@
     "intent": "followup.summary",
     "positive": 1,
     "negative": 0
+  },
+  "show trend": {
+    "intent": "analysis.trend",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-03-20T17:18:56.368Z"
+  },
+  "forecast ahead": {
+    "intent": "analysis.forecast",
+    "positive": 2,
+    "negative": 0,
+    "lastSignalAt": "2026-03-20T17:19:19.579Z"
+  },
+  "show correlations": {
+    "intent": "analysis.correlation",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-03-20T17:19:22.058Z"
+  },
+  "run employee_full_review": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 1,
+    "lastSignalAt": "2026-03-20T22:15:43.502Z"
+  },
+  "run order_details": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-03-20T17:19:25.873Z"
   }
 }

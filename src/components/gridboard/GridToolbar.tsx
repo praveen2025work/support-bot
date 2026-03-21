@@ -1,6 +1,19 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import {
+  ClipboardList,
+  ChevronDown,
+  X,
+  Save,
+  Plus,
+  Eye,
+  BarChart3,
+  Paintbrush,
+  Trash2,
+  Undo2,
+  Download,
+} from "lucide-react";
 import type { ConditionalFormatRule, GridBoardView } from "@/types/dashboard";
 import { FILTER_OPERATORS } from "./grid-helpers";
 
@@ -128,8 +141,9 @@ export function GridToolbar({
           onClick={() => setShowViewMenu(!showViewMenu)}
           className={btnDefault}
         >
-          📋 {activeView ? activeView.viewName : "Views"}
-          <span className="ml-1 text-gray-400">▾</span>
+          <ClipboardList size={14} className="inline mr-1" />
+          {activeView ? activeView.viewName : "Views"}
+          <ChevronDown size={12} className="inline ml-1 text-gray-400" />
         </button>
         {showViewMenu && (
           <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[200px]">
@@ -165,7 +179,7 @@ export function GridToolbar({
                     className="text-red-400 hover:text-red-600 ml-2"
                     title="Delete view"
                   >
-                    ✕
+                    <X size={12} />
                   </button>
                 </div>
               ))}
@@ -180,7 +194,8 @@ export function GridToolbar({
                     }}
                     className="block w-full text-left px-2 py-1.5 text-xs hover:bg-gray-50 rounded"
                   >
-                    💾 Save &quot;{activeView.viewName}&quot;
+                    <Save size={12} className="inline mr-1" /> Save &quot;
+                    {activeView.viewName}&quot;
                   </button>
                   <button
                     onClick={() => {
@@ -189,7 +204,7 @@ export function GridToolbar({
                     }}
                     className="block w-full text-left px-2 py-1.5 text-xs hover:bg-gray-50 rounded"
                   >
-                    ✕ Clear active view
+                    <X size={12} className="inline mr-1" /> Clear active view
                   </button>
                 </>
               )}
@@ -198,7 +213,7 @@ export function GridToolbar({
                   onClick={() => setShowSaveAsInput(true)}
                   className="block w-full text-left px-2 py-1.5 text-xs hover:bg-gray-50 rounded"
                 >
-                  ➕ Save as new view...
+                  <Plus size={12} className="inline mr-1" /> Save as new view...
                 </button>
               ) : (
                 <div className="flex gap-1">
@@ -245,7 +260,7 @@ export function GridToolbar({
           onClick={() => setShowColMenu(!showColMenu)}
           className={btnDefault}
         >
-          👁 Columns
+          <Eye size={14} className="inline mr-1" /> Columns
           {hiddenColumns.size > 0 && (
             <span className="ml-1 text-xs text-amber-600">
               ({hiddenColumns.size} hidden)
@@ -280,7 +295,8 @@ export function GridToolbar({
           onClick={() => setShowGroupMenu(!showGroupMenu)}
           className={btnDefault}
         >
-          📊 Group{groupByColumn ? `: ${groupByColumn}` : ""}
+          <BarChart3 size={14} className="inline mr-1" /> Group
+          {groupByColumn ? `: ${groupByColumn}` : ""}
         </button>
         {showGroupMenu && (
           <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto min-w-[180px]">
@@ -324,7 +340,7 @@ export function GridToolbar({
         onClick={() => setShowFormatModal(!showFormatModal)}
         className={btnDefault}
       >
-        🎨 Format
+        <Paintbrush size={14} className="inline mr-1" /> Format
         {conditionalFormats.length > 0 ? ` (${conditionalFormats.length})` : ""}
       </button>
 
@@ -334,20 +350,22 @@ export function GridToolbar({
       {!readOnly && (
         <>
           <button onClick={onAddRow} className={btnDefault}>
-            + Add Row
+            <Plus size={14} className="inline mr-1" /> Add Row
           </button>
           {selectedCount > 0 && (
             <button onClick={onDeleteSelected} className={btnDanger}>
-              🗑 Delete {selectedCount}
+              <Trash2 size={14} className="inline mr-1" /> Delete{" "}
+              {selectedCount}
             </button>
           )}
           {totalChanges > 0 && (
             <>
               <button onClick={onSaveChanges} className={btnSuccess}>
-                💾 Save {totalChanges} change{totalChanges > 1 ? "s" : ""}
+                <Save size={14} className="inline mr-1" /> Save {totalChanges}{" "}
+                change{totalChanges > 1 ? "s" : ""}
               </button>
               <button onClick={onDiscardChanges} className={btnDefault}>
-                ↩ Discard
+                <Undo2 size={14} className="inline mr-1" /> Discard
               </button>
             </>
           )}
@@ -358,7 +376,7 @@ export function GridToolbar({
 
       {/* Export */}
       <button onClick={onExport} className={btnDefault}>
-        ⬇ Export CSV
+        <Download size={14} className="inline mr-1" /> Export CSV
       </button>
 
       {/* Conditional Formatting Modal */}

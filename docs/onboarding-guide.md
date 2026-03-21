@@ -167,8 +167,16 @@ If your use case needs custom intents beyond the built-in ones, add utterances t
 The platform includes built-in ML features that enhance the user experience automatically:
 
 - **Semantic search** — Users can discover queries using natural language (e.g., "something about revenue trends") instead of exact names. Powered by TF-IDF vector indexing.
-- **Smart recommendations** — After running a query, the chatbot suggests related queries based on collaborative filtering and user interaction history.
-- **Anomaly detection** — Query results are compared against learned baselines to flag unusual values automatically. Admins can configure sensitivity and rebuild baselines from the Admin panel.
+- **Smart suggestions** — Context-aware suggestion chips that combine 5 signal sources: anomaly data (highest priority), analysis context, follow-up chain awareness, ML recommendations (collaborative filtering, co-occurrence, time patterns, user clustering), and handler defaults. Suggestions are ranked by relevance and capped at 5 per response.
+- **Anomaly detection** — Three detection methods work together:
+  - **Statistical**: Z-score and IQR analysis against historical baselines
+  - **Seasonal**: Day-of-week baselines that understand weekly patterns (e.g., lower traffic on weekends)
+  - **Business rules**: Admin-defined threshold rules (e.g., "alert if error_rate > 5%")
+    Admins can configure sensitivity, manage business rules, view anomaly history, and acknowledge events at **Admin → Anomaly Detection**.
+- **Follow-up chaining** — Users can chain operations (group → sort → filter → top-N) step by step on query results. The system tracks the chain and suggests logical next steps. Users can say "undo" to revert any step.
+- **Cross-surface actions** — Query results in Chat include action buttons: "Pin to Dashboard" (for ongoing monitoring), "Open in GridBoard" (for spreadsheet-style editing), and "Export as CSV". These flow data seamlessly between Chat, Dashboard, and GridBoard.
+- **ML analysis** — 13 built-in analysis types: column profiling, smart summary, correlation, distribution, anomaly detection, trend, duplicates, missing data, clustering, decision tree, forecasting, PCA, and insight reports.
+- **Learning system** — The engine learns from user interactions with temporal decay (7-day half-life), cross-surface tracking (chat, dashboard, gridboard, widget), and priority-scored review queues. Recent signals are weighted more heavily than old ones.
 
 These features improve over time as more users interact with the platform. No additional setup is required — the Engine manages ML data in `services/engine/data/`.
 
@@ -228,6 +236,56 @@ The chatbot understands these types of requests:
 "show me revenue and active users together"
 "run error rate and performance"
 "compare daily orders and monthly revenue"
+```
+
+### Follow-Up Operations
+
+After running a query, users can chain operations:
+
+```
+"group by region"
+"sort by revenue desc"
+"top 5"
+"filter by status active"
+"average salary"
+"summarize"
+```
+
+### Export Results
+
+```
+"export as CSV"
+"download as JSON"
+"export as Excel"
+```
+
+### Undo Operations
+
+```
+"undo"
+"go back"
+"revert last step"
+```
+
+### ML Analysis
+
+```
+"find outliers"
+"show trend"
+"forecast ahead"
+"cluster the data"
+"show correlations"
+"PCA analysis"
+"profile columns"
+"smart summary"
+```
+
+### Conversational Commands
+
+```
+"yes" / "correct" / "go ahead"     (confirm)
+"no" / "cancel" / "never mind"     (deny)
+"what do you mean?" / "explain"    (clarify)
 ```
 
 ---
@@ -424,17 +482,23 @@ curl -X POST http://localhost:8080/api/queries/q1/execute \
 
 ## 9. Troubleshooting
 
-| Problem                                     | Solution                                                                  |
-| ------------------------------------------- | ------------------------------------------------------------------------- |
-| Bot says "I didn't understand"              | Add more utterance variations to `corpus.json`                            |
-| Bot says "Unable to fetch queries"          | Check API_BASE_URL and API_TOKEN in `.env.local`                          |
-| Query not found                             | Ensure query name in corpus matches API response exactly                  |
-| Filters not applied                         | Verify your execute endpoint reads `filters` from request body            |
-| Widget not appearing                        | Check browser console for CORS errors; ensure baseUrl is correct          |
-| Slow responses                              | Check `estimatedDuration` in API; consider adding caching                 |
-| SQL connector not connecting                | Check database host/port, test with Admin → Connectors → Test Connection  |
-| SQL query returns all rows (filter ignored) | Check filter config has correct `column` mapping for JOIN queries         |
-| "Invalid column name" in SQL query          | Use the `column` field in filter config for aliased/qualified column refs |
-| SQL dates show raw ISO strings              | Upgrade to latest UI — date formatting is automatic                       |
-| Too many rows crashing browser              | Results are auto-capped at 500 rows in Chat; use filters to narrow        |
-| Published query not showing in Chat         | Clear engine cache by restarting engine, or wait for cache TTL (5 min)    |
+| Problem                                     | Solution                                                                                                         |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Bot says "I didn't understand"              | Add more utterance variations to `corpus.json`                                                                   |
+| Bot says "Unable to fetch queries"          | Check API_BASE_URL and API_TOKEN in `.env.local`                                                                 |
+| Query not found                             | Ensure query name in corpus matches API response exactly                                                         |
+| Filters not applied                         | Verify your execute endpoint reads `filters` from request body                                                   |
+| Widget not appearing                        | Check browser console for CORS errors; ensure baseUrl is correct                                                 |
+| Slow responses                              | Check `estimatedDuration` in API; consider adding caching                                                        |
+| SQL connector not connecting                | Check database host/port, test with Admin → Connectors → Test Connection                                         |
+| SQL query returns all rows (filter ignored) | Check filter config has correct `column` mapping for JOIN queries                                                |
+| "Invalid column name" in SQL query          | Use the `column` field in filter config for aliased/qualified column refs                                        |
+| SQL dates show raw ISO strings              | Upgrade to latest UI — date formatting is automatic                                                              |
+| Too many rows crashing browser              | Results are auto-capped at 500 rows in Chat; use filters to narrow                                               |
+| Published query not showing in Chat         | Clear engine cache by restarting engine, or wait for cache TTL (5 min)                                           |
+| "Nothing to undo" when user says undo       | Undo only works after follow-up operations (group/sort/filter). The base query can't be undone — just re-run it. |
+| Export shows empty data                     | Ensure a query has been run first. Export works on the current result set including follow-ups.                  |
+| Anomaly alerts not appearing                | Baselines require 5+ query executions to build. Check Admin → Anomaly Detection → Baselines.                     |
+| Business rule not triggering                | Verify the rule is enabled and the column name matches exactly (case-sensitive).                                 |
+| Suggestions not appearing after analysis    | Smart suggestions require column data in context. Re-run the query before analysis.                              |
+| Cross-surface buttons not showing           | "Pin to Dashboard" requires a query result; "Open in GridBoard" requires tabular data (csv_table, query_result). |

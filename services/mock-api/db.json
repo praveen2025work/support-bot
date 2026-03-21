@@ -347,7 +347,22 @@
           "key": "region",
           "binding": "query_param"
         }
-      ]
+      ],
+      "actionConfig": {
+        "url": "http://localhost:5050",
+        "label": "P&L Drill-Down Analysis",
+        "contextFields": ["fiscal_year", "region"],
+        "metadata": {
+          "department": "Finance",
+          "reportType": "pnl",
+          "brid": "BR001"
+        }
+      },
+      "filePath": "",
+      "baseUrl": "",
+      "method": "",
+      "authType": "none",
+      "bamTokenUrl": ""
     },
     {
       "id": "q68",

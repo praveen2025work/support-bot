@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { useDashboard } from "@/hooks/useDashboard";
 import { useMultiDashboard } from "@/hooks/useMultiDashboard";
@@ -14,28 +15,14 @@ import {
   DashboardProvider,
   useDashboardContext,
 } from "@/contexts/DashboardContext";
-import type {
-  QueryInfo,
-  DashboardTheme,
-  CalculatedField,
-} from "@/types/dashboard";
-import {
-  X,
-  Monitor,
-  Settings2,
-  CalendarClock,
-  Palette,
-  Calculator,
-} from "lucide-react";
+import type { QueryInfo } from "@/types/dashboard";
+import { X, Monitor, Settings2, CalendarClock } from "lucide-react";
 import { useStompNotifications } from "@/hooks/useStompNotifications";
 import { ShareModal } from "./ShareModal";
 import { ScheduleModal, type ScheduleConfig } from "./ScheduleModal";
 import { ActionPanel, type ActionPanelConfig } from "./ActionPanel";
 import { FilterPresetsBar } from "./GridDashboard";
-import { NlqBar } from "./NlqBar";
 import { ParameterBar } from "./ParameterBar";
-import { ThemeEditor } from "./ThemeEditor";
-import { CalculatedFieldEditor } from "./CalculatedFieldEditor";
 import { KpiCard } from "./KpiCard";
 
 const GridDashboard = lazy(() =>
@@ -161,6 +148,7 @@ function DashboardShellInner({
     linkedSelection,
     clearLinkedSelection,
     sharedFilters,
+    setSharedFilter,
     clearSharedFilters,
   } = useDashboardContext();
   const [shareTargetId, setShareTargetId] = useState<string | null>(null);
@@ -191,11 +179,65 @@ function DashboardShellInner({
   const [actionPanelConfig, setActionPanelConfig] =
     useState<ActionPanelConfig | null>(null);
 
-  // New feature states
-  const [showThemeEditor, setShowThemeEditor] = useState(false);
-  const [showCalcFields, setShowCalcFields] = useState(false);
-  const [nlqLoading, setNlqLoading] = useState(false);
+  // Feature states
   const [paramValues, setParamValues] = useState<Record<string, string>>({});
+  const [kpiValues, setKpiValues] = useState<
+    Record<
+      string,
+      { value: number; previousValue?: number; sparkline?: number[] }
+    >
+  >({});
+
+  // Fetch KPI card data from real queries
+  useEffect(() => {
+    const kpiCards = multiDashboard.activeDashboard?.kpiCards;
+    if (!kpiCards || kpiCards.length === 0) return;
+    for (const kpi of kpiCards) {
+      fetch(
+        `/api/queries/${encodeURIComponent(kpi.queryName)}/run?groupId=${encodeURIComponent(groupId)}${userId ? `&userId=${encodeURIComponent(userId)}` : ""}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filters: {} }),
+        },
+      )
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!data?.rows || data.rows.length === 0) return;
+          const latestRow = data.rows[0];
+          const value = Number(latestRow[kpi.valueField]) || 0;
+          const previousValue = kpi.previousValueField
+            ? Number(latestRow[kpi.previousValueField]) || undefined
+            : data.rows.length > 1
+              ? Number(data.rows[1][kpi.valueField]) || undefined
+              : undefined;
+          // Build sparkline from up to 10 most recent rows
+          const sparkline = data.rows
+            .slice(0, 10)
+            .map((r: Record<string, unknown>) => Number(r[kpi.valueField]) || 0)
+            .reverse();
+          setKpiValues((prev) => ({
+            ...prev,
+            [kpi.title]: { value, previousValue, sparkline },
+          }));
+        })
+        .catch(() => {});
+    }
+  }, [multiDashboard.activeDashboard?.kpiCards, groupId, userId]);
+
+  // Initialize param values from defaults on dashboard change
+  useEffect(() => {
+    const params = multiDashboard.activeDashboard?.parameters;
+    if (!params || params.length === 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Syncing param defaults when dashboard switches
+    setParamValues((prev) => {
+      const defaults: Record<string, string> = {};
+      for (const p of params) {
+        defaults[p.name] = prev[p.name] ?? p.defaultValue;
+      }
+      return defaults;
+    });
+  }, [multiDashboard.activeDashboard?.parameters]);
 
   const handleOpenAction = (cardId: string) => {
     const card = multiDashboard.activeDashboard?.cards.find(
@@ -249,51 +291,9 @@ function DashboardShellInner({
     setActionPanelConfig(null);
   };
 
-  // NLQ handler: send natural language query to engine, add result as a card
-  const handleNlqSubmit = async (query: string) => {
-    if (!multiDashboard.activeDashboard) return;
-    setNlqLoading(true);
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: query, groupId }),
-      });
-      const data = await res.json();
-      // If the engine identified a query to run, add it as a card
-      if (data.queryName) {
-        await multiDashboard.addCard(multiDashboard.activeDashboard.id, {
-          queryName: data.queryName,
-          groupId,
-          label: query,
-          defaultFilters: data.filters || {},
-          autoRun: true,
-          eventLink: { mode: "auto" },
-        });
-      }
-    } catch {
-      // silently fail — user can retry
-    } finally {
-      setNlqLoading(false);
-    }
-  };
-
   // Parameter change handler
   const handleParamChange = (name: string, value: string) => {
     setParamValues((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Theme change handler
-  const handleThemeChange = (_theme: DashboardTheme) => {
-    if (!multiDashboard.activeDashboard) return;
-    // Persist via updateDashboard if available, otherwise just local
-    // For now, update locally — theme will be persisted with dashboard
-  };
-
-  // Calculated fields change handler
-  const handleCalcFieldsSave = (_fields: CalculatedField[]) => {
-    // Persist calculated fields on the dashboard
-    setShowCalcFields(false);
   };
 
   const handleDashboardSelect = (id: string) => {
@@ -429,34 +429,6 @@ function DashboardShellInner({
           </button>
         )}
 
-        {/* Theme Editor toggle */}
-        {isGridView && multiDashboard.activeDashboard && !isReadOnly && (
-          <button
-            onClick={() => setShowThemeEditor((v) => !v)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-              showThemeEditor
-                ? "bg-purple-50 text-purple-700 border-purple-300"
-                : "text-gray-600 bg-white border-gray-200 hover:bg-gray-50"
-            }`}
-            title="Theme Editor"
-          >
-            <Palette size={14} />
-            Theme
-          </button>
-        )}
-
-        {/* Calculated Fields */}
-        {isGridView && multiDashboard.activeDashboard && !isReadOnly && (
-          <button
-            onClick={() => setShowCalcFields(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            title="Calculated Fields"
-          >
-            <Calculator size={14} />
-            Calc Fields
-          </button>
-        )}
-
         <div className="flex-1 min-w-[200px]">
           <SearchBar
             groupId={groupId}
@@ -520,22 +492,6 @@ function DashboardShellInner({
         )}
       </div>
 
-      {/* NLQ Bar — natural language query bar above dashboard */}
-      {isGridView && multiDashboard.activeDashboard && !isReadOnly && (
-        <div className="px-6 pt-4">
-          <NlqBar
-            onSubmit={handleNlqSubmit}
-            isLoading={nlqLoading}
-            placeholder="Ask a question to add a card to your dashboard..."
-            suggestions={[
-              "Show monthly revenue",
-              "Top 10 customers by sales",
-              "Revenue vs expenses trend",
-            ]}
-          />
-        </div>
-      )}
-
       {/* Parameter Bar — global dashboard filters */}
       {isGridView &&
         multiDashboard.activeDashboard?.parameters &&
@@ -546,8 +502,13 @@ function DashboardShellInner({
               values={paramValues}
               onChange={handleParamChange}
               onApply={() => {
-                // Trigger re-fetch on all cards with new param values
-                multiDashboard.fetchDashboards();
+                // Inject param values as shared filters so all cards pick them up
+                clearSharedFilters();
+                for (const [key, val] of Object.entries(paramValues)) {
+                  if (val) {
+                    setSharedFilter(key, val);
+                  }
+                }
               }}
               onReset={() => {
                 const defaults: Record<string, string> = {};
@@ -567,18 +528,23 @@ function DashboardShellInner({
         multiDashboard.activeDashboard.kpiCards.length > 0 && (
           <div className="px-6 pt-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {multiDashboard.activeDashboard.kpiCards.map((kpi, i) => (
-                <KpiCard
-                  key={kpi.title + i}
-                  title={kpi.title}
-                  value={0}
-                  prefix={kpi.prefix}
-                  unit={kpi.unit}
-                  format={kpi.format}
-                  thresholds={kpi.thresholds}
-                  trendLabel={kpi.trendLabel}
-                />
-              ))}
+              {multiDashboard.activeDashboard.kpiCards.map((kpi, i) => {
+                const kpiData = kpiValues[kpi.title];
+                return (
+                  <KpiCard
+                    key={kpi.title + i}
+                    title={kpi.title}
+                    value={kpiData?.value ?? 0}
+                    previousValue={kpiData?.previousValue}
+                    sparklineData={kpiData?.sparkline}
+                    prefix={kpi.prefix}
+                    unit={kpi.unit}
+                    format={kpi.format}
+                    thresholds={kpi.thresholds}
+                    trendLabel={kpi.trendLabel}
+                  />
+                );
+              })}
             </div>
           </div>
         )}
@@ -778,58 +744,6 @@ function DashboardShellInner({
         onClose={() => setActionPanelConfig(null)}
         onActionComplete={handleActionComplete}
       />
-
-      {/* Theme Editor — slide-in panel */}
-      {showThemeEditor && (
-        <div className="fixed inset-y-0 right-0 z-50 w-80 bg-white shadow-xl border-l border-gray-200 overflow-y-auto">
-          <ThemeEditor
-            theme={
-              multiDashboard.activeDashboard?.theme ?? {
-                id: "default",
-                name: "Default",
-                colors: {
-                  primary: "#3b82f6",
-                  secondary: "#6366f1",
-                  accent: "#8b5cf6",
-                  background: "#ffffff",
-                  surface: "#f9fafb",
-                  text: "#111827",
-                  border: "#e5e7eb",
-                },
-                chartPalette: [
-                  "#3b82f6",
-                  "#6366f1",
-                  "#8b5cf6",
-                  "#06b6d4",
-                  "#10b981",
-                  "#f59e0b",
-                  "#ef4444",
-                  "#ec4899",
-                ],
-                borderRadius: "lg",
-                fontFamily: "system",
-                cardStyle: "shadow",
-              }
-            }
-            onChange={handleThemeChange}
-            onClose={() => setShowThemeEditor(false)}
-          />
-        </div>
-      )}
-
-      {/* Calculated Fields Editor modal */}
-      {showCalcFields && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-            <CalculatedFieldEditor
-              fields={multiDashboard.activeDashboard?.calculatedFields ?? []}
-              availableColumns={[]}
-              onSave={handleCalcFieldsSave}
-              onClose={() => setShowCalcFields(false)}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -866,12 +780,12 @@ function EmptyState({
             Create Dashboard
           </button>
         )}
-        <a
+        <Link
           href="/"
           className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-100 transition-colors"
         >
           Open Chat
-        </a>
+        </Link>
       </div>
     </div>
   );

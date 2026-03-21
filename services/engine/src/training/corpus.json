@@ -17,12 +17,7 @@
           "MAU",
           "users"
         ],
-        "error_rate": [
-          "error rate",
-          "errors",
-          "failure rate",
-          "error report"
-        ],
+        "error_rate": ["error rate", "errors", "failure rate", "error report"],
         "performance": [
           "performance",
           "performance metrics",
@@ -47,12 +42,7 @@
           "cloud costs",
           "costs"
         ],
-        "headcount": [
-          "headcount",
-          "head count",
-          "employee count",
-          "team size"
-        ],
+        "headcount": ["headcount", "head count", "employee count", "team size"],
         "hiring_pipeline": [
           "hiring pipeline",
           "hiring funnel",
@@ -235,12 +225,7 @@
           "desk profit and loss",
           "trading pnl"
         ],
-        "var_report": [
-          "VaR",
-          "value at risk",
-          "VaR report",
-          "market risk"
-        ],
+        "var_report": ["VaR", "value at risk", "VaR report", "market risk"],
         "market_exposure": [
           "market exposure",
           "net exposure",
@@ -390,69 +375,23 @@
     },
     "time_period": {
       "options": {
-        "today": [
-          "today",
-          "current day"
-        ],
-        "this_week": [
-          "this week",
-          "current week",
-          "weekly"
-        ],
-        "this_month": [
-          "this month",
-          "current month",
-          "monthly"
-        ],
-        "this_quarter": [
-          "this quarter",
-          "current quarter",
-          "quarterly"
-        ],
-        "last_week": [
-          "last week",
-          "previous week"
-        ],
-        "last_month": [
-          "last month",
-          "previous month"
-        ],
-        "last_quarter": [
-          "last quarter",
-          "previous quarter"
-        ],
-        "ytd": [
-          "year to date",
-          "YTD"
-        ],
-        "last_year": [
-          "last year",
-          "previous year"
-        ],
-        "this_year": [
-          "this year",
-          "current year"
-        ]
+        "today": ["today", "current day"],
+        "this_week": ["this week", "current week", "weekly"],
+        "this_month": ["this month", "current month", "monthly"],
+        "this_quarter": ["this quarter", "current quarter", "quarterly"],
+        "last_week": ["last week", "previous week"],
+        "last_month": ["last month", "previous month"],
+        "last_quarter": ["last quarter", "previous quarter"],
+        "ytd": ["year to date", "YTD"],
+        "last_year": ["last year", "previous year"],
+        "this_year": ["this year", "current year"]
       }
     },
     "region": {
       "options": {
-        "US": [
-          "US",
-          "United States",
-          "America",
-          "USA"
-        ],
-        "EU": [
-          "EU",
-          "Europe",
-          "European"
-        ],
-        "APAC": [
-          "APAC",
-          "Asia Pacific",
-          "Asia"
-        ]
+        "US": ["US", "United States", "America", "USA"],
+        "EU": ["EU", "Europe", "European"],
+        "APAC": ["APAC", "Asia Pacific", "Asia"]
       }
     },
     "team": {
@@ -464,129 +403,38 @@
           "dev",
           "development"
         ],
-        "sales": [
-          "sales",
-          "sales team"
-        ],
-        "marketing": [
-          "marketing",
-          "marketing team"
-        ],
-        "support": [
-          "support",
-          "customer support",
-          "cs"
-        ],
-        "trading": [
-          "trading",
-          "trading desk",
-          "markets"
-        ],
-        "risk": [
-          "risk",
-          "risk management",
-          "compliance"
-        ],
-        "treasury": [
-          "treasury",
-          "treasury desk"
-        ],
-        "operations": [
-          "operations",
-          "ops",
-          "middle office",
-          "back office"
-        ]
+        "sales": ["sales", "sales team"],
+        "marketing": ["marketing", "marketing team"],
+        "support": ["support", "customer support", "cs"],
+        "trading": ["trading", "trading desk", "markets"],
+        "risk": ["risk", "risk management", "compliance"],
+        "treasury": ["treasury", "treasury desk"],
+        "operations": ["operations", "ops", "middle office", "back office"]
       }
     },
     "environment": {
       "options": {
-        "production": [
-          "production",
-          "prod",
-          "live"
-        ],
-        "staging": [
-          "staging",
-          "stage",
-          "pre-prod"
-        ],
-        "dev": [
-          "dev",
-          "development",
-          "local"
-        ]
+        "production": ["production", "prod", "live"],
+        "staging": ["staging", "stage", "pre-prod"],
+        "dev": ["dev", "development", "local"]
       }
     },
     "severity": {
       "options": {
-        "critical": [
-          "critical",
-          "crit",
-          "P1",
-          "severity 1"
-        ],
-        "high": [
-          "high",
-          "P2",
-          "severity 2"
-        ],
-        "medium": [
-          "medium",
-          "med",
-          "P3",
-          "severity 3"
-        ],
-        "low": [
-          "low",
-          "P4",
-          "severity 4",
-          "minor"
-        ]
+        "critical": ["critical", "crit", "P1", "severity 1"],
+        "high": ["high", "P2", "severity 2"],
+        "medium": ["medium", "med", "P3", "severity 3"],
+        "low": ["low", "P4", "severity 4", "minor"]
       }
     },
     "column_name": {
       "options": {
-        "status": [
-          "status",
-          "state",
-          "condition",
-          "stage"
-        ],
-        "region": [
-          "region",
-          "area",
-          "location",
-          "geography",
-          "country"
-        ],
-        "category": [
-          "category",
-          "type",
-          "kind",
-          "class",
-          "group"
-        ],
-        "priority": [
-          "priority",
-          "severity",
-          "urgency",
-          "importance"
-        ],
-        "name": [
-          "name",
-          "title",
-          "label",
-          "identifier"
-        ],
-        "date": [
-          "date",
-          "time",
-          "timestamp",
-          "created",
-          "updated",
-          "modified"
-        ],
+        "status": ["status", "state", "condition", "stage"],
+        "region": ["region", "area", "location", "geography", "country"],
+        "category": ["category", "type", "kind", "class", "group"],
+        "priority": ["priority", "severity", "urgency", "importance"],
+        "name": ["name", "title", "label", "identifier"],
+        "date": ["date", "time", "timestamp", "created", "updated", "modified"],
         "amount": [
           "amount",
           "value",
@@ -596,19 +444,8 @@
           "price",
           "balance"
         ],
-        "count": [
-          "count",
-          "number",
-          "quantity",
-          "volume"
-        ],
-        "description": [
-          "description",
-          "desc",
-          "details",
-          "notes",
-          "comment"
-        ],
+        "count": ["count", "number", "quantity", "volume"],
+        "description": ["description", "desc", "details", "notes", "comment"],
         "owner": [
           "owner",
           "assignee",
@@ -1368,9 +1205,7 @@
     },
     {
       "intent": "None",
-      "utterances": [
-        "summarize"
-      ],
+      "utterances": ["summarize"],
       "answers": []
     },
     {
@@ -1391,10 +1226,106 @@
       "answers": []
     },
     {
-      "intent": "unknown",
+      "intent": "confirm",
       "utterances": [
-        "[feedback:positive]"
+        "yes",
+        "yeah",
+        "yep",
+        "yup",
+        "correct",
+        "right",
+        "sure",
+        "ok",
+        "okay",
+        "do it",
+        "go ahead",
+        "confirm",
+        "absolutely",
+        "definitely",
+        "please do",
+        "that's right",
+        "affirmative"
       ],
+      "answers": []
+    },
+    {
+      "intent": "negate",
+      "utterances": [
+        "no",
+        "nah",
+        "nope",
+        "cancel",
+        "never mind",
+        "don't",
+        "stop",
+        "wrong",
+        "incorrect",
+        "negative",
+        "no thanks",
+        "not that",
+        "scratch that",
+        "forget it"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "clarify",
+      "utterances": [
+        "what do you mean",
+        "can you explain",
+        "I don't understand",
+        "clarify that",
+        "elaborate",
+        "what does that mean",
+        "explain please",
+        "huh",
+        "what is that",
+        "I'm confused",
+        "can you rephrase",
+        "what did you say"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "export",
+      "utterances": [
+        "export as csv",
+        "download csv",
+        "save as excel",
+        "export to xlsx",
+        "download the results",
+        "export this data",
+        "save as json",
+        "download as file",
+        "export the data",
+        "get csv file",
+        "download excel file",
+        "export results to csv",
+        "save this as csv"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "undo",
+      "utterances": [
+        "undo",
+        "go back",
+        "revert",
+        "undo last",
+        "undo that",
+        "rollback",
+        "previous result",
+        "go to previous",
+        "take me back",
+        "undo the last step",
+        "revert changes",
+        "step back"
+      ],
+      "answers": []
+    },
+    {
+      "intent": "unknown",
+      "utterances": ["[feedback:positive]"],
       "answers": []
     }
   ]

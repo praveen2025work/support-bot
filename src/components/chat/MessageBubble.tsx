@@ -173,6 +173,7 @@ export function MessageBubble({
   displayMode,
   compactAuto,
   hideExecutionTime,
+  diffInfo,
 }: {
   message: Message;
   onAction?: (text: string) => void;
@@ -201,6 +202,14 @@ export function MessageBubble({
   compactAuto?: boolean;
   /** Hide "Completed in Xms" badge (used in dashboard grid where header shows it) */
   hideExecutionTime?: boolean;
+  /** Diff info from previous query run — highlights changes in table */
+  diffInfo?: {
+    addedIndices: Set<number>;
+    changedIndices: Set<number>;
+    changedCells: Map<number, Map<string, unknown>>;
+    removedRows: Record<string, unknown>[];
+    totalChanges: number;
+  };
 }) {
   const isUser = message.role === "user";
 
@@ -237,6 +246,7 @@ export function MessageBubble({
               onDrillDown={onDrillDown}
               displayMode={displayMode}
               compactAuto={compactAuto}
+              diffInfo={diffInfo}
             />
           </div>
         ) : null}
@@ -326,6 +336,7 @@ function RichContentRenderer({
   onDrillDown,
   displayMode,
   compactAuto,
+  diffInfo,
 }: {
   richContent: NonNullable<Message["richContent"]>;
   onExecuteQuery?: (queryName: string, filters: Record<string, string>) => void;
@@ -342,6 +353,13 @@ function RichContentRenderer({
   ) => void;
   displayMode?: "auto" | "table" | "chart";
   compactAuto?: boolean;
+  diffInfo?: {
+    addedIndices: Set<number>;
+    changedIndices: Set<number>;
+    changedCells: Map<number, Map<string, unknown>>;
+    removedRows: Record<string, unknown>[];
+    totalChanges: number;
+  };
 }) {
   switch (richContent.type) {
     case "url_list": {
@@ -375,6 +393,7 @@ function RichContentRenderer({
           onDrillDown={onDrillDown}
           displayMode={displayMode}
           compactAuto={compactAuto}
+          diffInfo={diffInfo}
         />
       );
     }
@@ -1635,6 +1654,7 @@ function QueryResultTable({
   queryName,
   displayMode,
   compactAuto = true,
+  diffInfo,
 }: {
   result: QueryResultData & {
     chartConfig?: Record<string, unknown>;
@@ -1657,6 +1677,14 @@ function QueryResultTable({
   displayMode?: "auto" | "table" | "chart";
   /** When auto mode, use compact tab toggle instead of stacking both */
   compactAuto?: boolean;
+  /** Diff info from previous query run — highlights changes in table */
+  diffInfo?: {
+    addedIndices: Set<number>;
+    changedIndices: Set<number>;
+    changedCells: Map<number, Map<string, unknown>>;
+    removedRows: Record<string, unknown>[];
+    totalChanges: number;
+  };
 }) {
   const [pageRange, setPageRange] = useState({ start: 0, end: 10 });
   const [sortCol, setSortCol] = useState<string | null>(null);
@@ -1960,16 +1988,28 @@ function QueryResultTable({
                   <tbody>
                     {pagedData.map((row, i) => {
                       const highlighted = isRowHighlighted(row);
+                      const actualRowIdx = pageRange.start + i;
+                      const isAddedRow =
+                        diffInfo?.addedIndices.has(actualRowIdx);
+                      const isChangedRow =
+                        diffInfo?.changedIndices.has(actualRowIdx);
+                      const rowChangedCells =
+                        diffInfo?.changedCells.get(actualRowIdx);
+                      const diffRowClass = isAddedRow
+                        ? "bg-green-50"
+                        : isChangedRow
+                          ? "bg-amber-50/50"
+                          : "";
                       return (
                         <tr
                           key={i}
-                          className={`border-b border-gray-100 ${highlighted ? "bg-yellow-50" : ""}`}
+                          className={`border-b border-gray-100 ${highlighted ? "bg-yellow-50" : diffRowClass}`}
                         >
                           {Object.entries(row).map(([key, val], j) => {
                             const dd = drillDownMap.get(key);
                             const hasDrillDown = !!dd && !!onDrillDown;
                             const hasEventClick = onCellClick && cardId;
-                            const actualRowIdx = pageRange.start + i;
+                            const cellPrevValue = rowChangedCells?.get(key);
                             const isEditingThis =
                               editingCell?.row === actualRowIdx &&
                               editingCell?.col === key;
@@ -2002,7 +2042,7 @@ function QueryResultTable({
                                       : editable
                                         ? "cursor-cell"
                                         : ""
-                                } ${numColor} ${highlighted && String(val) === highlightValue ? "bg-yellow-100 font-semibold" : ""} ${cellDirty ? "bg-amber-50" : ""}`}
+                                } ${numColor} ${highlighted && String(val) === highlightValue ? "bg-yellow-100 font-semibold" : ""} ${cellDirty ? "bg-amber-50" : ""} ${cellPrevValue !== undefined ? "bg-yellow-100 ring-1 ring-inset ring-yellow-300" : ""} ${isAddedRow ? "bg-green-50" : ""}`}
                                 onClick={() => {
                                   if (hasDrillDown) {
                                     onDrillDown!(
@@ -2019,11 +2059,15 @@ function QueryResultTable({
                                   startCellEdit(actualRowIdx, key)
                                 }
                                 title={
-                                  hasDrillDown
-                                    ? `Drill down: ${dd!.label || dd!.targetQuery}`
-                                    : editable
-                                      ? "Double-click to edit"
-                                      : undefined
+                                  cellPrevValue !== undefined
+                                    ? `Previous: ${String(cellPrevValue ?? "(empty)")}`
+                                    : hasDrillDown
+                                      ? `Drill down: ${dd!.label || dd!.targetQuery}`
+                                      : isAddedRow
+                                        ? "New row"
+                                        : editable
+                                          ? "Double-click to edit"
+                                          : undefined
                                 }
                               >
                                 {isEditingThis ? (

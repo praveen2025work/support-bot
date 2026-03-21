@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import type { QueryInfo } from "@/types/dashboard";
 import { X } from "lucide-react";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import type { FilterInputConfig } from "@/components/shared/FilterInput";
 import { fetchFilterConfigs, getFilterConfig } from "@/lib/filter-config";
 
@@ -23,6 +24,7 @@ export function AddFavoriteModal({
   onClose: () => void;
 }) {
   const [search, setSearch] = useState("");
+  useBodyScrollLock(true);
   const [adding, setAdding] = useState<string | null>(null);
   const [expandedQuery, setExpandedQuery] = useState<string | null>(null);
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>External Action Center</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a; color: #e2e8f0; min-height: 100vh;
+      display: flex; flex-direction: column;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 20px; border-bottom: 1px solid #1e293b;
+      background: #1e293b;
+    }
+    .header h1 { font-size: 15px; font-weight: 600; }
+    .status {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: #94a3b8;
+    }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #f59e0b; /* waiting */
+    }
+    .status-dot.connected { background: #22c55e; }
+
+    /* ── Main ───────────────────────────────────────────── */
+    .main { flex: 1; padding: 20px; overflow-y: auto; }
+
+    /* ── Waiting state ──────────────────────────────────── */
+    .waiting {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 12px; height: 200px; color: #64748b;
+    }
+    .waiting .spinner {
+      width: 32px; height: 32px; border: 3px solid #334155;
+      border-top-color: #3b82f6; border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Sections ───────────────────────────────────────── */
+    .section { margin-bottom: 20px; }
+    .section-title {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      color: #64748b; letter-spacing: 0.5px; margin-bottom: 8px;
+    }
+
+    /* ── Context card ───────────────────────────────────── */
+    .context-card {
+      background: #1e293b; border-radius: 8px; padding: 14px;
+      border: 1px solid #334155;
+    }
+    .context-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 4px 0; font-size: 13px;
+    }
+    .context-row .label { color: #94a3b8; }
+    .context-row .value { color: #e2e8f0; font-weight: 500; font-family: monospace; font-size: 12px; }
+
+    /* ── Entitlement badge ──────────────────────────────── */
+    .entitlement-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    }
+    .entitlement-badge.authorized { background: #064e3b; color: #34d399; }
+    .entitlement-badge.readonly { background: #713f12; color: #fbbf24; }
+    .entitlement-badge.denied { background: #7f1d1d; color: #f87171; }
+
+    /* ── Action buttons ─────────────────────────────────── */
+    .actions-grid {
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .action-btn {
+      padding: 8px 16px; border-radius: 6px; border: 1px solid #334155;
+      background: #1e293b; color: #e2e8f0; font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .action-btn:hover { background: #334155; border-color: #475569; }
+    .action-btn.approve { border-color: #22c55e33; color: #22c55e; }
+    .action-btn.approve:hover { background: #22c55e20; }
+    .action-btn.reject { border-color: #ef444433; color: #ef4444; }
+    .action-btn.reject:hover { background: #ef444420; }
+    .action-btn.escalate { border-color: #f59e0b33; color: #f59e0b; }
+    .action-btn.escalate:hover { background: #f59e0b20; }
+    .action-btn.override { border-color: #a855f733; color: #a855f7; }
+    .action-btn.override:hover { background: #a855f720; }
+    .action-btn.audit { border-color: #06b6d433; color: #06b6d4; }
+    .action-btn.audit:hover { background: #06b6d420; }
+
+    /* ── Action log ─────────────────────────────────────── */
+    .log-list { list-style: none; }
+    .log-item {
+      padding: 8px 12px; margin-bottom: 4px; border-radius: 6px;
+      background: #1e293b; font-size: 12px; font-family: monospace;
+      border-left: 3px solid #3b82f6; color: #94a3b8;
+    }
+    .log-item .action-name { color: #60a5fa; font-weight: 600; }
+    .log-item .timestamp { color: #475569; margin-left: 8px; }
+
+    /* ── Footer ─────────────────────────────────────────── */
+    .footer {
+      padding: 12px 20px; border-top: 1px solid #1e293b;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .close-btn {
+      padding: 6px 16px; border-radius: 6px; border: 1px solid #475569;
+      background: transparent; color: #94a3b8; font-size: 12px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .close-btn:hover { background: #334155; color: #e2e8f0; }
+    .protocol-info { font-size: 10px; color: #475569; }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <h1>External Action Center</h1>
+    <div class="status">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Waiting for context...</span>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="main">
+    <!-- Waiting state -->
+    <div id="waitingState" class="waiting">
+      <div class="spinner"></div>
+      <p>Waiting for context from the dashboard...</p>
+      <p style="font-size:11px; color:#475569;">This app receives data via postMessage when loaded in the Action Panel iframe.</p>
+    </div>
+
+    <!-- Connected state -->
+    <div id="connectedState" class="hidden">
+      <!-- Context -->
+      <div class="section">
+        <div class="section-title">Received Context</div>
+        <div class="context-card" id="contextCard"></div>
+      </div>
+
+      <!-- Entitlement -->
+      <div class="section">
+        <div class="section-title">Entitlement Status</div>
+        <div id="entitlementBadge"></div>
+      </div>
+
+      <!-- Actions -->
+      <div class="section">
+        <div class="section-title">Available Actions</div>
+        <div class="actions-grid" id="actionsGrid"></div>
+      </div>
+
+      <!-- Log -->
+      <div class="section">
+        <div class="section-title">Action Log</div>
+        <ul class="log-list" id="actionLog">
+          <li class="log-item" style="color:#475569; border-left-color:#334155;">No actions taken yet</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="protocol-info">ChatbotContextMessage v1.0 | postMessage protocol</span>
+    <button class="close-btn" id="closeBtn" onclick="handleClose()">Close Panel</button>
+  </div>
+
+  <script>
+    // ── Allowed origins for postMessage security ───────────
+    var ALLOWED_ORIGINS = [
+      "http://localhost:3001",
+      "http://localhost:3000"
+    ];
+
+    // ── Mock entitlement rules ─────────────────────────────
+    var ENTITLEMENTS = {
+      "jdoe|BR001":   { level: "authorized", actions: ["Approve", "Reject", "Escalate"] },
+      "jdoe|BR002":   { level: "readonly",   actions: ["View Only"] },
+      "jdoe|BR003":   { level: "authorized", actions: ["Approve", "Reject"] },
+      "admin|*":      { level: "authorized", actions: ["Approve", "Reject", "Escalate", "Override", "Audit"] }
+    };
+    var DEFAULT_ENTITLEMENT = { level: "readonly", actions: ["View Only", "Request Access"] };
+
+    // ── State ──────────────────────────────────────────────
+    var currentContext = null;
+
+    // ── Lookup entitlements ────────────────────────────────
+    function getEntitlement(userId, brid) {
+      // Check admin wildcard first
+      var adminKey = userId + "|*";
+      if (ENTITLEMENTS[adminKey]) return ENTITLEMENTS[adminKey];
+      // Check exact match
+      var key = userId + "|" + brid;
+      if (ENTITLEMENTS[key]) return ENTITLEMENTS[key];
+      // Default
+      return DEFAULT_ENTITLEMENT;
+    }
+
+    // ── CSS class for action buttons ───────────────────────
+    function getActionClass(action) {
+      var map = {
+        "Approve": "approve", "Reject": "reject", "Escalate": "escalate",
+        "Override": "override", "Audit": "audit"
+      };
+      return map[action] || "";
+    }
+
+    // ── Render context ─────────────────────────────────────
+    function renderContext(ctx) {
+      var card = document.getElementById("contextCard");
+      var brid = (ctx.extra && ctx.extra.brid) || (ctx.extra && ctx.extra.contextFields && ctx.extra.contextFields.brid) || "N/A";
+      var rows = [
+        ["User ID", ctx.userId || "unknown"],
+        ["BRID", brid],
+        ["Card ID", ctx.cardId],
+        ["Query", ctx.queryName],
+        ["Label", ctx.label],
+        ["Dashboard", ctx.dashboardId || "N/A"],
+        ["Filters", Object.entries(ctx.filters || {}).map(function(e) { return e[0] + "=" + e[1]; }).join(", ") || "none"]
+      ];
+      card.innerHTML = rows.map(function(r) {
+        return '<div class="context-row"><span class="label">' + escapeHtml(r[0]) +
+               '</span><span class="value">' + escapeHtml(r[1]) + '</span></div>';
+      }).join("");
+    }
+
+    // ── Render entitlement + actions ───────────────────────
+    function renderEntitlement(userId, brid) {
+      var ent = getEntitlement(userId, brid);
+      var badge = document.getElementById("entitlementBadge");
+      var icon = ent.level === "authorized" ? "\u2713" : ent.level === "readonly" ? "\u25CB" : "\u2717";
+      badge.innerHTML = '<span class="entitlement-badge ' + ent.level + '">' +
+                         icon + " " + ent.level.charAt(0).toUpperCase() + ent.level.slice(1) +
+                         '</span>' +
+                         '<span style="margin-left:10px;font-size:11px;color:#64748b;">' +
+                         escapeHtml(userId) + ' + ' + escapeHtml(brid) + '</span>';
+
+      var grid = document.getElementById("actionsGrid");
+      grid.innerHTML = ent.actions.map(function(action) {
+        return '<button class="action-btn ' + getActionClass(action) +
+               '" onclick="handleAction(\'' + escapeHtml(action) + '\')">' +
+               escapeHtml(action) + '</button>';
+      }).join("");
+    }
+
+    // ── Handle action button click ─────────────────────────
+    function handleAction(action) {
+      var ts = new Date().toISOString();
+      var brid = "N/A";
+      if (currentContext && currentContext.extra) {
+        brid = currentContext.extra.brid || (currentContext.extra.contextFields && currentContext.extra.contextFields.brid) || "N/A";
+      }
+
+      // Log it
+      addLogEntry(action, ts);
+
+      // Send action:complete back to parent
+      if (window.parent !== window) {
+        window.parent.postMessage({
+          type: "action:complete",
+          refreshCardIds: currentContext ? [currentContext.cardId] : [],
+          result: {
+            action: action,
+            userId: currentContext ? currentContext.userId : "unknown",
+            brid: brid,
+            timestamp: ts
+          }
+        }, "*");
+      }
+    }
+
+    // ── Handle close ───────────────────────────────────────
+    function handleClose() {
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: "action:close" }, "*");
+      }
+    }
+
+    // ── Add log entry ──────────────────────────────────────
+    function addLogEntry(action, ts) {
+      var log = document.getElementById("actionLog");
+      // Remove "no actions" placeholder
+      if (log.children.length === 1 && log.children[0].style.borderLeftColor === "rgb(51, 65, 85)") {
+        log.innerHTML = "";
+      }
+      var li = document.createElement("li");
+      li.className = "log-item";
+      li.innerHTML = '<span class="action-name">' + escapeHtml(action) + '</span>' +
+                     ' executed' +
+                     '<span class="timestamp">' + ts.split("T")[1].split(".")[0] + '</span>';
+      log.insertBefore(li, log.firstChild);
+    }
+
+    // ── HTML escaping ──────────────────────────────────────
+    function escapeHtml(str) {
+      var div = document.createElement("div");
+      div.textContent = String(str);
+      return div.innerHTML;
+    }
+
+    // ── Process incoming context ───────────────────────────
+    function processContext(ctx) {
+      currentContext = ctx;
+
+      // Update connection status
+      document.getElementById("statusDot").classList.add("connected");
+      document.getElementById("statusText").textContent = "Connected";
+
+      // Show connected state
+      document.getElementById("waitingState").classList.add("hidden");
+      document.getElementById("connectedState").classList.remove("hidden");
+
+      // Render
+      renderContext(ctx);
+      var brid = (ctx.extra && ctx.extra.brid) || (ctx.extra && ctx.extra.contextFields && ctx.extra.contextFields.brid) || "N/A";
+      renderEntitlement(ctx.userId || "unknown", brid);
+    }
+
+    // ── Listen for postMessage ─────────────────────────────
+    window.addEventListener("message", function(event) {
+      // Validate origin
+      if (ALLOWED_ORIGINS.indexOf(event.origin) === -1) {
+        console.warn("[action-demo] Blocked message from unauthorized origin:", event.origin);
+        return;
+      }
+
+      var data = event.data;
+      if (!data || typeof data !== "object") return;
+
+      // Handle chatbot:context and chatbot:update
+      if (data.type === "chatbot:context" || data.type === "chatbot:update") {
+        if (data.version === "1.0" && data.source === "chatbot-dashboard" && data.payload) {
+          processContext(data.payload);
+        }
+      }
+    });
+
+    // ── Fallback: read URL query params ────────────────────
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var cardId = params.get("cardId");
+      if (cardId) {
+        // Build context from URL params
+        var filters = {};
+        params.forEach(function(val, key) {
+          if (key.startsWith("filter_")) {
+            filters[key.replace("filter_", "")] = val;
+          }
+        });
+        processContext({
+          cardId: cardId,
+          queryName: params.get("queryName") || "",
+          filters: filters,
+          label: params.get("label") || params.get("queryName") || "",
+          dashboardId: params.get("dashboardId") || undefined,
+          userId: params.get("userId") || "unknown",
+          extra: {
+            brid: params.get("brid") || params.get("filter_brid") || undefined
+          }
+        });
+      }
+    })();
+  </script>
+
+</body>
+</html>

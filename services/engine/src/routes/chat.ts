@@ -49,6 +49,12 @@ chatRouter.post("/", async (req: Request, res: Response) => {
       message.previousMessageText = body.previousMessageText;
     if (body.userName) message.userId = body.userName;
 
+    // Cross-surface tracking: record which UI surface the message came from
+    const surface = body.surface as string | undefined;
+    if (surface) {
+      (message as unknown as Record<string, unknown>).surface = surface;
+    }
+
     const engine = await getEngine(groupId);
     const explicitFilters = body.explicitFilters as
       | Record<string, string>

@@ -21,10 +21,10 @@ import {
   Users,
   Settings,
   BookOpen,
-  Play,
-  Rocket,
   Wrench,
   Monitor,
+  Container,
+  BrainCircuit,
   type LucideIcon,
 } from "lucide-react";
 
@@ -167,28 +167,34 @@ const NAV_SECTIONS: NavSection[] = [
         match: (p: string) => p === "/admin/guides/user-guide",
       },
       {
-        href: "/admin/guides/demo-setup",
-        label: "Demo Setup",
-        icon: Play,
-        match: (p: string) => p === "/admin/guides/demo-setup",
-      },
-      {
-        href: "/admin/guides/prod-deploy",
-        label: "Prod Deploy",
-        icon: Rocket,
-        match: (p: string) => p === "/admin/guides/prod-deploy",
-      },
-      {
         href: "/admin/guides/config-guide",
         label: "Config Guide",
         icon: Wrench,
         match: (p: string) => p === "/admin/guides/config-guide",
       },
       {
+        href: "/admin/guides/learning-guide",
+        label: "Learning & ML",
+        icon: BrainCircuit,
+        match: (p: string) => p === "/admin/guides/learning-guide",
+      },
+      {
         href: "/admin/guides/windows-setup",
         label: "Windows Setup",
         icon: Monitor,
         match: (p: string) => p === "/admin/guides/windows-setup",
+      },
+      {
+        href: "/admin/guides/linux-setup",
+        label: "Linux Setup",
+        icon: Terminal,
+        match: (p: string) => p === "/admin/guides/linux-setup",
+      },
+      {
+        href: "/admin/guides/docker-setup",
+        label: "Docker Setup",
+        icon: Container,
+        match: (p: string) => p === "/admin/guides/docker-setup",
       },
     ],
   },
@@ -199,16 +205,38 @@ export function Sidebar() {
   const { userInfo, loading: userLoading } = useUser();
 
   return (
-    <aside className="w-56 bg-white border-r border-gray-200 flex flex-col">
-      <div className="px-4 py-4 border-b border-gray-200">
-        <h1 className="text-lg font-bold text-gray-900">Admin</h1>
-        <p className="text-xs text-gray-500">Bot Platform Dashboard</p>
+    <aside
+      className="w-56 flex flex-col border-r"
+      style={{
+        backgroundColor: "hsl(var(--card))",
+        borderColor: "hsl(var(--border))",
+      }}
+    >
+      <div
+        className="px-4 py-4 border-b"
+        style={{ borderColor: "hsl(var(--border))" }}
+      >
+        <h1
+          className="text-lg font-bold"
+          style={{ color: "hsl(var(--foreground))" }}
+        >
+          Admin
+        </h1>
+        <p
+          className="text-xs"
+          style={{ color: "hsl(var(--muted-foreground))" }}
+        >
+          Bot Platform Dashboard
+        </p>
       </div>
 
       <nav className="flex-1 px-2 py-3 overflow-y-auto">
         {NAV_SECTIONS.map((section) => (
           <div key={section.label} className="mb-4">
-            <div className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+            <div
+              className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider"
+              style={{ color: "hsl(var(--muted-foreground))" }}
+            >
               {section.label}
             </div>
             <div className="space-y-0.5">
@@ -219,15 +247,32 @@ export function Sidebar() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-150 ${
-                      isActive
-                        ? "bg-blue-50 text-blue-700"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-150"
+                    style={{
+                      backgroundColor: isActive
+                        ? "hsl(var(--primary) / 0.1)"
+                        : "transparent",
+                      color: isActive
+                        ? "hsl(var(--primary))"
+                        : "hsl(var(--foreground) / 0.8)",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive)
+                        e.currentTarget.style.backgroundColor =
+                          "hsl(var(--muted))";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive)
+                        e.currentTarget.style.backgroundColor = "transparent";
+                    }}
                   >
                     <Icon
                       size={16}
-                      className={isActive ? "text-blue-600" : "text-gray-400"}
+                      style={{
+                        color: isActive
+                          ? "hsl(var(--primary))"
+                          : "hsl(var(--muted-foreground))",
+                      }}
                     />
                     {item.label}
                   </Link>
@@ -238,23 +283,44 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="px-4 py-3 border-t border-gray-200">
+      <div
+        className="px-4 py-3 border-t"
+        style={{ borderColor: "hsl(var(--border))" }}
+      >
         {userLoading ? (
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-gray-200 animate-pulse" />
-            <div className="h-3 w-20 bg-gray-200 rounded animate-pulse" />
+            <div
+              className="w-6 h-6 rounded-full animate-pulse"
+              style={{ backgroundColor: "hsl(var(--muted))" }}
+            />
+            <div
+              className="h-3 w-20 rounded animate-pulse"
+              style={{ backgroundColor: "hsl(var(--muted))" }}
+            />
           </div>
         ) : userInfo ? (
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-semibold flex items-center justify-center flex-shrink-0">
+            <div
+              className="w-6 h-6 rounded-full text-[10px] font-semibold flex items-center justify-center flex-shrink-0"
+              style={{
+                backgroundColor: "hsl(var(--primary))",
+                color: "hsl(var(--primary-foreground))",
+              }}
+            >
               {userInfo.givenName?.[0]}
               {userInfo.surname?.[0]}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-medium text-gray-900 truncate">
+              <p
+                className="text-xs font-medium truncate"
+                style={{ color: "hsl(var(--foreground))" }}
+              >
                 {userInfo.displayName}
               </p>
-              <p className="text-[10px] text-gray-400 truncate">
+              <p
+                className="text-[10px] truncate"
+                style={{ color: "hsl(var(--muted-foreground))" }}
+              >
                 {userInfo.department || userInfo.role}
               </p>
             </div>

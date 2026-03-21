@@ -235,36 +235,6 @@ export interface DashboardParameter {
   max?: number;
 }
 
-// ── Calculated Fields ────────────────────────────────────────────────
-
-export interface CalculatedField {
-  id: string;
-  name: string;
-  /** Expression with {column_name} references, e.g. "{revenue} - {cost}" */
-  expression: string;
-  format?: "number" | "currency" | "percent";
-}
-
-// ── Dashboard Theme ──────────────────────────────────────────────────
-
-export interface DashboardTheme {
-  id: string;
-  name: string;
-  colors: {
-    primary: string;
-    secondary: string;
-    accent: string;
-    background: string;
-    surface: string;
-    text: string;
-    border: string;
-  };
-  chartPalette: string[];
-  borderRadius: "none" | "sm" | "md" | "lg" | "xl";
-  fontFamily: "system" | "inter" | "mono";
-  cardStyle: "flat" | "shadow" | "bordered" | "glass";
-}
-
 // ── KPI Card Configuration ───────────────────────────────────────────
 
 export interface KpiCardConfig {
@@ -300,10 +270,6 @@ export interface Dashboard {
   stompEnabled?: boolean;
   /** Dashboard parameters for global filters */
   parameters?: DashboardParameter[];
-  /** Dashboard-level calculated fields */
-  calculatedFields?: CalculatedField[];
-  /** Custom theme for this dashboard */
-  theme?: DashboardTheme;
   /** KPI scorecard cards at the top of the dashboard */
   kpiCards?: KpiCardConfig[];
   createdAt: string;

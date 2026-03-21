@@ -6,7 +6,7 @@ import {
   useEffect,
   useCallback,
   useMemo,
-  type MouseEvent as ReactMouseEvent,
+  type MouseEvent as _ReactMouseEvent,
 } from "react";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { DrillDownModal } from "@/components/chat/DrillDownModal";
@@ -30,6 +30,90 @@ import {
 // ── Memory management constants ────────────────────────────────
 const MAX_CARD_MESSAGES = 20;
 const CARD_RICH_CONTENT_RETAIN = 2; // Keep full richContent on last N bot messages
+
+/**
+ * Compute a diff between previous and current query result rows.
+ * Uses a row "fingerprint" (JSON of sorted key-value pairs) for matching.
+ */
+function computeRowDiff(
+  prevRows: Record<string, unknown>[],
+  currRows: Record<string, unknown>[],
+  prevTimestamp: Date,
+): RowDiffInfo {
+  // Build fingerprint maps for matching
+  const fingerprint = (row: Record<string, unknown>) =>
+    JSON.stringify(Object.entries(row).sort(([a], [b]) => a.localeCompare(b)));
+
+  const prevFingerprints = new Map<
+    string,
+    { index: number; row: Record<string, unknown> }
+  >();
+  for (let i = 0; i < prevRows.length; i++) {
+    prevFingerprints.set(fingerprint(prevRows[i]), {
+      index: i,
+      row: prevRows[i],
+    });
+  }
+
+  const addedIndices = new Set<number>();
+  const changedIndices = new Set<number>();
+  const changedCells = new Map<number, Map<string, unknown>>();
+  const matchedPrevFingerprints = new Set<string>();
+
+  for (let i = 0; i < currRows.length; i++) {
+    const fp = fingerprint(currRows[i]);
+    if (prevFingerprints.has(fp)) {
+      // Exact match — no change
+      matchedPrevFingerprints.add(fp);
+    } else {
+      // Try to find a "similar" row by matching on the first column (key column)
+      const cols = Object.keys(currRows[i]);
+      const keyCol = cols[0];
+      const keyVal = currRows[i][keyCol];
+      const matchedPrev = prevRows.find(
+        (pr) =>
+          pr[keyCol] === keyVal &&
+          !matchedPrevFingerprints.has(fingerprint(pr)),
+      );
+      if (matchedPrev) {
+        matchedPrevFingerprints.add(fingerprint(matchedPrev));
+        // Row exists but values changed — find which cells differ
+        const cellDiffs = new Map<string, unknown>();
+        for (const col of cols) {
+          if (
+            String(currRows[i][col] ?? "") !== String(matchedPrev[col] ?? "")
+          ) {
+            cellDiffs.set(col, matchedPrev[col]);
+          }
+        }
+        if (cellDiffs.size > 0) {
+          changedIndices.add(i);
+          changedCells.set(i, cellDiffs);
+        }
+      } else {
+        // Truly new row
+        addedIndices.add(i);
+      }
+    }
+  }
+
+  // Rows in previous but not matched = removed
+  const removedRows: Record<string, unknown>[] = [];
+  prevFingerprints.forEach(({ row }, fp) => {
+    if (!matchedPrevFingerprints.has(fp)) {
+      removedRows.push(row);
+    }
+  });
+
+  return {
+    addedIndices,
+    changedIndices,
+    changedCells,
+    removedRows,
+    totalChanges: addedIndices.size + changedIndices.size + removedRows.length,
+    previousTimestamp: prevTimestamp,
+  };
+}
 
 function appendCardMessage(
   prev: CardMessage[],
@@ -56,6 +140,22 @@ function appendCardMessage(
   return trimmed;
 }
 
+/** Diff info computed by comparing previous vs current query result rows */
+export interface RowDiffInfo {
+  /** Row indices that are new (not in previous result) */
+  addedIndices: Set<number>;
+  /** Row indices that existed before but have changed cell values */
+  changedIndices: Set<number>;
+  /** Map of changedRowIndex → { column → previousValue } */
+  changedCells: Map<number, Map<string, unknown>>;
+  /** Rows that were in previous result but not in current */
+  removedRows: Record<string, unknown>[];
+  /** Total number of changes */
+  totalChanges: number;
+  /** Timestamp of the previous run */
+  previousTimestamp?: Date;
+}
+
 interface CardMessage {
   id: string;
   role: "user" | "bot";
@@ -67,6 +167,8 @@ interface CardMessage {
   originalQuery?: string;
   suggestions?: string[];
   followUpMode?: "local" | "requery";
+  /** Diff from previous run (only on bot messages with query results) */
+  diffInfo?: RowDiffInfo;
 }
 
 function fallbackConfig(filterKey: string): FilterInputConfig {
@@ -96,6 +198,11 @@ export function QueryCard({
   onExecutionInfo,
   onFilterChange,
   drillDownConfig,
+  readOnly,
+  displayMode,
+  compactAuto,
+  refreshIntervalSec,
+  refreshTrigger,
 }: {
   queryName: string;
   label: string;
@@ -123,8 +230,19 @@ export function QueryCard({
   onFilterChange?: (filters: Record<string, string>) => void;
   /** Drill-down config from query definition */
   drillDownConfig?: DrillDownConfig[];
+  /** Read-only mode — hides follow-up, filter editing, drill-down */
+  readOnly?: boolean;
+  /** Display mode: auto (both), table only, or chart only */
+  displayMode?: "auto" | "table" | "chart";
+  /** When auto mode, use compact tab toggle instead of stacking both */
+  compactAuto?: boolean;
+  /** Auto-refresh interval in seconds */
+  refreshIntervalSec?: number;
+  /** External trigger counter — re-runs when incremented (e.g. STOMP events) */
+  refreshTrigger?: number;
 }) {
   const [messages, setMessages] = useState<CardMessage[]>([]);
+  const [showDiff, setShowDiff] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [followUpText, setFollowUpText] = useState("");
   const [hasRun, setHasRun] = useState(false);
@@ -144,10 +262,17 @@ export function QueryCard({
   const sessionIdRef = useRef(
     `dashboard_${userName}_${queryName}_${Date.now()}`,
   );
+  const retryCountRef = useRef(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const autoExecutedRef = useRef(false);
   const fallbackCardIdRef = useRef(`${queryName}_${favoriteId || Date.now()}`);
   const resolvedCardId = cardId || fallbackCardIdRef.current;
+
+  // Previous query result for diff computation (ephemeral — session only)
+  const previousResultRef = useRef<{
+    rows: Record<string, unknown>[];
+    timestamp: Date;
+  } | null>(null);
 
   // Dashboard context for shared state
   const {
@@ -282,8 +407,43 @@ export function QueryCard({
           }),
         });
 
-        if (!res.ok) throw new Error("Request failed");
+        if (!res.ok) throw new Error(`Request failed (HTTP ${res.status})`);
         const data = await res.json();
+
+        // Compute diff if we have previous results and this is a query_result
+        let diffInfo: RowDiffInfo | undefined;
+        const currentRows =
+          data.richContent?.type === "query_result" &&
+          Array.isArray(data.richContent.data?.data)
+            ? (data.richContent.data.data as Record<string, unknown>[])
+            : data.richContent?.type === "multi_query_result" &&
+                Array.isArray(data.richContent.data)
+              ? ((
+                  data.richContent.data as Array<{
+                    result: { data: Record<string, unknown>[] };
+                  }>
+                )[0]?.result?.data ?? [])
+              : null;
+
+        if (
+          currentRows &&
+          previousResultRef.current &&
+          previousResultRef.current.rows.length > 0
+        ) {
+          diffInfo = computeRowDiff(
+            previousResultRef.current.rows,
+            currentRows,
+            previousResultRef.current.timestamp,
+          );
+        }
+
+        // Store current result as "previous" for next run
+        if (currentRows) {
+          previousResultRef.current = {
+            rows: currentRows,
+            timestamp: new Date(),
+          };
+        }
 
         const botMsg: CardMessage = {
           id: `b_${Date.now()}`,
@@ -295,10 +455,19 @@ export function QueryCard({
           originalQuery: text,
           suggestions: data.suggestions as string[] | undefined,
           followUpMode: data.followUpMode as "local" | "requery" | undefined,
+          diffInfo,
         };
         setMessages((prev) => appendCardMessage(prev, botMsg));
         onExecutionInfo?.(data.executionMs ?? null);
-      } catch {
+      } catch (err) {
+        // Auto-retry once after a short delay for transient failures
+        if (retryCountRef.current === 0) {
+          retryCountRef.current = 1;
+          await new Promise((r) => setTimeout(r, 800 + Math.random() * 400));
+          return sendMessage(text, filters, mode);
+        }
+        // eslint-disable-next-line no-console -- Error logging for card query failures
+        console.warn(`[QueryCard:${queryName}] ${(err as Error).message}`);
         setMessages((prev) =>
           appendCardMessage(prev, {
             id: `e_${Date.now()}`,
@@ -309,6 +478,7 @@ export function QueryCard({
           }),
         );
       } finally {
+        retryCountRef.current = 0;
         setIsLoading(false);
       }
     },
@@ -323,6 +493,29 @@ export function QueryCard({
       sendMessage(`run ${queryName}`, mergedFilters);
     }
   }, [autoExecute, queryName, mergedFilters, sendMessage]);
+
+  // Auto-refresh interval
+  useEffect(() => {
+    if (!refreshIntervalSec || refreshIntervalSec <= 0) return;
+    const timer = setInterval(() => {
+      sendMessage(`run ${queryName}`, mergedFilters);
+    }, refreshIntervalSec * 1000);
+    return () => clearInterval(timer);
+  }, [refreshIntervalSec, queryName, mergedFilters, sendMessage]);
+
+  // External refresh trigger (e.g. STOMP WebSocket events)
+  const prevRefreshTriggerRef = useRef(refreshTrigger);
+  useEffect(() => {
+    if (
+      refreshTrigger !== undefined &&
+      prevRefreshTriggerRef.current !== undefined &&
+      refreshTrigger !== prevRefreshTriggerRef.current &&
+      hasRun
+    ) {
+      sendMessage(`run ${queryName}`, mergedFilters);
+    }
+    prevRefreshTriggerRef.current = refreshTrigger;
+  }, [refreshTrigger, hasRun, queryName, mergedFilters, sendMessage]);
 
   // Propagate default/current filters to shared context on mount so other cards can pick them up
   const defaultFiltersSeededRef = useRef(false);
@@ -405,11 +598,97 @@ export function QueryCard({
     sendMessage(`run ${queryName}`, mergedFilters);
   };
 
+  /** Check if user is asking about changes/differences from previous run */
+  const isChangeQuery = (text: string): boolean => {
+    const lower = text.toLowerCase();
+    return /\b(what('?s| is| are)?\s*(changed|different|new|updated|diff))|difference|changes?\s*(from|since|between|vs)|compare|delta\b/.test(
+      lower,
+    );
+  };
+
+  /** Generate a local diff summary message from the last diffInfo */
+  const generateDiffSummary = (): string => {
+    // Find the latest bot message with diffInfo
+    const lastDiff = [...messages]
+      .reverse()
+      .find((m) => m.role === "bot" && m.diffInfo);
+    if (!lastDiff?.diffInfo) {
+      if (!previousResultRef.current) {
+        return "No previous run to compare against. Run the query at least twice to see differences.";
+      }
+      return "No changes detected — the data is identical to the previous run.";
+    }
+    const d = lastDiff.diffInfo;
+    if (d.totalChanges === 0) {
+      return "No changes detected — the data is identical to the previous run.";
+    }
+    const parts: string[] = [];
+    if (d.addedIndices.size > 0)
+      parts.push(
+        `**${d.addedIndices.size}** new row${d.addedIndices.size !== 1 ? "s" : ""} added`,
+      );
+    if (d.changedIndices.size > 0)
+      parts.push(
+        `**${d.changedIndices.size}** row${d.changedIndices.size !== 1 ? "s" : ""} with updated values`,
+      );
+    if (d.removedRows.length > 0)
+      parts.push(
+        `**${d.removedRows.length}** row${d.removedRows.length !== 1 ? "s" : ""} removed`,
+      );
+
+    // Detail changed cells
+    const cellDetails: string[] = [];
+    d.changedCells.forEach((cols) => {
+      cols.forEach((prevVal, colName) => {
+        cellDetails.push(
+          `• **${colName}**: was \`${String(prevVal ?? "null")}\``,
+        );
+      });
+    });
+
+    let summary = `**${d.totalChanges} change${d.totalChanges !== 1 ? "s" : ""}** from previous run`;
+    if (d.previousTimestamp) {
+      summary += ` (${d.previousTimestamp.toLocaleTimeString()})`;
+    }
+    summary += ":\n" + parts.join(", ") + ".";
+    if (cellDetails.length > 0 && cellDetails.length <= 20) {
+      summary += "\n\nChanged values:\n" + cellDetails.join("\n");
+    }
+    summary +=
+      "\n\n_Highlighted rows are visible in the table above — toggle with the ⚡ badge._";
+    return summary;
+  };
+
   const handleFollowUp = (e: React.FormEvent) => {
     e.preventDefault();
     const text = followUpText.trim();
     if (!text || isLoading) return;
     setFollowUpText("");
+
+    // Intercept "what changed?" queries locally
+    if (isChangeQuery(text)) {
+      // Add user message
+      setMessages((prev) =>
+        appendCardMessage(prev, {
+          id: `u_${Date.now()}`,
+          role: "user",
+          text,
+          timestamp: new Date(),
+        }),
+      );
+      // Generate local diff summary
+      const summary = generateDiffSummary();
+      setMessages((prev) =>
+        appendCardMessage(prev, {
+          id: `b_diff_${Date.now()}`,
+          role: "bot",
+          text: summary,
+          timestamp: new Date(),
+        }),
+      );
+      return;
+    }
+
     sendMessage(text, undefined, followUpMode);
   };
 
@@ -565,7 +844,7 @@ export function QueryCard({
             <p className="text-xs text-gray-400 truncate">{queryName}</p>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
-            {hasFilters && (
+            {hasFilters && !readOnly && (
               <button
                 onClick={() => setEditingFilters((prev) => !prev)}
                 className={`p-1.5 rounded-lg transition-colors ${
@@ -594,7 +873,7 @@ export function QueryCard({
               {key}: {value}
             </span>
           ))}
-          {hideHeader && hasFilters && (
+          {hideHeader && hasFilters && !readOnly && (
             <button
               onClick={() => setEditingFilters(true)}
               className="inline-flex items-center rounded-full bg-gray-100 border border-gray-300 px-2 py-0.5 text-[10px] text-gray-600 hover:bg-gray-200"
@@ -609,6 +888,7 @@ export function QueryCard({
       {/* In grid mode with no active filters, still show a filter button if filters exist */}
       {hideHeader &&
         hasFilters &&
+        !readOnly &&
         activeFilterEntries.length === 0 &&
         !editingFilters && (
           <div className="px-4 py-1.5 border-b border-gray-100 shrink-0">
@@ -624,7 +904,7 @@ export function QueryCard({
         )}
 
       {/* Editable filter panel */}
-      {editingFilters && (
+      {editingFilters && !readOnly && (
         <div className="px-4 py-3 bg-blue-50/50 border-b border-blue-100 space-y-2 shrink-0 overflow-y-auto max-h-48">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-medium text-gray-600">
@@ -721,11 +1001,22 @@ export function QueryCard({
                   }}
                   cardId={cardId}
                   linkedSelection={linkedSelection}
-                  onCellClick={(column, value) =>
-                    setLinkedSelection(resolvedCardId, column, String(value))
+                  onCellClick={
+                    readOnly
+                      ? undefined
+                      : (column, value) =>
+                          setLinkedSelection(
+                            resolvedCardId,
+                            column,
+                            String(value),
+                          )
                   }
-                  drillDownConfig={drillDownConfig}
-                  onDrillDown={handleDrillDown}
+                  drillDownConfig={readOnly ? undefined : drillDownConfig}
+                  onDrillDown={readOnly ? undefined : handleDrillDown}
+                  displayMode={displayMode}
+                  compactAuto={compactAuto}
+                  hideExecutionTime={hideHeader}
+                  diffInfo={showDiff ? msg.diffInfo : undefined}
                 />
                 {/* Follow-up mode badge */}
                 {msg.role === "bot" && msg.followUpMode && (
@@ -743,6 +1034,35 @@ export function QueryCard({
                     </span>
                   </div>
                 )}
+                {/* Diff summary badge */}
+                {msg.role === "bot" &&
+                  msg.diffInfo &&
+                  msg.diffInfo.totalChanges > 0 && (
+                    <div className="flex justify-start mb-0.5 ml-1 items-center gap-1.5">
+                      <button
+                        onClick={() => setShowDiff((v) => !v)}
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                          showDiff
+                            ? "bg-amber-50 text-amber-700 border border-amber-300"
+                            : "bg-gray-50 text-gray-500 border border-gray-200 hover:bg-amber-50 hover:text-amber-600"
+                        }`}
+                        title={
+                          showDiff
+                            ? "Hide changes from previous run"
+                            : "Show changes from previous run"
+                        }
+                      >
+                        {showDiff ? "⚡" : "○"} {msg.diffInfo.totalChanges}{" "}
+                        change{msg.diffInfo.totalChanges !== 1 ? "s" : ""}
+                      </button>
+                      {msg.diffInfo.previousTimestamp && (
+                        <span className="text-[9px] text-gray-400">
+                          vs{" "}
+                          {msg.diffInfo.previousTimestamp.toLocaleTimeString()}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 {/* Rerun button — hidden in dashboard grid (Refresh in hover panel serves same purpose) */}
                 {!hideHeader && msg.role === "bot" && msg.originalQuery && (
                   <div className="flex justify-start mb-1 -mt-1 ml-1">
@@ -784,158 +1104,206 @@ export function QueryCard({
         )}
       </div>
 
-      {/* Hover action panel — slides open at bottom (in normal flow, not absolute) */}
-      <div
-        className={`shrink-0 overflow-hidden transition-all duration-200 ease-in-out ${
-          isHovered ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
-        }`}
-      >
-        <div className="bg-white border-t border-gray-200 px-3 py-2.5 space-y-2">
-          {/* Suggestion chips from last bot response */}
-          {(() => {
-            const lastBot = [...messages]
-              .reverse()
-              .find((m) => m.role === "bot");
-            const chips = lastBot?.suggestions;
-            if (!chips || chips.length === 0 || isLoading) return null;
-            return (
-              <div className="flex flex-wrap gap-1.5">
-                {chips.map((chip: string, i: number) => (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      setFollowUpText("");
-                      sendMessage(chip);
-                    }}
-                    className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[10px] text-blue-600 hover:bg-blue-100 transition-colors"
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
-            );
-          })()}
-
-          <form onSubmit={handleFollowUp} className="flex gap-2">
-            <input
-              type="text"
-              value={followUpText}
-              onChange={(e) => setFollowUpText(e.target.value)}
-              placeholder={
-                followUpMode === "local"
-                  ? "Sort, group, summarize cached data..."
-                  : "Filter or re-query the data source..."
-              }
-              disabled={isLoading || !hasRun}
-              className="flex-1 text-xs border border-gray-300 bg-white text-gray-900 placeholder-gray-400 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
-            />
-            <button
-              type="submit"
-              disabled={isLoading || !followUpText.trim() || !hasRun}
-              className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-            >
-              Send
-            </button>
-          </form>
-
-          {/* Action buttons row */}
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => sendMessage(`run ${queryName}`, mergedFilters)}
-              disabled={isLoading || !hasRun}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
-              title="Refresh"
-            >
-              <RefreshCw size={14} />
-              Refresh
-            </button>
-            <button
-              onClick={handleClear}
-              disabled={!hasRun}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
-              title="Clear & Reset"
-            >
-              <Trash2 size={14} />
-              Clear
-            </button>
-            <button
-              onClick={() => {
-                // Find last bot message with query_result data
-                const lastResult = [...messages]
-                  .reverse()
-                  .find(
-                    (m) =>
-                      m.role === "bot" &&
-                      m.richContent?.type === "query_result" &&
-                      m.richContent.data,
-                  );
-                if (lastResult?.richContent?.data) {
-                  const data = lastResult.richContent.data as {
-                    data?: Record<string, unknown>[];
-                  };
-                  if (data.data) exportToCsv(data.data, `${queryName}.csv`);
-                }
-              }}
-              disabled={
-                !hasRun ||
-                !messages.some(
+      {/* Read-only action bar — always visible with just Refresh + Export */}
+      {readOnly && hasRun && (
+        <div className="shrink-0 bg-white border-t border-gray-200 px-3 py-2 flex items-center gap-1.5">
+          <button
+            onClick={() => sendMessage(`run ${queryName}`, mergedFilters)}
+            disabled={isLoading}
+            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
+            title="Refresh"
+          >
+            <RefreshCw size={14} />
+            Refresh
+          </button>
+          <button
+            onClick={() => {
+              const lastResult = [...messages]
+                .reverse()
+                .find(
                   (m) =>
                     m.role === "bot" &&
                     m.richContent?.type === "query_result" &&
                     m.richContent.data,
-                )
+                );
+              if (lastResult?.richContent?.data) {
+                const data = lastResult.richContent.data as {
+                  data?: Record<string, unknown>[];
+                };
+                if (data.data) exportToCsv(data.data, `${queryName}.csv`);
               }
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
-              title="Export to CSV"
-            >
-              <FileDown size={14} />
-              Export
-            </button>
-            {/* Mode toggle — inline with action buttons */}
-            {hasRun && (
-              <div className="inline-flex items-center border border-gray-300 rounded-md overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setFollowUpMode("local")}
-                  className={`px-2 py-1 text-[10px] font-medium transition-colors ${
-                    followUpMode === "local"
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-gray-500 hover:bg-gray-50"
-                  }`}
-                  title="Operate on cached data (sort, group, summarize)"
-                >
-                  Local
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFollowUpMode("requery")}
-                  className={`px-2 py-1 text-[10px] font-medium border-l border-gray-300 transition-colors ${
-                    followUpMode === "requery"
-                      ? "bg-green-600 text-white"
-                      : "bg-white text-gray-500 hover:bg-gray-50"
-                  }`}
-                  title="Re-execute the query against the data source with new filters"
-                >
-                  Re-query
-                </button>
-              </div>
-            )}
-            <a
-              href={`/?group=${encodeURIComponent(groupId)}&query=${encodeURIComponent(queryName)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors ml-auto"
-              title="Open in Chat (new tab)"
-            >
-              <ExternalLink size={14} />
-              Open in Chat
-            </a>
+            }}
+            disabled={
+              !messages.some(
+                (m) =>
+                  m.role === "bot" &&
+                  m.richContent?.type === "query_result" &&
+                  m.richContent.data,
+              )
+            }
+            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
+            title="Export to CSV"
+          >
+            <FileDown size={14} />
+            Export
+          </button>
+        </div>
+      )}
+
+      {/* Hover action panel — slides open at bottom (in normal flow, not absolute) */}
+      {!readOnly && (
+        <div
+          className={`shrink-0 overflow-hidden transition-all duration-200 ease-in-out ${
+            isHovered ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="bg-white border-t border-gray-200 px-3 py-2.5 space-y-2">
+            {/* Suggestion chips from last bot response */}
+            {(() => {
+              const lastBot = [...messages]
+                .reverse()
+                .find((m) => m.role === "bot");
+              const chips = lastBot?.suggestions;
+              if (!chips || chips.length === 0 || isLoading) return null;
+              return (
+                <div className="flex flex-wrap gap-1.5">
+                  {chips.map((chip: string, i: number) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setFollowUpText("");
+                        sendMessage(chip);
+                      }}
+                      className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[10px] text-blue-600 hover:bg-blue-100 transition-colors"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
+
+            <form onSubmit={handleFollowUp} className="flex gap-2">
+              <input
+                type="text"
+                value={followUpText}
+                onChange={(e) => setFollowUpText(e.target.value)}
+                placeholder={
+                  followUpMode === "local"
+                    ? "Sort, group, summarize cached data..."
+                    : "Filter or re-query the data source..."
+                }
+                disabled={isLoading || !hasRun}
+                className="flex-1 text-xs border border-gray-300 bg-white text-gray-900 placeholder-gray-400 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+              />
+              <button
+                type="submit"
+                disabled={isLoading || !followUpText.trim() || !hasRun}
+                className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                Send
+              </button>
+            </form>
+
+            {/* Action buttons row */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => sendMessage(`run ${queryName}`, mergedFilters)}
+                disabled={isLoading || !hasRun}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
+                title="Refresh"
+              >
+                <RefreshCw size={14} />
+                Refresh
+              </button>
+              <button
+                onClick={handleClear}
+                disabled={!hasRun}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
+                title="Clear & Reset"
+              >
+                <Trash2 size={14} />
+                Clear
+              </button>
+              <button
+                onClick={() => {
+                  // Find last bot message with query_result data
+                  const lastResult = [...messages]
+                    .reverse()
+                    .find(
+                      (m) =>
+                        m.role === "bot" &&
+                        m.richContent?.type === "query_result" &&
+                        m.richContent.data,
+                    );
+                  if (lastResult?.richContent?.data) {
+                    const data = lastResult.richContent.data as {
+                      data?: Record<string, unknown>[];
+                    };
+                    if (data.data) exportToCsv(data.data, `${queryName}.csv`);
+                  }
+                }}
+                disabled={
+                  !hasRun ||
+                  !messages.some(
+                    (m) =>
+                      m.role === "bot" &&
+                      m.richContent?.type === "query_result" &&
+                      m.richContent.data,
+                  )
+                }
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
+                title="Export to CSV"
+              >
+                <FileDown size={14} />
+                Export
+              </button>
+              {/* Mode toggle — inline with action buttons */}
+              {hasRun && (
+                <div className="inline-flex items-center border border-gray-300 rounded-md overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setFollowUpMode("local")}
+                    className={`px-2 py-1 text-[10px] font-medium transition-colors ${
+                      followUpMode === "local"
+                        ? "bg-blue-600 text-white"
+                        : "bg-white text-gray-500 hover:bg-gray-50"
+                    }`}
+                    title="Operate on cached data (sort, group, summarize)"
+                  >
+                    Local
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFollowUpMode("requery")}
+                    className={`px-2 py-1 text-[10px] font-medium border-l border-gray-300 transition-colors ${
+                      followUpMode === "requery"
+                        ? "bg-green-600 text-white"
+                        : "bg-white text-gray-500 hover:bg-gray-50"
+                    }`}
+                    title="Re-execute the query against the data source with new filters"
+                  >
+                    Re-query
+                  </button>
+                </div>
+              )}
+              <a
+                href={`/?group=${encodeURIComponent(groupId)}&query=${encodeURIComponent(queryName)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors ml-auto"
+                title="Open in Chat (new tab)"
+              >
+                <ExternalLink size={14} />
+                Open in Chat
+              </a>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Drill-down modal */}
-      {drillDown && (
+      {!readOnly && drillDown && (
         <DrillDownModal
           open
           sourceColumn={drillDown.column}
@@ -946,9 +1314,6 @@ export function QueryCard({
           onClose={() => setDrillDown(null)}
           onOpenInChat={(query, filters) => {
             setDrillDown(null);
-            const filterStr = Object.entries(filters)
-              .map(([k, v]) => `${k}=${v}`)
-              .join(", ");
             sendMessage(`run ${query}`, filters);
           }}
         />

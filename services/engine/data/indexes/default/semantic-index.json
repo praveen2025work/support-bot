@@ -88,80 +88,9 @@
       ]
     },
     {
-      "queryName": "infrastructure_costs",
-      "description": "Cloud infrastructure spend by service and environment",
-      "terms": [
-        "infrastructur",
-        "cost",
-        "cloud",
-        "infrastructur",
-        "spend",
-        "servic",
-        "environ"
-      ]
-    },
-    {
       "queryName": "headcount",
       "description": "Current headcount by department and location",
-      "terms": [
-        "headcount",
-        "current",
-        "headcount",
-        "depart",
-        "locat"
-      ]
-    },
-    {
-      "queryName": "hiring_pipeline",
-      "description": "Open positions and hiring funnel metrics",
-      "terms": [
-        "hire",
-        "pipelin",
-        "open",
-        "posit",
-        "hire",
-        "funnel",
-        "metric"
-      ]
-    },
-    {
-      "queryName": "onboarding_guide",
-      "description": "New employee onboarding guide on Confluence",
-      "terms": [
-        "onboard",
-        "guid",
-        "new",
-        "employe",
-        "onboard",
-        "guid",
-        "confluenc"
-      ]
-    },
-    {
-      "queryName": "api_changelog",
-      "description": "Latest API changelog and release notes",
-      "terms": [
-        "api",
-        "changelog",
-        "latest",
-        "api",
-        "changelog",
-        "releas",
-        "note"
-      ]
-    },
-    {
-      "queryName": "brd_payments",
-      "description": "Business requirements document for payments module",
-      "terms": [
-        "brd",
-        "payment",
-        "busi",
-        "requir",
-        "document",
-        "payment",
-        "modul"
-      ]
+      "terms": ["headcount", "current", "headcount", "depart", "locat"]
     },
     {
       "queryName": "sales_data",
@@ -178,20 +107,6 @@
       ]
     },
     {
-      "queryName": "auth_spec",
-      "description": "Feature specification for authentication and authorization module v3",
-      "terms": [
-        "auth",
-        "spec",
-        "featur",
-        "specif",
-        "authent",
-        "author",
-        "modul",
-        "v3"
-      ]
-    },
-    {
       "queryName": "incident_report",
       "description": "Post-incident report for the March 2026 payment gateway outage",
       "terms": [
@@ -205,20 +120,6 @@
         "payment",
         "gatewai",
         "outag"
-      ]
-    },
-    {
-      "queryName": "deployment_runbook",
-      "description": "Production deployment runbook with step-by-step procedures",
-      "terms": [
-        "deploy",
-        "runbook",
-        "product",
-        "deploy",
-        "runbook",
-        "step",
-        "step",
-        "procedur"
       ]
     },
     {
@@ -251,183 +152,34 @@
       ]
     },
     {
-      "queryName": "servicenow_dashboard",
-      "description": "ServiceNow ITSM dashboard for incident tracking",
+      "queryName": "employee_compensation",
+      "description": "Employee compensation data with salary, bonus, and ratings by department",
       "terms": [
-        "servicenow",
-        "dashboard",
-        "servicenow",
-        "itsm",
-        "dashboard",
-        "incid",
-        "track"
-      ]
-    },
-    {
-      "queryName": "architecture_wiki",
-      "description": "System architecture documentation on Confluence",
-      "terms": [
-        "architectur",
-        "wiki",
-        "system",
-        "architectur",
-        "document",
-        "confluenc"
-      ]
-    },
-    {
-      "queryName": "user_profile",
-      "description": "User profile data fetched via path variable (demo: Windows auth + path binding)",
-      "terms": [
-        "user",
-        "profil",
-        "user",
-        "profil",
+        "employe",
+        "compens",
+        "employe",
+        "compens",
         "data",
-        "fetch",
-        "via",
-        "path",
-        "variabl",
-        "demo",
-        "window",
-        "auth",
-        "path",
-        "bind"
-      ]
-    },
-    {
-      "queryName": "service_logs",
-      "description": "Service logs filtered via query parameters (demo: query_param binding)",
-      "terms": [
-        "servic",
-        "log",
-        "servic",
-        "log",
-        "filter",
-        "via",
-        "paramet",
-        "demo",
-        "param",
-        "bind"
-      ]
-    },
-    {
-      "queryName": "report_generator",
-      "description": "Generate reports via request body payload (demo: body binding)",
-      "terms": [
-        "report",
-        "gener",
-        "gener",
-        "report",
-        "via",
-        "request",
-        "bodi",
-        "payload",
-        "demo",
-        "bodi",
-        "bind"
-      ]
-    },
-    {
-      "queryName": "bam_report",
-      "description": "Secured report fetched via BAM token authentication (demo: BAM auth)",
-      "terms": [
-        "bam",
-        "report",
-        "secur",
-        "report",
-        "fetch",
-        "via",
-        "bam",
-        "token",
-        "authent",
-        "demo",
-        "bam",
-        "auth"
-      ]
-    },
-    {
-      "queryName": "quarterly_revenue",
-      "description": "Quarterly revenue with YoY comparison and segment breakdown",
-      "terms": [
-        "quarterli",
-        "revenu",
-        "quarterli",
-        "revenu",
-        "yoi",
-        "comparison",
-        "segment",
-        "breakdown"
-      ]
-    },
-    {
-      "queryName": "gross_margin",
-      "description": "Gross profit margin by product line and geography",
-      "terms": [
-        "gross",
-        "margin",
-        "gross",
-        "profit",
-        "margin",
-        "product",
-        "line",
-        "geographi"
-      ]
-    },
-    {
-      "queryName": "ebitda",
-      "description": "EBITDA and EBITDA margin with adjustments breakdown",
-      "terms": [
-        "ebitda",
-        "ebitda",
-        "ebitda",
-        "margin",
-        "adjust",
-        "breakdown"
-      ]
-    },
-    {
-      "queryName": "net_income",
-      "description": "Net income after tax with exceptional items breakdown",
-      "terms": [
-        "net",
-        "incom",
-        "net",
-        "incom",
-        "tax",
-        "except",
-        "item",
-        "breakdown"
-      ]
-    },
-    {
-      "queryName": "revenue_by_segment",
-      "description": "Revenue breakdown by business segment and division",
-      "terms": [
-        "revenu",
-        "segment",
-        "revenu",
-        "breakdown",
-        "busi",
-        "segment",
-        "divis"
-      ]
-    },
-    {
-      "queryName": "yoy_growth",
-      "description": "Year-over-year growth rates across key financial metrics",
-      "terms": [
-        "yoi",
-        "growth",
-        "year",
-        "year",
-        "growth",
+        "salari",
+        "bonu",
         "rate",
-        "across",
-        "kei",
-        "financi",
-        "metric"
+        "depart"
       ]
+    },
+    {
+      "queryName": "hr_report_salaries",
+      "description": "HR report — sheet \"Salaries\"",
+      "terms": ["hr", "report", "salari", "hr", "report", "sheet", "salari"]
+    },
+    {
+      "queryName": "hr_report_bonuses",
+      "description": "HR report — sheet \"Bonuses\"",
+      "terms": ["hr", "report", "bonus", "hr", "report", "sheet", "bonus"]
+    },
+    {
+      "queryName": "hr_report_ratings",
+      "description": "HR report — sheet \"Ratings\"",
+      "terms": ["hr", "report", "rate", "hr", "report", "sheet", "rate"]
     },
     {
       "queryName": "pnl_summary",
@@ -445,402 +197,307 @@
       ]
     },
     {
-      "queryName": "trade_volume",
-      "description": "Trade execution volume by asset class, desk, and venue",
+      "queryName": "budget_vs_actual",
+      "description": "Budget vs Actual comparison by cost center — identifies over/under spending with variance analysis",
       "terms": [
-        "trade",
-        "volum",
-        "trade",
-        "execut",
-        "volum",
-        "asset",
-        "class",
-        "desk",
-        "venu"
-      ]
-    },
-    {
-      "queryName": "trading_pnl",
-      "description": "Trading desk P&L with realized and unrealized components",
-      "terms": [
-        "trade",
-        "pnl",
-        "trade",
-        "desk",
-        "pl",
-        "realiz",
-        "unreal",
-        "compon"
-      ]
-    },
-    {
-      "queryName": "var_report",
-      "description": "Value at Risk report with historical and parametric VaR by desk",
-      "terms": [
-        "var",
-        "report",
-        "valu",
-        "risk",
-        "report",
-        "histor",
-        "parametr",
-        "var",
-        "desk"
-      ]
-    },
-    {
-      "queryName": "market_exposure",
-      "description": "Net and gross market exposure by asset class and region",
-      "terms": [
-        "market",
-        "exposur",
-        "net",
-        "gross",
-        "market",
-        "exposur",
-        "asset",
-        "class",
-        "region"
-      ]
-    },
-    {
-      "queryName": "positions",
-      "description": "Current open positions by book, instrument, and notional value",
-      "terms": [
-        "posit",
-        "current",
-        "open",
-        "posit",
-        "book",
-        "instrument",
-        "notion",
-        "valu"
-      ]
-    },
-    {
-      "queryName": "credit_risk",
-      "description": "Credit risk metrics including counterparty exposure and ratings",
-      "terms": [
-        "credit",
-        "risk",
-        "credit",
-        "risk",
-        "metric",
-        "includ",
-        "counterparti",
-        "exposur",
-        "rate"
-      ]
-    },
-    {
-      "queryName": "regulatory_report",
-      "description": "Regulatory filing status and compliance report submissions",
-      "terms": [
-        "regulatori",
-        "report",
-        "regulatori",
-        "file",
-        "statu",
-        "complianc",
-        "report",
-        "submiss"
-      ]
-    },
-    {
-      "queryName": "aml_alerts",
-      "description": "Anti-money laundering alerts and suspicious activity reports",
-      "terms": [
-        "aml",
-        "alert",
-        "anti",
-        "monei",
-        "launder",
-        "alert",
-        "suspici",
-        "activ",
-        "report"
-      ]
-    },
-    {
-      "queryName": "compliance_metrics",
-      "description": "Compliance KPI dashboard with training, audit, and breach metrics",
-      "terms": [
-        "complianc",
-        "metric",
-        "complianc",
-        "kpi",
-        "dashboard",
-        "train",
-        "audit",
-        "breach",
-        "metric"
-      ]
-    },
-    {
-      "queryName": "capital_adequacy",
-      "description": "Capital adequacy ratios including CET1, Tier 1, and total capital",
-      "terms": [
-        "capit",
-        "adequaci",
-        "capit",
-        "adequaci",
-        "ratio",
-        "includ",
-        "cet1",
-        "tier",
-        "total",
-        "capit"
-      ]
-    },
-    {
-      "queryName": "aum",
-      "description": "Assets under management by fund, strategy, and client segment",
-      "terms": [
-        "aum",
-        "asset",
-        "manag",
-        "fund",
-        "strategi",
-        "client",
-        "segment"
-      ]
-    },
-    {
-      "queryName": "portfolio_performance",
-      "description": "Portfolio returns vs benchmark with attribution analysis",
-      "terms": [
-        "portfolio",
-        "perform",
-        "portfolio",
-        "return",
+        "budget",
         "vs",
-        "benchmark",
-        "attribut",
+        "actual",
+        "budget",
+        "vs",
+        "actual",
+        "comparison",
+        "cost",
+        "center",
+        "identifi",
+        "overund",
+        "spend",
+        "varianc",
         "analysi"
       ]
     },
     {
-      "queryName": "fund_nav",
-      "description": "Fund net asset value with daily pricing and change history",
+      "queryName": "headcount_by_cost_center",
+      "description": "Headcount, average salary, open positions, and attrition rate by cost center",
       "terms": [
-        "fund",
-        "nav",
-        "fund",
-        "net",
-        "asset",
-        "valu",
-        "daili",
-        "price",
-        "chang",
-        "histori"
-      ]
-    },
-    {
-      "queryName": "client_assets",
-      "description": "Client asset holdings with allocation and performance breakdown",
-      "terms": [
-        "client",
-        "asset",
-        "client",
-        "asset",
-        "hold",
-        "alloc",
-        "perform",
-        "breakdown"
-      ]
-    },
-    {
-      "queryName": "client_onboarding",
-      "description": "Client onboarding pipeline with KYC/AML status and approvals",
-      "terms": [
-        "client",
-        "onboard",
-        "client",
-        "onboard",
-        "pipelin",
-        "kycaml",
-        "statu",
-        "approv"
-      ]
-    },
-    {
-      "queryName": "settlement_failures",
-      "description": "Failed settlement trades with counterparty and reason codes",
-      "terms": [
-        "settlement",
-        "failur",
-        "fail",
-        "settlement",
-        "trade",
-        "counterparti",
-        "reason",
-        "code"
-      ]
-    },
-    {
-      "queryName": "stp_rate",
-      "description": "Straight-through processing rate by trade type and counterparty",
-      "terms": [
-        "stp",
+        "headcount",
+        "cost",
+        "center",
+        "headcount",
+        "averag",
+        "salari",
+        "open",
+        "posit",
+        "attrit",
         "rate",
-        "straight",
-        "process",
+        "cost",
+        "center"
+      ]
+    },
+    {
+      "queryName": "trading_desk_pnl",
+      "description": "Trading desk P&L with realized/unrealized breakdown, trade count, and win rate by desk",
+      "terms": [
+        "trade",
+        "desk",
+        "pnl",
+        "trade",
+        "desk",
+        "pl",
+        "realizedunr",
+        "breakdown",
+        "trade",
+        "count",
+        "win",
         "rate",
-        "trade",
-        "type",
-        "counterparti"
+        "desk"
       ]
     },
     {
-      "queryName": "reconciliation",
-      "description": "Reconciliation status with break analysis and aging",
-      "terms": [
-        "reconcili",
-        "reconcili",
-        "statu",
-        "break",
-        "analysi",
-        "ag"
-      ]
-    },
-    {
-      "queryName": "trade_breaks",
-      "description": "Trade break exceptions with resolution status and aging",
+      "queryName": "trading_desk_risk",
+      "description": "Trading desk risk metrics — VaR (95/99), stress test losses, exposure, and limit utilization",
       "terms": [
         "trade",
-        "break",
-        "trade",
-        "break",
-        "except",
-        "resolut",
-        "statu",
-        "ag"
-      ]
-    },
-    {
-      "queryName": "operational_risk",
-      "description": "Operational risk events, losses, and near-miss incidents",
-      "terms": [
-        "oper",
+        "desk",
         "risk",
-        "oper",
+        "trade",
+        "desk",
         "risk",
-        "event",
+        "metric",
+        "var",
+        "9599",
+        "stress",
+        "test",
         "loss",
-        "near",
-        "miss",
-        "incid"
+        "exposur",
+        "limit",
+        "util"
       ]
     },
     {
-      "queryName": "loan_book",
-      "description": "Loan portfolio with outstanding balances, rates, and maturity profile",
+      "queryName": "loan_portfolio",
+      "description": "Loan portfolio by segment and region — outstanding balances, rates, NPL ratios, and provisions",
       "terms": [
-        "loan",
-        "book",
         "loan",
         "portfolio",
+        "loan",
+        "portfolio",
+        "segment",
+        "region",
         "outstand",
         "balanc",
         "rate",
-        "matur",
-        "profil"
-      ]
-    },
-    {
-      "queryName": "npl_ratio",
-      "description": "Non-performing loan ratio with vintage analysis and provisioning",
-      "terms": [
         "npl",
         "ratio",
-        "non",
-        "perform",
-        "loan",
-        "ratio",
-        "vintag",
-        "analysi",
         "provis"
       ]
     },
     {
-      "queryName": "origination_pipeline",
-      "description": "Loan origination pipeline with deal stages and expected close dates",
+      "queryName": "loan_origination",
+      "description": "Loan origination pipeline — deal count, pipeline value, approval rates, and MTD funding by segment",
       "terms": [
+        "loan",
         "origin",
-        "pipelin",
         "loan",
         "origin",
         "pipelin",
         "deal",
-        "stage",
-        "expect",
-        "close",
-        "date"
-      ]
-    },
-    {
-      "queryName": "liquidity",
-      "description": "Liquidity coverage ratio (LCR) and net stable funding ratio (NSFR)",
-      "terms": [
-        "liquid",
-        "liquid",
-        "coverag",
-        "ratio",
-        "lcr",
-        "net",
-        "stabl",
+        "count",
+        "pipelin",
+        "valu",
+        "approv",
+        "rate",
+        "mtd",
         "fund",
-        "ratio",
-        "nsfr"
+        "segment"
       ]
     },
     {
-      "queryName": "cash_position",
-      "description": "Daily cash position across accounts, currencies, and custodians",
+      "queryName": "service_reliability_report",
+      "description": "Service health dashboard — error rates joined with latency percentiles and throughput per microservice",
       "terms": [
-        "cash",
-        "posit",
+        "servic",
+        "reliabl",
+        "report",
+        "servic",
+        "health",
+        "dashboard",
+        "error",
+        "rate",
+        "join",
+        "latenc",
+        "percentil",
+        "throughput",
+        "per",
+        "microservic"
+      ]
+    },
+    {
+      "queryName": "daily_commerce_engagement",
+      "description": "Daily order volume and fulfillment correlated with active users and retention — identifies whether user engagement drives commerce",
+      "terms": [
         "daili",
-        "cash",
-        "posit",
-        "across",
-        "account",
-        "currenc",
-        "custodian"
+        "commerc",
+        "engag",
+        "daili",
+        "order",
+        "volum",
+        "fulfil",
+        "correl",
+        "activ",
+        "user",
+        "retent",
+        "identifi",
+        "whether",
+        "user",
+        "engag",
+        "drive",
+        "commerc"
       ]
     },
     {
-      "queryName": "fx_exposure",
-      "description": "Foreign exchange exposure by currency pair with hedging status",
+      "queryName": "budget_headcount_review",
+      "description": "Budget vs actual spend joined with team size and attrition per cost center — identifies whether over-budget departments correlate with staffing issues",
       "terms": [
-        "fx",
-        "exposur",
-        "foreign",
-        "exchang",
-        "exposur",
-        "currenc",
-        "pair",
-        "hedg",
-        "statu"
+        "budget",
+        "headcount",
+        "review",
+        "budget",
+        "vs",
+        "actual",
+        "spend",
+        "join",
+        "team",
+        "size",
+        "attrit",
+        "per",
+        "cost",
+        "center",
+        "identifi",
+        "whether",
+        "budget",
+        "depart",
+        "correl",
+        "staf",
+        "issu"
       ]
     },
     {
-      "queryName": "interest_rate_risk",
-      "description": "Interest rate risk sensitivity with duration and basis point value",
+      "queryName": "trading_risk_dashboard",
+      "description": "Trading desk P&L joined with risk metrics — shows profit alongside VaR, stress losses, and limit utilization to assess risk-adjusted returns",
       "terms": [
-        "interest",
-        "rate",
+        "trade",
         "risk",
-        "interest",
-        "rate",
+        "dashboard",
+        "trade",
+        "desk",
+        "pl",
+        "join",
         "risk",
-        "sensit",
-        "durat",
-        "basi",
-        "point",
-        "valu"
+        "metric",
+        "show",
+        "profit",
+        "alongsid",
+        "var",
+        "stress",
+        "loss",
+        "limit",
+        "util",
+        "assess",
+        "risk",
+        "adjust",
+        "return"
+      ]
+    },
+    {
+      "queryName": "lending_book_with_pipeline",
+      "description": "Loan portfolio health joined with origination pipeline by segment — outstanding NPLs and provisions alongside new deal flow and approval rates",
+      "terms": [
+        "lend",
+        "book",
+        "pipelin",
+        "loan",
+        "portfolio",
+        "health",
+        "join",
+        "origin",
+        "pipelin",
+        "segment",
+        "outstand",
+        "npl",
+        "provis",
+        "alongsid",
+        "new",
+        "deal",
+        "flow",
+        "approv",
+        "rate"
+      ]
+    },
+    {
+      "queryName": "regional_sales_support",
+      "description": "Sales revenue correlated with support ticket volume by region — CSV + CSV combined join",
+      "terms": [
+        "region",
+        "sale",
+        "support",
+        "sale",
+        "revenu",
+        "correl",
+        "support",
+        "ticket",
+        "volum",
+        "region",
+        "csv",
+        "csv",
+        "combin",
+        "join"
+      ]
+    },
+    {
+      "queryName": "employee_full_review",
+      "description": "Full HR review combining salaries, bonuses, and performance ratings per employee — 3-way XLSX join",
+      "terms": [
+        "employe",
+        "full",
+        "review",
+        "full",
+        "hr",
+        "review",
+        "combin",
+        "salari",
+        "bonus",
+        "perform",
+        "rate",
+        "per",
+        "employe",
+        "wai",
+        "xlsx",
+        "join"
+      ]
+    },
+    {
+      "queryName": "dept_metrics_compensation",
+      "description": "Employee metrics from CSV joined with compensation data from XLSX by department — cross-format CSV + XLSX join",
+      "terms": [
+        "dept",
+        "metric",
+        "compens",
+        "employe",
+        "metric",
+        "csv",
+        "join",
+        "compens",
+        "data",
+        "xlsx",
+        "depart",
+        "cross",
+        "format",
+        "csv",
+        "xlsx",
+        "join"
       ]
     }
   ],
-  "updatedAt": "2026-03-16T13:19:42.912Z"
+  "updatedAt": "2026-03-20T17:22:15.627Z"
 }

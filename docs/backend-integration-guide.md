@@ -220,9 +220,110 @@ GET /api/admin/anomaly/config
 
 Returns the anomaly detection configuration (sensitivity thresholds, enabled metrics, alert rules).
 
-### Recommendations
+### Anomaly History
+
+```
+GET /api/admin/anomaly/history?groupId=default&queryName=monthly_revenue&limit=100
+```
+
+Returns persisted anomaly events with severity, direction, detection method, and acknowledgement status. Supports filtering by `queryName` and pagination via `limit`.
+
+```
+POST /api/admin/anomaly/history/:id/acknowledge
+```
+
+Marks an anomaly event as acknowledged. Body: `{ "groupId": "default" }`.
+
+### Business Rules
+
+```
+GET /api/admin/anomaly/rules?groupId=default
+```
+
+Returns all user-defined anomaly business rules.
+
+```
+POST /api/admin/anomaly/rules
+```
+
+Creates a new business rule. Body:
+
+```json
+{
+  "groupId": "default",
+  "columnName": "error_rate",
+  "operator": ">",
+  "threshold": 5,
+  "severity": "critical",
+  "message": "Error rate exceeds 5%",
+  "enabled": true
+}
+```
+
+Supported operators: `>`, `<`, `>=`, `<=`, `==`, `!=`.
+
+```
+DELETE /api/admin/anomaly/rules/:id?groupId=default
+```
+
+Removes a business rule by ID.
+
+### Recommendations & Smart Suggestions
 
 Recommendations are generated inline within chat responses using collaborative filtering. There is no separate API endpoint — the Engine automatically appends relevant query suggestions based on user interaction history and preference profiles.
+
+Smart suggestions combine 5 signal sources (anomaly data, analysis context, follow-up chain, ML recommendations, and handler defaults), ranked by relevance score, and returned as `suggestions` in the bot response.
+
+### Cross-Surface Actions
+
+Bot responses may include a `crossSurfaceActions` array with action buttons for the UI to render:
+
+```json
+{
+  "text": "Here are the results...",
+  "crossSurfaceActions": [
+    {
+      "type": "pin_to_dashboard",
+      "label": "Pin to Dashboard",
+      "payload": { "queryName": "monthly_revenue", "displayMode": "table" }
+    },
+    {
+      "type": "open_in_gridboard",
+      "label": "Open in GridBoard",
+      "payload": {
+        "queryName": "monthly_revenue",
+        "columns": ["month", "revenue", "region"]
+      }
+    },
+    {
+      "type": "export",
+      "label": "Export as CSV",
+      "payload": { "queryName": "monthly_revenue", "format": "csv" }
+    }
+  ]
+}
+```
+
+| Action Type         | When Generated                                          |
+| ------------------- | ------------------------------------------------------- |
+| `pin_to_dashboard`  | Query, follow-up, or analysis results                   |
+| `open_in_gridboard` | Tabular results (csv_table, query_result, csv_group_by) |
+| `export`            | Any non-error rich content                              |
+
+### Cross-Surface Tracking
+
+The chat endpoint accepts an optional `surface` field in the POST body to track which UI surface the message originated from:
+
+```json
+POST /api/chat
+{
+  "text": "run monthly_revenue",
+  "surface": "dashboard",
+  ...
+}
+```
+
+Valid surfaces: `chat`, `dashboard`, `gridboard`, `widget`, `admin`. This data feeds into the learning system for cross-surface analytics and is visible in **Admin → Learning → Surface Breakdown**.
 
 ---
 
