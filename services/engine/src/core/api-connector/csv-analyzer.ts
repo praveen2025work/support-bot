@@ -197,7 +197,10 @@ export function parseAggregationFromText(
   return { operation, column, limit };
 }
 
-function findMatchingHeader(term: string, headers: string[]): string | null {
+export function findMatchingHeader(
+  term: string,
+  headers: string[],
+): string | null {
   const lowerTerm = term.toLowerCase().replace(/[_\s]/g, "");
 
   // 1. Exact match (case-insensitive)
@@ -376,7 +379,7 @@ function isDateValueColumn(
   return false;
 }
 
-function getNumericColumns(
+export function getNumericColumns(
   data: CsvData,
   columnConfig?: ColumnConfig,
 ): string[] {
@@ -949,4 +952,284 @@ export function parseSortFromText(
         ? "asc"
         : "desc";
   return { column: col, direction };
+}
+
+// ── Computed Column Functions ──────────────────────────────────────────
+
+/** Parse a date string/number into a Date object (handles ISO, epoch, various formats) */
+function parseAnyDate(raw: unknown): Date | null {
+  if (raw == null || raw === "") return null;
+  if (raw instanceof Date) return isNaN(raw.getTime()) ? null : raw;
+  const s = String(raw).trim();
+  // Try native Date parsing (handles ISO, "YYYY-MM-DD HH:mm:ss.SSS+00:00", etc.)
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d;
+  // Epoch ms
+  const n = Number(s);
+  if (!isNaN(n) && n > 1e12) return new Date(n);
+  // Excel serial (days since 1899-12-30)
+  if (!isNaN(n) && n > 0 && n < 100000) {
+    const epoch = (n - 25569) * 86400000;
+    const ed = new Date(epoch);
+    if (!isNaN(ed.getTime())) return ed;
+  }
+  return null;
+}
+
+export interface ComputedColumnResult {
+  rows: Record<string, string | number>[];
+  computedHeader: string;
+  unit?: string;
+}
+
+/**
+ * Compute date difference between two columns.
+ * Auto-selects unit (hours or days) based on median diff magnitude.
+ */
+export function computeDateDiff(
+  rows: Record<string, string | number>[],
+  colA: string,
+  colB: string,
+): ComputedColumnResult {
+  const diffs: number[] = [];
+  const newRows = rows.map((row) => {
+    const dateA = parseAnyDate(row[colA]);
+    const dateB = parseAnyDate(row[colB]);
+    const diffMs = dateA && dateB ? dateA.getTime() - dateB.getTime() : NaN;
+    diffs.push(diffMs);
+    return { ...row, __diff_ms: diffMs };
+  });
+
+  // Auto-select unit: median < 24h → hours, else days
+  const validDiffs = diffs.filter((d) => !isNaN(d)).map(Math.abs);
+  validDiffs.sort((a, b) => a - b);
+  const median =
+    validDiffs.length > 0
+      ? validDiffs[Math.floor(validDiffs.length / 2)]
+      : 86400000;
+  const useHours = median < 86400000; // < 24 hours
+  const unit = useHours ? "hours" : "days";
+  const divisor = useHours ? 3600000 : 86400000;
+  const computedHeader = `${colA} - ${colB} (${unit})`;
+
+  const result = newRows.map((row) => {
+    const { __diff_ms, ...rest } = row;
+    const val = isNaN(__diff_ms as number)
+      ? ""
+      : Math.round(((__diff_ms as number) / divisor) * 100) / 100;
+    return { ...rest, [computedHeader]: val } as Record<
+      string,
+      string | number
+    >;
+  });
+
+  return { rows: result, computedHeader, unit };
+}
+
+type ArithOp = "add" | "subtract" | "multiply" | "divide";
+
+const OP_SYMBOLS: Record<ArithOp, string> = {
+  add: "+",
+  subtract: "-",
+  multiply: "×",
+  divide: "÷",
+};
+
+/**
+ * Compute arithmetic operation between two numeric columns.
+ */
+export function computeArithmetic(
+  rows: Record<string, string | number>[],
+  colA: string,
+  colB: string,
+  op: ArithOp,
+): ComputedColumnResult {
+  const sym = OP_SYMBOLS[op] || op;
+  const computedHeader = `${colA} ${sym} ${colB}`;
+
+  const result = rows.map((row) => {
+    const a = Number(row[colA]);
+    const b = Number(row[colB]);
+    let val: number | string = "";
+    if (!isNaN(a) && !isNaN(b)) {
+      switch (op) {
+        case "add":
+          val = a + b;
+          break;
+        case "subtract":
+          val = a - b;
+          break;
+        case "multiply":
+          val = a * b;
+          break;
+        case "divide":
+          val = b !== 0 ? Math.round((a / b) * 10000) / 10000 : "DIV/0";
+          break;
+      }
+    }
+    return { ...row, [computedHeader]: val } as Record<string, string | number>;
+  });
+
+  return { rows: result, computedHeader };
+}
+
+type DatePeriod = "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+
+/** Get ISO week number */
+function getISOWeek(d: Date): number {
+  const tmp = new Date(d.getTime());
+  tmp.setHours(0, 0, 0, 0);
+  tmp.setDate(tmp.getDate() + 3 - ((tmp.getDay() + 6) % 7));
+  const week1 = new Date(tmp.getFullYear(), 0, 4);
+  return (
+    1 +
+    Math.round(
+      ((tmp.getTime() - week1.getTime()) / 86400000 -
+        3 +
+        ((week1.getDay() + 6) % 7)) /
+        7,
+    )
+  );
+}
+
+/**
+ * Bucket a date column into periods (daily/weekly/monthly/quarterly/yearly).
+ * Appends a new column with the bucket label.
+ */
+export function bucketDateColumn(
+  rows: Record<string, string | number>[],
+  dateCol: string,
+  period: DatePeriod,
+): ComputedColumnResult {
+  const computedHeader = `${dateCol} (${period})`;
+
+  const result = rows.map((row) => {
+    const d = parseAnyDate(row[dateCol]);
+    let label = "";
+    if (d) {
+      const y = d.getFullYear();
+      const m = d.getMonth() + 1;
+      switch (period) {
+        case "daily":
+          label = `${y}-${String(m).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          break;
+        case "weekly":
+          label = `${y}-W${String(getISOWeek(d)).padStart(2, "0")}`;
+          break;
+        case "monthly":
+          label = `${y}-${String(m).padStart(2, "0")}`;
+          break;
+        case "quarterly":
+          label = `${y}-Q${Math.ceil(m / 3)}`;
+          break;
+        case "yearly":
+          label = `${y}`;
+          break;
+      }
+    }
+    return { ...row, [computedHeader]: label } as Record<
+      string,
+      string | number
+    >;
+  });
+
+  return { rows: result, computedHeader };
+}
+
+export interface PeriodComparisonResult {
+  periods: Array<{
+    period: string;
+    value: number;
+    prevValue: number | null;
+    change: number | null;
+    changePct: number | null;
+  }>;
+  dateColumn: string;
+  valueColumn: string;
+  periodType: string;
+  aggregation: string;
+}
+
+/**
+ * Compute period-over-period comparison (MoM, QoQ, YoY).
+ */
+export function computePeriodOverPeriod(
+  rows: Record<string, string | number>[],
+  dateCol: string,
+  valueCol: string,
+  period: DatePeriod,
+  aggOp: "sum" | "avg" | "count" | "min" | "max" = "sum",
+): PeriodComparisonResult {
+  // Bucket rows
+  const buckets = new Map<string, number[]>();
+  for (const row of rows) {
+    const d = parseAnyDate(row[dateCol]);
+    if (!d) continue;
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    let label = "";
+    switch (period) {
+      case "daily":
+        label = `${y}-${String(m).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        break;
+      case "weekly":
+        label = `${y}-W${String(getISOWeek(d)).padStart(2, "0")}`;
+        break;
+      case "monthly":
+        label = `${y}-${String(m).padStart(2, "0")}`;
+        break;
+      case "quarterly":
+        label = `${y}-Q${Math.ceil(m / 3)}`;
+        break;
+      case "yearly":
+        label = `${y}`;
+        break;
+    }
+    const val = Number(row[valueCol]);
+    if (!isNaN(val)) {
+      if (!buckets.has(label)) buckets.set(label, []);
+      buckets.get(label)!.push(val);
+    }
+  }
+
+  // Aggregate per bucket
+  const agg = (vals: number[]): number => {
+    if (vals.length === 0) return 0;
+    switch (aggOp) {
+      case "sum":
+        return vals.reduce((a, b) => a + b, 0);
+      case "avg":
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+      case "count":
+        return vals.length;
+      case "min":
+        return Math.min(...vals);
+      case "max":
+        return Math.max(...vals);
+    }
+  };
+
+  const sortedKeys = [...buckets.keys()].sort();
+  const periods = sortedKeys.map((key, i) => {
+    const value = Math.round(agg(buckets.get(key)!) * 100) / 100;
+    const prevValue =
+      i > 0
+        ? Math.round(agg(buckets.get(sortedKeys[i - 1])!) * 100) / 100
+        : null;
+    const change =
+      prevValue != null ? Math.round((value - prevValue) * 100) / 100 : null;
+    const changePct =
+      prevValue != null && prevValue !== 0
+        ? Math.round(((value - prevValue) / Math.abs(prevValue)) * 10000) / 100
+        : null;
+    return { period: key, value, prevValue, change, changePct };
+  });
+
+  return {
+    periods,
+    dateColumn: dateCol,
+    valueColumn: valueCol,
+    periodType: period,
+    aggregation: aggOp,
+  };
 }

@@ -9,6 +9,9 @@ import {
   AGGREGATION_PATTERN,
   FOLLOWUP_PATTERN,
   ANALYSIS_PATTERN,
+  COMPUTED_COLUMN_PATTERN,
+  PERIOD_OVER_PERIOD_PATTERN,
+  AGG_COMPUTED_PATTERN,
 } from "./constants";
 import { responseTemplates as baseTemplates } from "./templates";
 import type { QueryService } from "../api-connector/query-service";
@@ -163,7 +166,10 @@ function isLikelyFollowUp(userText: string): boolean {
     FILTER_FOLLOWUP_PATTERN.test(userText) ||
     VALUE_COMPARE_PATTERN.test(userText) ||
     AGGREGATION_PATTERN.test(userText) ||
-    ANALYSIS_PATTERN.test(userText)
+    ANALYSIS_PATTERN.test(userText) ||
+    COMPUTED_COLUMN_PATTERN.test(userText) ||
+    PERIOD_OVER_PERIOD_PATTERN.test(userText) ||
+    AGG_COMPUTED_PATTERN.test(userText)
   ) {
     return true;
   }

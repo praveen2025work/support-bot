@@ -89,6 +89,22 @@ export const VALUE_COMPARE_PATTERN =
 export const AGGREGATION_PATTERN =
   /\b(?:calculate\s+)?(?:avg|average|sum|total|min|max|mean|minimum|maximum|count)\b(?:\s+(?:of\s+)?[\w_]+)?/i;
 
+// Computed column: date diff or arithmetic between two columns
+export const COMPUTED_COLUMN_PATTERN =
+  /\b(?:diff(?:erence)?|duration|subtract|minus|add|plus|ratio|multiply|divide)\s+(?:between|from|of)\s+/i;
+
+// Date period bucketing suffix on group-by: "group by date_col monthly"
+export const DATE_PERIOD_PATTERN =
+  /\b(daily|weekly|monthly|quarterly|yearly|by\s+(?:day|week|month|quarter|year))\b/i;
+
+// Period-over-period comparison: MoM, QoQ, YoY
+export const PERIOD_OVER_PERIOD_PATTERN =
+  /\b(?:month\s+over\s+month|MoM|quarter\s+over\s+quarter|QoQ|year\s+over\s+year|YoY|compare\s+(?:this|current)\s+(?:month|quarter|year)\s+(?:vs|versus|to|with)\s+(?:last|previous|prior)\s+(?:month|quarter|year))\b/i;
+
+// Aggregated computed column per group: "avg diff between X and Y by Z"
+export const AGG_COMPUTED_PATTERN =
+  /\b(?:avg|average|sum|total|min|max|mean|count)\s+(?:diff(?:erence)?|time|duration)\s+/i;
+
 // Analysis/ML pattern: triggers statistical analysis handlers when query context exists
 export const ANALYSIS_PATTERN =
   /\b(profil|correlat|heatmap|histogram|distribut|outlier|anomal|trend|duplicat|missing|cluster|k-?means|decision\s*tree|classif|forecast|predict|pca|dimension|report|insight|segment)\b/i;

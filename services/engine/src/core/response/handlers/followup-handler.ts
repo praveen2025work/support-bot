@@ -11,6 +11,13 @@ import {
   computeSummary,
   parseGroupByFromText,
   parseSortFromText,
+  findMatchingHeader,
+  detectColumnTypes,
+  computeDateDiff,
+  computeArithmetic,
+  bucketDateColumn,
+  computePeriodOverPeriod,
+  getNumericColumns,
   type CsvData,
 } from "../../api-connector/csv-analyzer";
 import {
@@ -23,6 +30,10 @@ import {
   TOP_BOTTOM_PATTERN,
   VALUE_COMPARE_PATTERN,
   AGGREGATION_PATTERN,
+  COMPUTED_COLUMN_PATTERN,
+  DATE_PERIOD_PATTERN,
+  PERIOD_OVER_PERIOD_PATTERN,
+  AGG_COMPUTED_PATTERN,
   STOP_WORDS,
 } from "../constants";
 import {
@@ -922,6 +933,430 @@ export async function handleFilterFollowUp(
   );
 }
 
+// ── Computed Column / Date-Diff Handlers ──────────────────────────────
+
+type DatePeriod = "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+
+/** Parse period keyword from text */
+function parsePeriod(text: string): DatePeriod | null {
+  const m = text.match(/\b(daily|weekly|monthly|quarterly|yearly)\b/i);
+  if (m) return m[1].toLowerCase() as DatePeriod;
+  const byMatch = text.match(/\bby\s+(day|week|month|quarter|year)\b/i);
+  if (byMatch) {
+    const map: Record<string, DatePeriod> = {
+      day: "daily",
+      week: "weekly",
+      month: "monthly",
+      quarter: "quarterly",
+      year: "yearly",
+    };
+    return map[byMatch[1].toLowerCase()] || null;
+  }
+  return null;
+}
+
+/**
+ * Handle computed column follow-up: "diff between X and Y", "subtract X from Y"
+ */
+export function handleComputedColumnFollowUp(
+  classification: ClassificationResult,
+  context: ConversationContext,
+): BotResponse | null {
+  if (!context.lastApiResult || !context.lastQueryName) return null;
+  const userText = getLastUserText(context);
+  if (!COMPUTED_COLUMN_PATTERN.test(userText)) return null;
+
+  const csvData = extractCsvDataFromContext(context);
+  if (!csvData) return null;
+
+  // Parse two column names from various patterns
+  const patterns = [
+    /(?:diff(?:erence)?|duration)\s+(?:between|from)\s+(.+?)\s+(?:and|to)\s+(.+?)(?:\s+by\b|$)/i,
+    /subtract\s+(.+?)\s+from\s+(.+?)(?:\s+by\b|$)/i,
+    /(?:add|plus)\s+(.+?)\s+(?:and|to)\s+(.+?)(?:\s+by\b|$)/i,
+    /ratio\s+(?:of\s+)?(.+?)\s+(?:to|over)\s+(.+?)(?:\s+by\b|$)/i,
+    /(?:multiply)\s+(.+?)\s+(?:by|and)\s+(.+?)(?:\s+by\b|$)/i,
+    /divide\s+(.+?)\s+(?:by|and)\s+(.+?)(?:\s+by\b|$)/i,
+  ];
+
+  let colAText = "";
+  let colBText = "";
+  let opType: "diff" | "add" | "subtract" | "multiply" | "divide" | "ratio" =
+    "diff";
+  for (const p of patterns) {
+    const m = userText.match(p);
+    if (m) {
+      colAText = m[1].trim();
+      colBText = m[2].trim();
+      if (/subtract|minus/i.test(userText)) opType = "subtract";
+      else if (/add|plus/i.test(userText)) opType = "add";
+      else if (/ratio/i.test(userText)) opType = "ratio";
+      else if (/multiply/i.test(userText)) opType = "multiply";
+      else if (/divide/i.test(userText)) opType = "divide";
+      break;
+    }
+  }
+  if (!colAText || !colBText) return null;
+
+  const colA = findMatchingHeader(colAText, csvData.headers);
+  const colB = findMatchingHeader(colBText, csvData.headers);
+  if (!colA || !colB) {
+    return {
+      text: `Could not find columns "${colAText}" and/or "${colBText}". Available: **${csvData.headers.join(", ")}**`,
+      suggestions: csvData.headers
+        .slice(0, 4)
+        .map((h) => `diff between ${h} and ...`),
+      sessionId: context.sessionId,
+      intent: "followup.computed_column",
+      confidence: 1,
+    };
+  }
+
+  // Detect column types to decide date diff vs arithmetic
+  const colTypes = detectColumnTypes(csvData.headers, csvData.rows);
+  const typeA = colTypes.find((c) => c.column === colA)?.detectedType;
+  const typeB = colTypes.find((c) => c.column === colB)?.detectedType;
+  const bothDates = typeA === "date" && typeB === "date";
+
+  let result;
+  if (bothDates && (opType === "diff" || opType === "subtract")) {
+    result = computeDateDiff(csvData.rows, colA, colB);
+  } else {
+    const arithOp =
+      opType === "diff" ? "subtract" : opType === "ratio" ? "divide" : opType;
+    result = computeArithmetic(
+      csvData.rows,
+      colA,
+      colB,
+      arithOp as "add" | "subtract" | "multiply" | "divide",
+    );
+  }
+
+  logger.info(
+    {
+      query: context.lastQueryName,
+      colA,
+      colB,
+      op: opType,
+      rows: result.rows.length,
+    },
+    "Computed column follow-up",
+  );
+
+  return {
+    text: `Computed **${result.computedHeader}** for ${result.rows.length} rows:`,
+    richContent: {
+      type: "csv_table",
+      data: {
+        headers: [...csvData.headers, result.computedHeader],
+        rows: result.rows.slice(0, 500),
+        rowCount: result.rows.length,
+        ...chartMetaFrom(context),
+      },
+    },
+    suggestions: [
+      `summary`,
+      `sort by ${result.computedHeader} desc`,
+      `top 10 by ${result.computedHeader}`,
+    ],
+    sessionId: context.sessionId,
+    intent: "followup.computed_column",
+    confidence: 1,
+  };
+}
+
+/**
+ * Handle date-bucketed group-by: "group by business_date monthly"
+ */
+export function handleDateBucketGroupByFollowUp(
+  classification: ClassificationResult,
+  context: ConversationContext,
+): BotResponse | null {
+  if (!context.lastApiResult || !context.lastQueryName) return null;
+  const userText = getLastUserText(context);
+  if (!GROUP_BY_PATTERN.test(userText) || !DATE_PERIOD_PATTERN.test(userText))
+    return null;
+
+  const csvData = extractCsvDataFromContext(context);
+  if (!csvData) return null;
+
+  const period = parsePeriod(userText);
+  if (!period) return null;
+
+  // Parse group column from text
+  const groupCol = parseGroupByFromText(userText, csvData.headers);
+  if (!groupCol) return null;
+
+  // Bucket dates then group
+  const bucketed = bucketDateColumn(csvData.rows, groupCol, period);
+  const bucketedData: CsvData = {
+    headers: [...csvData.headers, bucketed.computedHeader],
+    rows: bucketed.rows,
+  };
+  const gbResult = groupBy(bucketedData, bucketed.computedHeader);
+  if (!gbResult) return null;
+
+  logger.info(
+    {
+      query: context.lastQueryName,
+      col: groupCol,
+      period,
+      groups: gbResult.groups.length,
+    },
+    "Date-bucketed group-by follow-up",
+  );
+
+  return {
+    text: `"${context.lastQueryName}" grouped by **${groupCol}** (${period}) — ${gbResult.groups.length} periods, ${csvData.rows.length} total rows:`,
+    richContent: {
+      type: "csv_group_by",
+      data: gbResult,
+    },
+    suggestions: [`month over month`, `summary`],
+    sessionId: context.sessionId,
+    intent: "followup.date_bucket",
+    confidence: 1,
+  };
+}
+
+/**
+ * Handle aggregated computed column per group: "avg diff between X and Y by Z"
+ */
+export function handleAggComputedFollowUp(
+  classification: ClassificationResult,
+  context: ConversationContext,
+): BotResponse | null {
+  if (!context.lastApiResult || !context.lastQueryName) return null;
+  const userText = getLastUserText(context);
+  if (!AGG_COMPUTED_PATTERN.test(userText)) return null;
+
+  const csvData = extractCsvDataFromContext(context);
+  if (!csvData) return null;
+
+  // Parse: "<agg> diff between <colA> and <colB> by <groupCol> [period]"
+  const m = userText.match(
+    /\b(avg|average|sum|total|min|max|mean|count)\s+(?:diff(?:erence)?|time|duration)\s+(?:between|from)\s+(.+?)\s+(?:and|to)\s+(.+?)\s+by\s+(.+?)(?:\s+(daily|weekly|monthly|quarterly|yearly))?$/i,
+  );
+  if (!m) return null;
+
+  const aggOpRaw = m[1].toLowerCase();
+  const aggMap: Record<string, "sum" | "avg" | "min" | "max" | "count"> = {
+    avg: "avg",
+    average: "avg",
+    sum: "sum",
+    total: "sum",
+    min: "min",
+    max: "max",
+    mean: "avg",
+    count: "count",
+  };
+  const aggOp = aggMap[aggOpRaw] || "avg";
+  const colA = findMatchingHeader(m[2].trim(), csvData.headers);
+  const colB = findMatchingHeader(m[3].trim(), csvData.headers);
+  const groupColText = m[4].trim();
+  const period = m[5] ? (m[5].toLowerCase() as DatePeriod) : null;
+
+  if (!colA || !colB) {
+    return {
+      text: `Could not find columns. Available: **${csvData.headers.join(", ")}**`,
+      sessionId: context.sessionId,
+      intent: "followup.agg_computed",
+      confidence: 1,
+    };
+  }
+
+  const groupCol = findMatchingHeader(groupColText, csvData.headers);
+  if (!groupCol) {
+    return {
+      text: `Could not find group column "${groupColText}". Available: **${csvData.headers.join(", ")}**`,
+      sessionId: context.sessionId,
+      intent: "followup.agg_computed",
+      confidence: 1,
+    };
+  }
+
+  // Compute diff for all rows
+  const diffResult = computeDateDiff(csvData.rows, colA, colB);
+  const diffCol = diffResult.computedHeader;
+
+  // Optionally bucket the group column
+  let groupKey = groupCol;
+  let workingRows = diffResult.rows;
+  if (period) {
+    const bucketed = bucketDateColumn(diffResult.rows, groupCol, period);
+    groupKey = bucketed.computedHeader;
+    workingRows = bucketed.rows;
+  }
+
+  // Group and aggregate
+  const groups = new Map<string, number[]>();
+  for (const row of workingRows) {
+    const key = String(row[groupKey] ?? "(empty)");
+    const val = Number(row[diffCol]);
+    if (!groups.has(key)) groups.set(key, []);
+    if (!isNaN(val)) groups.get(key)!.push(val);
+  }
+
+  const aggregate = (vals: number[]): number => {
+    if (vals.length === 0) return 0;
+    switch (aggOp) {
+      case "sum":
+        return vals.reduce((a, b) => a + b, 0);
+      case "avg":
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+      case "count":
+        return vals.length;
+      case "min":
+        return Math.min(...vals);
+      case "max":
+        return Math.max(...vals);
+    }
+  };
+
+  const resultRows = [...groups.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, vals]) => ({
+      [groupKey]: key,
+      [`${aggOp}(${diffCol})`]: Math.round(aggregate(vals) * 100) / 100,
+      count: vals.length,
+    }));
+
+  const resultHeaders = [groupKey, `${aggOp}(${diffCol})`, "count"];
+
+  logger.info(
+    {
+      query: context.lastQueryName,
+      colA,
+      colB,
+      groupCol: groupKey,
+      aggOp,
+      groups: resultRows.length,
+    },
+    "Aggregated computed column follow-up",
+  );
+
+  return {
+    text: `**${aggOp.toUpperCase()}** of ${diffCol} grouped by **${groupKey}** (${resultRows.length} groups, ${csvData.rows.length} total rows):`,
+    richContent: {
+      type: "csv_table",
+      data: {
+        headers: resultHeaders,
+        rows: resultRows,
+        rowCount: resultRows.length,
+      },
+    },
+    suggestions: [`sort by ${resultHeaders[1]} desc`, `summary`],
+    sessionId: context.sessionId,
+    intent: "followup.agg_computed",
+    confidence: 1,
+  };
+}
+
+/**
+ * Handle period-over-period comparison: "month over month", "QoQ", "YoY"
+ */
+export function handlePeriodOverPeriodFollowUp(
+  classification: ClassificationResult,
+  context: ConversationContext,
+): BotResponse | null {
+  if (!context.lastApiResult || !context.lastQueryName) return null;
+  const userText = getLastUserText(context);
+  if (!PERIOD_OVER_PERIOD_PATTERN.test(userText)) return null;
+
+  const csvData = extractCsvDataFromContext(context);
+  if (!csvData) return null;
+
+  // Infer period from text
+  let period: DatePeriod = "monthly";
+  if (/\bQoQ\b|quarter/i.test(userText)) period = "quarterly";
+  else if (/\bYoY\b|year/i.test(userText)) period = "yearly";
+  else if (/\bweek/i.test(userText)) period = "weekly";
+  else if (/\bday|daily/i.test(userText)) period = "daily";
+
+  // Auto-detect date column (first date-typed column)
+  const colTypes = detectColumnTypes(csvData.headers, csvData.rows);
+  const dateCol = colTypes.find((c) => c.detectedType === "date")?.column;
+  if (!dateCol) {
+    return {
+      text: `No date column found for period comparison. Available columns: **${csvData.headers.join(", ")}**`,
+      sessionId: context.sessionId,
+      intent: "followup.period_compare",
+      confidence: 1,
+    };
+  }
+
+  // Auto-detect value column (first numeric column)
+  const numCols = getNumericColumns(csvData);
+  const valueCol = numCols[0];
+  if (!valueCol) {
+    return {
+      text: `No numeric column found for aggregation. Available columns: **${csvData.headers.join(", ")}**`,
+      sessionId: context.sessionId,
+      intent: "followup.period_compare",
+      confidence: 1,
+    };
+  }
+
+  // Infer aggregation (default sum, or parse from text)
+  let aggOp: "sum" | "avg" | "count" | "min" | "max" = "sum";
+  if (/\bavg|average|mean\b/i.test(userText)) aggOp = "avg";
+  else if (/\bcount\b/i.test(userText)) aggOp = "count";
+
+  const result = computePeriodOverPeriod(
+    csvData.rows,
+    dateCol,
+    valueCol,
+    period,
+    aggOp,
+  );
+
+  if (result.periods.length === 0) {
+    return {
+      text: `No data to compare periods. The date column "${dateCol}" may not have enough data.`,
+      sessionId: context.sessionId,
+      intent: "followup.period_compare",
+      confidence: 1,
+    };
+  }
+
+  // Format as table rows
+  const tableRows = result.periods.map((p) => ({
+    Period: p.period,
+    [valueCol]: p.value,
+    "Prev Period": p.prevValue ?? "-",
+    Change: p.change != null ? p.change : "-",
+    "Change %": p.changePct != null ? `${p.changePct}%` : "-",
+  }));
+
+  logger.info(
+    {
+      query: context.lastQueryName,
+      dateCol,
+      valueCol,
+      period,
+      aggOp,
+      periods: result.periods.length,
+    },
+    "Period-over-period follow-up",
+  );
+
+  return {
+    text: `**${period.charAt(0).toUpperCase() + period.slice(1)}** comparison of **${valueCol}** (${aggOp}) by **${dateCol}** — ${result.periods.length} periods:`,
+    richContent: {
+      type: "csv_table",
+      data: {
+        headers: ["Period", valueCol, "Prev Period", "Change", "Change %"],
+        rows: tableRows,
+        rowCount: tableRows.length,
+      },
+    },
+    suggestions: [`group by ${dateCol} ${period}`, `summary`],
+    sessionId: context.sessionId,
+    intent: "followup.period_compare",
+    confidence: 1,
+  };
+}
+
 /**
  * Handle data operation follow-ups (group-by, sort, summary, top-N) dispatched from the default case.
  * Returns the first matching operation result, or null.
@@ -930,6 +1365,19 @@ export function handleDataOperation(
   classification: ClassificationResult,
   context: ConversationContext,
 ): BotResponse | null {
+  // New: computed columns and period analysis (more specific patterns first)
+  const aggComputedResult = handleAggComputedFollowUp(classification, context);
+  if (aggComputedResult) return aggComputedResult;
+  const popResult = handlePeriodOverPeriodFollowUp(classification, context);
+  if (popResult) return popResult;
+  const dateBucketResult = handleDateBucketGroupByFollowUp(
+    classification,
+    context,
+  );
+  if (dateBucketResult) return dateBucketResult;
+  const computedResult = handleComputedColumnFollowUp(classification, context);
+  if (computedResult) return computedResult;
+  // Existing handlers
   const groupByResult = handleGroupByFollowUp(classification, context);
   if (groupByResult) return groupByResult;
   const sortResult = handleSortFollowUp(classification, context);
