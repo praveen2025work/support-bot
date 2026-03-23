@@ -51,7 +51,8 @@ export function parseCsv(
     for (const key of headers) {
       if (row[key] instanceof Date) {
         const d = row[key] as Date;
-        row[key] = d.toISOString().split("T")[0]; // "2026-03-15"
+        // Preserve full datetime: "2026-03-15 14:30:00" instead of just date
+        row[key] = d.toISOString().replace("T", " ").replace("Z", "");
       }
     }
   }

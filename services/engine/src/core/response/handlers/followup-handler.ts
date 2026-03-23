@@ -58,16 +58,23 @@ export function extractCsvDataFromContext(
   const raw = context.lastApiResult as Record<string, unknown>;
   if (!raw) return null;
 
+  // Use full (pre-truncation) rows when available for accurate group-by/aggregation
+  const fullRows = (context as unknown as Record<string, unknown>)
+    .__fullRows as Record<string, string | number>[] | undefined;
+
   // CSV format: { headers: string[], rows: Record[] }
   const headers = raw.headers as string[] | undefined;
   const rows = raw.rows as Record<string, string | number>[] | undefined;
-  if (headers && rows) return { headers, rows };
+  if (headers && rows) {
+    return { headers, rows: fullRows ?? rows };
+  }
 
   // API format: { data: Record[] } — derive headers from first row
   const apiData = raw.data as Record<string, string | number>[] | undefined;
   if (apiData && apiData.length > 0) {
-    const derivedHeaders = Object.keys(apiData[0]);
-    return { headers: derivedHeaders, rows: apiData };
+    const allRows = fullRows ?? apiData;
+    const derivedHeaders = Object.keys(allRows[0]);
+    return { headers: derivedHeaders, rows: allRows };
   }
 
   return null;

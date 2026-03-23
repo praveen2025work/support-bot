@@ -556,6 +556,27 @@ export async function handleQueryExecute(
       return Math.round((avgRowBytes * rows.length) / 1024);
     }
 
+    // Preserve full data for follow-up operations (group-by, aggregation, etc.)
+    // before truncating for chat display. Context holds a reference to the same
+    // object, so we must snapshot the full rows first.
+    if (result.type === "api") {
+      const apiData = result.apiResult as
+        | { data?: Record<string, unknown>[] }
+        | undefined;
+      if (apiData?.data) {
+        (context as unknown as Record<string, unknown>).__fullRows = [
+          ...apiData.data,
+        ];
+      }
+    } else if (result.type === "csv") {
+      const csv = result.csvResult as { rows?: unknown[] } | undefined;
+      if (csv?.rows) {
+        (context as unknown as Record<string, unknown>).__fullRows = [
+          ...csv.rows,
+        ];
+      }
+    }
+
     let totalRowCount: number | undefined;
     let displayedRows: number | undefined;
     let totalColumns: number | undefined;
