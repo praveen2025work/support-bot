@@ -15,6 +15,11 @@ import {
   Download,
   Globe,
   Lock,
+  Search,
+  Upload,
+  History,
+  Table2,
+  Calculator,
 } from "lucide-react";
 import type { ConditionalFormatRule, GridBoardView } from "@/types/dashboard";
 import { FILTER_OPERATORS } from "./grid-helpers";
@@ -52,6 +57,16 @@ interface GridToolbarProps {
   onSaveViewAs: (name: string, visibility: "private" | "public") => void;
   onDeleteView: (viewId: string) => void;
   onClearView: () => void;
+  // Consolidated features (previously in extra toolbar)
+  pivotMode?: boolean;
+  onTogglePivot?: () => void;
+  showAggregation?: boolean;
+  onToggleAggregation?: () => void;
+  onToggleFind?: () => void;
+  onToggleImport?: () => void;
+  showHistory?: boolean;
+  onToggleHistory?: () => void;
+  saving?: boolean;
 }
 
 // ── Component ──────────────────────────────────────────────────────
@@ -83,6 +98,16 @@ export function GridToolbar({
   onSaveViewAs,
   onDeleteView,
   onClearView,
+  // Consolidated features
+  pivotMode = false,
+  onTogglePivot,
+  showAggregation = false,
+  onToggleAggregation,
+  onToggleFind,
+  onToggleImport,
+  showHistory: historyOpen = false,
+  onToggleHistory,
+  saving = false,
 }: GridToolbarProps) {
   const [showColMenu, setShowColMenu] = useState(false);
   const [showGroupMenu, setShowGroupMenu] = useState(false);
@@ -411,7 +436,59 @@ export function GridToolbar({
         </>
       )}
 
+      <div className="w-px h-5 bg-gray-300" />
+
+      {/* Pivot */}
+      {onTogglePivot && (
+        <button
+          onClick={onTogglePivot}
+          className={pivotMode ? btnPrimary : btnDefault}
+        >
+          <Table2 size={14} className="inline mr-1" /> Pivot
+        </button>
+      )}
+
+      {/* Aggregation */}
+      {onToggleAggregation && (
+        <button
+          onClick={onToggleAggregation}
+          className={showAggregation ? btnPrimary : btnDefault}
+        >
+          <Calculator size={14} className="inline mr-1" /> Aggregation
+        </button>
+      )}
+
+      {/* Find */}
+      {onToggleFind && (
+        <button onClick={onToggleFind} className={btnDefault}>
+          <Search size={14} className="inline mr-1" /> Find
+        </button>
+      )}
+
+      {/* Import */}
+      {!readOnly && onToggleImport && (
+        <button onClick={onToggleImport} className={btnDefault}>
+          <Upload size={14} className="inline mr-1" /> Import
+        </button>
+      )}
+
+      {/* History */}
+      {onToggleHistory && (
+        <button
+          onClick={onToggleHistory}
+          className={historyOpen ? btnPrimary : btnDefault}
+        >
+          <History size={14} className="inline mr-1" /> History
+        </button>
+      )}
+
       <div className="flex-1" />
+
+      {saving && (
+        <span className="text-xs text-blue-600 font-medium animate-pulse">
+          Saving...
+        </span>
+      )}
 
       {/* Export */}
       <button onClick={onExport} className={btnDefault}>

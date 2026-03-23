@@ -51,6 +51,8 @@
     "@nlpjs/lang-en": "^4.26.1",
     "@nlpjs/nlp": "^4.27.0",
     "@stomp/stompjs": "^7.3.0",
+    "ag-grid-community": "^35.1.0",
+    "ag-grid-react": "^35.1.0",
     "fuse.js": "^7.1.0",
     "ky": "^1.14.3",
     "lru-cache": "^11.2.6",

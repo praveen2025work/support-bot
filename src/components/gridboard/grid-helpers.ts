@@ -356,6 +356,129 @@ export function pivotData(
   };
 }
 
+// ── Multi-field Pivot ──────────────────────────────────────────────
+
+export interface MultiPivotConfig {
+  rowFields: string[];
+  colFields: string[];
+  valueFields: string[];
+  aggregation: "sum" | "avg" | "count" | "min" | "max";
+}
+
+export interface MultiPivotResult {
+  /** Each row is a flat object with row-field values + pivoted value columns */
+  rows: Record<string, unknown>[];
+  /** The column headers generated from unique col-field combinations */
+  pivotColKeys: string[];
+  /** Totals row */
+  totalsRow: Record<string, unknown>;
+}
+
+/**
+ * Multi-field pivot: supports multiple row fields, col fields, and value fields.
+ * Generates a flat table suitable for AG Grid rendering.
+ */
+export function multiPivotData(
+  data: Record<string, unknown>[],
+  config: MultiPivotConfig,
+): MultiPivotResult {
+  const { rowFields, colFields, valueFields, aggregation } = config;
+
+  // Build composite keys
+  const makeKey = (row: Record<string, unknown>, fields: string[]): string =>
+    fields.map((f) => String(row[f] ?? "(empty)")).join(" | ");
+
+  // Collect all values grouped by rowKey → colKey → valueField → number[]
+  const bucket: Record<string, Record<string, Record<string, number[]>>> = {};
+  const colKeySet = new Set<string>();
+
+  for (const row of data) {
+    const rk = makeKey(row, rowFields);
+    const ck = makeKey(row, colFields);
+    colKeySet.add(ck);
+
+    if (!bucket[rk]) bucket[rk] = {};
+    if (!bucket[rk][ck]) bucket[rk][ck] = {};
+
+    for (const vf of valueFields) {
+      if (!bucket[rk][ck][vf]) bucket[rk][ck][vf] = [];
+      const val = toNum(row[vf]);
+      if (!isNaN(val)) bucket[rk][ck][vf].push(val);
+    }
+  }
+
+  const agg = (vals: number[]): number => {
+    if (vals.length === 0) return 0;
+    switch (aggregation) {
+      case "sum":
+        return vals.reduce((a, b) => a + b, 0);
+      case "avg":
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+      case "count":
+        return vals.length;
+      case "min":
+        return Math.min(...vals);
+      case "max":
+        return Math.max(...vals);
+    }
+  };
+
+  const rowKeys = Object.keys(bucket).sort();
+  const colKeys = Array.from(colKeySet).sort();
+
+  // Build pivot column names: "colKey :: valueField" (skip valueField suffix if only 1)
+  const singleValue = valueFields.length === 1;
+  const pivotColKeys: string[] = [];
+  for (const ck of colKeys) {
+    for (const vf of valueFields) {
+      pivotColKeys.push(singleValue ? ck : `${ck} :: ${vf}`);
+    }
+  }
+
+  // Build flat rows
+  const rows: Record<string, unknown>[] = rowKeys.map((rk) => {
+    const row: Record<string, unknown> = {};
+    // Split composite row key back into individual fields
+    const parts = rk.split(" | ");
+    rowFields.forEach((f, i) => {
+      row[f] = parts[i] ?? "";
+    });
+
+    let rowTotal = 0;
+    for (const ck of colKeys) {
+      for (const vf of valueFields) {
+        const colName = singleValue ? ck : `${ck} :: ${vf}`;
+        const val = agg(bucket[rk]?.[ck]?.[vf] || []);
+        row[colName] = val;
+        rowTotal += val;
+      }
+    }
+    row.__total = rowTotal;
+    return row;
+  });
+
+  // Build totals row
+  const totalsRow: Record<string, unknown> = {};
+  rowFields.forEach((f, i) => {
+    totalsRow[f] = i === 0 ? "Total" : "";
+  });
+  let grandTotal = 0;
+  for (const ck of colKeys) {
+    for (const vf of valueFields) {
+      const colName = singleValue ? ck : `${ck} :: ${vf}`;
+      let colSum = 0;
+      for (const rk of rowKeys) {
+        colSum += agg(bucket[rk]?.[ck]?.[vf] || []);
+      }
+      totalsRow[colName] = colSum;
+      grandTotal += colSum;
+    }
+  }
+  totalsRow.__total = grandTotal;
+
+  return { rows, pivotColKeys, totalsRow };
+}
+
 // ── Formula Columns ──────────────────────────────────────────────────
 
 /**

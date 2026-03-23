@@ -5,7 +5,10 @@ import {
   FilterInput,
   type FilterInputConfig,
 } from "@/components/shared/FilterInput";
-import { EditableDataGrid, type RowChanges } from "./EditableDataGrid";
+import {
+  AgEditableDataGrid as EditableDataGrid,
+  type RowChanges,
+} from "./AgEditableDataGrid";
 import { useGridBoardViews } from "@/hooks/useGridBoardViews";
 import { useUser } from "@/contexts/UserContext";
 import type { GridBoardView } from "@/types/dashboard";
