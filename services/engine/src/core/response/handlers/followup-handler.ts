@@ -2005,5 +2005,20 @@ function fuzzyMatchColumn(
     }
   }
 
+  // Pass 3: part-based matching — handle reordered parts like "bofcvpsignoffhours"
+  // matching "vpsignoff_bofc_hours" by checking all underscore-split parts appear
+  // as substrings in the user text (or vice versa).
+  for (const col of columns) {
+    const parts = col
+      .toLowerCase()
+      .split(/[_\s-]+/)
+      .filter((p) => p.length >= 2);
+    if (parts.length < 2) continue; // Only useful for multi-part column names
+    for (const word of fieldWords) {
+      if (word.length < 4) continue;
+      if (parts.every((part) => word.includes(part))) return col;
+    }
+  }
+
   return null;
 }
