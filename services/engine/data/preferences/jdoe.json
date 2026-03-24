@@ -5,6 +5,22 @@
   "recentQueries": [
     {
       "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-24T22:20:57.432Z",
+      "executionMs": 5
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-24T22:20:38.396Z",
+      "executionMs": 6
+    },
+    {
+      "queryName": "pnl_signoff",
       "groupId": "default",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -375,22 +391,6 @@
       "intent": "query.execute",
       "timestamp": "2026-03-24T03:51:12.160Z",
       "executionMs": 2
-    },
-    {
-      "queryName": "pnl_summary",
-      "groupId": "default",
-      "userMessage": "run pnl_summary",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T03:51:12.125Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "monthly_revenue",
-      "groupId": "default",
-      "userMessage": "run revenue_by_region",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T03:51:12.109Z",
-      "executionMs": 1
     }
   ],
   "dashboards": [
@@ -585,12 +585,54 @@
     {
       "id": "pnl-sla-tracker",
       "name": "PnL SLA Tracker",
+      "kpiCards": [
+        {
+          "title": "Green (All OK)",
+          "queryName": "pnl_signoff",
+          "valueField": "count",
+          "format": "number",
+          "thresholds": {
+            "warning": 30,
+            "danger": 20
+          }
+        },
+        {
+          "title": "Sign-Off Delayed",
+          "queryName": "pnl_signoff",
+          "valueField": "count",
+          "format": "number",
+          "thresholds": {
+            "warning": 10,
+            "danger": 15
+          }
+        },
+        {
+          "title": "Feed Delayed Recovered",
+          "queryName": "pnl_signoff",
+          "valueField": "count",
+          "format": "number",
+          "thresholds": {
+            "warning": 10,
+            "danger": 15
+          }
+        },
+        {
+          "title": "Critical",
+          "queryName": "pnl_signoff",
+          "valueField": "count",
+          "format": "number",
+          "thresholds": {
+            "warning": 5,
+            "danger": 10
+          }
+        }
+      ],
       "cards": [
         {
-          "id": "sla_summary",
+          "id": "sla_distribution",
           "queryName": "pnl_signoff",
           "groupId": "finance",
-          "label": "SLA Issue Summary",
+          "label": "Issue Distribution",
           "defaultFilters": {},
           "autoRun": true,
           "eventLink": {
@@ -601,112 +643,110 @@
           "createdAt": "2026-03-24T00:00:00.000Z"
         },
         {
-          "id": "sla_signoff_delayed",
+          "id": "sla_feed_delay_by_npl",
           "queryName": "pnl_signoff",
           "groupId": "finance",
-          "label": "Sign-Off Delayed (Feed OK, >5hr)",
+          "label": "Feed Delays by Named PnL",
           "defaultFilters": {
-            "issue_type": "sign_off_delayed"
+            "feed_on_time": "N"
+          },
+          "autoRun": true,
+          "eventLink": {
+            "mode": "disabled"
+          },
+          "displayMode": "chart",
+          "followUpChain": ["group by namedpnl"],
+          "createdAt": "2026-03-24T00:00:00.000Z"
+        },
+        {
+          "id": "sla_worst_signoffs",
+          "queryName": "pnl_signoff",
+          "groupId": "finance",
+          "label": "Worst Sign-Off Delays (>5hr)",
+          "defaultFilters": {},
+          "autoRun": true,
+          "eventLink": {
+            "mode": "disabled"
+          },
+          "displayMode": "auto",
+          "followUpChain": ["sort by vpsignoff_bofc_hours desc", "top 20"],
+          "createdAt": "2026-03-24T00:00:00.000Z"
+        },
+        {
+          "id": "sla_feed_breaches",
+          "queryName": "pnl_signoff",
+          "groupId": "finance",
+          "label": "Feed SLA Breaches",
+          "defaultFilters": {
+            "feed_on_time": "N"
           },
           "autoRun": true,
           "eventLink": {
             "mode": "disabled"
           },
           "displayMode": "auto",
-          "followUpChain": ["sort by vpsignoff_bofc_hours desc"],
+          "followUpChain": ["sort by feed_available_at desc"],
           "createdAt": "2026-03-24T00:00:00.000Z"
         },
         {
-          "id": "sla_feed_delayed_recovered",
+          "id": "sla_weekly_trend",
           "queryName": "pnl_signoff",
           "groupId": "finance",
-          "label": "Feed Delayed but Recovered (<5hr)",
-          "defaultFilters": {
-            "issue_type": "feed_delayed_recovered"
-          },
-          "autoRun": true,
-          "eventLink": {
-            "mode": "disabled"
-          },
-          "displayMode": "auto",
-          "followUpChain": ["sort by vpsignoff_bofc_hours asc"],
-          "createdAt": "2026-03-24T00:00:00.000Z"
-        },
-        {
-          "id": "sla_critical",
-          "queryName": "pnl_signoff",
-          "groupId": "finance",
-          "label": "Critical Issues (Feed Late + >5hr)",
-          "defaultFilters": {
-            "issue_type": "critical"
-          },
-          "autoRun": true,
-          "eventLink": {
-            "mode": "disabled"
-          },
-          "displayMode": "auto",
-          "followUpChain": ["sort by vpsignoff_bofc_hours desc"],
-          "createdAt": "2026-03-24T00:00:00.000Z"
-        },
-        {
-          "id": "sla_compliance_trend",
-          "queryName": "pnl_signoff",
-          "groupId": "finance",
-          "label": "SLA Compliance Trend (MoM)",
+          "label": "Weekly SLA Compliance",
           "defaultFilters": {},
           "autoRun": true,
           "eventLink": {
             "mode": "disabled"
           },
           "displayMode": "chart",
-          "followUpChain": ["group by issue_type by businessdate monthly"],
+          "followUpChain": ["group by businessdate weekly"],
           "createdAt": "2026-03-24T00:00:00.000Z"
         }
       ],
       "layouts": [
         {
-          "i": "sla_summary",
+          "i": "sla_distribution",
           "x": 0,
           "y": 0,
+          "w": 6,
+          "h": 7,
+          "minW": 4,
+          "minH": 3
+        },
+        {
+          "i": "sla_feed_delay_by_npl",
+          "x": 6,
+          "y": 0,
+          "w": 6,
+          "h": 7,
+          "minW": 4,
+          "minH": 3
+        },
+        {
+          "i": "sla_worst_signoffs",
+          "x": 0,
+          "y": 7,
+          "w": 6,
+          "h": 7,
+          "minW": 4,
+          "minH": 3
+        },
+        {
+          "i": "sla_feed_breaches",
+          "x": 6,
+          "y": 7,
+          "w": 6,
+          "h": 7,
+          "minW": 4,
+          "minH": 3
+        },
+        {
+          "i": "sla_weekly_trend",
+          "x": 0,
+          "y": 14,
           "w": 12,
-          "h": 6,
-          "minW": 4,
-          "minH": 3
-        },
-        {
-          "i": "sla_signoff_delayed",
-          "x": 0,
-          "y": 6,
-          "w": 6,
           "h": 7,
-          "minW": 4,
-          "minH": 3
-        },
-        {
-          "i": "sla_feed_delayed_recovered",
-          "x": 6,
-          "y": 6,
-          "w": 6,
-          "h": 7,
-          "minW": 4,
-          "minH": 3
-        },
-        {
-          "i": "sla_critical",
-          "x": 0,
-          "y": 13,
-          "w": 6,
-          "h": 7,
-          "minW": 4,
-          "minH": 3
-        },
-        {
-          "i": "sla_compliance_trend",
-          "x": 6,
-          "y": 13,
-          "w": 6,
-          "h": 7,
-          "minW": 4,
+          "minW": 6,
           "minH": 3
         }
       ],
@@ -717,12 +757,19 @@
           "label": "Named PnL",
           "type": "text",
           "defaultValue": ""
+        },
+        {
+          "id": "param_businessarea",
+          "key": "businessarea",
+          "label": "Business Area",
+          "type": "text",
+          "defaultValue": ""
         }
       ],
       "createdAt": "2026-03-24T00:00:00.000Z",
       "updatedAt": "2026-03-24T00:00:00.000Z"
     }
   ],
-  "updatedAt": "2026-03-24T22:11:34.505Z",
+  "updatedAt": "2026-03-24T22:29:44.631Z",
   "activeDashboardId": "pnl-sla-tracker"
 }
