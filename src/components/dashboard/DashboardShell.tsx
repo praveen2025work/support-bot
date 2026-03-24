@@ -24,6 +24,8 @@ import { ActionPanel, type ActionPanelConfig } from "./ActionPanel";
 import { FilterPresetsBar } from "./GridDashboard";
 import { ParameterBar } from "./ParameterBar";
 import { KpiCard } from "./KpiCard";
+import { DashboardSettingsModal } from "./DashboardSettingsModal";
+import { SlidersHorizontal } from "lucide-react";
 
 const GridDashboard = lazy(() =>
   import("./GridDashboard").then((m) => ({ default: m.GridDashboard })),
@@ -153,6 +155,7 @@ function DashboardShellInner({
   } = useDashboardContext();
   const [shareTargetId, setShareTargetId] = useState<string | null>(null);
   const [showSchedule, setShowSchedule] = useState(false);
+  const [showDashSettings, setShowDashSettings] = useState(false);
   const [schedules, setSchedules] = useState<ScheduleConfig[]>([]);
 
   // STOMP WebSocket for real-time dashboard card refresh
@@ -499,6 +502,18 @@ function DashboardShellInner({
           </button>
         )}
 
+        {/* Dashboard Settings — KPI tiles & parameters */}
+        {isGridView && multiDashboard.activeDashboard && !isReadOnly && (
+          <button
+            onClick={() => setShowDashSettings(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            title="Configure KPI tiles and parameters"
+          >
+            <SlidersHorizontal size={14} />
+            Settings
+          </button>
+        )}
+
         <div className="flex-1 min-w-[200px]">
           <SearchBar
             groupId={groupId}
@@ -821,6 +836,23 @@ function DashboardShellInner({
         config={actionPanelConfig}
         onClose={() => setActionPanelConfig(null)}
         onActionComplete={handleActionComplete}
+      />
+
+      {/* Dashboard Settings — KPI tiles & parameters */}
+      <DashboardSettingsModal
+        isOpen={showDashSettings}
+        onClose={() => setShowDashSettings(false)}
+        kpiCards={multiDashboard.activeDashboard?.kpiCards ?? []}
+        parameters={multiDashboard.activeDashboard?.parameters ?? []}
+        availableQueries={availableQueries}
+        onSave={(data) => {
+          if (multiDashboard.activeDashboard) {
+            multiDashboard.updateDashboardMeta(
+              multiDashboard.activeDashboard.id,
+              data,
+            );
+          }
+        }}
       />
     </div>
   );
