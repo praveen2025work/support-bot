@@ -188,48 +188,118 @@ function DashboardShellInner({
     >
   >({});
 
-  // Fetch KPI card data from real queries
+  // State for auto-populated parameter options (from query data)
+  const [paramOptions, setParamOptions] = useState<Record<string, string[]>>(
+    {},
+  );
+
+  // Fetch KPI card data and parameter options from real queries via /api/chat
   useEffect(() => {
-    const kpiCards = multiDashboard.activeDashboard?.kpiCards;
-    if (!kpiCards || kpiCards.length === 0) return;
-    for (const kpi of kpiCards) {
-      fetch(
-        `/api/queries/${encodeURIComponent(kpi.queryName)}/run?groupId=${encodeURIComponent(groupId)}${userId ? `&userId=${encodeURIComponent(userId)}` : ""}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ filters: {} }),
-        },
-      )
+    const dashboard = multiDashboard.activeDashboard;
+    const kpiCards = dashboard?.kpiCards;
+    const params = dashboard?.parameters;
+    if (
+      (!kpiCards || kpiCards.length === 0) &&
+      (!params || params.length === 0)
+    )
+      return;
+
+    // Collect unique queryNames needed by KPIs and parameters
+    const queryNames = new Set<string>();
+    for (const kpi of kpiCards ?? []) queryNames.add(kpi.queryName);
+    for (const p of params ?? []) {
+      if (p.queryName && p.type === "select") queryNames.add(p.queryName);
+    }
+
+    // Single fetch per unique queryName
+    for (const queryName of queryNames) {
+      const sessionId = `kpi-${dashboard?.id ?? "d"}-${queryName}-${Date.now()}`;
+      fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: `run ${queryName}`,
+          sessionId,
+          groupId,
+          explicitFilters:
+            Object.keys(sharedFilters).length > 0 ? sharedFilters : {},
+        }),
+      })
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (!data?.rows || data.rows.length === 0) return;
-          const latestRow = data.rows[0];
-          const value = Number(latestRow[kpi.valueField]) || 0;
-          const previousValue = kpi.previousValueField
-            ? Number(latestRow[kpi.previousValueField]) || undefined
-            : data.rows.length > 1
-              ? Number(data.rows[1][kpi.valueField]) || undefined
+          if (!data?.richContent?.data) return;
+          const rc = data.richContent;
+          // Extract rows from different richContent types
+          const rows: Record<string, unknown>[] =
+            rc.type === "csv_table"
+              ? (rc.data.rows ?? [])
+              : rc.type === "query_result"
+                ? (rc.data.data ?? [])
+                : [];
+          if (rows.length === 0) return;
+
+          // Process KPI tiles for this queryName
+          const kpisForQuery = (kpiCards ?? []).filter(
+            (k) => k.queryName === queryName,
+          );
+          for (const kpi of kpisForQuery) {
+            let value: number;
+            if (kpi.groupByColumn) {
+              // Count rows where groupByColumn === filterValue
+              if (kpi.filterValue) {
+                value = rows.filter(
+                  (r) =>
+                    String(r[kpi.groupByColumn!]).toLowerCase() ===
+                    kpi.filterValue!.toLowerCase(),
+                ).length;
+              } else {
+                value = rows.length;
+              }
+            } else {
+              // Legacy: use valueField from first row
+              value = Number(rows[0][kpi.valueField]) || 0;
+            }
+            const previousValue = kpi.previousValueField
+              ? Number(rows[0][kpi.previousValueField]) || undefined
               : undefined;
-          // Build sparkline from up to 10 most recent rows
-          const sparkline = data.rows
-            .slice(0, 10)
-            .map((r: Record<string, unknown>) => Number(r[kpi.valueField]) || 0)
-            .reverse();
-          setKpiValues((prev) => ({
-            ...prev,
-            [kpi.title]: { value, previousValue, sparkline },
-          }));
+            setKpiValues((prev) => ({
+              ...prev,
+              [kpi.title]: { value, previousValue },
+            }));
+          }
+
+          // Extract distinct values for parameter dropdowns
+          const paramsForQuery = (params ?? []).filter(
+            (p) => p.queryName === queryName && p.type === "select",
+          );
+          for (const p of paramsForQuery) {
+            const colKey = p.key || p.name;
+            const distinct = [
+              ...new Set(
+                rows
+                  .map((r) => String(r[colKey] ?? ""))
+                  .filter((v) => v !== ""),
+              ),
+            ].sort();
+            setParamOptions((prev) => ({ ...prev, [colKey]: distinct }));
+          }
         })
         .catch(() => {});
     }
-  }, [multiDashboard.activeDashboard?.kpiCards, groupId, userId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    multiDashboard.activeDashboard?.kpiCards,
+    multiDashboard.activeDashboard?.parameters,
+    multiDashboard.activeDashboard?.id,
+    groupId,
+    sharedFilters,
+  ]);
 
   // Initialize param values from defaults on dashboard change
   useEffect(() => {
     const params = multiDashboard.activeDashboard?.parameters;
     if (!params || params.length === 0) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Syncing param defaults when dashboard switches
+
     setParamValues((prev) => {
       const defaults: Record<string, string> = {};
       for (const p of params) {
@@ -498,7 +568,14 @@ function DashboardShellInner({
         multiDashboard.activeDashboard.parameters.length > 0 && (
           <div className="px-6 pt-2">
             <ParameterBar
-              parameters={multiDashboard.activeDashboard.parameters}
+              parameters={multiDashboard.activeDashboard.parameters.map((p) => {
+                const colKey = p.key || p.name;
+                const dynamicOpts = paramOptions[colKey];
+                if (dynamicOpts && p.type === "select" && !p.options?.length) {
+                  return { ...p, options: dynamicOpts };
+                }
+                return p;
+              })}
               values={paramValues}
               onChange={handleParamChange}
               onApply={() => {
@@ -542,6 +619,7 @@ function DashboardShellInner({
                     format={kpi.format}
                     thresholds={kpi.thresholds}
                     trendLabel={kpi.trendLabel}
+                    color={kpi.color}
                   />
                 );
               })}

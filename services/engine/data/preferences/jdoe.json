@@ -590,41 +590,37 @@
           "title": "Green (All OK)",
           "queryName": "pnl_signoff",
           "valueField": "count",
-          "format": "number",
-          "thresholds": {
-            "warning": 30,
-            "danger": 20
-          }
+          "groupByColumn": "issue_type",
+          "filterValue": "green",
+          "color": "#22c55e",
+          "format": "number"
         },
         {
           "title": "Sign-Off Delayed",
           "queryName": "pnl_signoff",
           "valueField": "count",
-          "format": "number",
-          "thresholds": {
-            "warning": 10,
-            "danger": 15
-          }
+          "groupByColumn": "issue_type",
+          "filterValue": "sign_off_delayed",
+          "color": "#eab308",
+          "format": "number"
         },
         {
           "title": "Feed Delayed Recovered",
           "queryName": "pnl_signoff",
           "valueField": "count",
-          "format": "number",
-          "thresholds": {
-            "warning": 10,
-            "danger": 15
-          }
+          "groupByColumn": "issue_type",
+          "filterValue": "feed_delayed_recovered",
+          "color": "#f97316",
+          "format": "number"
         },
         {
           "title": "Critical",
           "queryName": "pnl_signoff",
           "valueField": "count",
-          "format": "number",
-          "thresholds": {
-            "warning": 5,
-            "danger": 10
-          }
+          "groupByColumn": "issue_type",
+          "filterValue": "critical",
+          "color": "#ef4444",
+          "format": "number"
         }
       ],
       "cards": [
@@ -753,16 +749,20 @@
       "parameters": [
         {
           "id": "param_namedpnl",
+          "name": "namedpnl",
           "key": "namedpnl",
           "label": "Named PnL",
-          "type": "text",
+          "type": "select",
+          "queryName": "pnl_signoff",
           "defaultValue": ""
         },
         {
           "id": "param_businessarea",
+          "name": "businessarea",
           "key": "businessarea",
           "label": "Business Area",
-          "type": "text",
+          "type": "select",
+          "queryName": "pnl_signoff",
           "defaultValue": ""
         }
       ],
@@ -770,6 +770,6 @@
       "updatedAt": "2026-03-24T00:00:00.000Z"
     }
   ],
-  "updatedAt": "2026-03-24T22:29:44.631Z",
+  "updatedAt": "2026-03-24T22:35:36.374Z",
   "activeDashboardId": "pnl-sla-tracker"
 }

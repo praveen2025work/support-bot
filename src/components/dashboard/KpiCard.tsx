@@ -13,6 +13,8 @@ export interface KpiCardProps {
   trendLabel?: string;
   sparklineData?: number[];
   thresholds?: { warning: number; danger: number };
+  /** Accent color for the value text (e.g., "#22c55e") */
+  color?: string;
   className?: string;
 }
 
@@ -143,6 +145,7 @@ export function KpiCard({
   trendLabel,
   sparklineData,
   thresholds,
+  color,
   className = "",
 }: KpiCardProps) {
   const { direction, changePercent } = computeTrend(
@@ -152,17 +155,21 @@ export function KpiCard({
   );
   const trendConfig = TREND_CONFIG[direction];
   const TrendIcon = trendConfig.icon;
-  const valueColor = getThresholdColor(value, thresholds);
+  const valueColor = color ? "" : getThresholdColor(value, thresholds);
   const displayValue = formatValue(value, format, prefix, unit);
 
   return (
     <div
       className={`rounded-xl border border-gray-200 bg-white p-4 ${className}`}
+      style={color ? { borderLeftWidth: 4, borderLeftColor: color } : undefined}
     >
       <p className="text-xs uppercase tracking-wider text-gray-500">{title}</p>
 
       <div className="mt-2 flex items-end justify-between">
-        <span className={`text-2xl font-bold ${valueColor}`}>
+        <span
+          className={`text-2xl font-bold ${valueColor}`}
+          style={color ? { color } : undefined}
+        >
           {displayValue}
         </span>
 

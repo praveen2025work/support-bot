@@ -101,6 +101,8 @@ export interface DashboardCard {
   /** Enable STOMP WebSocket live refresh for this card */
   stompEnabled?: boolean;
   migratedFromFavoriteId?: string;
+  /** Saved follow-up commands to auto-replay after initial query */
+  followUpChain?: string[];
   createdAt: string;
 }
 
@@ -234,6 +236,10 @@ export interface DashboardParameter {
   type: "text" | "select" | "date" | "daterange" | "number";
   defaultValue: string;
   options?: string[];
+  /** Query to fetch distinct values from for select dropdowns */
+  queryName?: string;
+  /** Column key to extract distinct values from (defaults to name/id) */
+  key?: string;
   min?: number;
   max?: number;
 }
@@ -245,6 +251,12 @@ export interface KpiCardConfig {
   queryName: string;
   valueField: string;
   previousValueField?: string;
+  /** Column to group by for counting (e.g., "issue_type") */
+  groupByColumn?: string;
+  /** Which group value this tile shows (e.g., "green") */
+  filterValue?: string;
+  /** Accent color for the tile (e.g., "#22c55e") */
+  color?: string;
   unit?: string;
   prefix?: string;
   format?: "number" | "currency" | "percent";
