@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export type FilterBindingType = "body" | "query_param" | "path";
+export type FilterBindingType = "body" | "query_param" | "path" | "column";
 
 export interface FilterBinding {
   key: string;
@@ -9,7 +9,7 @@ export interface FilterBinding {
 
 const FilterBindingSchema = z.object({
   key: z.string(),
-  binding: z.enum(["body", "query_param", "path"]),
+  binding: z.enum(["body", "query_param", "path", "column"]),
 });
 
 // Accept both old string[] and new FilterBinding[] formats

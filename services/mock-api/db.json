@@ -721,6 +721,39 @@
           "right": "comp_department"
         }
       }
+    },
+    {
+      "id": "q93",
+      "name": "pnl_signoff",
+      "description": "PnL sign-off tracker with BOFC/FOBO completion times, VP sign-off details, and turnaround hours by business date and named PnL",
+      "estimatedDuration": 0,
+      "url": "",
+      "source": "finance",
+      "type": "csv",
+      "filePath": "data/pnl-signoff.csv",
+      "filters": [
+        {
+          "key": "namedpnl",
+          "binding": "column"
+        },
+        {
+          "key": "businessarea",
+          "binding": "column"
+        }
+      ],
+      "endpoint": "",
+      "baseUrl": "",
+      "method": "",
+      "authType": "none",
+      "bamTokenUrl": "",
+      "columnConfig": {
+        "dateColumns": [
+          "businessdate",
+          "bofc_completedon",
+          "fobo_completedon",
+          "vpsignoffutc"
+        ]
+      }
     }
   ],
   "queryStats": [

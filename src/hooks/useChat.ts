@@ -227,7 +227,7 @@ export function useChat(
         groupId,
         userName,
       };
-      if (explicitFilters && Object.keys(explicitFilters).length > 0) {
+      if (explicitFilters) {
         payload.explicitFilters = explicitFilters;
       }
       if (feedbackType) {
@@ -411,19 +411,13 @@ export function useChat(
       clearStatusTimers();
 
       try {
-        let result = await callChatApi(
-          text.trim(),
-          Object.keys(filters).length > 0 ? filters : undefined,
-        );
+        let result = await callChatApi(text.trim(), filters);
 
         // Auto-retry once on failure
         if (result.error) {
           setLoadingStatus("Retrying...");
           await new Promise((r) => setTimeout(r, 1000));
-          result = await callChatApi(
-            text.trim(),
-            Object.keys(filters).length > 0 ? filters : undefined,
-          );
+          result = await callChatApi(text.trim(), filters);
         }
 
         if (result.error || !result.data) {

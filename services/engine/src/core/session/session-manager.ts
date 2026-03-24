@@ -56,10 +56,24 @@ export class SessionManager {
 
   // ── Public API (same interface as before) ─────────────────────────
 
+  // In-memory cache for active session contexts (avoids re-reading from disk
+  // within the same request chain, which would lose runtime-only fields like lastApiResult)
+  private contextCache = new Map<
+    string,
+    { context: ConversationContext; ts: number }
+  >();
+
   async getContext(
     sessionId: string,
     userId?: string,
   ): Promise<ConversationContext> {
+    // Return cached context if accessed within last 30 seconds (covers chain processing)
+    const cached = this.contextCache.get(sessionId);
+    if (cached && Date.now() - cached.ts < 30_000) {
+      cached.ts = Date.now();
+      return cached.context;
+    }
+
     await this.ensureDir();
     const uid = userId || this.extractUserId(sessionId);
     const file = await this.readUserFile(uid);
@@ -69,6 +83,10 @@ export class SessionManager {
       // Touch last-accessed time (extends TTL)
       stored.lastAccessedAt = Date.now();
       await this.writeUserFile(file);
+      this.contextCache.set(sessionId, {
+        context: stored.context,
+        ts: Date.now(),
+      });
       return stored.context;
     }
 
@@ -82,6 +100,7 @@ export class SessionManager {
       lastAccessedAt: Date.now(),
     };
     await this.writeUserFile(file);
+    this.contextCache.set(sessionId, { context, ts: Date.now() });
     return context;
   }
 
@@ -242,9 +261,21 @@ export class SessionManager {
     await fs.mkdir(SESSIONS_DIR, { recursive: true });
     file.updatedAt = new Date().toISOString();
     const target = paths.data.sessionFile(file.userId);
+    const data = JSON.stringify(file);
     const tmp = target + ".tmp";
-    await fs.writeFile(tmp, JSON.stringify(file), "utf-8");
-    await fs.rename(tmp, target);
+    try {
+      await fs.writeFile(tmp, data, "utf-8");
+      await fs.rename(tmp, target);
+    } catch {
+      // On Windows, rename can fail with EPERM (file locked) or ENOENT
+      // (antivirus removed .tmp). Fall back to direct write.
+      try {
+        await fs.unlink(tmp).catch(() => {});
+      } catch {
+        /* tmp already gone */
+      }
+      await fs.writeFile(target, data, "utf-8");
+    }
   }
 
   private async deleteUserFile(userId: string): Promise<void> {

@@ -373,13 +373,40 @@ export async function handleQueryExecute(
     }
   }
 
+  // --- Exact-match override: if the user text contains a query name verbatim,
+  //     prefer that over the NER-resolved value (which may fuzzy-match a similar name).
+  //     Pick the longest match to avoid partial collisions (e.g. "pnl" in "pnl_signoff").
+  const userText = getLastUserText(context);
+  try {
+    const allQueryNames = await queryService.getQueryNames();
+    const lowerText = userText.toLowerCase();
+    const matches = allQueryNames
+      .filter((name) => {
+        const lower = name.toLowerCase();
+        const readable = lower.replace(/_/g, " ");
+        return lowerText.includes(lower) || lowerText.includes(readable);
+      })
+      .sort((a, b) => b.length - a.length); // longest first
+    if (
+      matches.length > 0 &&
+      matches[0].toLowerCase() !== queryNameEntity.value.toLowerCase()
+    ) {
+      logger.info(
+        { nerValue: queryNameEntity.value, exactMatch: matches[0] },
+        "Overriding NER entity with exact query name match from user text",
+      );
+      queryNameEntity.value = matches[0];
+    }
+  } catch {
+    /* proceed with NER value */
+  }
+
   // Merge NLP-extracted filters with text-parsed filters and explicit (form) filters.
   // NLP entities provide the primary filter extraction; parseFilterFromText catches
   // patterns the NLP model missed (e.g. "give me sales data for region US" when
   // NLP extracted query_name but not region).
   // Additionally, extractQuerySpecificFilters handles custom filter keys defined
   // on the query itself (e.g. "status", "orderDate" on SQL connector queries).
-  const userText = getLastUserText(context);
   const nlpFilters = extractFilters(classification.entities);
   const textFilters = parseFilterFromText(userText);
 
@@ -421,6 +448,37 @@ export async function handleQueryExecute(
       },
       "Filters extracted from NLP + text + query-specific",
     );
+  }
+
+  // If query has filters defined but user provided none and this isn't a form
+  // submission, prompt the user with a filter form before executing.
+  if (!hasFilters && !explicitFilters) {
+    try {
+      const allQueries = await queryService.getQueries();
+      const queryDef = allQueries.find(
+        (q) => q.name.toLowerCase() === queryNameEntity.value.toLowerCase(),
+      );
+      if (queryDef?.filters?.length) {
+        // Return filter form so user can fill in values before execution
+        return {
+          text: `**${queryDef.name}** has filter options. Fill in values to narrow results, or skip to load all data.`,
+          richContent: {
+            type: "query_filter_form",
+            data: {
+              queryName: queryDef.name,
+              description: queryDef.description || "",
+              filters: queryDef.filters,
+            },
+          },
+          suggestions: [],
+          sessionId: context.sessionId,
+          intent: "query.filter_form",
+          confidence: 1,
+        };
+      }
+    } catch {
+      /* proceed with execution if filter lookup fails */
+    }
   }
 
   // Extract options for document search / CSV aggregation from user text

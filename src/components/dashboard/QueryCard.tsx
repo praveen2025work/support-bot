@@ -425,9 +425,8 @@ export function QueryCard({
             groupId,
             userName,
             sessionId: sessionIdRef.current,
-            ...(filters && Object.keys(filters).length > 0
-              ? { explicitFilters: filters }
-              : {}),
+            explicitFilters:
+              filters && Object.keys(filters).length > 0 ? filters : {},
             ...(mode ? { followUpMode: mode } : {}),
             ...(chain?.length ? { followUpChain: chain } : {}),
           }),

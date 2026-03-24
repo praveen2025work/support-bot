@@ -24,7 +24,7 @@ interface GroupDetail {
 
 interface FilterBinding {
   key: string;
-  binding: "body" | "query_param" | "path";
+  binding: "body" | "query_param" | "path" | "column";
 }
 
 interface FilterConfig {
@@ -142,7 +142,7 @@ export default function GroupDetailPage() {
   const [fetchColumnsError, setFetchColumnsError] = useState("");
   const [customFilterKey, setCustomFilterKey] = useState("");
   const [customFilterBinding, setCustomFilterBinding] = useState<
-    "body" | "query_param" | "path"
+    "body" | "query_param" | "path" | "column"
   >("body");
 
   // Action panel config
@@ -571,8 +571,13 @@ export default function GroupDetailPage() {
   };
 
   const toggleFilter = (key: string, checked: boolean) => {
+    const defaultBinding =
+      qType === "csv" || qType === "xlsx" ? "column" : "body";
     if (checked) {
-      setQFilterBindings((prev) => [...prev, { key, binding: "body" }]);
+      setQFilterBindings((prev) => [
+        ...prev,
+        { key, binding: defaultBinding as FilterBinding["binding"] },
+      ]);
     } else {
       setQFilterBindings((prev) => prev.filter((f) => f.key !== key));
     }
@@ -580,7 +585,7 @@ export default function GroupDetailPage() {
 
   const updateBinding = (
     key: string,
-    binding: "body" | "query_param" | "path",
+    binding: "body" | "query_param" | "path" | "column",
   ) => {
     setQFilterBindings((prev) =>
       prev.map((f) => (f.key === key ? { ...f, binding } : f)),
@@ -735,7 +740,7 @@ export default function GroupDetailPage() {
         description: (qDesc || "").trim(),
         source: (qSource || "").trim(),
         url: (qUrl || "").trim(),
-        filters: qType === "api" ? qFilterBindings : [],
+        filters: qFilterBindings,
         type: qType,
         filePath:
           qType === "document" || qType === "csv" || qType === "xlsx"
@@ -1911,12 +1916,62 @@ export default function GroupDetailPage() {
                     </div>
                   )}
 
-                  {/* Filter Picker — only for API type */}
-                  {qType === "api" && (
+                  {/* Filter Picker — for API, CSV, and XLSX types */}
+                  {(qType === "api" || qType === "csv" || qType === "xlsx") && (
                     <div className="mb-3">
                       <label className="block text-xs font-semibold text-gray-600 mb-2">
                         Filters
                       </label>
+
+                      {/* CSV/XLSX: detect columns from file and show as filter options */}
+                      {(qType === "csv" || qType === "xlsx") && (
+                        <div className="mb-2">
+                          <button
+                            type="button"
+                            onClick={fetchColumns}
+                            disabled={fetchingColumns}
+                            className="text-xs text-blue-600 hover:underline mb-1.5"
+                          >
+                            {fetchingColumns
+                              ? "Detecting…"
+                              : "Detect columns from file"}
+                          </button>
+                          {fetchColumnsError && (
+                            <p className="text-xs text-red-500 mb-1">
+                              {fetchColumnsError}
+                            </p>
+                          )}
+                          {discoveredColumns.length > 0 && (
+                            <div className="space-y-1 border border-gray-200 rounded p-2 bg-gray-50 max-h-48 overflow-y-auto">
+                              {discoveredColumns.map((col) => {
+                                const selected = qFilterBindings.find(
+                                  (f) => f.key === col,
+                                );
+                                return (
+                                  <div
+                                    key={col}
+                                    className="flex items-center gap-2"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={!!selected}
+                                      onChange={(e) =>
+                                        toggleFilter(col, e.target.checked)
+                                      }
+                                      className="accent-blue-600"
+                                    />
+                                    <span className="text-xs text-gray-700 font-mono">
+                                      {col}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Pre-configured filters (from admin filter config) */}
                       <div className="space-y-1.5">
                         {Object.entries(availableFilters).map(
                           ([key, config]) => {

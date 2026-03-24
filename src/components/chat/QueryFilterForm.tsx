@@ -53,7 +53,7 @@ export function QueryFilterForm({
   if (submitted) {
     const activeFilters = Object.entries(values).filter(([, v]) => v.trim());
     return (
-      <div className="mt-2 text-xs text-gray-500 italic">
+      <div className="mt-2 text-xs text-gray-400 italic">
         {activeFilters.length > 0
           ? `Filters applied: ${activeFilters.map(([k, v]) => `${k}=${v}`).join(", ")}`
           : "Running without filters..."}
@@ -62,14 +62,14 @@ export function QueryFilterForm({
   }
 
   return (
-    <div className="mt-2 rounded-lg border border-gray-200 bg-white p-3 space-y-2">
+    <div className="mt-2 rounded-lg border border-gray-700 bg-gray-800 p-3 space-y-2">
       {data.filters.map((filterItem) => {
         const filterKey =
           typeof filterItem === "string" ? filterItem : filterItem.key;
         const config = getFilterConfig(filterConfigs, filterKey);
         return (
           <div key={filterKey}>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-gray-300 mb-1">
               {config.label}
             </label>
             <FilterInput
@@ -94,7 +94,7 @@ export function QueryFilterForm({
         <button
           onClick={handleSkip}
           disabled={disabled}
-          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+          className="rounded-lg border border-gray-600 px-3 py-1.5 text-xs text-gray-300 hover:bg-gray-700 transition-colors disabled:opacity-50"
         >
           Skip filters
         </button>

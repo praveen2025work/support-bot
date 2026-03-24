@@ -7,7 +7,7 @@ import { proxyToEngine } from "@/lib/engine-proxy";
 
 interface FilterBinding {
   key: string;
-  binding: "body" | "query_param" | "path";
+  binding: "body" | "query_param" | "path" | "column";
 }
 
 interface ColumnConfig {
