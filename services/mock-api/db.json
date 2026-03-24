@@ -289,7 +289,7 @@
     {
       "id": "q23",
       "name": "hr_report_salaries",
-      "description": "HR report — sheet \"Salaries\"",
+      "description": "HR report \u2014 sheet \"Salaries\"",
       "estimatedDuration": 0,
       "source": "hr_team",
       "type": "xlsx",
@@ -305,7 +305,7 @@
     {
       "id": "q24",
       "name": "hr_report_bonuses",
-      "description": "HR report — sheet \"Bonuses\"",
+      "description": "HR report \u2014 sheet \"Bonuses\"",
       "estimatedDuration": 0,
       "source": "hr_team",
       "type": "xlsx",
@@ -321,7 +321,7 @@
     {
       "id": "q25",
       "name": "hr_report_ratings",
-      "description": "HR report — sheet \"Ratings\"",
+      "description": "HR report \u2014 sheet \"Ratings\"",
       "estimatedDuration": 0,
       "source": "hr_team",
       "type": "xlsx",
@@ -375,7 +375,7 @@
     {
       "id": "q68",
       "name": "budget_vs_actual",
-      "description": "Budget vs Actual comparison by cost center — identifies over/under spending with variance analysis",
+      "description": "Budget vs Actual comparison by cost center \u2014 identifies over/under spending with variance analysis",
       "estimatedDuration": 2200,
       "url": "",
       "source": "finance",
@@ -435,7 +435,7 @@
     {
       "id": "q76",
       "name": "trading_desk_risk",
-      "description": "Trading desk risk metrics — VaR (95/99), stress test losses, exposure, and limit utilization",
+      "description": "Trading desk risk metrics \u2014 VaR (95/99), stress test losses, exposure, and limit utilization",
       "estimatedDuration": 1500,
       "url": "",
       "source": "risk",
@@ -447,7 +447,7 @@
     {
       "id": "q77",
       "name": "loan_portfolio",
-      "description": "Loan portfolio by segment and region — outstanding balances, rates, NPL ratios, and provisions",
+      "description": "Loan portfolio by segment and region \u2014 outstanding balances, rates, NPL ratios, and provisions",
       "estimatedDuration": 2000,
       "url": "",
       "source": "finance",
@@ -468,7 +468,7 @@
     {
       "id": "q78",
       "name": "loan_origination",
-      "description": "Loan origination pipeline — deal count, pipeline value, approval rates, and MTD funding by segment",
+      "description": "Loan origination pipeline \u2014 deal count, pipeline value, approval rates, and MTD funding by segment",
       "estimatedDuration": 1500,
       "url": "",
       "source": "finance",
@@ -485,7 +485,7 @@
     {
       "id": "q80",
       "name": "service_reliability_report",
-      "description": "Service health dashboard — error rates joined with latency percentiles and throughput per microservice",
+      "description": "Service health dashboard \u2014 error rates joined with latency percentiles and throughput per microservice",
       "estimatedDuration": 2000,
       "url": "",
       "source": "",
@@ -512,7 +512,7 @@
     {
       "id": "q81",
       "name": "daily_commerce_engagement",
-      "description": "Daily order volume and fulfillment correlated with active users and retention — identifies whether user engagement drives commerce",
+      "description": "Daily order volume and fulfillment correlated with active users and retention \u2014 identifies whether user engagement drives commerce",
       "estimatedDuration": 2500,
       "url": "",
       "source": "",
@@ -544,7 +544,7 @@
     {
       "id": "q82",
       "name": "budget_headcount_review",
-      "description": "Budget vs actual spend joined with team size and attrition per cost center — identifies whether over-budget departments correlate with staffing issues",
+      "description": "Budget vs actual spend joined with team size and attrition per cost center \u2014 identifies whether over-budget departments correlate with staffing issues",
       "estimatedDuration": 2200,
       "url": "",
       "source": "",
@@ -571,7 +571,7 @@
     {
       "id": "q83",
       "name": "trading_risk_dashboard",
-      "description": "Trading desk P&L joined with risk metrics — shows profit alongside VaR, stress losses, and limit utilization to assess risk-adjusted returns",
+      "description": "Trading desk P&L joined with risk metrics \u2014 shows profit alongside VaR, stress losses, and limit utilization to assess risk-adjusted returns",
       "estimatedDuration": 3000,
       "url": "",
       "source": "",
@@ -598,7 +598,7 @@
     {
       "id": "q84",
       "name": "lending_book_with_pipeline",
-      "description": "Loan portfolio health joined with origination pipeline by segment — outstanding NPLs and provisions alongside new deal flow and approval rates",
+      "description": "Loan portfolio health joined with origination pipeline by segment \u2014 outstanding NPLs and provisions alongside new deal flow and approval rates",
       "estimatedDuration": 3000,
       "url": "",
       "source": "",
@@ -630,7 +630,7 @@
     {
       "id": "q90",
       "name": "regional_sales_support",
-      "description": "Sales revenue correlated with support ticket volume by region — CSV + CSV combined join",
+      "description": "Sales revenue correlated with support ticket volume by region \u2014 CSV + CSV combined join",
       "estimatedDuration": 2000,
       "url": "",
       "source": "",
@@ -662,7 +662,7 @@
     {
       "id": "q91",
       "name": "employee_full_review",
-      "description": "Full HR review combining salaries, bonuses, and performance ratings per employee — 3-way XLSX join",
+      "description": "Full HR review combining salaries, bonuses, and performance ratings per employee \u2014 3-way XLSX join",
       "estimatedDuration": 2500,
       "url": "",
       "source": "",
@@ -699,7 +699,7 @@
     {
       "id": "q92",
       "name": "dept_metrics_compensation",
-      "description": "Employee metrics from CSV joined with compensation data from XLSX by department — cross-format CSV + XLSX join",
+      "description": "Employee metrics from CSV joined with compensation data from XLSX by department \u2014 cross-format CSV + XLSX join",
       "estimatedDuration": 2000,
       "url": "",
       "source": "",
@@ -725,7 +725,7 @@
     {
       "id": "q93",
       "name": "pnl_signoff",
-      "description": "PnL sign-off tracker with BOFC/FOBO completion times, VP sign-off details, and turnaround hours by business date and named PnL",
+      "description": "PnL sign-off SLA tracker with feed availability, BOFC/FOBO completion, VP sign-off, and issue classification by business date and named PnL",
       "estimatedDuration": 0,
       "url": "",
       "source": "finance",
@@ -739,6 +739,14 @@
         {
           "key": "businessarea",
           "binding": "column"
+        },
+        {
+          "key": "issue_type",
+          "binding": "column"
+        },
+        {
+          "key": "feed_on_time",
+          "binding": "column"
         }
       ],
       "endpoint": "",
@@ -751,7 +759,16 @@
           "businessdate",
           "bofc_completedon",
           "fobo_completedon",
-          "vpsignoffutc"
+          "vpsignoffutc",
+          "feed_available_at"
+        ],
+        "ignoreColumns": ["namedpnlid", "vpsignoffcount"],
+        "labelColumns": [
+          "namedpnl",
+          "businessarea",
+          "feed_source",
+          "issue_type",
+          "feed_on_time"
         ]
       }
     }
