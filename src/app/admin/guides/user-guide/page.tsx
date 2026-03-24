@@ -81,6 +81,7 @@ const FLOWS = [
   { id: "flow-5", label: "Edit & Analyze", surface: "GridBoard" },
   { id: "flow-6", label: "Embedded Chat", surface: "Widget" },
   { id: "flow-7", label: "Configure", surface: "Admin" },
+  { id: "query-ref", label: "Query Reference", surface: "Reference" },
 ] as const;
 
 /* ------------------------------------------------------------------ */
@@ -1367,6 +1368,221 @@ export default function UserGuidePage() {
             to set the broker URL and subscription destination. Environment
             presets are available for quick switching between Dev, QA, and Prod.
           </p>
+        </Section>
+
+        {/* ============================================================ */}
+        {/*  QUERY REFERENCE GUIDE                                       */}
+        {/* ============================================================ */}
+
+        <Section id="query-ref" title="Query Reference Guide">
+          <p className="text-sm text-gray-600 mb-4">
+            A comprehensive reference of all query types you can use in the
+            chat. Type these directly in the chat input after running a query
+            (or as standalone commands where noted).
+          </p>
+
+          {/* --- Filtering & Sorting --- */}
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Filtering &amp; Sorting
+          </h3>
+          <div className="overflow-x-auto mb-6">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Query
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    What it does
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                {[
+                  [
+                    "filter by namedpnl Alpha Conduit Revenue",
+                    "Show only one PnL",
+                  ],
+                  ["filter by bofc_status Failed", "Show failed BOFC rows"],
+                  [
+                    "filter by businessarea Equities",
+                    "Filter by business area",
+                  ],
+                  [
+                    "sort by vpsignoff_bofc_hours desc",
+                    "Slowest sign-offs first",
+                  ],
+                  ["top 5 by vpsignoff_bofc_hours", "5 slowest sign-offs"],
+                  ["top 10 by vpsignoffcount", "Most sign-offs"],
+                ].map(([query, desc]) => (
+                  <tr key={query} className="border-t border-gray-100">
+                    <td className="px-3 py-2 font-mono">{query}</td>
+                    <td className="px-3 py-2">{desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* --- Grouping & Aggregation --- */}
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Grouping &amp; Aggregation
+          </h3>
+          <div className="overflow-x-auto mb-6">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Query
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    What it does
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                {[
+                  ["group by namedpnl", "Group by PnL name"],
+                  ["group by businessarea", "Group by area"],
+                  ["group by businessdate monthly", "Group by month"],
+                  ["group by businessdate weekly", "Group by week"],
+                  ["avg vpsignoff_bofc_hours", "Average sign-off hours"],
+                  ["max vpsignoff_bofc_hours", "Worst sign-off time"],
+                  ["sum vpsignoffcount by namedpnl", "Total sign-offs per PnL"],
+                ].map(([query, desc]) => (
+                  <tr key={query} className="border-t border-gray-100">
+                    <td className="px-3 py-2 font-mono">{query}</td>
+                    <td className="px-3 py-2">{desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* --- Computed Columns (Date Diffs) --- */}
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Computed Columns (Date Diffs)
+          </h3>
+          <div className="overflow-x-auto mb-6">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Query
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    What it does
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                {[
+                  [
+                    "diff bofc_completedon and fobo_completedon",
+                    "Time between BOFC and FOBO",
+                  ],
+                  [
+                    "diff vpsignoffutc and bofc_completedon",
+                    "VP sign-off turnaround",
+                  ],
+                  [
+                    "avg diff between vpsignoffutc and bofc_completedon by namedpnl",
+                    "Avg turnaround per PnL",
+                  ],
+                  [
+                    "avg diff between vpsignoffutc and bofc_completedon by namedpnl by month",
+                    "Avg turnaround per PnL per month",
+                  ],
+                  [
+                    "avg diff between bofc_completedon and fobo_completedon by businessarea by quarter",
+                    "BOFC\u2192FOBO gap by area quarterly",
+                  ],
+                ].map(([query, desc]) => (
+                  <tr key={query} className="border-t border-gray-100">
+                    <td className="px-3 py-2 font-mono">{query}</td>
+                    <td className="px-3 py-2">{desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* --- Analysis & ML --- */}
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Analysis &amp; ML
+          </h3>
+          <div className="overflow-x-auto mb-6">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Query
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    What it does
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                {[
+                  ["summary", "Auto-generated stats overview"],
+                  ["find outliers", "Anomaly detection (weekends excluded)"],
+                  ["show trend", "Trend analysis over time"],
+                  ["show correlations", "Correlation between numeric columns"],
+                  ["forecast vpsignoff_bofc_hours", "Predict future values"],
+                  [
+                    "show distribution of vpsignoff_bofc_hours",
+                    "Histogram / distribution",
+                  ],
+                ].map(([query, desc]) => (
+                  <tr key={query} className="border-t border-gray-100">
+                    <td className="px-3 py-2 font-mono">{query}</td>
+                    <td className="px-3 py-2">{desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* --- Period-over-Period --- */}
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Period-over-Period
+          </h3>
+          <div className="overflow-x-auto mb-6">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Query
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    What it does
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                {[
+                  ["month over month vpsignoff_bofc_hours", "MoM comparison"],
+                  [
+                    "quarter over quarter vpsignoff_bofc_hours",
+                    "QoQ comparison",
+                  ],
+                ].map(([query, desc]) => (
+                  <tr key={query} className="border-t border-gray-100">
+                    <td className="px-3 py-2 font-mono">{query}</td>
+                    <td className="px-3 py-2">{desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <Tip>
+            You can combine operations by chaining them. For example, run a
+            query first, then type &quot;group by businessarea&quot; followed by
+            &quot;sort by vpsignoff_bofc_hours desc&quot; to progressively
+            refine your results.
+          </Tip>
         </Section>
       </div>
     </div>
