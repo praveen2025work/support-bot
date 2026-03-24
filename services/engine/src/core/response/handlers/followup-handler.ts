@@ -1413,7 +1413,17 @@ export function handlePeriodOverPeriodFollowUp(
 
   // Try to extract a user-specified column name from the text.
   // E.g. "month over month vpsignoff_bofc_hours" → should use vpsignoff_bofc_hours
-  const numCols = getNumericColumns(csvData);
+  // Pass columnConfig so ignoreColumns are excluded from the default list
+  const colConfig = context.lastColumnConfig as
+    | {
+        ignoreColumns?: string[];
+        valueColumns?: string[];
+        idColumns?: string[];
+        dateColumns?: string[];
+        labelColumns?: string[];
+      }
+    | undefined;
+  const numCols = getNumericColumns(csvData, colConfig);
   let valueCol: string | null = null;
 
   // Strip the period-over-period keywords to isolate potential column name words
@@ -1428,8 +1438,16 @@ export function handlePeriodOverPeriodFollowUp(
       .split(/\s+/)
       .filter((w) => w.length >= 2 && !STOP_WORDS.has(w));
     if (words.length > 0) {
+      // First try matching against non-ignored numeric columns
       const matched = fuzzyMatchColumn(words, numCols);
-      if (matched) valueCol = matched;
+      if (matched) {
+        valueCol = matched;
+      } else {
+        // If user explicitly typed a column name, also try all headers
+        // (in case they want a column that was auto-ignored)
+        const allMatch = fuzzyMatchColumn(words, csvData.headers);
+        if (allMatch) valueCol = allMatch;
+      }
     }
   }
 
@@ -2019,6 +2037,53 @@ function fuzzyMatchColumn(
       if (parts.every((part) => word.includes(part))) return col;
     }
   }
+
+  // Pass 4: synonym-aware scored matching — handles display-name aliases like
+  // "BOFCVPSignoffDuration" matching "vpsignoff_bofc_hours" where "duration" ≈ "hours".
+  const SYNONYMS: Record<string, string[]> = {
+    hours: ["duration", "time", "hrs", "elapsed"],
+    duration: ["hours", "time", "hrs", "elapsed"],
+    count: ["total", "num", "number", "cnt", "qty"],
+    amount: ["amt", "value", "sum", "total"],
+    average: ["avg", "mean"],
+    rate: ["ratio", "pct", "percent", "percentage"],
+    date: ["dt", "day", "timestamp"],
+    name: ["label", "title", "named"],
+  };
+
+  const expandWithSynonyms = (part: string): string[] => {
+    const result = [part];
+    for (const [key, syns] of Object.entries(SYNONYMS)) {
+      if (part === key) result.push(...syns);
+      else if (syns.includes(part))
+        result.push(key, ...syns.filter((s) => s !== part));
+    }
+    return result;
+  };
+
+  let bestCol: string | null = null;
+  let bestScore = 0;
+  for (const col of columns) {
+    const parts = col
+      .toLowerCase()
+      .split(/[_\s-]+/)
+      .filter((p) => p.length >= 2);
+    if (parts.length < 2) continue;
+    for (const word of fieldWords) {
+      if (word.length < 4) continue;
+      let matched = 0;
+      for (const part of parts) {
+        const variants = expandWithSynonyms(part);
+        if (variants.some((v) => word.includes(v))) matched++;
+      }
+      const score = matched / parts.length;
+      if (score > bestScore && score >= 0.5) {
+        bestScore = score;
+        bestCol = col;
+      }
+    }
+  }
+  if (bestCol) return bestCol;
 
   return null;
 }
