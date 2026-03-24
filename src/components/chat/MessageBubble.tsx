@@ -26,7 +26,14 @@ const ScatterPlot = lazy(() => import("./ScatterPlot"));
 const ForecastChart = lazy(() => import("./ForecastChart"));
 const TrendChart = lazy(() => import("./TrendChart"));
 const DecisionTreeViz = lazy(() => import("./DecisionTreeViz"));
-import { AlertTriangle, Info, RefreshCw, ArrowRight } from "lucide-react";
+import {
+  AlertTriangle,
+  Info,
+  RefreshCw,
+  ArrowRight,
+  ClipboardCopy,
+  Check,
+} from "lucide-react";
 import { AnomalyAlert } from "@/components/dashboard/AnomalyBadge";
 import { FeedbackBar } from "./FeedbackBar";
 import { SourceBadge } from "./SourceBadge";
@@ -212,13 +219,43 @@ export function MessageBubble({
   };
 }) {
   const isUser = message.role === "user";
+  const [msgCopied, setMsgCopied] = useState(false);
 
   const hasRichContent = !isUser && message.richContent;
 
+  const handleMessageCopy = useCallback(() => {
+    let text = "";
+    // Try to extract table data first
+    if (message.richContent?.data) {
+      const d = message.richContent.data as Record<string, unknown>;
+      const rows = (d.data ?? d.rows) as Record<string, unknown>[] | undefined;
+      const headers =
+        (d.headers as string[] | undefined) ??
+        (rows && rows.length > 0 ? Object.keys(rows[0]) : undefined);
+      if (rows && rows.length > 0 && headers) {
+        text = [
+          headers.join("\t"),
+          ...rows.map((r) => headers.map((h) => String(r[h] ?? "")).join("\t")),
+        ].join("\n");
+      }
+    }
+    if (!text) text = message.text || "";
+    if (!text) return;
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        setMsgCopied(true);
+        setTimeout(() => setMsgCopied(false), 2000);
+      })
+      .catch(() => {});
+  }, [message]);
+
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-3`}>
+    <div
+      className={`group/msg flex ${isUser ? "justify-end" : "justify-start"} mb-3`}
+    >
       <div
-        className={`${isUser ? "max-w-[80%]" : hasRichContent ? "max-w-[98%] w-full" : "max-w-[85%]"} rounded-2xl px-4 py-3 ${
+        className={`relative ${isUser ? "max-w-[80%]" : hasRichContent ? "max-w-[98%] w-full" : "max-w-[85%]"} rounded-2xl px-4 py-3 ${
           isUser
             ? "bg-blue-600 text-white"
             : message.isError
@@ -226,6 +263,21 @@ export function MessageBubble({
               : "bg-gray-100 text-gray-900"
         }`}
       >
+        {/* Copy button — visible on hover */}
+        {!isUser && (
+          <button
+            onClick={handleMessageCopy}
+            className="absolute top-2 right-2 opacity-0 group-hover/msg:opacity-100 transition-opacity inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 bg-white border border-gray-200 rounded-md hover:bg-gray-100 hover:text-gray-700 shadow-sm z-10"
+            title="Copy to clipboard"
+          >
+            {msgCopied ? (
+              <Check size={12} className="text-green-600" />
+            ) : (
+              <ClipboardCopy size={12} />
+            )}
+            {msgCopied ? "Copied!" : "Copy"}
+          </button>
+        )}
         <p className="whitespace-pre-wrap text-sm">
           {renderMarkdownText(message.text, isUser ? undefined : onAction)}
         </p>

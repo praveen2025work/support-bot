@@ -27,6 +27,8 @@ import {
   ExternalLink,
   ClipboardCopy,
   Check,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 
 // ── Memory management constants ────────────────────────────────
@@ -205,6 +207,9 @@ export function QueryCard({
   compactAuto,
   refreshIntervalSec,
   refreshTrigger,
+  followUpChain,
+  onSaveFollowUpChain,
+  onFollowUpChainChange,
 }: {
   queryName: string;
   label: string;
@@ -242,6 +247,12 @@ export function QueryCard({
   refreshIntervalSec?: number;
   /** External trigger counter — re-runs when incremented (e.g. STOMP events) */
   refreshTrigger?: number;
+  /** Saved follow-up commands to auto-replay after initial query */
+  followUpChain?: string[];
+  /** Callback to save the current follow-up chain */
+  onSaveFollowUpChain?: (chain: string[]) => void;
+  /** Callback when follow-up chain changes (for header pin icon) */
+  onFollowUpChainChange?: (chain: string[]) => void;
 }) {
   const [messages, setMessages] = useState<CardMessage[]>([]);
   const [showDiff, setShowDiff] = useState(true);
@@ -262,12 +273,16 @@ export function QueryCard({
   );
   const [refreshingFilter, setRefreshingFilter] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedChipIndex, setCopiedChipIndex] = useState<number | null>(null);
+  const [replayingChain, setReplayingChain] = useState(false);
+  const chainReplayedRef = useRef(false);
   const sessionIdRef = useRef(
     `dashboard_${userName}_${queryName}_${Date.now()}`,
   );
   const retryCountRef = useRef(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const autoExecutedRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
   const fallbackCardIdRef = useRef(`${queryName}_${favoriteId || Date.now()}`);
   const resolvedCardId = cardId || fallbackCardIdRef.current;
 
@@ -383,6 +398,7 @@ export function QueryCard({
       text: string,
       filters?: Record<string, string>,
       mode?: "local" | "requery",
+      chain?: string[],
     ) => {
       const userMsg: CardMessage = {
         id: `u_${Date.now()}`,
@@ -394,9 +410,15 @@ export function QueryCard({
       setIsLoading(true);
 
       try {
+        // Cancel any previous in-flight request (prevents stale responses)
+        abortRef.current?.abort();
+        const controller = new AbortController();
+        abortRef.current = controller;
+
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
           body: JSON.stringify({
             text,
             platform: "web",
@@ -407,6 +429,7 @@ export function QueryCard({
               ? { explicitFilters: filters }
               : {}),
             ...(mode ? { followUpMode: mode } : {}),
+            ...(chain?.length ? { followUpChain: chain } : {}),
           }),
         });
 
@@ -463,6 +486,11 @@ export function QueryCard({
         setMessages((prev) => appendCardMessage(prev, botMsg));
         onExecutionInfo?.(data.executionMs ?? null);
       } catch (err) {
+        // Silently ignore aborted requests (from component unmount or new request)
+        if (err instanceof DOMException && err.name === "AbortError") {
+          setIsLoading(false);
+          return;
+        }
         // Auto-retry once after a short delay for transient failures
         if (retryCountRef.current === 0) {
           retryCountRef.current = 1;
@@ -489,13 +517,14 @@ export function QueryCard({
   );
 
   // Auto-execute on mount for subscription cards with refreshOnLoad
+  // If a saved followUpChain exists, pass it so the server processes everything at once.
   useEffect(() => {
     if (autoExecute && !autoExecutedRef.current) {
       autoExecutedRef.current = true;
       setHasRun(true);
-      sendMessage(`run ${queryName}`, mergedFilters);
+      sendMessage(`run ${queryName}`, mergedFilters, undefined, followUpChain);
     }
-  }, [autoExecute, queryName, mergedFilters, sendMessage]);
+  }, [autoExecute, queryName, mergedFilters, sendMessage, followUpChain]);
 
   // Auto-refresh interval
   useEffect(() => {
@@ -598,7 +627,7 @@ export function QueryCard({
     for (const [k, v] of Object.entries(currentFilters)) {
       if (v) setSharedFilter(k, v);
     }
-    sendMessage(`run ${queryName}`, mergedFilters);
+    sendMessage(`run ${queryName}`, mergedFilters, undefined, followUpChain);
   };
 
   /** Check if user is asking about changes/differences from previous run */
@@ -700,25 +729,62 @@ export function QueryCard({
     setHasRun(false);
     setCurrentFilters(defaultFilters || {});
     sessionIdRef.current = `dashboard_${userName}_${queryName}_${Date.now()}`;
+    chainReplayedRef.current = false;
   };
 
+  // Save current follow-up chain from chat history
+  const handleSaveView = useCallback(() => {
+    if (!onSaveFollowUpChain) return;
+    const initialQuery = `run ${queryName}`;
+    const chain = messages
+      .filter((m) => m.role === "user")
+      .map((m) => m.text)
+      .filter((t) => t.toLowerCase() !== initialQuery.toLowerCase());
+    if (chain.length > 0) {
+      onSaveFollowUpChain(chain);
+    }
+  }, [messages, queryName, onSaveFollowUpChain]);
+
+  const hasSavedView = (followUpChain?.length ?? 0) > 0;
+  const currentChain = useMemo(() => {
+    const initialQuery = `run ${queryName}`;
+    return messages
+      .filter((m) => m.role === "user")
+      .map((m) => m.text)
+      .filter((t) => t.toLowerCase() !== initialQuery.toLowerCase());
+  }, [messages, queryName]);
+  const hasFollowUps = currentChain.length > 0;
+
+  // Report follow-up chain changes to parent (for header pin icon)
+  // Use a ref for the callback to avoid re-render loops from inline arrow functions
+  const chainChangeRef = useRef(onFollowUpChainChange);
+  chainChangeRef.current = onFollowUpChainChange;
+  useEffect(() => {
+    chainChangeRef.current?.(currentChain);
+  }, [currentChain]);
+
   const handleCopy = useCallback(() => {
-    // Try table data first
+    // Find last bot message with any table-like rich content
     const lastResult = [...messages]
       .reverse()
       .find(
         (m) =>
           m.role === "bot" &&
-          m.richContent?.type === "query_result" &&
-          m.richContent.data,
+          m.richContent?.data &&
+          (m.richContent.type === "query_result" ||
+            m.richContent.type === "csv_table" ||
+            m.richContent.type === "csv_aggregation" ||
+            m.richContent.type === "csv_group_by"),
       );
     let text = "";
     if (lastResult?.richContent?.data) {
-      const rows = (
-        lastResult.richContent.data as { data?: Record<string, unknown>[] }
-      ).data;
-      if (rows && rows.length > 0) {
-        const headers = Object.keys(rows[0]);
+      const d = lastResult.richContent.data as Record<string, unknown>;
+      // query_result has data[], csv_table/csv_aggregation have rows[]
+      const rows = (d.data ?? d.rows) as Record<string, unknown>[] | undefined;
+      const headers =
+        (d.headers as string[] | undefined) ??
+        (rows && rows.length > 0 ? Object.keys(rows[0]) : undefined);
+      if (rows && rows.length > 0 && headers) {
         text = [
           headers.join("\t"),
           ...rows.map((r) => headers.map((h) => String(r[h] ?? "")).join("\t")),
@@ -1029,7 +1095,7 @@ export function QueryCard({
           /* Message thread */
           <div
             ref={scrollContainerRef}
-            className="flex-1 overflow-y-scroll overflow-x-hidden px-3 py-2 space-y-1 min-h-0 scrollbar-hide"
+            className="flex-1 overflow-y-scroll overflow-x-hidden px-3 py-2 space-y-1 min-h-0 scrollbar-hide select-text"
           >
             {(readOnly
               ? messages.filter(
@@ -1205,61 +1271,97 @@ export function QueryCard({
         </div>
       )}
 
-      {/* Hover action panel — slides open at bottom (in normal flow, not absolute) */}
-      {!readOnly && (
-        <div
-          className={`shrink-0 overflow-hidden transition-all duration-200 ease-in-out ${
-            isHovered ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
-          }`}
-        >
-          <div className="bg-white border-t border-gray-200 px-3 py-2.5 space-y-2">
-            {/* Suggestion chips from last bot response */}
-            {(() => {
-              const lastBot = [...messages]
-                .reverse()
-                .find((m) => m.role === "bot");
-              const chips = lastBot?.suggestions;
-              if (!chips || chips.length === 0 || isLoading) return null;
-              return (
-                <div className="flex flex-wrap gap-1.5">
-                  {chips.map((chip: string, i: number) => (
+      {/* Always-visible follow-up bar at bottom of card */}
+      {!readOnly && hasRun && (
+        <div className="shrink-0 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 space-y-1.5">
+          {/* Suggestion chips from last bot response */}
+          {(() => {
+            const lastBot = [...messages]
+              .reverse()
+              .find((m) => m.role === "bot");
+            // Filter out cross-query suggestions (e.g. "Run X") — irrelevant
+            // on dashboard cards where each card is a dedicated query window.
+            const chips = (lastBot?.suggestions ?? []).filter(
+              (s: string) => !/^run\s+/i.test(s.trim()),
+            );
+            if (chips.length === 0 || isLoading) return null;
+            return (
+              <div className="flex flex-wrap gap-1 overflow-x-auto">
+                {chips.map((chip: string, i: number) => (
+                  <span
+                    key={i}
+                    className="group/chip inline-flex items-center rounded-full border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-[10px] text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors whitespace-nowrap"
+                  >
                     <button
-                      key={i}
                       onClick={() => {
                         setFollowUpText("");
                         sendMessage(chip);
                       }}
-                      className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[10px] text-blue-600 hover:bg-blue-100 transition-colors"
+                      className="pl-2 py-0.5 cursor-pointer"
                     >
                       {chip}
                     </button>
-                  ))}
-                </div>
-              );
-            })()}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard
+                          .writeText(chip)
+                          .then(() => {
+                            setCopiedChipIndex(i);
+                            setTimeout(() => setCopiedChipIndex(null), 1500);
+                          })
+                          .catch(() => {});
+                      }}
+                      className="pr-1.5 pl-0.5 py-0.5 text-blue-300 dark:text-blue-500 hover:text-blue-600 dark:hover:text-blue-300 transition-colors cursor-pointer"
+                      title="Copy to clipboard"
+                    >
+                      {copiedChipIndex === i ? (
+                        <Check
+                          size={10}
+                          className="text-green-600 dark:text-green-400"
+                        />
+                      ) : (
+                        <ClipboardCopy size={10} />
+                      )}
+                    </button>
+                  </span>
+                ))}
+              </div>
+            );
+          })()}
 
-            <form onSubmit={handleFollowUp} className="flex gap-2">
-              <input
-                type="text"
-                value={followUpText}
-                onChange={(e) => setFollowUpText(e.target.value)}
-                placeholder={
-                  followUpMode === "local"
-                    ? "Sort, group, summarize cached data..."
-                    : "Filter or re-query the data source..."
-                }
-                disabled={isLoading || !hasRun}
-                className="flex-1 text-xs border border-gray-300 bg-white text-gray-900 placeholder-gray-400 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
-              />
-              <button
-                type="submit"
-                disabled={isLoading || !followUpText.trim() || !hasRun}
-                className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-              >
-                Send
-              </button>
-            </form>
+          <form onSubmit={handleFollowUp} className="flex gap-1.5">
+            <input
+              type="text"
+              value={followUpText}
+              onChange={(e) => setFollowUpText(e.target.value)}
+              placeholder={
+                followUpMode === "local"
+                  ? "Ask: group by, sort, summary, diff..."
+                  : "Re-query with filters..."
+              }
+              disabled={isLoading}
+              className="flex-1 text-[11px] border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 rounded-md px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={isLoading || !followUpText.trim()}
+              className="px-2.5 py-1 text-[11px] font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              Send
+            </button>
+          </form>
+        </div>
+      )}
 
+      {/* Hover action panel — action buttons only */}
+      {!readOnly && (
+        <div
+          className={`shrink-0 overflow-hidden transition-all duration-200 ease-in-out ${
+            isHovered ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-3 py-2 space-y-2">
             {/* Action buttons row */}
             <div className="flex items-center gap-1.5">
               <button

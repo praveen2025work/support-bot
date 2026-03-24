@@ -629,6 +629,11 @@ const DATE_PATTERNS: DatePattern[] = [
     regex: /^\d{4}[-/]\d{2}[-/]\d{2}T\d{2}:\d{2}/,
     format: "YYYY-MM-DDTHH:mm:ss",
   },
+  // Datetime with space separator: 2026-03-15 14:30:00
+  {
+    regex: /^\d{4}[-/]\d{2}[-/]\d{2}\s+\d{2}:\d{2}/,
+    format: "YYYY-MM-DD HH:mm:ss",
+  },
   // ISO date: 2026-03-15 or 2026/03/15
   { regex: /^\d{4}[-/]\d{2}[-/]\d{2}$/, format: "YYYY-MM-DD" },
   // US date: 03/15/2026 or 03-15-2026
@@ -957,7 +962,7 @@ export function parseSortFromText(
 // ── Computed Column Functions ──────────────────────────────────────────
 
 /** Parse a date string/number into a Date object (handles ISO, epoch, various formats) */
-function parseAnyDate(raw: unknown): Date | null {
+export function parseAnyDate(raw: unknown): Date | null {
   if (raw == null || raw === "") return null;
   if (raw instanceof Date) return isNaN(raw.getTime()) ? null : raw;
   const s = String(raw).trim();
@@ -1209,7 +1214,7 @@ export function computePeriodOverPeriod(
     }
   };
 
-  const sortedKeys = [...buckets.keys()].sort();
+  const sortedKeys = Array.from(buckets.keys()).sort();
   const periods = sortedKeys.map((key, i) => {
     const value = Math.round(agg(buckets.get(key)!) * 100) / 100;
     const prevValue =

@@ -1,25 +1,56 @@
-'use client';
+"use client";
+
+import { useState } from "react";
+import { ClipboardCopy, Check } from "lucide-react";
 
 export function SuggestionChips({
   suggestions,
   onSelect,
 }: {
   suggestions: string[];
-  onSelect: (text: string, source?: 'suggestion_click' | 'typed') => void;
+  onSelect: (text: string, source?: "suggestion_click" | "typed") => void;
 }) {
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
   if (suggestions.length === 0) return null;
+
+  const handleCopy = (text: string, index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        setCopiedIndex(index);
+        setTimeout(() => setCopiedIndex(null), 1500);
+      })
+      .catch(() => {});
+  };
 
   return (
     <div className="flex flex-wrap gap-2 px-4 pb-2">
       {suggestions.map((suggestion, i) => (
-        <button
+        <span
           key={i}
-          onClick={() => onSelect(suggestion, 'suggestion_click')}
-          data-testid="suggestion-chip"
-          className="rounded-full border border-blue-300 bg-blue-50 px-3 py-1 text-xs text-blue-700 hover:bg-blue-100 transition-colors"
+          className="group inline-flex items-center gap-1 rounded-full border border-blue-300 bg-blue-50 text-xs text-blue-700 hover:bg-blue-100 transition-colors"
         >
-          {suggestion}
-        </button>
+          <button
+            onClick={() => onSelect(suggestion, "suggestion_click")}
+            data-testid="suggestion-chip"
+            className="pl-3 py-1 cursor-pointer"
+          >
+            {suggestion}
+          </button>
+          <button
+            onClick={(e) => handleCopy(suggestion, i, e)}
+            className="pr-2 py-1 text-blue-400 hover:text-blue-700 transition-colors cursor-pointer"
+            title="Copy to clipboard"
+          >
+            {copiedIndex === i ? (
+              <Check size={12} className="text-green-600" />
+            ) : (
+              <ClipboardCopy size={12} />
+            )}
+          </button>
+        </span>
       ))}
     </div>
   );
