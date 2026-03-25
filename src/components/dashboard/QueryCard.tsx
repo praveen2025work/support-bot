@@ -598,14 +598,16 @@ export function QueryCard({
   const selfBroadcastRef = useRef(false);
   if (sharedFilterGeneration !== lastSeenGen) {
     setLastSeenGen(sharedFilterGeneration);
-    if (!selfBroadcastRef.current) {
-      // Re-run when shared filters change — dashboard parameters should affect all cards.
+    if (selfBroadcastRef.current) {
+      // This card initiated the broadcast — skip re-execution
+      selfBroadcastRef.current = false;
+    } else if (hasRun) {
+      // Only re-execute if the card has already run at least once
+      // (prevents double-fire with the auto-execute effect on mount)
       const hasAnySharedFilter = Object.keys(sharedFilters).length > 0;
-      const filtersWereCleared = !hasAnySharedFilter && hasRun;
+      const filtersWereCleared = !hasAnySharedFilter;
       if (hasAnySharedFilter || filtersWereCleared) {
-        // Use a microtask so state updates settle before fetch
         Promise.resolve().then(() => {
-          setHasRun(true);
           sendMessage(
             `run ${queryName}`,
             mergedFilters,
@@ -614,8 +616,6 @@ export function QueryCard({
           );
         });
       }
-    } else {
-      selfBroadcastRef.current = false;
     }
   }
 
