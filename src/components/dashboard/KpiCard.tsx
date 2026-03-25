@@ -160,35 +160,44 @@ export function KpiCard({
 
   return (
     <div
-      className={`rounded-xl border border-gray-200 bg-white p-4 ${className}`}
-      style={color ? { borderLeftWidth: 4, borderLeftColor: color } : undefined}
+      className={`flex items-center gap-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 ${className}`}
+      style={color ? { borderLeftWidth: 3, borderLeftColor: color } : undefined}
     >
-      <p className="text-xs uppercase tracking-wider text-gray-500">{title}</p>
+      {/* Value */}
+      <span
+        className={`text-lg font-bold leading-none ${valueColor}`}
+        style={color ? { color } : undefined}
+      >
+        {displayValue}
+      </span>
 
-      <div className="mt-2 flex items-end justify-between">
-        <span
-          className={`text-2xl font-bold ${valueColor}`}
-          style={color ? { color } : undefined}
-        >
-          {displayValue}
+      {/* Title + trend */}
+      <div className="flex flex-col min-w-0">
+        <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate leading-tight">
+          {title}
         </span>
-
-        {sparklineData && sparklineData.length >= 2 && (
-          <Sparkline data={sparklineData} stroke={trendConfig.stroke} />
-        )}
-      </div>
-
-      <div className="mt-2 flex items-center gap-1">
-        <TrendIcon className={`h-4 w-4 ${trendConfig.color}`} />
         {changePercent !== null && (
-          <span className={`text-sm font-medium ${trendConfig.color}`}>
+          <span
+            className={`text-[10px] font-medium leading-tight ${trendConfig.color}`}
+          >
+            <TrendIcon className="inline h-2.5 w-2.5 mr-0.5" />
             {changePercent >= 0 ? "+" : ""}
             {changePercent.toFixed(1)}%
           </span>
         )}
+        {trendLabel && !changePercent && (
+          <span className="text-[10px] text-gray-400 leading-tight">
+            {trendLabel}
+          </span>
+        )}
       </div>
 
-      {trendLabel && <p className="mt-1 text-xs text-gray-400">{trendLabel}</p>}
+      {/* Sparkline */}
+      {sparklineData && sparklineData.length >= 2 && (
+        <div className="ml-auto shrink-0">
+          <Sparkline data={sparklineData} stroke={trendConfig.stroke} />
+        </div>
+      )}
     </div>
   );
 }

@@ -654,8 +654,8 @@ function DashboardShellInner({
       {isGridView &&
         multiDashboard.activeDashboard?.kpiCards &&
         multiDashboard.activeDashboard.kpiCards.length > 0 && (
-          <div className="px-6 pt-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="px-6 pt-3">
+            <div className="flex flex-wrap gap-2">
               {multiDashboard.activeDashboard.kpiCards.map((kpi, i) => {
                 const kpiData = kpiValues[kpi.title];
                 return (
