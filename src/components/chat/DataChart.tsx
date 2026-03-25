@@ -316,19 +316,32 @@ export function DataChart({
   chartConfig,
   columnConfig,
   columnMetadata,
+  savedChartType,
+  onChartTypeChange,
 }: {
   data: Record<string, unknown>[];
   headers?: string[];
   chartConfig?: ChartConfig;
   columnConfig?: ColumnConfig;
   columnMetadata?: DetectedColumnMeta[];
+  /** Persisted chart type override from saved view */
+  savedChartType?: string;
+  /** Callback when user changes chart type (for persistence) */
+  onChartTypeChange?: (type: string) => void;
 }) {
   const detection = useMemo(
     () =>
       detectChartType(data, headers, chartConfig, columnConfig, columnMetadata),
     [data, headers, chartConfig, columnConfig, columnMetadata],
   );
-  const [overrideType, setOverrideType] = useState<ChartType | null>(null);
+  const [overrideType, setOverrideType] = useState<ChartType | null>(
+    savedChartType ? (savedChartType as ChartType) : null,
+  );
+
+  const handleTypeChange = (type: ChartType) => {
+    setOverrideType(type);
+    onChartTypeChange?.(type);
+  };
 
   const activeType = overrideType ?? detection.type;
 
@@ -744,7 +757,7 @@ export function DataChart({
 
   return (
     <div className="mt-3 border border-gray-200 rounded-lg p-2 bg-white">
-      <ChartToolbar activeType={activeType} onTypeChange={setOverrideType} />
+      <ChartToolbar activeType={activeType} onTypeChange={handleTypeChange} />
       {renderChart()}
     </div>
   );

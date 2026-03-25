@@ -179,6 +179,8 @@ export function MessageBubble({
   onDrillDown,
   displayMode,
   compactAuto,
+  savedChartType,
+  onChartTypeChange,
   hideExecutionTime,
   diffInfo,
 }: {
@@ -207,6 +209,10 @@ export function MessageBubble({
   displayMode?: "auto" | "table" | "chart";
   /** When auto mode, use compact tab toggle instead of stacking both */
   compactAuto?: boolean;
+  /** Persisted chart type override from saved view */
+  savedChartType?: string;
+  /** Callback when user changes chart type (for persistence) */
+  onChartTypeChange?: (type: string) => void;
   /** Hide "Completed in Xms" badge (used in dashboard grid where header shows it) */
   hideExecutionTime?: boolean;
   /** Diff info from previous query run — highlights changes in table */
@@ -298,6 +304,8 @@ export function MessageBubble({
               onDrillDown={onDrillDown}
               displayMode={displayMode}
               compactAuto={compactAuto}
+              savedChartType={savedChartType}
+              onChartTypeChange={onChartTypeChange}
               diffInfo={diffInfo}
             />
           </div>
@@ -388,6 +396,8 @@ function RichContentRenderer({
   onDrillDown,
   displayMode,
   compactAuto,
+  savedChartType,
+  onChartTypeChange,
   diffInfo,
 }: {
   richContent: NonNullable<Message["richContent"]>;
@@ -405,6 +415,8 @@ function RichContentRenderer({
   ) => void;
   displayMode?: "auto" | "table" | "chart";
   compactAuto?: boolean;
+  savedChartType?: string;
+  onChartTypeChange?: (type: string) => void;
   diffInfo?: {
     addedIndices: Set<number>;
     changedIndices: Set<number>;
@@ -615,6 +627,8 @@ function RichContentRenderer({
                       | DetectedColumnMeta[]
                       | undefined
                   }
+                  savedChartType={savedChartType}
+                  onChartTypeChange={onChartTypeChange}
                 />
               </Suspense>
             </>
@@ -2220,6 +2234,8 @@ function QueryResultTable({
                 chartConfig={result.chartConfig}
                 columnConfig={result.columnConfig}
                 columnMetadata={result.columnMetadata}
+                savedChartType={savedChartType}
+                onChartTypeChange={onChartTypeChange}
               />
             </Suspense>
           )}

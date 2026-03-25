@@ -103,6 +103,8 @@ export interface DashboardCard {
   migratedFromFavoriteId?: string;
   /** Saved follow-up commands to auto-replay after initial query */
   followUpChain?: string[];
+  /** Saved chart type override (bar, stacked-bar, line, pie, etc.) */
+  savedChartType?: string;
   createdAt: string;
 }
 

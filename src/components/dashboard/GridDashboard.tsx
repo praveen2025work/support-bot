@@ -10,6 +10,7 @@ import {
   X,
   LayoutGrid,
   Bookmark,
+  BookmarkCheck,
   Pencil,
   Table2,
   BarChart3,
@@ -105,6 +106,8 @@ function CardHeader({
   onOpenAlerts,
   onOpenGridBoard,
   onOpenAction,
+  onSaveView,
+  hasUnsavedFollowUps,
 }: {
   card: DashboardCard;
   executionMs: number | null;
@@ -120,6 +123,10 @@ function CardHeader({
   onOpenAlerts?: () => void;
   onOpenGridBoard?: () => void;
   onOpenAction?: () => void;
+  /** Callback to save the current follow-up chain as a view */
+  onSaveView?: () => void;
+  /** Whether the card has unsaved follow-up operations */
+  hasUnsavedFollowUps?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [editLabel, setEditLabel] = useState(card.label);
@@ -506,6 +513,33 @@ function CardHeader({
             </button>
           </Tooltip>
         )}
+        {/* Save View / Pin */}
+        {!simpleMode &&
+          onSaveView &&
+          (hasUnsavedFollowUps || (card.followUpChain?.length ?? 0) > 0) && (
+            <Tooltip
+              label={
+                (card.followUpChain?.length ?? 0) > 0
+                  ? "View saved — click to update"
+                  : "Save current view"
+              }
+            >
+              <button
+                onClick={onSaveView}
+                className={`p-1 rounded transition-colors ${
+                  (card.followUpChain?.length ?? 0) > 0
+                    ? "text-blue-500 hover:text-blue-700"
+                    : "text-gray-400 hover:text-blue-500"
+                }`}
+              >
+                {(card.followUpChain?.length ?? 0) > 0 ? (
+                  <BookmarkCheck size={16} />
+                ) : (
+                  <Bookmark size={16} />
+                )}
+              </button>
+            </Tooltip>
+          )}
         {/* Card Settings Popover */}
         {!simpleMode && onCardUpdate && (
           <CardSettingsPopover
@@ -516,6 +550,7 @@ function CardHeader({
             compactAuto={card.compactAuto ?? true}
             stompEnabled={card.stompEnabled}
             refreshIntervalSec={card.refreshIntervalSec}
+            followUpChain={card.followUpChain}
             onUpdate={(partial) => onCardUpdate(card.id, partial)}
           />
         )}
@@ -727,6 +762,14 @@ export function GridDashboard({
     Record<string, number | null>
   >({});
   const [maximizedCardId, setMaximizedCardId] = useState<string | null>(null);
+  // Track pending follow-up chains per card (reported by QueryCard)
+  const [pendingChains, setPendingChains] = useState<Record<string, string[]>>(
+    {},
+  );
+  // Track pending chart type changes per card
+  const [pendingChartTypes, setPendingChartTypes] = useState<
+    Record<string, string>
+  >({});
   useBodyScrollLock(!!maximizedCardId);
 
   const handleExecutionInfo = useCallback(
@@ -835,6 +878,27 @@ export function GridDashboard({
                 ? () => onOpenAction(card.id)
                 : undefined
             }
+            onSaveView={
+              simpleMode
+                ? undefined
+                : () => {
+                    const updates: Record<string, unknown> = {};
+                    const chain = pendingChains[card.id];
+                    if (chain?.length) updates.followUpChain = chain;
+                    const chartType = pendingChartTypes[card.id];
+                    if (chartType) updates.savedChartType = chartType;
+                    if (Object.keys(updates).length > 0) {
+                      onCardUpdate(card.id, updates);
+                    }
+                  }
+            }
+            hasUnsavedFollowUps={
+              ((pendingChains[card.id]?.length ?? 0) > 0 &&
+                JSON.stringify(pendingChains[card.id]) !==
+                  JSON.stringify(card.followUpChain)) ||
+              (!!pendingChartTypes[card.id] &&
+                pendingChartTypes[card.id] !== card.savedChartType)
+            }
           />
         </div>
         <div
@@ -865,6 +929,28 @@ export function GridDashboard({
                     onCardUpdate(card.id, { defaultFilters: filters })
             }
             drillDownConfig={simpleMode ? undefined : queryInfo?.drillDown}
+            followUpChain={card.followUpChain}
+            onSaveFollowUpChain={
+              simpleMode
+                ? undefined
+                : (chain) => onCardUpdate(card.id, { followUpChain: chain })
+            }
+            onFollowUpChainChange={
+              simpleMode
+                ? undefined
+                : (chain) =>
+                    setPendingChains((prev) => ({ ...prev, [card.id]: chain }))
+            }
+            savedChartType={card.savedChartType}
+            onChartTypeChange={
+              simpleMode
+                ? undefined
+                : (type) =>
+                    setPendingChartTypes((prev) => ({
+                      ...prev,
+                      [card.id]: type,
+                    }))
+            }
           />
         </div>
       </>

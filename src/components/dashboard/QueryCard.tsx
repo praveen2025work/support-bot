@@ -210,6 +210,8 @@ export function QueryCard({
   followUpChain,
   onSaveFollowUpChain,
   onFollowUpChainChange,
+  savedChartType,
+  onChartTypeChange,
 }: {
   queryName: string;
   label: string;
@@ -253,6 +255,10 @@ export function QueryCard({
   onSaveFollowUpChain?: (chain: string[]) => void;
   /** Callback when follow-up chain changes (for header pin icon) */
   onFollowUpChainChange?: (chain: string[]) => void;
+  /** Persisted chart type from saved view */
+  savedChartType?: string;
+  /** Callback when user changes chart type */
+  onChartTypeChange?: (type: string) => void;
 }) {
   const [messages, setMessages] = useState<CardMessage[]>([]);
   const [showDiff, setShowDiff] = useState(true);
@@ -1123,6 +1129,8 @@ export function QueryCard({
                   onDrillDown={readOnly ? undefined : handleDrillDown}
                   displayMode={displayMode}
                   compactAuto={compactAuto}
+                  savedChartType={savedChartType}
+                  onChartTypeChange={onChartTypeChange}
                   hideExecutionTime={hideHeader}
                   diffInfo={showDiff ? msg.diffInfo : undefined}
                 />
