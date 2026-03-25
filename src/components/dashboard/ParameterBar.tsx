@@ -32,6 +32,7 @@ function ParameterInput({
           onChange={(e) => onChange(param.name, e.target.value)}
           className={inputClass + " min-w-[100px]"}
         >
+          <option value="">All</option>
           {(param.options ?? []).map((opt) => (
             <option key={opt} value={opt}>
               {opt}
