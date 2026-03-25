@@ -600,12 +600,15 @@ export function QueryCard({
       selfBroadcastRef.current = false;
       return;
     }
-    // Only auto-run if this card has relevant filter keys that match shared filters
-    const hasRelevantFilter = filterKeys.some((k) => sharedFilters[k] != null);
-    if (!hasRelevantFilter) return;
+    // Re-run when shared filters change — dashboard parameters should affect all cards.
+    // Also re-run when filters are cleared (reset) if the card has already executed.
+    const hasAnySharedFilter = Object.keys(sharedFilters).length > 0;
+    const filtersWereCleared = !hasAnySharedFilter && hasRun;
+    if (!hasAnySharedFilter && !filtersWereCleared) return;
     const timer = setTimeout(() => {
       setHasRun(true);
-      sendMessage(`run ${queryName}`, mergedFilters);
+      // Re-execute with the saved view (followUpChain) so group-by, sort, etc. are preserved
+      sendMessage(`run ${queryName}`, mergedFilters, undefined, followUpChain);
     }, 300);
     return () => clearTimeout(timer);
   }, [
@@ -615,6 +618,8 @@ export function QueryCard({
     mergedFilters,
     sendMessage,
     filterKeys,
+    followUpChain,
+    hasRun,
   ]);
 
   const handleRun = () => {
