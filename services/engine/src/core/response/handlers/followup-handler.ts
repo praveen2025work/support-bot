@@ -350,7 +350,25 @@ export function handleTopNFollowUp(
         ) ?? null;
   }
 
+  // If no column specified, check if data is already sorted (e.g., from a
+  // previous "sort by X desc" in a follow-up chain) — just slice first N rows.
   if (!column) {
+    if (csvData.rows.length > 0) {
+      // Data may already be sorted from a prior step; take first N as-is
+      const topRows = csvData.rows.slice(0, n);
+      const slicedData = { headers: csvData.headers, rows: topRows };
+      return {
+        text: `${isBottom ? "Bottom" : "Top"} **${n}** rows (${topRows.length} shown):`,
+        richContent: { type: "csv_table", data: slicedData },
+        suggestions: [
+          `summary`,
+          `group by ${csvData.headers.find((h) => !/count|total|sum|avg|amount|hours/i.test(h)) ?? csvData.headers[0]}`,
+        ],
+        sessionId: context.sessionId,
+        intent: "followup.top_n",
+        confidence: 1,
+      };
+    }
     return {
       text: `Which column should I use? Available: **${csvData.headers.join(", ")}**`,
       suggestions: csvData.headers.slice(0, 4).map((h) => `top ${n} by ${h}`),
