@@ -617,6 +617,33 @@
           "filterValue": "critical",
           "color": "#ef4444",
           "format": "number"
+        },
+        {
+          "title": "NAM",
+          "queryName": "pnl_lineage",
+          "valueField": "count",
+          "groupByColumn": "region",
+          "filterValue": "NAM",
+          "color": "#3b82f6",
+          "format": "number"
+        },
+        {
+          "title": "EMEA",
+          "queryName": "pnl_lineage",
+          "valueField": "count",
+          "groupByColumn": "region",
+          "filterValue": "EMEA",
+          "color": "#8b5cf6",
+          "format": "number"
+        },
+        {
+          "title": "APAC",
+          "queryName": "pnl_lineage",
+          "valueField": "count",
+          "groupByColumn": "region",
+          "filterValue": "APAC",
+          "color": "#06b6d4",
+          "format": "number"
         }
       ],
       "cards": [
@@ -693,34 +720,6 @@
           "displayMode": "chart",
           "followUpChain": ["group by businessdate weekly"],
           "createdAt": "2026-03-24T00:00:00.000Z"
-        },
-        {
-          "id": "lineage_region_heatmap",
-          "queryName": "pnl_lineage",
-          "groupId": "finance",
-          "label": "Avg Delay by Region",
-          "defaultFilters": {},
-          "autoRun": true,
-          "eventLink": {
-            "mode": "auto"
-          },
-          "displayMode": "chart",
-          "followUpChain": ["avg vpsignoff_bofc_hours by region"],
-          "createdAt": "2026-03-25T00:00:00.000Z"
-        },
-        {
-          "id": "lineage_book_bottleneck",
-          "queryName": "pnl_lineage",
-          "groupId": "finance",
-          "label": "Book-Level Bottleneck",
-          "defaultFilters": {},
-          "autoRun": true,
-          "eventLink": {
-            "mode": "auto"
-          },
-          "displayMode": "chart",
-          "followUpChain": ["avg vpsignoff_bofc_hours by masterbookname"],
-          "createdAt": "2026-03-25T00:00:00.000Z"
         },
         {
           "id": "lineage_feed_tracker",
@@ -803,27 +802,9 @@
           "minH": 3
         },
         {
-          "i": "lineage_region_heatmap",
-          "x": 0,
-          "y": 21,
-          "w": 6,
-          "h": 7,
-          "minW": 4,
-          "minH": 3
-        },
-        {
-          "i": "lineage_book_bottleneck",
-          "x": 6,
-          "y": 21,
-          "w": 6,
-          "h": 7,
-          "minW": 4,
-          "minH": 3
-        },
-        {
           "i": "lineage_feed_tracker",
           "x": 0,
-          "y": 28,
+          "y": 21,
           "w": 6,
           "h": 7,
           "minW": 4,
@@ -832,7 +813,7 @@
         {
           "i": "lineage_stage_timeline",
           "x": 6,
-          "y": 28,
+          "y": 21,
           "w": 6,
           "h": 7,
           "minW": 4,
