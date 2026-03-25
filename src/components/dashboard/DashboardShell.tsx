@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useDashboard } from "@/hooks/useDashboard";
 import { useMultiDashboard } from "@/hooks/useMultiDashboard";
 import { DashboardHeader } from "./DashboardHeader";
@@ -196,27 +196,35 @@ function DashboardShellInner({
     {},
   );
 
-  // Fetch KPI card data and parameter options from real queries via /api/chat
+  // Helper: extract rows from a chat API response
+  const extractRows = (
+    data: Record<string, unknown>,
+  ): Record<string, unknown>[] => {
+    const rc = data?.richContent as Record<string, unknown> | undefined;
+    if (!rc?.data) return [];
+    const rcData = rc.data as Record<string, unknown>;
+    if (rc.type === "csv_table")
+      return (rcData.rows as Record<string, unknown>[]) ?? [];
+    if (rc.type === "query_result")
+      return (rcData.data as Record<string, unknown>[]) ?? [];
+    return [];
+  };
+
+  // Fetch parameter dropdown options ONCE with unfiltered data (stable options)
   useEffect(() => {
-    const dashboard = multiDashboard.activeDashboard;
-    const kpiCards = dashboard?.kpiCards;
-    const params = dashboard?.parameters;
-    if (
-      (!kpiCards || kpiCards.length === 0) &&
-      (!params || params.length === 0)
-    )
-      return;
+    const params = multiDashboard.activeDashboard?.parameters;
+    if (!params || params.length === 0) return;
+    const paramQueryNames = Array.from(
+      new Set(
+        params
+          .filter((p) => p.queryName && p.type === "select")
+          .map((p) => p.queryName!),
+      ),
+    );
+    if (paramQueryNames.length === 0) return;
 
-    // Collect unique queryNames needed by KPIs and parameters
-    const queryNames = new Set<string>();
-    for (const kpi of kpiCards ?? []) queryNames.add(kpi.queryName);
-    for (const p of params ?? []) {
-      if (p.queryName && p.type === "select") queryNames.add(p.queryName);
-    }
-
-    // Single fetch per unique queryName
-    for (const queryName of Array.from(queryNames)) {
-      const sessionId = `kpi-${dashboard?.id ?? "d"}-${queryName}-${Date.now()}`;
+    for (const queryName of paramQueryNames) {
+      const sessionId = `param-opts-${multiDashboard.activeDashboard?.id ?? "d"}-${queryName}-${Date.now()}`;
       fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -224,55 +232,15 @@ function DashboardShellInner({
           text: `run ${queryName}`,
           sessionId,
           groupId,
-          explicitFilters:
-            Object.keys(sharedFilters).length > 0 ? sharedFilters : {},
+          explicitFilters: {},
         }),
       })
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (!data?.richContent?.data) return;
-          const rc = data.richContent;
-          // Extract rows from different richContent types
-          const rows: Record<string, unknown>[] =
-            rc.type === "csv_table"
-              ? (rc.data.rows ?? [])
-              : rc.type === "query_result"
-                ? (rc.data.data ?? [])
-                : [];
+          if (!data) return;
+          const rows = extractRows(data);
           if (rows.length === 0) return;
-
-          // Process KPI tiles for this queryName
-          const kpisForQuery = (kpiCards ?? []).filter(
-            (k) => k.queryName === queryName,
-          );
-          for (const kpi of kpisForQuery) {
-            let value: number;
-            if (kpi.groupByColumn) {
-              // Count rows where groupByColumn === filterValue
-              if (kpi.filterValue) {
-                value = rows.filter(
-                  (r) =>
-                    String(r[kpi.groupByColumn!]).toLowerCase() ===
-                    kpi.filterValue!.toLowerCase(),
-                ).length;
-              } else {
-                value = rows.length;
-              }
-            } else {
-              // Legacy: use valueField from first row
-              value = Number(rows[0][kpi.valueField]) || 0;
-            }
-            const previousValue = kpi.previousValueField
-              ? Number(rows[0][kpi.previousValueField]) || undefined
-              : undefined;
-            setKpiValues((prev) => ({
-              ...prev,
-              [kpi.title]: { value, previousValue },
-            }));
-          }
-
-          // Extract distinct values for parameter dropdowns
-          const paramsForQuery = (params ?? []).filter(
+          const paramsForQuery = params.filter(
             (p) => p.queryName === queryName && p.type === "select",
           );
           for (const p of paramsForQuery) {
@@ -289,28 +257,94 @@ function DashboardShellInner({
         })
         .catch(() => {});
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Only re-run when dashboard changes, NOT when filters change
+  }, [
+    multiDashboard.activeDashboard?.parameters,
+    multiDashboard.activeDashboard?.id,
+    groupId,
+  ]);
+
+  // Fetch KPI card data — re-runs when sharedFilters change (Apply/Reset)
+  useEffect(() => {
+    const kpiCards = multiDashboard.activeDashboard?.kpiCards;
+    if (!kpiCards || kpiCards.length === 0) return;
+    const kpiQueryNames = Array.from(new Set(kpiCards.map((k) => k.queryName)));
+
+    for (const queryName of kpiQueryNames) {
+      const sessionId = `kpi-${multiDashboard.activeDashboard?.id ?? "d"}-${queryName}-${Date.now()}`;
+      fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: `run ${queryName}`,
+          sessionId,
+          groupId,
+          explicitFilters:
+            Object.keys(sharedFilters).length > 0 ? sharedFilters : {},
+        }),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!data) return;
+          const rows = extractRows(data);
+          if (rows.length === 0) return;
+          const kpisForQuery = kpiCards.filter(
+            (k) => k.queryName === queryName,
+          );
+          for (const kpi of kpisForQuery) {
+            let value: number;
+            if (kpi.groupByColumn) {
+              if (kpi.filterValue) {
+                value = rows.filter(
+                  (r) =>
+                    String(r[kpi.groupByColumn!]).toLowerCase() ===
+                    kpi.filterValue!.toLowerCase(),
+                ).length;
+              } else {
+                value = rows.length;
+              }
+            } else {
+              value = Number(rows[0][kpi.valueField]) || 0;
+            }
+            const previousValue = kpi.previousValueField
+              ? Number(rows[0][kpi.previousValueField]) || undefined
+              : undefined;
+            setKpiValues((prev) => ({
+              ...prev,
+              [kpi.title]: { value, previousValue },
+            }));
+          }
+        })
+        .catch(() => {});
+    }
   }, [
     multiDashboard.activeDashboard?.kpiCards,
-    multiDashboard.activeDashboard?.parameters,
     multiDashboard.activeDashboard?.id,
     groupId,
     sharedFilters,
   ]);
 
-  // Initialize param values from defaults on dashboard change
-  useEffect(() => {
+  // Sync param values when dashboard parameters change (dashboard switch).
+  // Use a key to detect when the parameter set actually changes.
+  const paramNamesKey = useMemo(
+    () =>
+      (multiDashboard.activeDashboard?.parameters ?? [])
+        .map((p) => p.name)
+        .join(","),
+    [multiDashboard.activeDashboard?.parameters],
+  );
+  const [lastSyncedParamKey, setLastSyncedParamKey] = useState("");
+  if (paramNamesKey !== lastSyncedParamKey) {
+    setLastSyncedParamKey(paramNamesKey);
     const params = multiDashboard.activeDashboard?.parameters;
-    if (!params || params.length === 0) return;
-
-    setParamValues((prev) => {
+    if (params && params.length > 0) {
       const defaults: Record<string, string> = {};
       for (const p of params) {
-        defaults[p.name] = prev[p.name] ?? p.defaultValue;
+        defaults[p.name] = paramValues[p.name] ?? p.defaultValue;
       }
-      return defaults;
-    });
-  }, [multiDashboard.activeDashboard?.parameters]);
+      setParamValues(defaults);
+    }
+  }
 
   const handleOpenAction = (cardId: string) => {
     const card = multiDashboard.activeDashboard?.cards.find(
@@ -609,6 +643,8 @@ function DashboardShellInner({
                   defaults[p.name] = p.defaultValue;
                 }
                 setParamValues(defaults);
+                // Clear shared filters so all cards and KPIs reset to unfiltered
+                clearSharedFilters();
               }}
             />
           </div>
