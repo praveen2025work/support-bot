@@ -585,42 +585,33 @@ export function QueryCard({
     return () => clearTimeout(timer);
   }, [eventFilters, hasRun, queryName, mergedFilters, sendMessage]);
 
-  // Auto-rerun when shared filters change (e.g. user sets region on another card).
-  // Uses sharedFilterGeneration (a counter bumped on every setSharedFilter call) so
-  // that re-broadcasts of the same value (e.g. user clicks "Re-run with Filters")
-  // still trigger other cards to re-execute.
-  const lastSeenGenRef = useRef(sharedFilterGeneration);
+  // Auto-rerun when shared filters change (e.g. user clicks Apply on parameters).
+  // Track the last-seen generation in state (not ref) so React Compiler doesn't
+  // re-initialize it on every render.
+  const [lastSeenGen, setLastSeenGen] = useState(sharedFilterGeneration);
   const selfBroadcastRef = useRef(false);
-  useEffect(() => {
-    // Skip the very first render (generation is 0 and we haven't seen any change)
-    if (lastSeenGenRef.current === sharedFilterGeneration) return;
-    lastSeenGenRef.current = sharedFilterGeneration;
-    // Skip if this card initiated the broadcast (it already ran itself via handleRun)
-    if (selfBroadcastRef.current) {
+  if (sharedFilterGeneration !== lastSeenGen) {
+    setLastSeenGen(sharedFilterGeneration);
+    if (!selfBroadcastRef.current) {
+      // Re-run when shared filters change — dashboard parameters should affect all cards.
+      const hasAnySharedFilter = Object.keys(sharedFilters).length > 0;
+      const filtersWereCleared = !hasAnySharedFilter && hasRun;
+      if (hasAnySharedFilter || filtersWereCleared) {
+        // Use a microtask so state updates settle before fetch
+        Promise.resolve().then(() => {
+          setHasRun(true);
+          sendMessage(
+            `run ${queryName}`,
+            mergedFilters,
+            undefined,
+            followUpChain,
+          );
+        });
+      }
+    } else {
       selfBroadcastRef.current = false;
-      return;
     }
-    // Re-run when shared filters change — dashboard parameters should affect all cards.
-    // Also re-run when filters are cleared (reset) if the card has already executed.
-    const hasAnySharedFilter = Object.keys(sharedFilters).length > 0;
-    const filtersWereCleared = !hasAnySharedFilter && hasRun;
-    if (!hasAnySharedFilter && !filtersWereCleared) return;
-    const timer = setTimeout(() => {
-      setHasRun(true);
-      // Re-execute with the saved view (followUpChain) so group-by, sort, etc. are preserved
-      sendMessage(`run ${queryName}`, mergedFilters, undefined, followUpChain);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [
-    sharedFilterGeneration,
-    sharedFilters,
-    queryName,
-    mergedFilters,
-    sendMessage,
-    filterKeys,
-    followUpChain,
-    hasRun,
-  ]);
+  }
 
   const handleRun = () => {
     setHasRun(true);
