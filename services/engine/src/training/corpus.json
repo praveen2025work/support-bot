@@ -212,6 +212,19 @@
           "P&L summary",
           "PnL"
         ],
+        "pnl_signoff": [
+          "pnl signoff",
+          "pnl sign-off",
+          "VP sign off",
+          "VP signoff",
+          "BOFC completion",
+          "FOBO completion",
+          "signoff tracker",
+          "sign off status",
+          "pnl sign off data",
+          "bofc fobo status",
+          "vp signoff hours"
+        ],
         "trade_volume": [
           "trade volume",
           "trading volume",

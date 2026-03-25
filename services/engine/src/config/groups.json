@@ -12,20 +12,14 @@
     "finance": {
       "name": "MITR Finance",
       "description": "Revenue, trading, risk, compliance, treasury, and financial operations",
-      "sources": [
-        "finance",
-        "commerce",
-        "trading",
-        "risk",
-        "treasury"
-      ],
+      "sources": ["finance", "commerce", "trading", "risk", "treasury"],
       "apiBaseUrl": null,
       "templates": {
         "greeting": [
           "Hello! I'm MITR Finance. I can help with revenue reports, P&L, trading data, risk metrics, compliance reports, treasury, and financial operations. What would you like to know?"
         ],
         "help": [
-          "I can help you with:\n- **Revenue & P&L**: monthly/quarterly revenue, gross margin, EBITDA, net income, YoY growth\n- **Trading & Markets**: trade volume, desk PnL, VaR, market exposure, positions\n- **Risk & Compliance**: credit risk, regulatory reports, AML alerts, capital adequacy\n- **Client & Portfolio**: AUM, portfolio performance, fund NAV, client assets\n- **Operations**: settlement failures, STP rate, reconciliation, trade breaks\n- **Loan & Credit**: loan book, NPL ratio, origination pipeline\n- **Treasury**: liquidity, cash position, FX exposure, interest rate risk\n\nExamples:\n- \"run ebitda for this quarter\"\n- \"show me the VaR report\"\n- \"what is our AUM\"\n- \"show settlement failures\"\n- \"run credit risk report\"\n- \"list queries\""
+          "I can help you with:\n- **Revenue & P&L**: monthly/quarterly revenue, gross margin, EBITDA, net income, YoY growth\n- **Trading & Markets**: trade volume, desk PnL, VaR, market exposure, positions\n- **Risk & Compliance**: credit risk, regulatory reports, AML alerts, capital adequacy\n- **Client & Portfolio**: AUM, portfolio performance, fund NAV, client assets\n- **Operations**: settlement failures, STP rate, reconciliation, trade breaks\n- **Loan & Credit**: loan book, NPL ratio, origination pipeline\n- **Treasury**: liquidity, cash position, FX exposure, interest rate risk\n- **PnL Sign-off Tracker**: BOFC/FOBO completion, VP sign-off turnaround, status by PnL\n\nExamples:\n- \"run ebitda for this quarter\"\n- \"show me the VaR report\"\n- \"what is our AUM\"\n- \"show settlement failures\"\n- \"run credit risk report\"\n- \"run pnl_signoff\" → then: \"avg diff between vpsignoffutc and bofc_completedon by namedpnl by month\"\n- \"list queries\""
         ]
       },
       "corpus": "corpus-finance.json",
@@ -34,10 +28,7 @@
     "engineering": {
       "name": "MITR Engineering",
       "description": "Error rates, performance, and infrastructure",
-      "sources": [
-        "engineering",
-        "devops"
-      ],
+      "sources": ["engineering", "devops"],
       "apiBaseUrl": null,
       "templates": {
         "greeting": [
@@ -53,9 +44,7 @@
     "analytics": {
       "name": "MITR Analytics",
       "description": "User analytics and retention metrics",
-      "sources": [
-        "analytics"
-      ],
+      "sources": ["analytics"],
       "apiBaseUrl": null,
       "templates": {
         "greeting": [
@@ -71,9 +60,7 @@
     "hr_team": {
       "name": "MITR HR",
       "description": "Headcount, hiring pipeline, and team metrics",
-      "sources": [
-        "hr"
-      ],
+      "sources": ["hr"],
       "apiBaseUrl": null,
       "templates": {
         "greeting": [

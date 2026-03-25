@@ -8,6 +8,165 @@
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
+      "timestamp": "2026-03-25T02:35:12.254Z",
+      "executionMs": 5
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T02:35:11.779Z",
+      "executionMs": 3
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T02:34:19.312Z",
+      "executionMs": 10
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T02:34:19.311Z",
+      "executionMs": 4
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T02:34:19.242Z",
+      "executionMs": 3
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T02:34:18.540Z",
+      "executionMs": 6
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T02:34:18.351Z",
+      "executionMs": 3
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T02:34:18.288Z",
+      "executionMs": 3
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T02:34:18.215Z",
+      "executionMs": 3
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T02:34:18.162Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T02:34:18.001Z",
+      "executionMs": 7
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T02:34:17.745Z",
+      "executionMs": 8
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T02:27:24.494Z",
+      "executionMs": 2
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T02:03:13.465Z",
+      "executionMs": 3
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T02:03:13.192Z",
+      "executionMs": 3
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T01:33:03.861Z",
+      "executionMs": 6
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T01:33:00.989Z",
+      "executionMs": 5
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T01:32:56.648Z",
+      "executionMs": 4
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T01:32:30.868Z",
+      "executionMs": 4
+    },
+    {
+      "queryName": "query.execute",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T00:58:25.287Z"
+    },
+    {
+      "queryName": "pnl_signoff",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
       "timestamp": "2026-03-24T22:20:57.432Z",
       "executionMs": 5
     },
@@ -231,166 +390,6 @@
       "intent": "query.execute",
       "timestamp": "2026-03-24T04:12:21.652Z",
       "executionMs": 92
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:12:21.600Z",
-      "executionMs": 89
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:09:58.898Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:09:38.415Z",
-      "executionMs": 6
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:09:02.965Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:05:51.985Z",
-      "executionMs": 7
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:05:30.027Z",
-      "executionMs": 5
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:05:29.981Z",
-      "executionMs": 4
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:03:57.865Z",
-      "executionMs": 7
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:03:43.463Z",
-      "executionMs": 5
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:03:19.808Z",
-      "executionMs": 6
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:03:06.530Z",
-      "executionMs": 7
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:02:20.811Z",
-      "executionMs": 18
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:01:01.185Z",
-      "executionMs": 5
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T03:56:42.550Z",
-      "executionMs": 4
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T03:55:45.843Z",
-      "executionMs": 4
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T03:55:21.361Z",
-      "executionMs": 6
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T03:55:05.871Z",
-      "executionMs": 6
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T03:54:23.906Z",
-      "executionMs": 68
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T03:51:16.113Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "budget_vs_actual",
-      "groupId": "default",
-      "userMessage": "run budget_vs_actual",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T03:51:12.160Z",
-      "executionMs": 2
     }
   ],
   "dashboards": [
@@ -767,9 +766,10 @@
         }
       ],
       "createdAt": "2026-03-24T00:00:00.000Z",
-      "updatedAt": "2026-03-24T00:00:00.000Z"
+      "updatedAt": "2026-03-25T02:28:15.227Z",
+      "simpleMode": false
     }
   ],
-  "updatedAt": "2026-03-24T22:35:36.374Z",
+  "updatedAt": "2026-03-25T03:44:57.798Z",
   "activeDashboardId": "pnl-sla-tracker"
 }

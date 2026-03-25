@@ -337,10 +337,20 @@ export class ResponseGenerator {
     // When the frontend passes followUpMode, restrict to that mode only.
     if (followUpMode && context.lastQueryName && context.lastApiResult) {
       if (followUpMode === "local") {
+        // Data operations first (computed columns, group-by, sort, etc.)
+        // — these take priority over NLP classification
         const dataOpResult = handleDataOperation(classification, context);
         if (dataOpResult) {
           dataOpResult.followUpMode = "local";
           return dataOpResult;
+        }
+        // Analysis intents (trend, outliers, correlations, etc.)
+        if (intent.startsWith("analysis.")) {
+          const analysisResult = await handleAnalysis(classification, context);
+          if (analysisResult) {
+            analysisResult.followUpMode = "local";
+            return analysisResult;
+          }
         }
         const followUpResult = handleFollowUp(classification, context);
         if (followUpResult) {
@@ -407,6 +417,14 @@ export class ResponseGenerator {
         if (filterResult) {
           filterResult.followUpMode = "requery";
           return filterResult;
+        }
+        // Route analysis intents to the analysis handler before field lookup
+        if (intent.startsWith("analysis.")) {
+          const analysisResult = await handleAnalysis(classification, context);
+          if (analysisResult) {
+            analysisResult.followUpMode = "local";
+            return analysisResult;
+          }
         }
         // Try field follow-up
         const followUpResult = handleFollowUp(classification, context);

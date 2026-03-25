@@ -12,6 +12,7 @@ interface CardSettingsPopoverProps {
   compactAuto?: boolean;
   stompEnabled?: boolean;
   refreshIntervalSec?: number;
+  followUpChain?: string[];
   onUpdate: (partial: {
     label?: string;
     autoRun?: boolean;
@@ -20,6 +21,7 @@ interface CardSettingsPopoverProps {
     compactAuto?: boolean;
     stompEnabled?: boolean;
     refreshIntervalSec?: number;
+    followUpChain?: string[];
   }) => void;
 }
 
@@ -31,6 +33,7 @@ export function CardSettingsPopover({
   compactAuto = true,
   stompEnabled = false,
   refreshIntervalSec = 0,
+  followUpChain,
   onUpdate,
 }: CardSettingsPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -183,6 +186,29 @@ export function CardSettingsPopover({
               <option value={600}>10 minutes</option>
             </select>
           </div>
+
+          {/* Saved follow-up view */}
+          {followUpChain && followUpChain.length > 0 && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                Saved View ({followUpChain.length} step
+                {followUpChain.length > 1 ? "s" : ""})
+              </label>
+              <div className="text-xs text-gray-400 mb-2 space-y-0.5">
+                {followUpChain.map((cmd, i) => (
+                  <div key={i} className="truncate" title={cmd}>
+                    {i + 1}. {cmd}
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => onUpdate({ followUpChain: undefined })}
+                className="w-full text-xs px-2 py-1.5 text-red-600 hover:text-red-700 border border-red-200 dark:border-red-800 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              >
+                Clear saved view
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -54,7 +54,16 @@ export async function handleAnalysis(
   context: ConversationContext,
 ): Promise<BotResponse | null> {
   const csvData = extractCsvDataFromContext(context);
-  if (!csvData) return null;
+  if (!csvData) {
+    logger.debug(
+      {
+        hasLastApiResult: !!context.lastApiResult,
+        lastQueryName: context.lastQueryName,
+      },
+      "Analysis handler: csvData extraction returned null",
+    );
+    return null;
+  }
 
   const userText = getLastUserText(context);
   const { intent } = classification;
@@ -240,9 +249,30 @@ async function handleAnomaly(
 ): Promise<BotResponse> {
   const { computeColumnStats, isIqrOutlier, zScore } =
     await import("@/core/anomaly/numeric-utils");
+  const { detectColumnTypes, parseAnyDate } =
+    await import("../../api-connector/csv-analyzer");
+
+  // Filter out weekend rows if a date column is present
+  const colTypes = detectColumnTypes(csvData.headers, csvData.rows);
+  const dateCol = colTypes.find((c) => c.detectedType === "date");
+  let rows = csvData.rows;
+  let weekendNote = "";
+  if (dateCol) {
+    const originalCount = rows.length;
+    rows = rows.filter((row) => {
+      const d = parseAnyDate(row[dateCol.column]);
+      if (!d) return true; // keep rows without a parseable date
+      const day = d.getDay();
+      return day !== 0 && day !== 6; // exclude Sunday (0) and Saturday (6)
+    });
+    const excluded = originalCount - rows.length;
+    if (excluded > 0) {
+      weekendNote = ` (${excluded} weekend rows excluded)`;
+    }
+  }
 
   const numericCols = csvData.headers.filter((h) => {
-    const sample = csvData.rows.slice(0, 20);
+    const sample = rows.slice(0, 20);
     let numCount = 0;
     for (const row of sample) {
       const v = row[h];
@@ -275,10 +305,10 @@ async function handleAnomaly(
     }[];
   }> = [];
 
-  // Compute stats for each numeric column
+  // Compute stats for each numeric column (using weekend-filtered rows)
   const colStats = new Map<string, ReturnType<typeof computeColumnStats>>();
   for (const col of numericCols) {
-    const values = csvData.rows
+    const values = rows
       .map((r) => {
         const v = r[col];
         return typeof v === "number" ? v : parseFloat(String(v));
@@ -287,9 +317,9 @@ async function handleAnomaly(
     colStats.set(col, computeColumnStats(values));
   }
 
-  // Check each row for outliers
-  for (let i = 0; i < csvData.rows.length; i++) {
-    const row = csvData.rows[i];
+  // Check each row for outliers (using weekend-filtered rows)
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
     const outlierCols: {
       column: string;
       value: number;
@@ -330,7 +360,7 @@ async function handleAnomaly(
 
   if (outlierRows.length === 0) {
     return {
-      text: `No outliers detected across ${numericCols.length} numeric columns using Z-score and IQR methods.`,
+      text: `No outliers detected across ${numericCols.length} numeric columns using Z-score and IQR methods${weekendNote}.`,
       suggestions: ["Show correlations", "Profile columns", "Smart summary"],
       sessionId: context.sessionId,
       intent: classification.intent,
@@ -339,7 +369,7 @@ async function handleAnomaly(
   }
 
   return {
-    text: `**Outlier Detection**: Found **${outlierRows.length} rows** with anomalous values across ${numericCols.length} numeric columns:`,
+    text: `**Outlier Detection**: Found **${outlierRows.length} rows** with anomalous values across ${numericCols.length} numeric columns${weekendNote}:`,
     richContent: {
       type: "anomaly_table",
       data: {

@@ -90,8 +90,9 @@ export const AGGREGATION_PATTERN =
   /\b(?:calculate\s+)?(?:avg|average|sum|total|min|max|mean|minimum|maximum|count)\b(?:\s+(?:of\s+)?[\w_]+)?/i;
 
 // Computed column: date diff or arithmetic between two columns
+// Matches: "diff between X and Y", "diff X and Y", "subtract X from Y", etc.
 export const COMPUTED_COLUMN_PATTERN =
-  /\b(?:diff(?:erence)?|duration|subtract|minus|add|plus|ratio|multiply|divide)\s+(?:between|from|of)\s+/i;
+  /\b(?:diff(?:erence)?|duration|subtract|minus|add|plus|ratio|multiply|divide)\s+(?:between|from|of|[\w_]+\s+(?:and|to)\s+)/i;
 
 // Date period bucketing suffix on group-by: "group by date_col monthly"
 export const DATE_PERIOD_PATTERN =

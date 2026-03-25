@@ -48,6 +48,16 @@ export class ChatbotEngine {
       message.userId,
     );
 
+    logger.debug(
+      {
+        sessionId: message.sessionId,
+        hasLastApiResult: !!context.lastApiResult,
+        lastQueryName: context.lastQueryName,
+        text: message.text,
+      },
+      "processMessage context state",
+    );
+
     context.history.push({
       role: "user",
       text: message.text,

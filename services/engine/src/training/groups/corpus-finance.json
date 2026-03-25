@@ -4,50 +4,291 @@
   "entities": {
     "query_name": {
       "options": {
-        "monthly_revenue": ["monthly revenue", "revenue report", "monthly sales", "revenue", "sales report"],
-        "daily_orders": ["daily orders", "orders today", "order count", "orders", "order volume"],
-        "sales_data": ["sales_data", "sales data", "sales report", "sales csv", "sales metrics", "revenue data"],
+        "monthly_revenue": [
+          "monthly revenue",
+          "revenue report",
+          "monthly sales",
+          "revenue",
+          "sales report"
+        ],
+        "daily_orders": [
+          "daily orders",
+          "orders today",
+          "order count",
+          "orders",
+          "order volume"
+        ],
+        "sales_data": [
+          "sales_data",
+          "sales data",
+          "sales report",
+          "sales csv",
+          "sales metrics",
+          "revenue data"
+        ],
 
-        "quarterly_revenue": ["quarterly revenue", "Q1 revenue", "Q2 revenue", "Q3 revenue", "Q4 revenue", "quarterly earnings", "quarter revenue"],
-        "gross_margin": ["gross margin", "gross profit margin", "GP margin", "gross profit", "margin report"],
-        "ebitda": ["EBITDA", "earnings before interest", "operating earnings", "ebitda report", "ebitda margin"],
-        "net_income": ["net income", "net profit", "bottom line", "net earnings", "net revenue"],
-        "revenue_by_segment": ["revenue by segment", "segment revenue", "business line revenue", "divisional revenue", "revenue breakdown"],
-        "yoy_growth": ["YoY growth", "year over year", "annual growth", "growth rate", "YoY", "year on year"],
-        "pnl_summary": ["P&L", "profit and loss", "income statement", "P&L summary", "PnL", "profit loss statement"],
+        "quarterly_revenue": [
+          "quarterly revenue",
+          "Q1 revenue",
+          "Q2 revenue",
+          "Q3 revenue",
+          "Q4 revenue",
+          "quarterly earnings",
+          "quarter revenue"
+        ],
+        "gross_margin": [
+          "gross margin",
+          "gross profit margin",
+          "GP margin",
+          "gross profit",
+          "margin report"
+        ],
+        "ebitda": [
+          "EBITDA",
+          "earnings before interest",
+          "operating earnings",
+          "ebitda report",
+          "ebitda margin"
+        ],
+        "net_income": [
+          "net income",
+          "net profit",
+          "bottom line",
+          "net earnings",
+          "net revenue"
+        ],
+        "revenue_by_segment": [
+          "revenue by segment",
+          "segment revenue",
+          "business line revenue",
+          "divisional revenue",
+          "revenue breakdown"
+        ],
+        "yoy_growth": [
+          "YoY growth",
+          "year over year",
+          "annual growth",
+          "growth rate",
+          "YoY",
+          "year on year"
+        ],
+        "pnl_summary": [
+          "P&L",
+          "profit and loss",
+          "income statement",
+          "P&L summary",
+          "PnL",
+          "profit loss statement"
+        ],
+        "pnl_signoff": [
+          "pnl signoff",
+          "pnl sign-off",
+          "VP sign off",
+          "VP signoff",
+          "BOFC completion",
+          "FOBO completion",
+          "signoff tracker",
+          "sign off status",
+          "bofc fobo status",
+          "vp signoff hours"
+        ],
 
-        "trade_volume": ["trade volume", "trading volume", "number of trades", "trade count", "execution volume"],
-        "trading_pnl": ["trading P&L", "desk PnL", "trading profit", "desk profit and loss", "trading pnl", "desk P&L"],
-        "var_report": ["VaR", "value at risk", "VaR report", "market risk", "var analysis"],
-        "market_exposure": ["market exposure", "net exposure", "gross exposure", "position exposure", "notional exposure"],
-        "positions": ["positions", "open positions", "current positions", "book positions", "position report"],
+        "trade_volume": [
+          "trade volume",
+          "trading volume",
+          "number of trades",
+          "trade count",
+          "execution volume"
+        ],
+        "trading_pnl": [
+          "trading P&L",
+          "desk PnL",
+          "trading profit",
+          "desk profit and loss",
+          "trading pnl",
+          "desk P&L"
+        ],
+        "var_report": [
+          "VaR",
+          "value at risk",
+          "VaR report",
+          "market risk",
+          "var analysis"
+        ],
+        "market_exposure": [
+          "market exposure",
+          "net exposure",
+          "gross exposure",
+          "position exposure",
+          "notional exposure"
+        ],
+        "positions": [
+          "positions",
+          "open positions",
+          "current positions",
+          "book positions",
+          "position report"
+        ],
 
-        "credit_risk": ["credit risk", "credit exposure", "counterparty risk", "credit metrics", "credit report"],
-        "regulatory_report": ["regulatory report", "reg report", "compliance report", "regulatory filing", "regulator submission"],
-        "aml_alerts": ["AML alerts", "anti money laundering", "AML report", "suspicious activity", "SAR report"],
-        "compliance_metrics": ["compliance metrics", "compliance dashboard", "compliance KPIs", "compliance scorecard"],
-        "capital_adequacy": ["capital adequacy", "CAR", "capital ratio", "Tier 1 capital", "CET1", "tier 1 ratio"],
+        "credit_risk": [
+          "credit risk",
+          "credit exposure",
+          "counterparty risk",
+          "credit metrics",
+          "credit report"
+        ],
+        "regulatory_report": [
+          "regulatory report",
+          "reg report",
+          "compliance report",
+          "regulatory filing",
+          "regulator submission"
+        ],
+        "aml_alerts": [
+          "AML alerts",
+          "anti money laundering",
+          "AML report",
+          "suspicious activity",
+          "SAR report"
+        ],
+        "compliance_metrics": [
+          "compliance metrics",
+          "compliance dashboard",
+          "compliance KPIs",
+          "compliance scorecard"
+        ],
+        "capital_adequacy": [
+          "capital adequacy",
+          "CAR",
+          "capital ratio",
+          "Tier 1 capital",
+          "CET1",
+          "tier 1 ratio"
+        ],
 
-        "aum": ["AUM", "assets under management", "managed assets", "total AUM", "fund AUM"],
-        "portfolio_performance": ["portfolio performance", "fund performance", "investment returns", "portfolio returns", "fund returns"],
-        "fund_nav": ["fund NAV", "net asset value", "NAV report", "fund valuation", "NAV"],
-        "client_assets": ["client assets", "client holdings", "client balances", "client portfolio", "client book"],
-        "client_onboarding": ["client onboarding", "KYC status", "onboarding pipeline", "new client", "KYC"],
+        "aum": [
+          "AUM",
+          "assets under management",
+          "managed assets",
+          "total AUM",
+          "fund AUM"
+        ],
+        "portfolio_performance": [
+          "portfolio performance",
+          "fund performance",
+          "investment returns",
+          "portfolio returns",
+          "fund returns"
+        ],
+        "fund_nav": [
+          "fund NAV",
+          "net asset value",
+          "NAV report",
+          "fund valuation",
+          "NAV"
+        ],
+        "client_assets": [
+          "client assets",
+          "client holdings",
+          "client balances",
+          "client portfolio",
+          "client book"
+        ],
+        "client_onboarding": [
+          "client onboarding",
+          "KYC status",
+          "onboarding pipeline",
+          "new client",
+          "KYC"
+        ],
 
-        "settlement_failures": ["settlement failures", "failed settlements", "settlement fails", "unmatched trades", "failed trades"],
-        "stp_rate": ["STP rate", "straight through processing", "STP ratio", "automation rate", "STP"],
-        "reconciliation": ["reconciliation", "recon report", "reconciliation breaks", "recon status", "recon"],
-        "trade_breaks": ["trade breaks", "breaks report", "unmatched items", "exception report", "breaks"],
-        "operational_risk": ["operational risk", "op risk", "operational risk events", "op risk metrics", "oprisk"],
+        "settlement_failures": [
+          "settlement failures",
+          "failed settlements",
+          "settlement fails",
+          "unmatched trades",
+          "failed trades"
+        ],
+        "stp_rate": [
+          "STP rate",
+          "straight through processing",
+          "STP ratio",
+          "automation rate",
+          "STP"
+        ],
+        "reconciliation": [
+          "reconciliation",
+          "recon report",
+          "reconciliation breaks",
+          "recon status",
+          "recon"
+        ],
+        "trade_breaks": [
+          "trade breaks",
+          "breaks report",
+          "unmatched items",
+          "exception report",
+          "breaks"
+        ],
+        "operational_risk": [
+          "operational risk",
+          "op risk",
+          "operational risk events",
+          "op risk metrics",
+          "oprisk"
+        ],
 
-        "loan_book": ["loan book", "loan portfolio", "outstanding loans", "loan balances", "loan exposure"],
-        "npl_ratio": ["NPL ratio", "non performing loans", "NPL report", "bad loans", "NPL"],
-        "origination_pipeline": ["origination pipeline", "loan origination", "deal pipeline", "new loans", "deal flow"],
+        "loan_book": [
+          "loan book",
+          "loan portfolio",
+          "outstanding loans",
+          "loan balances",
+          "loan exposure"
+        ],
+        "npl_ratio": [
+          "NPL ratio",
+          "non performing loans",
+          "NPL report",
+          "bad loans",
+          "NPL"
+        ],
+        "origination_pipeline": [
+          "origination pipeline",
+          "loan origination",
+          "deal pipeline",
+          "new loans",
+          "deal flow"
+        ],
 
-        "liquidity": ["liquidity", "liquidity report", "cash reserves", "LCR", "liquidity coverage", "NSFR"],
-        "cash_position": ["cash position", "cash balance", "daily cash", "cash flow", "cash report"],
-        "fx_exposure": ["FX exposure", "foreign exchange", "currency exposure", "FX risk", "forex exposure"],
-        "interest_rate_risk": ["interest rate risk", "rate risk", "duration risk", "IR sensitivity", "rate sensitivity"]
+        "liquidity": [
+          "liquidity",
+          "liquidity report",
+          "cash reserves",
+          "LCR",
+          "liquidity coverage",
+          "NSFR"
+        ],
+        "cash_position": [
+          "cash position",
+          "cash balance",
+          "daily cash",
+          "cash flow",
+          "cash report"
+        ],
+        "fx_exposure": [
+          "FX exposure",
+          "foreign exchange",
+          "currency exposure",
+          "FX risk",
+          "forex exposure"
+        ],
+        "interest_rate_risk": [
+          "interest rate risk",
+          "rate risk",
+          "duration risk",
+          "IR sensitivity",
+          "rate sensitivity"
+        ]
       }
     },
     "time_period": {
@@ -73,17 +314,36 @@
     },
     "team": {
       "options": {
-        "trading": ["trading", "trading desk", "markets", "equities desk", "fixed income desk"],
+        "trading": [
+          "trading",
+          "trading desk",
+          "markets",
+          "equities desk",
+          "fixed income desk"
+        ],
         "risk": ["risk", "risk management", "compliance", "risk team"],
         "treasury": ["treasury", "treasury desk", "treasury team"],
-        "operations": ["operations", "ops", "middle office", "back office", "settlements"]
+        "operations": [
+          "operations",
+          "ops",
+          "middle office",
+          "back office",
+          "settlements"
+        ]
       }
     }
   },
   "data": [
     {
       "intent": "greeting",
-      "utterances": ["hello", "hi", "hey", "good morning", "good afternoon", "hi there"],
+      "utterances": [
+        "hello",
+        "hi",
+        "hey",
+        "good morning",
+        "good afternoon",
+        "hi there"
+      ],
       "answers": []
     },
     {
@@ -220,12 +480,24 @@
     },
     {
       "intent": "help",
-      "utterances": ["help", "what can you do", "how does this work", "instructions"],
+      "utterances": [
+        "help",
+        "what can you do",
+        "how does this work",
+        "instructions"
+      ],
       "answers": []
     },
     {
       "intent": "farewell",
-      "utterances": ["bye", "goodbye", "see you", "thanks bye", "that is all", "I am done"],
+      "utterances": [
+        "bye",
+        "goodbye",
+        "see you",
+        "thanks bye",
+        "that is all",
+        "I am done"
+      ],
       "answers": []
     }
   ]

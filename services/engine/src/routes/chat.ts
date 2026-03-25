@@ -70,12 +70,68 @@ chatRouter.post("/", async (req: Request, res: Response) => {
       incomingHeaders["cookie"] = req.headers["cookie"] as string;
     }
 
-    const response = await engine.processMessage(
-      message,
-      explicitFilters,
-      Object.keys(incomingHeaders).length > 0 ? incomingHeaders : undefined,
-      followUpMode,
-    );
+    // Follow-up chain: process initial query + all follow-ups server-side,
+    // returning only the final result (avoids sequential round-trips)
+    const followUpChain = body.followUpChain as string[] | undefined;
+    const hdrs =
+      Object.keys(incomingHeaders).length > 0 ? incomingHeaders : undefined;
+
+    let response;
+    if (followUpChain?.length) {
+      log.info(
+        { chain: followUpChain, initialText: message.text },
+        "Processing followUpChain",
+      );
+      // Process initial message (query execution) — no followUpMode restriction
+      response = await engine.processMessage(
+        message,
+        explicitFilters,
+        hdrs,
+        undefined,
+      );
+      log.info(
+        {
+          initialIntent: response.intent,
+          initialText: response.text?.substring(0, 80),
+          sessionId: message.sessionId,
+        },
+        "Chain: initial query result",
+      );
+      // Then process each follow-up in sequence
+      for (const followUpText of followUpChain) {
+        const followUpMsg = await adapter.parseIncoming({
+          text: followUpText,
+          platform: body.platform,
+          sessionId: body.sessionId,
+          groupId: body.groupId,
+          userName: body.userName,
+        });
+        if (followUpMsg) {
+          response = await engine.processMessage(
+            followUpMsg,
+            undefined,
+            hdrs,
+            "local",
+          );
+          log.info(
+            {
+              followUp: followUpText,
+              intent: response.intent,
+              text: response.text?.substring(0, 80),
+              sessionId: followUpMsg.sessionId,
+            },
+            "Chain: follow-up result",
+          );
+        }
+      }
+    } else {
+      response = await engine.processMessage(
+        message,
+        explicitFilters,
+        hdrs,
+        followUpMode,
+      );
+    }
     const formatted = await adapter.formatResponse(response);
 
     logConversation({
@@ -84,7 +140,9 @@ chatRouter.post("/", async (req: Request, res: Response) => {
       groupId,
       platform,
       requestId: ctx?.requestId,
-      userMessage: message.text,
+      userMessage: followUpChain?.length
+        ? `${message.text} → [${followUpChain.join(" → ")}]`
+        : message.text,
       botResponse: response.text,
       intent: response.intent,
       confidence: response.confidence,
