@@ -1,0 +1,12 @@
+[
+  {
+    "clusterId": 0,
+    "userIds": ["local_dev"],
+    "topQueries": ["pnl_availability"]
+  },
+  {
+    "clusterId": 1,
+    "userIds": ["jdoe"],
+    "topQueries": ["pnl_signoff"]
+  }
+]

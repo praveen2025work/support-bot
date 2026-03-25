@@ -1,3 +1,6 @@
 {"id":"rev-f01","timestamp":"2026-03-12T15:10:00.000Z","userMessage":"show me the P&L statement","detectedIntent":"query.execute","confidence":0.25,"groupId":"finance","status":"pending"}
 {"id":"rev-f02","timestamp":"2026-03-12T14:05:00.000Z","userMessage":"what are our top expenses this quarter","detectedIntent":"query.execute","confidence":0.31,"groupId":"finance","status":"pending"}
 {"id":"rev-f03","timestamp":"2026-03-12T12:30:00.000Z","userMessage":"export the bam report to excel","detectedIntent":"query.execute","confidence":0.19,"groupId":"finance","status":"pending"}
+{"id":"d4412e6c-e94a-40b8-b2fa-d20cba4da43e","timestamp":"2026-03-25T17:01:04.986Z","userMessage":"avg vpsignoff_bofc_hours by masterbookname","detectedIntent":"followup.sort","confidence":0.3219315093193655,"groupId":"finance","status":"pending","priority":68}
+{"id":"4b74c2c7-9dd7-49b3-a844-0a456e85bd93","timestamp":"2026-03-25T17:27:38.290Z","userMessage":"avg vpsignoff_bofc_hours by masterbookname","detectedIntent":"followup.sort","confidence":0.3219315093193655,"groupId":"finance","status":"pending","priority":88}
+{"id":"e5e92fd6-aaf5-462a-8a55-c2425b02bbfc","timestamp":"2026-03-25T17:32:45.082Z","userMessage":"avg vpsignoff_bofc_hours by masterbookname","detectedIntent":"followup.sort","confidence":0.3219315093193655,"groupId":"finance","status":"pending","priority":108}

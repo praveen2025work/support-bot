@@ -80,7 +80,8 @@
           "PnL",
           "profit loss statement"
         ],
-        "pnl_signoff": [
+        "pnl_lineage": [
+          "pnl lineage",
           "pnl signoff",
           "pnl sign-off",
           "VP sign off",
@@ -90,7 +91,12 @@
           "signoff tracker",
           "sign off status",
           "bofc fobo status",
-          "vp signoff hours"
+          "vp signoff hours",
+          "feed lineage",
+          "lineage flow",
+          "delay lineage",
+          "master book",
+          "feed delay"
         ],
 
         "trade_volume": [

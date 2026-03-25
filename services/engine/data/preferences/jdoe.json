@@ -4,7 +4,60 @@
   "subscriptions": [],
   "recentQueries": [
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
+      "groupId": "default",
+      "userMessage": "run pnl_lineage",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T16:57:56.413Z",
+      "executionMs": 88
+    },
+    {
+      "queryName": "query.filter_form",
+      "groupId": "default",
+      "userMessage": "run pnl lineage",
+      "intent": "query.filter_form",
+      "timestamp": "2026-03-25T16:56:50.172Z"
+    },
+    {
+      "queryName": "pnl_lineage",
+      "groupId": "default",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T15:27:11.456Z",
+      "executionMs": 83
+    },
+    {
+      "queryName": "query.filter_form",
+      "groupId": "default",
+      "userMessage": "run pnl signoff",
+      "intent": "query.filter_form",
+      "timestamp": "2026-03-25T15:27:04.342Z"
+    },
+    {
+      "queryName": "pnl_lineage",
+      "groupId": "finance",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T14:55:35.169Z",
+      "executionMs": 4
+    },
+    {
+      "queryName": "pnl_lineage",
+      "groupId": "default",
+      "userMessage": "run pnl_signoff",
+      "intent": "query.execute",
+      "timestamp": "2026-03-25T14:33:40.857Z",
+      "executionMs": 75
+    },
+    {
+      "queryName": "query.filter_form",
+      "groupId": "default",
+      "userMessage": "run pnl signoff",
+      "intent": "query.filter_form",
+      "timestamp": "2026-03-25T14:33:34.132Z"
+    },
+    {
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -12,7 +65,7 @@
       "executionMs": 5
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -20,7 +73,7 @@
       "executionMs": 3
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -28,7 +81,7 @@
       "executionMs": 10
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -36,7 +89,7 @@
       "executionMs": 4
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -44,7 +97,7 @@
       "executionMs": 3
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -52,7 +105,7 @@
       "executionMs": 6
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -60,7 +113,7 @@
       "executionMs": 3
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -68,7 +121,7 @@
       "executionMs": 3
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -76,7 +129,7 @@
       "executionMs": 3
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -84,7 +137,7 @@
       "executionMs": 2
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -92,7 +145,7 @@
       "executionMs": 7
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -100,7 +153,7 @@
       "executionMs": 8
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -108,7 +161,7 @@
       "executionMs": 2
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -116,7 +169,7 @@
       "executionMs": 3
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -124,7 +177,7 @@
       "executionMs": 3
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -132,7 +185,7 @@
       "executionMs": 6
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -140,7 +193,7 @@
       "executionMs": 5
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -148,7 +201,7 @@
       "executionMs": 4
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -163,7 +216,7 @@
       "timestamp": "2026-03-25T00:58:25.287Z"
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -171,7 +224,7 @@
       "executionMs": 5
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -179,7 +232,7 @@
       "executionMs": 6
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "default",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -194,7 +247,7 @@
       "timestamp": "2026-03-24T21:51:00.700Z"
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -202,7 +255,7 @@
       "executionMs": 3
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "default",
       "userMessage": "run pnl_signoff businessarea Rates Trading",
       "intent": "query.execute",
@@ -273,7 +326,7 @@
       "timestamp": "2026-03-24T21:44:22.995Z"
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "default",
       "userMessage": "run pnl_signoff businessarea Rates Trading",
       "intent": "query.execute",
@@ -288,7 +341,7 @@
       "timestamp": "2026-03-24T21:35:27.321Z"
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "finance",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -296,7 +349,7 @@
       "executionMs": 82
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "default",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -304,7 +357,7 @@
       "executionMs": 5
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "default",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -312,7 +365,7 @@
       "executionMs": 3
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "default",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -320,7 +373,7 @@
       "executionMs": 83
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "default",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
@@ -328,68 +381,12 @@
       "executionMs": 67
     },
     {
-      "queryName": "pnl_signoff",
+      "queryName": "pnl_lineage",
       "groupId": "default",
       "userMessage": "run pnl_signoff",
       "intent": "query.execute",
       "timestamp": "2026-03-24T04:33:12.313Z",
       "executionMs": 3
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:33:10.917Z",
-      "executionMs": 71
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:31:48.918Z",
-      "executionMs": 4
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:26:21.446Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:18:28.026Z",
-      "executionMs": 3
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:16:33.637Z",
-      "executionMs": 4
-    },
-    {
-      "queryName": "monthly_revenue",
-      "groupId": "default",
-      "userMessage": "run monthly_revenue",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:16:30.113Z",
-      "executionMs": 4
-    },
-    {
-      "queryName": "pnl_signoff",
-      "groupId": "default",
-      "userMessage": "run pnl_signoff",
-      "intent": "query.execute",
-      "timestamp": "2026-03-24T04:12:21.652Z",
-      "executionMs": 92
     }
   ],
   "dashboards": [
@@ -398,9 +395,9 @@
       "name": "My Test Dashboard",
       "cards": [
         {
-          "queryName": "pnl_signoff",
+          "queryName": "pnl_lineage",
           "groupId": "default",
-          "label": "pnl_signoff",
+          "label": "pnl_lineage",
           "defaultFilters": {},
           "autoRun": true,
           "eventLink": {
@@ -583,11 +580,11 @@
     },
     {
       "id": "pnl-sla-tracker",
-      "name": "PnL SLA Tracker",
+      "name": "PnL Lineage Flow",
       "kpiCards": [
         {
           "title": "Green (All OK)",
-          "queryName": "pnl_signoff",
+          "queryName": "pnl_lineage",
           "valueField": "count",
           "groupByColumn": "issue_type",
           "filterValue": "green",
@@ -596,7 +593,7 @@
         },
         {
           "title": "Sign-Off Delayed",
-          "queryName": "pnl_signoff",
+          "queryName": "pnl_lineage",
           "valueField": "count",
           "groupByColumn": "issue_type",
           "filterValue": "sign_off_delayed",
@@ -605,7 +602,7 @@
         },
         {
           "title": "Feed Delayed Recovered",
-          "queryName": "pnl_signoff",
+          "queryName": "pnl_lineage",
           "valueField": "count",
           "groupByColumn": "issue_type",
           "filterValue": "feed_delayed_recovered",
@@ -614,7 +611,7 @@
         },
         {
           "title": "Critical",
-          "queryName": "pnl_signoff",
+          "queryName": "pnl_lineage",
           "valueField": "count",
           "groupByColumn": "issue_type",
           "filterValue": "critical",
@@ -625,7 +622,7 @@
       "cards": [
         {
           "id": "sla_distribution",
-          "queryName": "pnl_signoff",
+          "queryName": "pnl_lineage",
           "groupId": "finance",
           "label": "Issue Distribution",
           "defaultFilters": {},
@@ -639,7 +636,7 @@
         },
         {
           "id": "sla_feed_delay_by_npl",
-          "queryName": "pnl_signoff",
+          "queryName": "pnl_lineage",
           "groupId": "finance",
           "label": "Feed Delays by Named PnL",
           "defaultFilters": {
@@ -647,15 +644,15 @@
           },
           "autoRun": true,
           "eventLink": {
-            "mode": "disabled"
+            "mode": "auto"
           },
           "displayMode": "chart",
-          "followUpChain": ["group by namedpnl"],
+          "followUpChain": ["group by namedpnlname"],
           "createdAt": "2026-03-24T00:00:00.000Z"
         },
         {
           "id": "sla_worst_signoffs",
-          "queryName": "pnl_signoff",
+          "queryName": "pnl_lineage",
           "groupId": "finance",
           "label": "Worst Sign-Off Delays (>5hr)",
           "defaultFilters": {},
@@ -669,7 +666,7 @@
         },
         {
           "id": "sla_feed_breaches",
-          "queryName": "pnl_signoff",
+          "queryName": "pnl_lineage",
           "groupId": "finance",
           "label": "Feed SLA Breaches",
           "defaultFilters": {
@@ -685,17 +682,78 @@
         },
         {
           "id": "sla_weekly_trend",
-          "queryName": "pnl_signoff",
+          "queryName": "pnl_lineage",
           "groupId": "finance",
           "label": "Weekly SLA Compliance",
           "defaultFilters": {},
           "autoRun": true,
           "eventLink": {
-            "mode": "disabled"
+            "mode": "auto"
           },
           "displayMode": "chart",
           "followUpChain": ["group by businessdate weekly"],
           "createdAt": "2026-03-24T00:00:00.000Z"
+        },
+        {
+          "id": "lineage_region_heatmap",
+          "queryName": "pnl_lineage",
+          "groupId": "finance",
+          "label": "Avg Delay by Region",
+          "defaultFilters": {},
+          "autoRun": true,
+          "eventLink": {
+            "mode": "auto"
+          },
+          "displayMode": "chart",
+          "followUpChain": ["avg vpsignoff_bofc_hours by region"],
+          "createdAt": "2026-03-25T00:00:00.000Z"
+        },
+        {
+          "id": "lineage_book_bottleneck",
+          "queryName": "pnl_lineage",
+          "groupId": "finance",
+          "label": "Book-Level Bottleneck",
+          "defaultFilters": {},
+          "autoRun": true,
+          "eventLink": {
+            "mode": "auto"
+          },
+          "displayMode": "chart",
+          "followUpChain": ["avg vpsignoff_bofc_hours by masterbookname"],
+          "createdAt": "2026-03-25T00:00:00.000Z"
+        },
+        {
+          "id": "lineage_feed_tracker",
+          "queryName": "pnl_lineage",
+          "groupId": "finance",
+          "label": "Feed Delay Tracker",
+          "defaultFilters": {
+            "feed_on_time": "N"
+          },
+          "autoRun": true,
+          "eventLink": {
+            "mode": "auto"
+          },
+          "displayMode": "chart",
+          "followUpChain": ["group by feedname"],
+          "createdAt": "2026-03-25T00:00:00.000Z"
+        },
+        {
+          "id": "lineage_stage_timeline",
+          "queryName": "pnl_lineage",
+          "groupId": "finance",
+          "label": "Lineage Stage Gaps",
+          "defaultFilters": {},
+          "autoRun": true,
+          "eventLink": {
+            "mode": "auto"
+          },
+          "displayMode": "auto",
+          "followUpChain": [
+            "avg diff between feed_available_at and bofc_completedon by namedpnlname",
+            "avg diff between bofc_completedon and fobo_completedon by namedpnlname"
+          ],
+          "createdAt": "2026-03-25T00:00:00.000Z"
         }
       ],
       "layouts": [
@@ -743,16 +801,88 @@
           "h": 7,
           "minW": 6,
           "minH": 3
+        },
+        {
+          "i": "lineage_region_heatmap",
+          "x": 0,
+          "y": 21,
+          "w": 6,
+          "h": 7,
+          "minW": 4,
+          "minH": 3
+        },
+        {
+          "i": "lineage_book_bottleneck",
+          "x": 6,
+          "y": 21,
+          "w": 6,
+          "h": 7,
+          "minW": 4,
+          "minH": 3
+        },
+        {
+          "i": "lineage_feed_tracker",
+          "x": 0,
+          "y": 28,
+          "w": 6,
+          "h": 7,
+          "minW": 4,
+          "minH": 3
+        },
+        {
+          "i": "lineage_stage_timeline",
+          "x": 6,
+          "y": 28,
+          "w": 6,
+          "h": 7,
+          "minW": 4,
+          "minH": 3
         }
       ],
       "parameters": [
         {
-          "id": "param_namedpnl",
-          "name": "namedpnl",
-          "key": "namedpnl",
+          "id": "param_namedpnlname",
+          "name": "namedpnlname",
+          "key": "namedpnlname",
           "label": "Named PnL",
+          "type": "text",
+          "queryName": "pnl_lineage",
+          "defaultValue": ""
+        },
+        {
+          "id": "param_masterbookid",
+          "name": "masterbookid",
+          "key": "masterbookid",
+          "label": "Master Book ID",
+          "type": "text",
+          "queryName": "pnl_lineage",
+          "defaultValue": ""
+        },
+        {
+          "id": "param_masterbookname",
+          "name": "masterbookname",
+          "key": "masterbookname",
+          "label": "Master Book",
+          "type": "text",
+          "queryName": "pnl_lineage",
+          "defaultValue": ""
+        },
+        {
+          "id": "param_feedname",
+          "name": "feedname",
+          "key": "feedname",
+          "label": "Feed Name",
           "type": "select",
-          "queryName": "pnl_signoff",
+          "queryName": "pnl_lineage",
+          "defaultValue": ""
+        },
+        {
+          "id": "param_region",
+          "name": "region",
+          "key": "region",
+          "label": "Region",
+          "type": "select",
+          "queryName": "pnl_lineage",
           "defaultValue": ""
         },
         {
@@ -761,15 +891,24 @@
           "key": "businessarea",
           "label": "Business Area",
           "type": "select",
-          "queryName": "pnl_signoff",
+          "queryName": "pnl_lineage",
+          "defaultValue": ""
+        },
+        {
+          "id": "param_issue_type",
+          "name": "issue_type",
+          "key": "issue_type",
+          "label": "Issue Type",
+          "type": "select",
+          "queryName": "pnl_lineage",
           "defaultValue": ""
         }
       ],
       "createdAt": "2026-03-24T00:00:00.000Z",
-      "updatedAt": "2026-03-25T02:28:15.227Z",
+      "updatedAt": "2026-03-25T04:03:42.889Z",
       "simpleMode": false
     }
   ],
-  "updatedAt": "2026-03-25T03:44:57.798Z",
+  "updatedAt": "2026-03-25T16:57:56.414Z",
   "activeDashboardId": "pnl-sla-tracker"
 }

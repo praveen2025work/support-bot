@@ -724,8 +724,8 @@
     },
     {
       "id": "q93",
-      "name": "pnl_signoff",
-      "description": "PnL sign-off SLA tracker with feed availability, BOFC/FOBO completion, VP sign-off, and issue classification by business date and named PnL",
+      "name": "pnl_lineage",
+      "description": "PnL sign-off lineage tracker — traces feed availability, BOFC/FOBO completion, VP sign-off, and delay classification across named PnLs, master books, feeds, and regions",
       "estimatedDuration": 0,
       "url": "",
       "source": "finance",
@@ -733,6 +733,26 @@
       "filePath": "pnl-signoff.csv",
       "fileBaseDir": "../../data",
       "filters": [
+        {
+          "key": "namedpnlname",
+          "binding": "column"
+        },
+        {
+          "key": "masterbookid",
+          "binding": "column"
+        },
+        {
+          "key": "masterbookname",
+          "binding": "column"
+        },
+        {
+          "key": "feedname",
+          "binding": "column"
+        },
+        {
+          "key": "region",
+          "binding": "column"
+        },
         {
           "key": "namedpnl",
           "binding": "column"
@@ -763,8 +783,13 @@
           "vpsignoffutc",
           "feed_available_at"
         ],
-        "ignoreColumns": ["namedpnlid", "vpsignoffcount"],
+        "ignoreColumns": ["namedpnlid", "vpsignoffcount", "syey_id"],
         "labelColumns": [
+          "namedpnlname",
+          "masterbookid",
+          "masterbookname",
+          "feedname",
+          "region",
           "namedpnl",
           "businessarea",
           "feed_source",
