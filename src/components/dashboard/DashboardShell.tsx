@@ -215,7 +215,7 @@ function DashboardShellInner({
     }
 
     // Single fetch per unique queryName
-    for (const queryName of queryNames) {
+    for (const queryName of Array.from(queryNames)) {
       const sessionId = `kpi-${dashboard?.id ?? "d"}-${queryName}-${Date.now()}`;
       fetch("/api/chat", {
         method: "POST",
@@ -277,13 +277,13 @@ function DashboardShellInner({
           );
           for (const p of paramsForQuery) {
             const colKey = p.key || p.name;
-            const distinct = [
-              ...new Set(
+            const distinct = Array.from(
+              new Set(
                 rows
                   .map((r) => String(r[colKey] ?? ""))
                   .filter((v) => v !== ""),
               ),
-            ].sort();
+            ).sort();
             setParamOptions((prev) => ({ ...prev, [colKey]: distinct }));
           }
         })
