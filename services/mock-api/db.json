@@ -730,7 +730,8 @@
       "url": "",
       "source": "finance",
       "type": "csv",
-      "filePath": "data/pnl-signoff.csv",
+      "filePath": "pnl-signoff.csv",
+      "fileBaseDir": "../../data",
       "filters": [
         {
           "key": "namedpnl",
