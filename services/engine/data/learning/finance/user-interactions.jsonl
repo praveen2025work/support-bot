@@ -23,3 +23,5 @@
 {"userId":"jdoe","queryName":"pnl_signoff","timestamp":"2026-03-25T02:35:11.779Z","hour":22,"dayOfWeek":2}
 {"userId":"jdoe","queryName":"pnl_signoff","timestamp":"2026-03-25T02:35:12.254Z","hour":22,"dayOfWeek":2}
 {"userId":"jdoe","queryName":"pnl_signoff","timestamp":"2026-03-25T14:55:35.169Z","hour":10,"dayOfWeek":3}
+{"userId":"jdoe","queryName":"pnl_lineage","timestamp":"2026-03-25T21:34:13.619Z","hour":17,"dayOfWeek":3}
+{"userId":"jdoe","queryName":"pnl_lineage","timestamp":"2026-03-25T21:34:13.839Z","hour":17,"dayOfWeek":3}

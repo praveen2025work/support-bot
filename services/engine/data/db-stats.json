@@ -425,6 +425,575 @@
       "filters": {
         "feed_on_time": "N"
       }
+    },
+    {
+      "id": "stat_1774472741116_p9yw",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 78,
+      "timestamp": "2026-03-25T21:05:41.116Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1774472741139_kb38",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 2537,
+      "timestamp": "2026-03-25T21:05:41.139Z",
+      "filters": {
+        "feed_on_time": "N"
+      }
+    },
+    {
+      "id": "stat_1774472741164_5kbe",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-25T21:05:41.164Z",
+      "filters": {
+        "feed_on_time": "N"
+      }
+    },
+    {
+      "id": "stat_1774474438716_zarl",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 66,
+      "timestamp": "2026-03-25T21:33:58.716Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1774474449696_16eg",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 37,
+      "timestamp": "2026-03-25T21:34:09.696Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1774474452462_qluk",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 11,
+      "timestamp": "2026-03-25T21:34:12.462Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1774474452516_gfi5",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 8,
+      "timestamp": "2026-03-25T21:34:12.516Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474452536_7xdr",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 10,
+      "timestamp": "2026-03-25T21:34:12.536Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474452576_5n1v",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 7,
+      "timestamp": "2026-03-25T21:34:12.576Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474452584_zuba",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 15,
+      "timestamp": "2026-03-25T21:34:12.584Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1774474452592_hnxu",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-25T21:34:12.592Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474452605_xrf9",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-25T21:34:12.605Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474452645_bt05",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-25T21:34:12.645Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474452696_shcz",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 4,
+      "timestamp": "2026-03-25T21:34:12.696Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474452750_932m",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 8,
+      "timestamp": "2026-03-25T21:34:12.750Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1774474452760_dij2",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 15,
+      "timestamp": "2026-03-25T21:34:12.760Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474453626_qyay",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 6,
+      "timestamp": "2026-03-25T21:34:13.626Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474453732_oqod",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 6,
+      "timestamp": "2026-03-25T21:34:13.732Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474453790_ucj1",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 4,
+      "timestamp": "2026-03-25T21:34:13.790Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474453848_somc",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 7,
+      "timestamp": "2026-03-25T21:34:13.848Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474467601_0brs",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 6,
+      "timestamp": "2026-03-25T21:34:27.601Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474467989_hmiu",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 4,
+      "timestamp": "2026-03-25T21:34:27.989Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474468059_2qny",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 4,
+      "timestamp": "2026-03-25T21:34:28.059Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474469842_f9yk",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-25T21:34:29.842Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474469897_3vh2",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 7,
+      "timestamp": "2026-03-25T21:34:29.897Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474470235_gizs",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-25T21:34:30.235Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474482926_hpic",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 4,
+      "timestamp": "2026-03-25T21:34:42.927Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1774474482964_rtvw",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 4,
+      "timestamp": "2026-03-25T21:34:42.964Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474482988_ew6u",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 4,
+      "timestamp": "2026-03-25T21:34:42.988Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1774474482994_qn00",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 8,
+      "timestamp": "2026-03-25T21:34:42.994Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1774474483036_xxpv",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 4,
+      "timestamp": "2026-03-25T21:34:43.036Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474488135_xi5h",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 9,
+      "timestamp": "2026-03-25T21:34:48.135Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474488179_srg5",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 6,
+      "timestamp": "2026-03-25T21:34:48.179Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474525207_z7q9",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 17,
+      "timestamp": "2026-03-25T21:35:25.207Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1774474525235_p7qd",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 7,
+      "timestamp": "2026-03-25T21:35:25.235Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474525255_om04",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 4,
+      "timestamp": "2026-03-25T21:35:25.255Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474525279_na5q",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-25T21:35:25.279Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474525328_kjz0",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 9,
+      "timestamp": "2026-03-25T21:35:25.328Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474525343_ae0e",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-25T21:35:25.343Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774474525364_6j6e",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 4,
+      "timestamp": "2026-03-25T21:35:25.364Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1774474525378_h0wi",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-25T21:35:25.378Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1774474525387_9r34",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-25T21:35:25.387Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774483385526_dhdj",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 13,
+      "timestamp": "2026-03-26T00:03:05.526Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1774483385554_qrsr",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 8,
+      "timestamp": "2026-03-26T00:03:05.554Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1774483385556_zaxj",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 7,
+      "timestamp": "2026-03-26T00:03:05.556Z",
+      "filters": {}
+    },
+    {
+      "id": "stat_1774483385569_3h83",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-26T00:03:05.569Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774483385583_ywq6",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 8,
+      "timestamp": "2026-03-26T00:03:05.583Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774483385612_zenc",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 6,
+      "timestamp": "2026-03-26T00:03:05.612Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774483385642_gzih",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 7,
+      "timestamp": "2026-03-26T00:03:05.642Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774483385664_dabz",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 4,
+      "timestamp": "2026-03-26T00:03:05.664Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774483390072_qwlc",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 7,
+      "timestamp": "2026-03-26T00:03:10.072Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774483390414_eff1",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 5,
+      "timestamp": "2026-03-26T00:03:10.414Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774483390423_6guh",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 10,
+      "timestamp": "2026-03-26T00:03:10.423Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774483390534_sdgd",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 4,
+      "timestamp": "2026-03-26T00:03:10.534Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774483390588_9o02",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 4,
+      "timestamp": "2026-03-26T00:03:10.588Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
+    },
+    {
+      "id": "stat_1774483390865_zvj8",
+      "queryName": "pnl_lineage",
+      "success": true,
+      "durationMs": 6,
+      "timestamp": "2026-03-26T00:03:10.865Z",
+      "filters": {
+        "feed_on_time": "N",
+        "delay_flag": "Y"
+      }
     }
   ]
 }

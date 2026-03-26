@@ -768,6 +768,14 @@
         {
           "key": "feed_on_time",
           "binding": "column"
+        },
+        {
+          "key": "msbk_id",
+          "binding": "column"
+        },
+        {
+          "key": "delay_flag",
+          "binding": "column"
         }
       ],
       "endpoint": "",
@@ -783,7 +791,17 @@
           "vpsignoffutc",
           "feed_available_at"
         ],
-        "ignoreColumns": ["namedpnlid", "vpsignoffcount", "syey_id"],
+        "ignoreColumns": [
+          "namedpnlid",
+          "vpsignoffcount",
+          "syey_id",
+          "avg_deltimepc",
+          "max_deltimepc",
+          "min_deltimepc",
+          "avg_completedon",
+          "max_completedon",
+          "min_completedon"
+        ],
         "labelColumns": [
           "namedpnlname",
           "masterbookid",
@@ -794,7 +812,9 @@
           "businessarea",
           "feed_source",
           "issue_type",
-          "feed_on_time"
+          "feed_on_time",
+          "msbk_id",
+          "delay_flag"
         ]
       }
     }
