@@ -497,6 +497,28 @@ function DashboardShellInner({
             </button>
           )}
 
+        {/* Simple/Interactive toggle */}
+        {isGridView && (
+          <button
+            onClick={() => {
+              if (multiDashboard.activeDashboard) {
+                multiDashboard.toggleSimpleMode(
+                  multiDashboard.activeDashboard.id,
+                );
+              }
+            }}
+            className={`text-[11px] px-2.5 py-1 rounded-[var(--radius-md)] border transition-colors ${
+              multiDashboard.activeDashboard?.simpleMode
+                ? "bg-[var(--brand-subtle)] text-[var(--brand)] border-[var(--brand)]"
+                : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-tertiary)]"
+            }`}
+          >
+            {multiDashboard.activeDashboard?.simpleMode
+              ? "Simple"
+              : "Interactive"}
+          </button>
+        )}
+
         {isGridView && !isReadOnly && (
           <>
             <button
