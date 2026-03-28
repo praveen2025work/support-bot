@@ -67,12 +67,14 @@ export function ChatWindow({
   userName,
   hideHeader = false,
   onQueryResult,
+  splitView,
 }: {
   platform?: "web" | "widget";
   groupId?: string;
   userName?: string;
   hideHeader?: boolean;
   onQueryResult?: (result: QueryResult) => void;
+  splitView?: boolean;
 }) {
   const {
     messages,
@@ -108,13 +110,10 @@ export function ChatWindow({
     ]);
     if (!TABULAR_TYPES.has(rc.type)) return;
 
-    const raw = rc.data as { data?: unknown[] } | unknown[] | null;
-    const rows: Record<string, unknown>[] = Array.isArray(raw)
-      ? (raw as Record<string, unknown>[])
-      : Array.isArray((raw as { data?: unknown[] })?.data)
-        ? ((raw as { data: unknown[] }).data as Record<string, unknown>[])
-        : [];
-    const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+    const d = rc.data as Record<string, unknown>;
+    const rows = ((d?.data ?? d?.rows) as Record<string, unknown>[]) ?? [];
+    const columns =
+      (d?.headers as string[]) ?? (rows.length > 0 ? Object.keys(rows[0]) : []);
 
     onQueryResult({
       queryName:
@@ -296,6 +295,7 @@ export function ChatWindow({
             onFeedback={submitFeedback}
             displayMode={displayMode}
             compactAuto={compactAuto}
+            compactRichContent={splitView}
           />
 
           {suggestions.length > 0 && !isLoading && (

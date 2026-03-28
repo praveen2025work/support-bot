@@ -179,6 +179,7 @@ export function MessageBubble({
   onDrillDown,
   displayMode,
   compactAuto,
+  compactRichContent,
   savedChartType,
   onChartTypeChange,
   hideExecutionTime,
@@ -198,6 +199,8 @@ export function MessageBubble({
   onCellClick?: (column: string, value: unknown) => void;
   /** Config-based drill-down definitions from query config */
   drillDownConfig?: DrillDownConfig[];
+  /** When true, render a one-line summary instead of full tables/charts */
+  compactRichContent?: boolean;
   /** Callback when user triggers a drill-down (config-based or picker) */
   onDrillDown?: (
     targetQuery: string,
@@ -290,6 +293,15 @@ export function MessageBubble({
         {message.richContent && message.richContent.data === null ? (
           <div className="mt-2 rounded-md border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-xs text-[var(--text-secondary)] italic">
             Results collapsed to save memory. Re-run the query to view again.
+          </div>
+        ) : compactRichContent && message.richContent ? (
+          <div className="mt-1 text-[11px] text-[var(--text-muted)]">
+            {message.richContent.type === "query_result" &&
+              (() => {
+                const d = message.richContent.data as Record<string, unknown>;
+                const rows = ((d?.data ?? d?.rows) as unknown[]) ?? [];
+                return <span>{rows.length} rows loaded</span>;
+              })()}
           </div>
         ) : message.richContent ? (
           <div className="mt-2">

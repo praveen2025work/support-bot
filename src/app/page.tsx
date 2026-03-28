@@ -175,6 +175,7 @@ function ChatPage() {
             groupId={groupId}
             userName={userInfo?.samAccountName}
             onQueryResult={handleQueryResult}
+            splitView
           />
         }
         dataPanel={

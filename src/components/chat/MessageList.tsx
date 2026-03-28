@@ -43,6 +43,7 @@ export function MessageList({
   onFeedback,
   displayMode = "auto",
   compactAuto = true,
+  compactRichContent,
 }: {
   messages: Message[];
   isLoading: boolean;
@@ -57,6 +58,7 @@ export function MessageList({
   ) => void;
   displayMode?: "auto" | "table" | "chart";
   compactAuto?: boolean;
+  compactRichContent?: boolean;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -102,6 +104,7 @@ export function MessageList({
           onFeedback={onFeedback}
           displayMode={displayMode}
           compactAuto={compactAuto}
+          compactRichContent={compactRichContent}
         />
       ))}
       {isLoading && (
