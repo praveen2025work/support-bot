@@ -90,8 +90,7 @@ export function ChatInput({
               }`}
               title={`${opt.label} view`}
             >
-              <Icon size={10} />
-              {opt.label}
+              <Icon size={12} />
             </button>
           );
         })}
@@ -111,7 +110,6 @@ export function ChatInput({
           ) : (
             <ToggleLeft size={12} />
           )}
-          <span>{compactAuto ? "Compact" : "Stacked"}</span>
         </button>
       )}
     </div>
@@ -195,33 +193,28 @@ export function ChatInput({
           </>
         ) : (
           <>
-            {/* Web: labeled session buttons */}
+            {/* Web: icon-only session buttons (compact for split view) */}
             <button
               onClick={onNewSession}
-              className="text-[11px] text-[var(--text-muted)] hover:text-[var(--brand)] transition-colors flex items-center gap-1"
-              title="Start a new conversation session"
+              className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--brand)] hover:bg-[var(--bg-secondary)] transition-colors"
+              title="New Session"
             >
-              <Plus size={12} />
-              New Session
+              <Plus size={14} />
             </button>
-            <span className="text-[var(--border)]">|</span>
             <button
               onClick={onClearChat}
               disabled={disabled}
-              className="text-[11px] text-[var(--text-muted)] hover:text-[var(--warning)] transition-colors flex items-center gap-1 disabled:opacity-50"
-              title="Clear all messages"
+              className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--warning)] hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-50"
+              title="Clear Chat"
             >
-              <Trash2 size={12} />
-              Clear Chat
+              <Trash2 size={14} />
             </button>
-            <span className="text-[var(--border)]">|</span>
             <button
               onClick={onDisconnect}
-              className="text-[11px] text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors flex items-center gap-1"
-              title="Disconnect and end session"
+              className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--bg-secondary)] transition-colors"
+              title="Disconnect"
             >
-              <LogOut size={12} />
-              Disconnect
+              <LogOut size={14} />
             </button>
             {displayControls && (
               <>
