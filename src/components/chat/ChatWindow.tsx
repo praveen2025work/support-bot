@@ -128,7 +128,7 @@ export function ChatWindow({
   return (
     <ErrorBoundary>
       <FileDropZone onFileDrop={uploadFile} disabled={isLoading}>
-        <div className="flex flex-col h-full bg-white">
+        <div className="flex flex-col h-full bg-[var(--bg-primary)]">
           {platform === "widget" ? (
             /* Single-row sticky header: bot icon, title, user info, status, minimize, close */
             <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-2 flex items-center gap-2 flex-shrink-0 shadow-sm">
@@ -195,10 +195,12 @@ export function ChatWindow({
             </div>
           ) : !hideHeader ? (
             /* Non-widget: sticky header with title, status, user info */
-            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 flex-shrink-0">
+            <div className="sticky top-0 z-10 bg-[var(--bg-primary)] border-b border-[var(--border)] px-4 py-3 flex items-center gap-3 flex-shrink-0">
               <div className="flex-1">
-                <h1 className="text-lg font-semibold text-gray-900">MITR AI</h1>
-                <p className="text-xs text-gray-500">
+                <h1 className="text-lg font-semibold text-[var(--text-primary)]">
+                  MITR AI
+                </h1>
+                <p className="text-xs text-[var(--text-secondary)]">
                   {groupId && groupId !== "default"
                     ? `${groupId.charAt(0).toUpperCase() + groupId.slice(1)} assistant`
                     : "Ask me about queries, URLs, or estimations"}
@@ -212,19 +214,21 @@ export function ChatWindow({
                 <span
                   className={`w-2 h-2 rounded-full ${st.dot} ${st.animate}`}
                 />
-                <span className="text-[11px] text-gray-500">{st.label}</span>
+                <span className="text-[11px] text-[var(--text-secondary)]">
+                  {st.label}
+                </span>
               </div>
               {/* User info */}
               {userInfo && (
-                <div className="flex items-center gap-2 pl-3 border-l border-gray-200">
-                  <div className="w-7 h-7 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
+                <div className="flex items-center gap-2 pl-3 border-l border-[var(--border)]">
+                  <div className="w-7 h-7 rounded-full bg-[var(--brand)] text-white text-[10px] font-bold flex items-center justify-center">
                     {userInfo.givenName?.[0]}
                     {userInfo.surname?.[0]}
                   </div>
-                  <div className="text-xs text-gray-700 leading-tight">
+                  <div className="text-xs text-[var(--text-primary)] leading-tight">
                     <div className="font-medium">{userInfo.displayName}</div>
                     {(userInfo.department || userInfo.role) && (
-                      <div className="text-gray-400">
+                      <div className="text-[var(--text-muted)]">
                         {userInfo.department || userInfo.role}
                       </div>
                     )}
