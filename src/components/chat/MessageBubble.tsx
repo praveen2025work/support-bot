@@ -306,17 +306,12 @@ export function MessageBubble({
           </div>
         ) : compactRichContent &&
           message.richContent &&
-          ![
-            "filter_form",
-            "query_filter_form",
-            "url_list",
-            "knowledge_answer",
-            "query_list",
-            "document_search",
-            "faq_answer",
-            "greeting",
-            "help",
-            "farewell",
+          [
+            "query_result",
+            "csv_table",
+            "csv_group_by",
+            "csv_aggregation",
+            "multi_query_result",
           ].includes(message.richContent.type) ? (
           <div className="mt-1 text-[11px] text-[var(--text-muted)]">
             Results shown in panel →
