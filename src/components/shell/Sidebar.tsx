@@ -9,7 +9,10 @@ import {
   Settings,
   Shield,
   Pin,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme, type Theme } from "@/contexts/ThemeContext";
 
 interface NavItem {
   icon: ReactNode;
@@ -134,6 +137,9 @@ export function Sidebar({ isAdmin }: SidebarProps) {
         className={`h-px bg-[var(--border)] my-1 ${isExpanded ? "w-full" : "w-[30px]"}`}
       />
 
+      {/* Theme toggle */}
+      <ThemeToggleButton isExpanded={isExpanded} />
+
       {BOTTOM_ITEMS.filter((item) => !item.adminOnly || isAdmin).map((item) => (
         <button
           key={item.href}
@@ -165,5 +171,69 @@ export function Sidebar({ isAdmin }: SidebarProps) {
         <div className="w-[26px] h-[26px] rounded-[var(--radius-full)] bg-gradient-to-br from-[var(--brand-subtle)] to-[var(--bg-tertiary)]" />
       </div>
     </nav>
+  );
+}
+
+const THEME_OPTIONS: { value: Theme; label: string }[] = [
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+  { value: "midnight", label: "Midnight" },
+  { value: "ocean", label: "Ocean" },
+];
+
+function ThemeToggleButton({ isExpanded }: { isExpanded: boolean }) {
+  const { theme, setTheme, isDark } = useTheme();
+  const [showPicker, setShowPicker] = useState(false);
+
+  if (!isExpanded) {
+    return (
+      <button
+        title={`Theme: ${theme} (click to toggle)`}
+        onClick={() => setTheme(isDark ? "light" : "dark")}
+        className="w-full flex items-center justify-center py-[7px] rounded-[var(--radius-md)] text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)] transition-colors"
+      >
+        {isDark ? (
+          <Sun className="w-[18px] h-[18px]" />
+        ) : (
+          <Moon className="w-[18px] h-[18px]" />
+        )}
+      </button>
+    );
+  }
+
+  return (
+    <div className="w-full relative">
+      <button
+        onClick={() => setShowPicker((p) => !p)}
+        className="w-full flex items-center gap-2 px-2 py-[7px] rounded-[var(--radius-md)] text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)] transition-colors"
+      >
+        {isDark ? (
+          <Sun className="w-[18px] h-[18px] flex-shrink-0" />
+        ) : (
+          <Moon className="w-[18px] h-[18px] flex-shrink-0" />
+        )}
+        <span className="text-[12px] font-medium capitalize">{theme}</span>
+      </button>
+      {showPicker && (
+        <div className="absolute bottom-full left-0 mb-1 w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-[var(--radius-md)] shadow-[var(--shadow-lg)] py-1 z-50">
+          {THEME_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => {
+                setTheme(opt.value);
+                setShowPicker(false);
+              }}
+              className={`w-full text-left px-3 py-1.5 text-[12px] transition-colors ${
+                theme === opt.value
+                  ? "text-[var(--brand)] bg-[var(--brand-subtle)]"
+                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
