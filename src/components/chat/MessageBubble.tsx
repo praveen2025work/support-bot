@@ -306,9 +306,17 @@ export function MessageBubble({
           </div>
         ) : compactRichContent &&
           message.richContent &&
-          message.richContent.type !== "filter_form" &&
-          message.richContent.type !== "url_list" &&
-          message.richContent.type !== "knowledge_answer" ? (
+          ![
+            "filter_form",
+            "url_list",
+            "knowledge_answer",
+            "query_list",
+            "document_search",
+            "faq_answer",
+            "greeting",
+            "help",
+            "farewell",
+          ].includes(message.richContent.type) ? (
           <div className="mt-1 text-[11px] text-[var(--text-muted)]">
             Results shown in panel →
           </div>
