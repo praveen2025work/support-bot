@@ -70,26 +70,35 @@ export function DataPanel({
 
         <div className="flex-1 overflow-auto px-4 py-3">
           {viewMode === "table" && (
-            <div className="text-[11px] border border-[var(--border-subtle)] rounded-[var(--radius-md)] overflow-hidden">
-              <div className="flex bg-[var(--bg-tertiary)] border-b border-[var(--border-subtle)] font-semibold text-[var(--text-muted)]">
-                {activeResult.columns.map((col) => (
-                  <div key={col} className="flex-1 px-3 py-2">
-                    {col}
-                  </div>
-                ))}
-              </div>
-              {activeResult.data.slice(0, 50).map((row, i) => (
-                <div
-                  key={i}
-                  className="flex border-b border-[var(--border-subtle)] last:border-0 text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors"
-                >
-                  {activeResult.columns.map((col) => (
-                    <div key={col} className="flex-1 px-3 py-2">
-                      {String(row[col] ?? "")}
-                    </div>
+            <div className="border border-[var(--border-subtle)] rounded-[var(--radius-md)] overflow-auto">
+              <table className="w-full text-[11px] border-collapse">
+                <thead>
+                  <tr className="bg-[var(--bg-tertiary)] border-b border-[var(--border-subtle)]">
+                    {activeResult.columns.map((col) => (
+                      <th
+                        key={col}
+                        className="px-3 py-2 text-left font-semibold text-[var(--text-muted)] whitespace-nowrap"
+                      >
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeResult.data.slice(0, 50).map((row, i) => (
+                    <tr
+                      key={i}
+                      className="border-b border-[var(--border-subtle)] last:border-0 text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                    >
+                      {activeResult.columns.map((col) => (
+                        <td key={col} className="px-3 py-2 whitespace-nowrap">
+                          {String(row[col] ?? "")}
+                        </td>
+                      ))}
+                    </tr>
                   ))}
-                </div>
-              ))}
+                </tbody>
+              </table>
             </div>
           )}
           {viewMode === "chart" && (
