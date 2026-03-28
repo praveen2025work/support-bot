@@ -78,7 +78,7 @@ function PaginatedTableBody<T>({
           <thead>
             <tr className={headerClassName || "bg-gray-50"}>
               {renderHeader
-                ? headers.map((h) => <th key={h}>{renderHeader(h)}</th>)
+                ? headers.map((h) => renderHeader(h))
                 : headers.map((h) => (
                     <th
                       key={h}
@@ -458,6 +458,8 @@ function RichContentRenderer({
           displayMode={displayMode}
           compactAuto={compactAuto}
           diffInfo={diffInfo}
+          savedChartType={savedChartType}
+          onChartTypeChange={onChartTypeChange}
         />
       );
     }
@@ -1721,6 +1723,8 @@ function QueryResultTable({
   displayMode,
   compactAuto = true,
   diffInfo,
+  savedChartType,
+  onChartTypeChange,
 }: {
   result: QueryResultData & {
     chartConfig?: Record<string, unknown>;
@@ -1751,6 +1755,8 @@ function QueryResultTable({
     removedRows: Record<string, unknown>[];
     totalChanges: number;
   };
+  savedChartType?: string;
+  onChartTypeChange?: (type: string) => void;
 }) {
   const [pageRange, setPageRange] = useState({ start: 0, end: 10 });
   const [sortCol, setSortCol] = useState<string | null>(null);
