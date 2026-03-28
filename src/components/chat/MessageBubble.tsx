@@ -294,14 +294,21 @@ export function MessageBubble({
           <div className="mt-2 rounded-md border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-xs text-[var(--text-secondary)] italic">
             Results collapsed to save memory. Re-run the query to view again.
           </div>
-        ) : compactRichContent && message.richContent ? (
+        ) : compactRichContent &&
+          message.richContent &&
+          [
+            "query_result",
+            "csv_table",
+            "csv_group_by",
+            "csv_aggregation",
+            "multi_query_result",
+          ].includes(message.richContent.type) ? (
           <div className="mt-1 text-[11px] text-[var(--text-muted)]">
-            {message.richContent.type === "query_result" &&
-              (() => {
-                const d = message.richContent.data as Record<string, unknown>;
-                const rows = ((d?.data ?? d?.rows) as unknown[]) ?? [];
-                return <span>{rows.length} rows loaded</span>;
-              })()}
+            {(() => {
+              const d = message.richContent.data as Record<string, unknown>;
+              const rows = ((d?.data ?? d?.rows) as unknown[]) ?? [];
+              return <span>{rows.length} rows — view in panel →</span>;
+            })()}
           </div>
         ) : message.richContent ? (
           <div className="mt-2">
