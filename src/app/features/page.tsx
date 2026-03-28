@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AppHeader } from "@/components/AppHeader";
+import { ContextualTopBar } from "@/components/shell/ContextualTopBar";
 import {
   MessageSquare,
   LayoutDashboard,
@@ -394,7 +394,7 @@ export default function FeaturesPage() {
       className="flex flex-col min-h-screen"
       style={{ backgroundColor: "hsl(var(--background))" }}
     >
-      <AppHeader />
+      <ContextualTopBar title="Features" />
 
       <main className="flex-1 overflow-auto">
         {/* Hero Section */}
