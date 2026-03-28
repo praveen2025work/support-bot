@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   FilterInput,
   type FilterInputConfig,
@@ -12,7 +13,7 @@ import {
 import { useGridBoardViews } from "@/hooks/useGridBoardViews";
 import { useUser } from "@/contexts/UserContext";
 import type { GridBoardView } from "@/types/dashboard";
-import { LayoutGrid, ChevronDown, Search, Database } from "lucide-react";
+import { Table2, ChevronDown, Search, Database } from "lucide-react";
 import {
   fetchFilterConfigs,
   getFilterConfig as lookupFilterConfig,
@@ -52,6 +53,17 @@ export function GridBoardShell() {
 
   // Saving
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  // Auto-load flag set by URL-param integration
+  const [pendingAutoLoad, setPendingAutoLoad] = useState(false);
+
+  // Portal target (top-bar slot rendered by the page)
+  const [portalTarget, setPortalTarget] = useState<Element | null>(null);
+
+  useEffect(() => {
+    const el = document.getElementById("gridboard-topbar-slot");
+    setPortalTarget(el);
+  }, []);
 
   // View management
   const {
@@ -107,13 +119,7 @@ export function GridBoardShell() {
         setFilterValues(filters);
       }
       setUrlParamsProcessed(true);
-      // Auto-load after a tick so state settles
-      setTimeout(() => {
-        const loadBtn = document.querySelector<HTMLButtonElement>(
-          "button[class*='bg-blue-600']",
-        );
-        loadBtn?.click();
-      }, 100);
+      setPendingAutoLoad(true);
     }
   }, [queries, urlParamsProcessed]);
 
@@ -196,6 +202,13 @@ export function GridBoardShell() {
       setLoading(false);
     }
   }, [selectedQuery, filterValues]);
+
+  // Trigger auto-load once state has settled from URL-param integration
+  useEffect(() => {
+    if (!pendingAutoLoad || !selectedQuery) return;
+    setPendingAutoLoad(false);
+    handleLoad();
+  }, [pendingAutoLoad, selectedQuery, handleLoad]);
 
   // Save changes (write-back)
   const handleSave = useCallback(
@@ -329,276 +342,248 @@ export function GridBoardShell() {
     setSearchTerm("");
   };
 
-  // ── Render ──
+  // ── Top-bar controls (portalled into ContextualTopBar slot) ──
 
-  return (
-    <div
-      className="h-full flex flex-col"
-      style={{ backgroundColor: "hsl(var(--background))" }}
-    >
-      {/* Controls */}
-      <div
-        className="border-b px-6 py-3 space-y-3"
-        style={{
-          backgroundColor: "hsl(var(--card))",
-          borderColor: "hsl(var(--border))",
-        }}
-      >
-        {/* Query selector */}
-        <div className="flex items-center gap-3">
-          <label
-            className="text-sm font-medium whitespace-nowrap"
-            style={{ color: "hsl(var(--muted-foreground))" }}
-          >
-            Query:
-          </label>
-
-          {/* Custom dropdown */}
-          <div ref={dropdownRef} className="relative flex-1 max-w-md">
-            <button
-              type="button"
-              onClick={() => setDropdownOpen((o) => !o)}
-              className="w-full flex items-center gap-2 text-sm border rounded-lg px-3 py-2 text-left transition-colors"
-              style={{
-                backgroundColor: "hsl(var(--background))",
-                borderColor: dropdownOpen
-                  ? "hsl(var(--primary))"
-                  : "hsl(var(--border))",
-                color: selectedQuery
-                  ? "hsl(var(--foreground))"
-                  : "hsl(var(--muted-foreground))",
-                boxShadow: dropdownOpen
-                  ? "0 0 0 2px hsl(var(--primary) / 0.2)"
-                  : "none",
-              }}
-            >
-              {selectedQuery ? (
-                <span className="flex items-center gap-2 flex-1 truncate">
-                  <Database
-                    size={14}
-                    style={{ color: "hsl(var(--primary))" }}
-                    className="shrink-0"
-                  />
-                  <span className="truncate">{selectedQuery}</span>
-                  {activeQuery?.description && (
-                    <span
-                      className="text-xs truncate"
-                      style={{ color: "hsl(var(--muted-foreground))" }}
-                    >
-                      — {activeQuery.description}
-                    </span>
-                  )}
-                </span>
-              ) : (
-                <span className="flex-1">
-                  {loadingQueries ? "Loading queries..." : "Select a query..."}
-                </span>
-              )}
-              <ChevronDown
-                size={16}
-                className="shrink-0 transition-transform"
-                style={{
-                  color: "hsl(var(--muted-foreground))",
-                  transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
-                }}
+  const topBarControls = (
+    <div className="flex items-center gap-2">
+      {/* Query selector dropdown */}
+      <div ref={dropdownRef} className="relative">
+        <button
+          type="button"
+          onClick={() => setDropdownOpen((o) => !o)}
+          className="flex items-center gap-2 text-[12px] border rounded-[var(--radius-md)] px-3 py-1.5 text-left transition-colors min-w-[180px] max-w-[280px]"
+          style={{
+            backgroundColor: "var(--bg-primary)",
+            borderColor: dropdownOpen ? "var(--brand)" : "var(--border)",
+            color: selectedQuery ? "var(--text-primary)" : "var(--text-muted)",
+            boxShadow: dropdownOpen ? "0 0 0 2px var(--brand-subtle)" : "none",
+          }}
+        >
+          {selectedQuery ? (
+            <span className="flex items-center gap-1.5 flex-1 truncate">
+              <Database
+                size={12}
+                style={{ color: "var(--brand)" }}
+                className="shrink-0"
               />
-            </button>
-
-            {dropdownOpen && (
-              <div
-                className="absolute z-50 top-full left-0 right-0 mt-1 rounded-lg border shadow-xl overflow-hidden"
-                style={{
-                  backgroundColor: "hsl(var(--card))",
-                  borderColor: "hsl(var(--border))",
-                }}
-              >
-                {/* Search */}
-                <div
-                  className="flex items-center gap-2 px-3 py-2 border-b"
-                  style={{ borderColor: "hsl(var(--border))" }}
-                >
-                  <Search
-                    size={14}
-                    style={{ color: "hsl(var(--muted-foreground))" }}
-                  />
-                  <input
-                    ref={searchRef}
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search queries..."
-                    className="flex-1 text-sm bg-transparent outline-none"
-                    style={{ color: "hsl(var(--foreground))" }}
-                  />
-                </div>
-
-                {/* Options */}
-                <div className="max-h-64 overflow-y-auto">
-                  {filteredQueries.length === 0 ? (
-                    <div
-                      className="px-3 py-4 text-sm text-center"
-                      style={{ color: "hsl(var(--muted-foreground))" }}
-                    >
-                      {searchTerm
-                        ? "No matching queries"
-                        : "No queries available"}
-                    </div>
-                  ) : (
-                    filteredQueries.map((q) => {
-                      const isSelected = q.name === selectedQuery;
-                      return (
-                        <button
-                          key={q.name}
-                          type="button"
-                          onClick={() => selectQuery(q.name)}
-                          className="w-full flex items-start gap-3 px-3 py-2.5 text-left transition-colors"
-                          style={{
-                            backgroundColor: isSelected
-                              ? "hsl(var(--primary) / 0.1)"
-                              : "transparent",
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isSelected)
-                              e.currentTarget.style.backgroundColor =
-                                "hsl(var(--muted))";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = isSelected
-                              ? "hsl(var(--primary) / 0.1)"
-                              : "transparent";
-                          }}
-                        >
-                          <Database
-                            size={14}
-                            className="shrink-0 mt-0.5"
-                            style={{
-                              color: isSelected
-                                ? "hsl(var(--primary))"
-                                : "hsl(var(--muted-foreground))",
-                            }}
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div
-                              className="text-sm font-medium truncate"
-                              style={{
-                                color: isSelected
-                                  ? "hsl(var(--primary))"
-                                  : "hsl(var(--foreground))",
-                              }}
-                            >
-                              {q.name}
-                            </div>
-                            {q.description && (
-                              <div
-                                className="text-xs truncate mt-0.5"
-                                style={{
-                                  color: "hsl(var(--muted-foreground))",
-                                }}
-                              >
-                                {q.description}
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={handleLoad}
-            disabled={!selectedQuery || loading}
-            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              <span className="truncate">{selectedQuery}</span>
+            </span>
+          ) : (
+            <span className="flex-1 truncate">
+              {loadingQueries ? "Loading queries..." : "Select a query..."}
+            </span>
+          )}
+          <ChevronDown
+            size={14}
+            className="shrink-0 transition-transform"
             style={{
-              backgroundColor: "hsl(var(--primary))",
-              color: "hsl(var(--primary-foreground))",
+              color: "var(--text-muted)",
+              transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+            }}
+          />
+        </button>
+
+        {dropdownOpen && (
+          <div
+            className="absolute z-50 top-full right-0 mt-1 w-72 rounded-[var(--radius-md)] border shadow-[var(--shadow-lg)] overflow-hidden"
+            style={{
+              backgroundColor: "var(--bg-primary)",
+              borderColor: "var(--border)",
             }}
           >
-            {loading ? "Loading..." : "Load Data"}
-          </button>
-        </div>
-
-        {/* Filters */}
-        {queryFilterKeys.length > 0 && (
-          <div className="flex flex-wrap items-end gap-3">
-            {queryFilterKeys.map((key) => {
-              const config = getConfig(key);
-              return (
-                <div key={key} className="min-w-[160px]">
-                  <label
-                    className="block text-xs font-medium mb-1"
-                    style={{ color: "hsl(var(--muted-foreground))" }}
-                  >
-                    {config.label}
-                  </label>
-                  <FilterInput
-                    filterKey={key}
-                    config={config}
-                    value={filterValues[key] || ""}
-                    allValues={filterValues}
-                    onChange={handleFilterChange}
-                    compact
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Messages */}
-      {error && (
-        <div className="mx-6 mt-3 px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-          {error}
-        </div>
-      )}
-      {saveMessage && (
-        <div className="mx-6 mt-3 px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
-          {saveMessage}
-        </div>
-      )}
-
-      {/* Data grid */}
-      <div className="flex-1 overflow-auto px-6 py-4">
-        {dataLoaded ? (
-          <EditableDataGrid
-            data={data}
-            columns={columns}
-            queryName={selectedQuery}
-            onSave={handleSave}
-            onDelete={handleDelete}
-            viewConfig={activeView || undefined}
-            onViewConfigChange={handleViewConfigChange}
-            views={views}
-            activeView={activeView}
-            onLoadView={loadView}
-            onSaveView={handleSaveView}
-            onSaveViewAs={handleSaveViewAs}
-            onDeleteView={deleteView}
-            onClearView={clearActiveView}
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <LayoutGrid
-                size={64}
-                className="mx-auto mb-3"
-                strokeWidth={1}
-                style={{ color: "hsl(var(--muted-foreground) / 0.4)" }}
+            {/* Search */}
+            <div
+              className="flex items-center gap-2 px-3 py-2 border-b"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <Search size={12} style={{ color: "var(--text-muted)" }} />
+              <input
+                ref={searchRef}
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search queries..."
+                className="flex-1 text-[12px] bg-transparent outline-none"
+                style={{ color: "var(--text-primary)" }}
               />
-              <p
-                className="text-sm"
-                style={{ color: "hsl(var(--muted-foreground))" }}
-              >
-                Select a query and click &quot;Load Data&quot; to begin
-              </p>
+            </div>
+
+            {/* Options */}
+            <div className="max-h-64 overflow-y-auto">
+              {filteredQueries.length === 0 ? (
+                <div
+                  className="px-3 py-4 text-[12px] text-center"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {searchTerm ? "No matching queries" : "No queries available"}
+                </div>
+              ) : (
+                filteredQueries.map((q) => {
+                  const isSelected = q.name === selectedQuery;
+                  return (
+                    <button
+                      key={q.name}
+                      type="button"
+                      onClick={() => selectQuery(q.name)}
+                      className="w-full flex items-start gap-2.5 px-3 py-2 text-left transition-colors"
+                      style={{
+                        backgroundColor: isSelected
+                          ? "var(--brand-subtle)"
+                          : "transparent",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected)
+                          e.currentTarget.style.backgroundColor =
+                            "var(--bg-secondary)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = isSelected
+                          ? "var(--brand-subtle)"
+                          : "transparent";
+                      }}
+                    >
+                      <Database
+                        size={12}
+                        className="shrink-0 mt-0.5"
+                        style={{
+                          color: isSelected
+                            ? "var(--brand)"
+                            : "var(--text-muted)",
+                        }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div
+                          className="text-[12px] font-medium truncate"
+                          style={{
+                            color: isSelected
+                              ? "var(--brand)"
+                              : "var(--text-primary)",
+                          }}
+                        >
+                          {q.name}
+                        </div>
+                        {q.description && (
+                          <div
+                            className="text-[11px] truncate mt-0.5"
+                            style={{ color: "var(--text-muted)" }}
+                          >
+                            {q.description}
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
         )}
       </div>
+
+      {/* Load Data button */}
+      <button
+        onClick={handleLoad}
+        disabled={!selectedQuery || loading}
+        className="bg-[var(--brand)] text-[var(--brand-text)] rounded-[var(--radius-md)] px-3 py-1.5 text-[12px] font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+      >
+        {loading ? "Loading..." : "Load Data"}
+      </button>
     </div>
+  );
+
+  // ── Render ──
+
+  return (
+    <>
+      {/* Portal top-bar controls into the ContextualTopBar slot */}
+      {portalTarget && createPortal(topBarControls, portalTarget)}
+
+      <div
+        className="h-full flex flex-col"
+        style={{ backgroundColor: "hsl(var(--background))" }}
+      >
+        {/* Filters (shown below top bar when a query has filters) */}
+        {queryFilterKeys.length > 0 && (
+          <div
+            className="border-b px-6 py-2.5"
+            style={{
+              backgroundColor: "hsl(var(--card))",
+              borderColor: "hsl(var(--border))",
+            }}
+          >
+            <div className="flex flex-wrap items-end gap-3">
+              {queryFilterKeys.map((key) => {
+                const config = getConfig(key);
+                return (
+                  <div key={key} className="min-w-[160px]">
+                    <label
+                      className="block text-xs font-medium mb-1"
+                      style={{ color: "hsl(var(--muted-foreground))" }}
+                    >
+                      {config.label}
+                    </label>
+                    <FilterInput
+                      filterKey={key}
+                      config={config}
+                      value={filterValues[key] || ""}
+                      allValues={filterValues}
+                      onChange={handleFilterChange}
+                      compact
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Messages */}
+        {error && (
+          <div className="mx-6 mt-3 px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            {error}
+          </div>
+        )}
+        {saveMessage && (
+          <div className="mx-6 mt-3 px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+            {saveMessage}
+          </div>
+        )}
+
+        {/* Data grid */}
+        <div className="flex-1 overflow-auto px-6 py-4">
+          {dataLoaded ? (
+            <EditableDataGrid
+              data={data}
+              columns={columns}
+              queryName={selectedQuery}
+              onSave={handleSave}
+              onDelete={handleDelete}
+              viewConfig={activeView || undefined}
+              onViewConfigChange={handleViewConfigChange}
+              views={views}
+              activeView={activeView}
+              onLoadView={loadView}
+              onSaveView={handleSaveView}
+              onSaveViewAs={handleSaveViewAs}
+              onDeleteView={deleteView}
+              onClearView={clearActiveView}
+            />
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 h-full">
+              <div className="w-16 h-16 bg-[var(--brand-subtle)] rounded-[var(--radius-lg)] flex items-center justify-center mb-4">
+                <Table2 className="w-8 h-8 text-[var(--brand)]" />
+              </div>
+              <h3 className="text-[16px] font-semibold text-[var(--text-primary)] mb-1">
+                No data loaded
+              </h3>
+              <p className="text-[13px] text-[var(--text-muted)] max-w-md">
+                Select a query from the dropdown above and click Load Data to
+                start exploring your data in an interactive grid.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
