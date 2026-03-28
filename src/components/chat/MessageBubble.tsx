@@ -306,19 +306,11 @@ export function MessageBubble({
           </div>
         ) : compactRichContent &&
           message.richContent &&
-          [
-            "query_result",
-            "csv_table",
-            "csv_group_by",
-            "csv_aggregation",
-            "multi_query_result",
-          ].includes(message.richContent.type) ? (
+          message.richContent.type !== "filter_form" &&
+          message.richContent.type !== "url_list" &&
+          message.richContent.type !== "knowledge_answer" ? (
           <div className="mt-1 text-[11px] text-[var(--text-muted)]">
-            {(() => {
-              const d = message.richContent.data as Record<string, unknown>;
-              const rows = ((d?.data ?? d?.rows) as unknown[]) ?? [];
-              return <span>{rows.length} rows — view in panel →</span>;
-            })()}
+            Results shown in panel →
           </div>
         ) : message.richContent ? (
           <div className={dashboardMode ? "" : "mt-2"}>

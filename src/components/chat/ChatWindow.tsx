@@ -124,9 +124,6 @@ export function ChatWindow({
       }>;
       const groupCol = (d.groupColumn as string) ?? "Group";
       const groupCols = (d.groupColumns as string[]) ?? [groupCol];
-      const aggCols = (
-        (d.aggregatedColumns as Array<{ column: string }>) ?? []
-      ).map((c) => `${c.column} (sum)`);
       rows = groups.map((g) => {
         const row: Record<string, unknown> = {};
         if (g.groupValues) {
@@ -138,7 +135,17 @@ export function ChatWindow({
         row.count = g.count;
         return row;
       });
-      columns = [...groupCols, ...aggCols, "count"];
+      // Derive columns from actual row keys, filter out columns where all values are empty/null/undefined
+      const allKeys = rows.length > 0 ? Object.keys(rows[0]) : [];
+      columns = allKeys.filter((key) =>
+        rows.some((r) => r[key] != null && r[key] !== "" && r[key] !== 0),
+      );
+      // Ensure group columns are first, then the rest
+      const orderedCols = [
+        ...groupCols.filter((c) => columns.includes(c)),
+        ...columns.filter((c) => !groupCols.includes(c)),
+      ];
+      columns = orderedCols.length > 0 ? orderedCols : allKeys;
     } else {
       // query_result / csv_table: { data: [...], headers: [...] }
       rows = ((d?.data ?? d?.rows) as Record<string, unknown>[]) ?? [];
