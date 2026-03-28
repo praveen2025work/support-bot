@@ -454,7 +454,7 @@ function DashboardShellInner({
   const isReadOnly = !!multiDashboard.activeDashboard?.simpleMode || isViewOnly;
 
   const dashboardContent = (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[var(--bg-secondary)]">
       <ContextualTopBar
         title={multiDashboard.activeDashboard?.name ?? "Dashboard"}
         groups={groups}
@@ -519,7 +519,7 @@ function DashboardShellInner({
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
               multiDashboard.activeDashboard.simpleMode
                 ? "bg-green-50 text-green-700 border-green-300"
-                : "text-gray-600 bg-white border-gray-200 hover:bg-gray-50"
+                : "text-[var(--text-secondary)] bg-[var(--bg-primary)] border-[var(--border)] hover:bg-[var(--bg-secondary)]"
             }`}
             title={
               multiDashboard.activeDashboard.simpleMode
@@ -552,7 +552,7 @@ function DashboardShellInner({
         {isGridView && multiDashboard.activeDashboard && !isReadOnly && (
           <button
             onClick={() => setShowSchedule(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] bg-[var(--bg-primary)] border border-[var(--border)] rounded-[var(--radius-lg)] hover:bg-[var(--bg-secondary)] transition-colors"
             title="Scheduled Reports"
           >
             <CalendarClock size={14} />
@@ -564,7 +564,7 @@ function DashboardShellInner({
         {isGridView && multiDashboard.activeDashboard && !isReadOnly && (
           <button
             onClick={() => setShowDashSettings(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] bg-[var(--bg-primary)] border border-[var(--border)] rounded-[var(--radius-lg)] hover:bg-[var(--bg-secondary)] transition-colors"
             title="Configure KPI tiles and parameters"
           >
             <SlidersHorizontal size={14} />
@@ -587,19 +587,19 @@ function DashboardShellInner({
         )}
 
         <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-500 whitespace-nowrap">
+          <label className="text-xs text-[var(--text-secondary)] whitespace-nowrap">
             Business Date:
           </label>
           <input
             type="date"
             value={businessDate || ""}
             onChange={(e) => setBusinessDate(e.target.value || null)}
-            className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="text-xs border border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-[var(--radius-lg)] px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[var(--brand)]"
           />
           {businessDate && (
             <button
               onClick={() => setBusinessDate(null)}
-              className="text-[10px] text-gray-400 hover:text-gray-600"
+              className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
               title="Clear date filter"
             >
               Clear
@@ -627,7 +627,7 @@ function DashboardShellInner({
         {Object.keys(sharedFilters).length > 0 && !isReadOnly && (
           <button
             onClick={clearSharedFilters}
-            className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2.5 py-1 text-[11px] text-blue-600 hover:bg-blue-100 transition-colors"
+            className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-subtle)] border border-[var(--border)] px-2.5 py-1 text-[11px] text-[var(--brand)] hover:opacity-80 transition-colors"
           >
             Clear shared filters ({Object.keys(sharedFilters).length})
             <X size={12} />
@@ -746,7 +746,7 @@ function DashboardShellInner({
           /* Grid Dashboard View */
           <Suspense
             fallback={
-              <div className="text-center py-12 text-gray-400 text-sm">
+              <div className="text-center py-12 text-[var(--text-muted)] text-sm">
                 Loading grid...
               </div>
             }
@@ -824,7 +824,7 @@ function DashboardShellInner({
                 <div className="flex justify-center gap-3">
                   <button
                     onClick={() => setShowAddCard(true)}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                    className="px-4 py-2 bg-[var(--brand)] text-white text-sm rounded-[var(--radius-lg)] hover:opacity-90"
                   >
                     Add a Card
                   </button>
@@ -834,7 +834,7 @@ function DashboardShellInner({
                         multiDashboard.activeDashboard!.id,
                       )
                     }
-                    className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-100"
+                    className="px-4 py-2 border border-[var(--border)] text-[var(--text-primary)] text-sm rounded-[var(--radius-lg)] hover:bg-[var(--bg-secondary)]"
                   >
                     Import from Favorites
                   </button>
@@ -845,7 +845,7 @@ function DashboardShellInner({
           /* Legacy Favorites/Recents View */
           <>
             {dashboard.loading ? (
-              <div className="text-center py-12 text-gray-400 text-sm">
+              <div className="text-center py-12 text-[var(--text-muted)] text-sm">
                 Loading your dashboard...
               </div>
             ) : isEmpty ? (
@@ -982,31 +982,31 @@ function EmptyState({
   return (
     <div className="text-center py-16">
       <div className="text-4xl mb-4">&#128202;</div>
-      <h2 className="text-lg font-semibold text-gray-700 mb-2">
+      <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
         Your Dashboard is Empty
       </h2>
-      <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+      <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-md mx-auto">
         Add favorite queries for quick access, create a grid dashboard, or start
         chatting to build your recent history.
       </p>
       <div className="flex gap-3 justify-center">
         <button
           onClick={onAddFavorite}
-          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 bg-[var(--brand)] text-white text-sm rounded-[var(--radius-lg)] hover:opacity-90 transition-colors"
         >
           Add a Favorite
         </button>
         {onCreateDashboard && (
           <button
             onClick={onCreateDashboard}
-            className="px-4 py-2 border border-blue-300 text-blue-600 text-sm rounded-lg hover:bg-blue-50 transition-colors"
+            className="px-4 py-2 border border-[var(--border)] text-[var(--brand)] text-sm rounded-[var(--radius-lg)] hover:bg-[var(--brand-subtle)] transition-colors"
           >
             Create Dashboard
           </button>
         )}
         <Link
           href="/"
-          className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-100 transition-colors"
+          className="px-4 py-2 border border-[var(--border)] text-[var(--text-primary)] text-sm rounded-[var(--radius-lg)] hover:bg-[var(--bg-secondary)] transition-colors"
         >
           Open Chat
         </Link>

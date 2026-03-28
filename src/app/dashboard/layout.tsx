@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'MITR AI Dashboard',
+  title: "MITR AI Dashboard",
 };
 
 export default function DashboardLayout({
@@ -8,9 +8,5 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   // Root layout already provides <html>, <body>, UserProvider, and globals.css
-  return (
-    <div className="h-full bg-gray-50">
-      {children}
-    </div>
-  );
+  return <div className="h-full bg-[var(--bg-secondary)]">{children}</div>;
 }
