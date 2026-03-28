@@ -37,6 +37,12 @@ function ChatPage() {
   const [sessionKey, setSessionKey] = useState(0);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [activeResult, setActiveResult] = useState<ActiveResult | null>(null);
+  const [pinnedQueryNames, setPinnedQueryNames] = useState<Set<string>>(
+    new Set(),
+  );
+  const [pinnedQueries, setPinnedQueries] = useState<
+    Array<{ name: string; label: string }>
+  >([]);
   const { userInfo } = useUser();
   const { toggleTheme } = useTheme();
 
@@ -98,6 +104,31 @@ function ChatPage() {
     setActiveResult(null);
   }, []);
 
+  const handlePin = useCallback((queryName: string) => {
+    setPinnedQueryNames((prev) => {
+      const next = new Set(prev);
+      if (next.has(queryName)) {
+        next.delete(queryName);
+        setPinnedQueries((pq) => pq.filter((q) => q.name !== queryName));
+      } else {
+        next.add(queryName);
+        setPinnedQueries((pq) => [
+          ...pq,
+          { name: queryName, label: queryName },
+        ]);
+      }
+      return next;
+    });
+  }, []);
+
+  const handlePinnedQueryClick = useCallback((_queryName: string) => {
+    // Placeholder: full integration requires ChatWindow to expose an executeQuery callback
+  }, []);
+
+  const handleQueryResult = useCallback((result: ActiveResult) => {
+    setActiveResult(result);
+  }, []);
+
   return (
     <>
       <ContextualTopBar
@@ -119,6 +150,7 @@ function ChatPage() {
             hideHeader
             groupId={groupId}
             userName={userInfo?.samAccountName}
+            onQueryResult={handleQueryResult}
           />
         }
         dataPanel={<DataPanel activeResult={activeResult} />}

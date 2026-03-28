@@ -52,16 +52,27 @@ function useEngineStatus() {
 
 export type DisplayMode = "auto" | "table" | "chart";
 
+interface QueryResult {
+  queryName: string;
+  title: string;
+  subtitle: string;
+  data: Record<string, unknown>[];
+  columns: string[];
+  executionMs?: number;
+}
+
 export function ChatWindow({
   platform = "web",
   groupId,
   userName,
   hideHeader = false,
+  onQueryResult,
 }: {
   platform?: "web" | "widget";
   groupId?: string;
   userName?: string;
   hideHeader?: boolean;
+  onQueryResult?: (result: QueryResult) => void;
 }) {
   const {
     messages,
@@ -80,6 +91,43 @@ export function ChatWindow({
   const [compactAuto, setCompactAuto] = useState(true);
 
   const hasResults = messages.some((m) => m.role === "bot" && m.richContent);
+
+  useEffect(() => {
+    if (!onQueryResult) return;
+    const lastBotMsg = [...messages]
+      .reverse()
+      .find((m) => m.role === "bot" && m.richContent);
+    if (!lastBotMsg?.richContent) return;
+
+    const rc = lastBotMsg.richContent;
+    const TABULAR_TYPES = new Set([
+      "query_result",
+      "csv_table",
+      "csv_group_by",
+      "csv_aggregation",
+    ]);
+    if (!TABULAR_TYPES.has(rc.type)) return;
+
+    const raw = rc.data as { data?: unknown[] } | unknown[] | null;
+    const rows: Record<string, unknown>[] = Array.isArray(raw)
+      ? (raw as Record<string, unknown>[])
+      : Array.isArray((raw as { data?: unknown[] })?.data)
+        ? ((raw as { data: unknown[] }).data as Record<string, unknown>[])
+        : [];
+    const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+
+    onQueryResult({
+      queryName:
+        lastBotMsg.originalQuery ||
+        lastBotMsg.text?.split("\n")[0] ||
+        "Query Result",
+      title: lastBotMsg.text?.split("\n")[0] || "Query Result",
+      subtitle: `${rows.length} rows${lastBotMsg.executionMs ? ` · ${lastBotMsg.executionMs}ms` : ""}`,
+      data: rows,
+      columns,
+      executionMs: lastBotMsg.executionMs,
+    });
+  }, [messages, onQueryResult]);
 
   const lastBotMessage = [...messages].reverse().find((m) => m.role === "bot");
   const suggestions = lastBotMessage?.suggestions || [];
