@@ -183,6 +183,7 @@ export function MessageBubble({
   savedChartType,
   onChartTypeChange,
   hideExecutionTime,
+  dashboardMode,
   diffInfo,
 }: {
   message: Message;
@@ -218,6 +219,8 @@ export function MessageBubble({
   onChartTypeChange?: (type: string) => void;
   /** Hide "Completed in Xms" badge (used in dashboard grid where header shows it) */
   hideExecutionTime?: boolean;
+  /** Dashboard mode — suppress conversational text, copy button, badges, and feedback bar; show only rich content */
+  dashboardMode?: boolean;
   /** Diff info from previous query run — highlights changes in table */
   diffInfo?: {
     addedIndices: Set<number>;
@@ -261,19 +264,23 @@ export function MessageBubble({
 
   return (
     <div
-      className={`group/msg flex ${isUser ? "justify-end" : "justify-start"} mb-3`}
+      className={`group/msg flex ${isUser ? "justify-end" : "justify-start"} ${dashboardMode ? "mb-0" : "mb-3"}`}
     >
       <div
-        className={`relative ${isUser ? "max-w-[80%]" : hasRichContent ? "max-w-[98%] w-full" : "max-w-[85%]"} rounded-2xl px-4 py-3 ${
-          isUser
-            ? "bg-[var(--brand)] text-white"
-            : message.isError
-              ? "bg-[var(--danger-subtle)] text-[var(--text-primary)] border border-[var(--danger)]"
-              : "bg-[var(--bg-secondary)] text-[var(--text-primary)]"
+        className={`relative ${
+          dashboardMode
+            ? "w-full"
+            : `${isUser ? "max-w-[80%]" : hasRichContent ? "max-w-[98%] w-full" : "max-w-[85%]"} rounded-2xl px-4 py-3 ${
+                isUser
+                  ? "bg-[var(--brand)] text-white"
+                  : message.isError
+                    ? "bg-[var(--danger-subtle)] text-[var(--text-primary)] border border-[var(--danger)]"
+                    : "bg-[var(--bg-secondary)] text-[var(--text-primary)]"
+              }`
         }`}
       >
-        {/* Copy button — visible on hover */}
-        {!isUser && (
+        {/* Copy button — visible on hover (hidden in dashboard mode) */}
+        {!isUser && !dashboardMode && (
           <button
             onClick={handleMessageCopy}
             className="absolute top-2 right-2 opacity-0 group-hover/msg:opacity-100 transition-opacity inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-secondary)] bg-[var(--bg-primary)] border border-[var(--border)] rounded-md hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] shadow-sm z-10"
@@ -287,9 +294,12 @@ export function MessageBubble({
             {msgCopied ? "Copied!" : "Copy"}
           </button>
         )}
-        <p className="whitespace-pre-wrap text-sm">
-          {renderMarkdownText(message.text, isUser ? undefined : onAction)}
-        </p>
+        {/* Conversational text — hidden in dashboard mode (card title already shows context) */}
+        {!dashboardMode && (
+          <p className="whitespace-pre-wrap text-sm">
+            {renderMarkdownText(message.text, isUser ? undefined : onAction)}
+          </p>
+        )}
         {message.richContent && message.richContent.data === null ? (
           <div className="mt-2 rounded-md border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-xs text-[var(--text-secondary)] italic">
             Results collapsed to save memory. Re-run the query to view again.
@@ -311,7 +321,7 @@ export function MessageBubble({
             })()}
           </div>
         ) : message.richContent ? (
-          <div className="mt-2">
+          <div className={dashboardMode ? "" : "mt-2"}>
             <RichContentRenderer
               richContent={message.richContent}
               onExecuteQuery={onExecuteQuery}
@@ -345,14 +355,18 @@ export function MessageBubble({
               </span>
             </div>
           )}
-        {/* Anomaly alerts */}
-        {!isUser && message.anomalies && message.anomalies.length > 0 && (
-          <div className="mt-2">
-            <AnomalyAlert anomalies={message.anomalies} />
-          </div>
-        )}
-        {/* Execution time badge + source + confidence + reference link */}
+        {/* Anomaly alerts (hidden in dashboard mode) */}
         {!isUser &&
+          !dashboardMode &&
+          message.anomalies &&
+          message.anomalies.length > 0 && (
+            <div className="mt-2">
+              <AnomalyAlert anomalies={message.anomalies} />
+            </div>
+          )}
+        {/* Execution time badge + source + confidence + reference link (hidden in dashboard mode) */}
+        {!isUser &&
+          !dashboardMode &&
           (message.executionMs != null ||
             message.referenceUrl ||
             message.sourceName ||
@@ -385,8 +399,8 @@ export function MessageBubble({
               )}
             </div>
           )}
-        {/* Feedback bar (thumbs up/down) */}
-        {!isUser && !message.isError && onFeedback && (
+        {/* Feedback bar (thumbs up/down) — hidden in dashboard mode */}
+        {!isUser && !dashboardMode && !message.isError && onFeedback && (
           <FeedbackBar messageId={message.id} onFeedback={onFeedback} />
         )}
         {/* Retry button for errors */}

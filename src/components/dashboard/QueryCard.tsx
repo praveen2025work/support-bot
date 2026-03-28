@@ -1176,6 +1176,7 @@ export function QueryCard({
                   savedChartType={savedChartType}
                   onChartTypeChange={onChartTypeChange}
                   hideExecutionTime={hideHeader}
+                  dashboardMode
                   diffInfo={showDiff ? msg.diffInfo : undefined}
                 />
                 {/* Follow-up mode badge */}
@@ -1264,57 +1265,63 @@ export function QueryCard({
         )}
       </div>
 
-      {/* Read-only action bar — always visible with just Refresh + Export */}
+      {/* Read-only action bar — hidden by default, appears on hover */}
       {readOnly && hasRun && (
-        <div className="shrink-0 bg-[var(--bg-primary)] border-t border-[var(--border)] px-3 py-2 flex items-center gap-1.5">
-          <button
-            onClick={() => sendMessage(`run ${queryName}`, mergedFilters)}
-            disabled={isLoading}
-            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] bg-[var(--bg-secondary)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-40"
-            title="Refresh"
-          >
-            <RefreshCw size={14} />
-            Refresh
-          </button>
-          <button
-            onClick={handleCopy}
-            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] bg-[var(--bg-secondary)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-40"
-            title="Copy to clipboard"
-          >
-            {copied ? <Check size={14} /> : <ClipboardCopy size={14} />}
-            {copied ? "Copied!" : "Copy"}
-          </button>
-          <button
-            onClick={() => {
-              const lastResult = [...messages]
-                .reverse()
-                .find(
+        <div
+          className={`shrink-0 overflow-hidden transition-all duration-200 ease-in-out ${
+            isHovered ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="bg-[var(--bg-primary)] border-t border-[var(--border)] px-3 py-2 flex items-center gap-1.5">
+            <button
+              onClick={() => sendMessage(`run ${queryName}`, mergedFilters)}
+              disabled={isLoading}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] bg-[var(--bg-secondary)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-40"
+              title="Refresh"
+            >
+              <RefreshCw size={14} />
+              Refresh
+            </button>
+            <button
+              onClick={handleCopy}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] bg-[var(--bg-secondary)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-40"
+              title="Copy to clipboard"
+            >
+              {copied ? <Check size={14} /> : <ClipboardCopy size={14} />}
+              {copied ? "Copied!" : "Copy"}
+            </button>
+            <button
+              onClick={() => {
+                const lastResult = [...messages]
+                  .reverse()
+                  .find(
+                    (m) =>
+                      m.role === "bot" &&
+                      m.richContent?.type === "query_result" &&
+                      m.richContent.data,
+                  );
+                if (lastResult?.richContent?.data) {
+                  const data = lastResult.richContent.data as {
+                    data?: Record<string, unknown>[];
+                  };
+                  if (data.data) exportToCsv(data.data, `${queryName}.csv`);
+                }
+              }}
+              disabled={
+                !messages.some(
                   (m) =>
                     m.role === "bot" &&
                     m.richContent?.type === "query_result" &&
                     m.richContent.data,
-                );
-              if (lastResult?.richContent?.data) {
-                const data = lastResult.richContent.data as {
-                  data?: Record<string, unknown>[];
-                };
-                if (data.data) exportToCsv(data.data, `${queryName}.csv`);
+                )
               }
-            }}
-            disabled={
-              !messages.some(
-                (m) =>
-                  m.role === "bot" &&
-                  m.richContent?.type === "query_result" &&
-                  m.richContent.data,
-              )
-            }
-            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] bg-[var(--bg-secondary)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-40"
-            title="Export to CSV"
-          >
-            <FileDown size={14} />
-            Export
-          </button>
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] bg-[var(--bg-secondary)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-40"
+              title="Export to CSV"
+            >
+              <FileDown size={14} />
+              Export
+            </button>
+          </div>
         </div>
       )}
 
