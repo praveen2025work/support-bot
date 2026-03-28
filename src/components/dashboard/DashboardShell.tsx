@@ -23,7 +23,6 @@ import { ScheduleModal, type ScheduleConfig } from "./ScheduleModal";
 import { ActionPanel, type ActionPanelConfig } from "./ActionPanel";
 import { FilterPresetsBar } from "./GridDashboard";
 import { ParameterBar } from "./ParameterBar";
-import { KpiCard } from "./KpiCard";
 import { DashboardSettingsModal } from "./DashboardSettingsModal";
 import { SlidersHorizontal } from "lucide-react";
 import { KpiStrip } from "@/components/dashboard/KpiStrip";
@@ -163,6 +162,7 @@ function DashboardShellInner({
   const [schedules, setSchedules] = useState<ScheduleConfig[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [presentationMode, setPresentationMode] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // STOMP WebSocket for real-time dashboard card refresh
   const stompBrokerUrl =
@@ -635,42 +635,64 @@ function DashboardShellInner({
         )}
       </div>
 
-      {/* Parameter Bar — global dashboard filters */}
+      {/* Parameter Bar — global dashboard filters (collapsible) */}
       {isGridView &&
         multiDashboard.activeDashboard?.parameters &&
         multiDashboard.activeDashboard.parameters.length > 0 && (
           <div className="px-6 pt-2">
-            <ParameterBar
-              parameters={multiDashboard.activeDashboard.parameters.map((p) => {
-                const colKey = p.key || p.name;
-                const dynamicOpts = paramOptions[colKey];
-                if (dynamicOpts && p.type === "select" && !p.options?.length) {
-                  return { ...p, options: dynamicOpts };
-                }
-                return p;
-              })}
-              values={paramValues}
-              onChange={handleParamChange}
-              onApply={() => {
-                // Inject param values as shared filters so all cards pick them up
-                clearSharedFilters();
-                for (const [key, val] of Object.entries(paramValues)) {
-                  if (val) {
-                    setSharedFilter(key, val);
-                  }
-                }
-              }}
-              onReset={() => {
-                const defaults: Record<string, string> = {};
-                for (const p of multiDashboard.activeDashboard?.parameters ??
-                  []) {
-                  defaults[p.name] = p.defaultValue;
-                }
-                setParamValues(defaults);
-                // Clear shared filters so all cards and KPIs reset to unfiltered
-                clearSharedFilters();
-              }}
-            />
+            <button
+              onClick={() => setFiltersOpen((prev) => !prev)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[var(--radius-lg)] border transition-colors ${
+                filtersOpen
+                  ? "bg-[var(--brand-subtle)] text-[var(--brand)] border-[var(--brand)]"
+                  : "text-[var(--text-secondary)] bg-[var(--bg-primary)] border-[var(--border)] hover:bg-[var(--bg-secondary)]"
+              }`}
+              title="Toggle filters panel"
+            >
+              <SlidersHorizontal size={14} />
+              Filters
+            </button>
+            {filtersOpen && (
+              <div className="mt-2">
+                <ParameterBar
+                  parameters={multiDashboard.activeDashboard.parameters.map(
+                    (p) => {
+                      const colKey = p.key || p.name;
+                      const dynamicOpts = paramOptions[colKey];
+                      if (
+                        dynamicOpts &&
+                        p.type === "select" &&
+                        !p.options?.length
+                      ) {
+                        return { ...p, options: dynamicOpts };
+                      }
+                      return p;
+                    },
+                  )}
+                  values={paramValues}
+                  onChange={handleParamChange}
+                  onApply={() => {
+                    // Inject param values as shared filters so all cards pick them up
+                    clearSharedFilters();
+                    for (const [key, val] of Object.entries(paramValues)) {
+                      if (val) {
+                        setSharedFilter(key, val);
+                      }
+                    }
+                  }}
+                  onReset={() => {
+                    const defaults: Record<string, string> = {};
+                    for (const p of multiDashboard.activeDashboard
+                      ?.parameters ?? []) {
+                      defaults[p.name] = p.defaultValue;
+                    }
+                    setParamValues(defaults);
+                    // Clear shared filters so all cards and KPIs reset to unfiltered
+                    clearSharedFilters();
+                  }}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -713,33 +735,7 @@ function DashboardShellInner({
         />
       )}
 
-      {/* KPI Scorecard Cards row */}
-      {isGridView &&
-        multiDashboard.activeDashboard?.kpiCards &&
-        multiDashboard.activeDashboard.kpiCards.length > 0 && (
-          <div className="px-6 pt-3">
-            <div className="flex flex-wrap gap-2">
-              {multiDashboard.activeDashboard.kpiCards.map((kpi, i) => {
-                const kpiData = kpiValues[kpi.title];
-                return (
-                  <KpiCard
-                    key={kpi.title + i}
-                    title={kpi.title}
-                    value={kpiData?.value ?? 0}
-                    previousValue={kpiData?.previousValue}
-                    sparklineData={kpiData?.sparkline}
-                    prefix={kpi.prefix}
-                    unit={kpi.unit}
-                    format={kpi.format}
-                    thresholds={kpi.thresholds}
-                    trendLabel={kpi.trendLabel}
-                    color={kpi.color}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        )}
+      {/* KPI Scorecard Cards row — removed: KpiStrip above replaces this */}
 
       <div className="px-6 py-6 space-y-6">
         {isGridView && multiDashboard.activeDashboard ? (
