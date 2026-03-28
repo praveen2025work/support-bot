@@ -161,6 +161,14 @@ function ChatPage() {
         activeGroupId={groupId}
         onGroupChange={handleGroupChange}
       >
+        {activeResult && (
+          <div className="flex items-center gap-1.5 bg-[var(--brand-subtle)] px-2.5 py-1 rounded-[var(--radius-md)]">
+            <div className="w-1.5 h-1.5 bg-[var(--brand)] rounded-full" />
+            <span className="text-[11px] text-[var(--brand)] font-medium">
+              {activeResult.queryName}
+            </span>
+          </div>
+        )}
         <span className="text-[11px] text-[var(--text-muted)]">
           Cmd+K to search
         </span>
