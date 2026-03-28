@@ -98,6 +98,30 @@ function ChatPage() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (!userInfo?.samAccountName) return;
+    fetch(`/api/preferences?userId=${userInfo.samAccountName}`)
+      .then((r) => r.json())
+      .then((prefs: unknown) => {
+        if (
+          prefs &&
+          typeof prefs === "object" &&
+          "favorites" in prefs &&
+          Array.isArray((prefs as { favorites: unknown }).favorites)
+        ) {
+          const favs = (
+            prefs as { favorites: Array<{ queryName: string; label?: string }> }
+          ).favorites.map((f) => ({
+            name: f.queryName,
+            label: f.label ?? f.queryName,
+          }));
+          setPinnedQueries(favs);
+          setPinnedQueryNames(new Set(favs.map((f) => f.name)));
+        }
+      })
+      .catch(() => {});
+  }, [userInfo?.samAccountName]);
+
   const handleGroupChange = useCallback((id: string) => {
     setGroupId(id);
     setSessionKey((k) => k + 1);
@@ -153,7 +177,14 @@ function ChatPage() {
             onQueryResult={handleQueryResult}
           />
         }
-        dataPanel={<DataPanel activeResult={activeResult} />}
+        dataPanel={
+          <DataPanel
+            activeResult={activeResult}
+            pinnedQueries={pinnedQueries}
+            onPinnedQueryClick={handlePinnedQueryClick}
+            onPin={handlePin}
+          />
+        }
       />
 
       {showShortcuts && (

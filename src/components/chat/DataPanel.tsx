@@ -23,12 +23,14 @@ interface DataPanelProps {
     changeType?: "positive" | "negative" | "neutral";
   }>;
   onPinnedQueryClick?: (name: string) => void;
+  onPin?: (queryName: string) => void;
 }
 
 export function DataPanel({
   activeResult,
   pinnedQueries,
   onPinnedQueryClick,
+  onPin,
 }: DataPanelProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("table");
 
@@ -103,8 +105,13 @@ export function DataPanel({
             {activeResult.executionMs && ` · ${activeResult.executionMs}ms`}
           </span>
           <div className="flex gap-2">
-            <button className="hover:text-[var(--text-secondary)] transition-colors">
-              Pin
+            <button
+              onClick={() => activeResult && onPin?.(activeResult.queryName)}
+              className="hover:text-[var(--text-secondary)] transition-colors"
+            >
+              {pinnedQueries?.some((q) => q.name === activeResult?.queryName)
+                ? "Pinned ✓"
+                : "Pin"}
             </button>
             <button className="hover:text-[var(--text-secondary)] transition-colors">
               Open in Dashboard
