@@ -1,6 +1,10 @@
 "use client";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { PinnedDashboard } from "./PinnedDashboard";
+
+const DataChart = lazy(() =>
+  import("./DataChart").then((m) => ({ default: m.DataChart })),
+);
 
 interface ActiveResult {
   queryName: string;
@@ -101,10 +105,19 @@ export function DataPanel({
               </table>
             </div>
           )}
-          {viewMode === "chart" && (
-            <div className="flex items-center justify-center h-full text-[var(--text-muted)] text-[13px]">
-              Chart view — uses existing DataChart component
-            </div>
+          {viewMode === "chart" && activeResult.data.length > 0 && (
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center h-full text-[var(--text-muted)] text-[13px]">
+                  Loading chart...
+                </div>
+              }
+            >
+              <DataChart
+                data={activeResult.data}
+                headers={activeResult.columns}
+              />
+            </Suspense>
           )}
         </div>
 
