@@ -26,6 +26,10 @@ import { ParameterBar } from "./ParameterBar";
 import { KpiCard } from "./KpiCard";
 import { DashboardSettingsModal } from "./DashboardSettingsModal";
 import { SlidersHorizontal } from "lucide-react";
+import { KpiStrip } from "@/components/dashboard/KpiStrip";
+import { EditModeBar } from "@/components/dashboard/EditModeBar";
+import { PresentationMode } from "@/components/dashboard/PresentationMode";
+import { ContextualTopBar } from "@/components/shell/ContextualTopBar";
 
 const GridDashboard = lazy(() =>
   import("./GridDashboard").then((m) => ({ default: m.GridDashboard })),
@@ -157,6 +161,8 @@ function DashboardShellInner({
   const [showSchedule, setShowSchedule] = useState(false);
   const [showDashSettings, setShowDashSettings] = useState(false);
   const [schedules, setSchedules] = useState<ScheduleConfig[]>([]);
+  const [editMode, setEditMode] = useState(false);
+  const [presentationMode, setPresentationMode] = useState(false);
 
   // STOMP WebSocket for real-time dashboard card refresh
   const stompBrokerUrl =
@@ -447,27 +453,45 @@ function DashboardShellInner({
   const isViewOnly = multiDashboard.activePermission === "view";
   const isReadOnly = !!multiDashboard.activeDashboard?.simpleMode || isViewOnly;
 
-  return (
+  const dashboardContent = (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <DashboardHeader
-        userName={userName}
-        groupId={groupId}
+      <ContextualTopBar
+        title={multiDashboard.activeDashboard?.name ?? "Dashboard"}
         groups={groups}
+        activeGroupId={groupId}
         onGroupChange={setGroupId}
-        onAddFavorite={
-          isGridView && isReadOnly
-            ? undefined
-            : () =>
-                isGridView ? setShowAddCard(true) : setShowAddFavorite(true)
-        }
-        addLabel={
-          isGridView && isReadOnly
-            ? undefined
-            : isGridView
-              ? "+ Add Card"
-              : "+ Add Favorite"
-        }
-      />
+      >
+        {isGridView && !isReadOnly && (
+          <>
+            <button
+              onClick={() => setEditMode((v) => !v)}
+              className={`text-[11px] px-2.5 py-1 rounded-[var(--radius-md)] border transition-colors ${
+                editMode
+                  ? "bg-[var(--brand)] text-white border-transparent"
+                  : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-tertiary)]"
+              }`}
+            >
+              {editMode ? "Editing" : "Edit"}
+            </button>
+            <button
+              onClick={() => setPresentationMode(true)}
+              className="text-[11px] px-2.5 py-1 rounded-[var(--radius-md)] border bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-tertiary)] transition-colors"
+            >
+              Present
+            </button>
+          </>
+        )}
+      </ContextualTopBar>
+
+      {/* Edit Mode Bar — shown below top bar when editing */}
+      {editMode && isGridView && multiDashboard.activeDashboard && (
+        <EditModeBar
+          dashboardName={multiDashboard.activeDashboard.name}
+          onAddCard={() => setShowAddCard(true)}
+          onAddKpi={() => setShowDashSettings(true)}
+          onDone={() => setEditMode(false)}
+        />
+      )}
 
       <div className="px-6 pt-4 pb-2 flex flex-wrap items-center gap-3">
         {/* Dashboard selector */}
@@ -649,6 +673,45 @@ function DashboardShellInner({
             />
           </div>
         )}
+
+      {/* KpiStrip — compact summary strip above the card grid */}
+      {isGridView && (
+        <KpiStrip
+          items={
+            multiDashboard.activeDashboard?.kpiCards?.map((kpi) => {
+              const kpiData = kpiValues[kpi.title];
+              const formattedValue =
+                kpiData?.value !== undefined
+                  ? kpi.prefix
+                    ? `${kpi.prefix}${kpiData.value}`
+                    : kpi.unit
+                      ? `${kpiData.value}${kpi.unit}`
+                      : String(kpiData.value)
+                  : "—";
+              const prev = kpiData?.previousValue;
+              let change: string | undefined;
+              let changeType: "positive" | "negative" | "neutral" | undefined;
+              if (prev !== undefined && kpiData?.value !== undefined) {
+                const diff = kpiData.value - prev;
+                const pct =
+                  prev !== 0
+                    ? ((diff / Math.abs(prev)) * 100).toFixed(1)
+                    : null;
+                change =
+                  pct !== null ? `${diff >= 0 ? "+" : ""}${pct}%` : undefined;
+                changeType =
+                  diff > 0 ? "positive" : diff < 0 ? "negative" : "neutral";
+              }
+              return {
+                label: kpi.title,
+                value: formattedValue,
+                change,
+                changeType,
+              };
+            }) ?? []
+          }
+        />
+      )}
 
       {/* KPI Scorecard Cards row */}
       {isGridView &&
@@ -892,6 +955,21 @@ function DashboardShellInner({
       />
     </div>
   );
+
+  if (presentationMode && multiDashboard.activeDashboard) {
+    return (
+      <PresentationMode
+        dashboardName={multiDashboard.activeDashboard.name}
+        groupName={groups.find((g) => g.id === groupId)?.name ?? groupId}
+        onExit={() => setPresentationMode(false)}
+        lastUpdated={new Date().toLocaleTimeString()}
+      >
+        {dashboardContent}
+      </PresentationMode>
+    );
+  }
+
+  return dashboardContent;
 }
 
 function EmptyState({

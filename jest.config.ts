@@ -22,6 +22,7 @@ const config: Config = {
     ],
   },
   testPathIgnorePatterns: ["/node_modules/", "/.next/"],
+  setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
 };
 
 export default config;

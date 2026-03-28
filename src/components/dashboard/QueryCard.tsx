@@ -18,6 +18,7 @@ import {
   FilterInput,
   type FilterInputConfig,
 } from "@/components/shared/FilterInput";
+import { CardToolbar } from "@/components/dashboard/CardToolbar";
 import {
   Filter,
   X,
@@ -212,6 +213,7 @@ export function QueryCard({
   onFollowUpChainChange,
   savedChartType,
   onChartTypeChange,
+  valueColumns,
 }: {
   queryName: string;
   label: string;
@@ -259,6 +261,8 @@ export function QueryCard({
   savedChartType?: string;
   /** Callback when user changes chart type */
   onChartTypeChange?: (type: string) => void;
+  /** Per-card override: only aggregate/display these numeric columns in group-by */
+  valueColumns?: string[];
 }) {
   const [messages, setMessages] = useState<CardMessage[]>([]);
   const [showDiff, setShowDiff] = useState(true);
@@ -353,8 +357,9 @@ export function QueryCard({
             label: String(e.label || key),
             type: (e.type as FilterInputConfig["type"]) || "text",
             options:
-              ["select", "multi_select"].includes(String(e.type)) &&
-              Array.isArray(e.options)
+              ["select", "multi_select", "searchable_select"].includes(
+                String(e.type),
+              ) && Array.isArray(e.options)
                 ? (e.options as { value: string; label: string }[])
                 : undefined,
             placeholder: e.placeholder ? String(e.placeholder) : undefined,
@@ -405,6 +410,7 @@ export function QueryCard({
       filters?: Record<string, string>,
       mode?: "local" | "requery",
       chain?: string[],
+      cardValueColumns?: string[],
     ) => {
       const userMsg: CardMessage = {
         id: `u_${Date.now()}`,
@@ -435,6 +441,9 @@ export function QueryCard({
               filters && Object.keys(filters).length > 0 ? filters : {},
             ...(mode ? { followUpMode: mode } : {}),
             ...(chain?.length ? { followUpChain: chain } : {}),
+            ...(cardValueColumns?.length
+              ? { valueColumns: cardValueColumns }
+              : {}),
           }),
         });
 
@@ -527,9 +536,22 @@ export function QueryCard({
     if (autoExecute && !autoExecutedRef.current) {
       autoExecutedRef.current = true;
       setHasRun(true);
-      sendMessage(`run ${queryName}`, mergedFilters, undefined, followUpChain);
+      sendMessage(
+        `run ${queryName}`,
+        mergedFilters,
+        undefined,
+        followUpChain,
+        valueColumns,
+      );
     }
-  }, [autoExecute, queryName, mergedFilters, sendMessage, followUpChain]);
+  }, [
+    autoExecute,
+    queryName,
+    mergedFilters,
+    sendMessage,
+    followUpChain,
+    valueColumns,
+  ]);
 
   // Auto-refresh interval
   useEffect(() => {
@@ -613,6 +635,7 @@ export function QueryCard({
             mergedFilters,
             undefined,
             followUpChain,
+            valueColumns,
           );
         });
       }
@@ -628,7 +651,13 @@ export function QueryCard({
     for (const [k, v] of Object.entries(currentFilters)) {
       if (v) setSharedFilter(k, v);
     }
-    sendMessage(`run ${queryName}`, mergedFilters, undefined, followUpChain);
+    sendMessage(
+      `run ${queryName}`,
+      mergedFilters,
+      undefined,
+      followUpChain,
+      valueColumns,
+    );
   };
 
   /** Check if user is asking about changes/differences from previous run */
@@ -834,8 +863,9 @@ export function QueryCard({
           label: String(e.label || key),
           type: (e.type as FilterInputConfig["type"]) || "text",
           options:
-            ["select", "multi_select"].includes(String(e.type)) &&
-            Array.isArray(e.options)
+            ["select", "multi_select", "searchable_select"].includes(
+              String(e.type),
+            ) && Array.isArray(e.options)
               ? (e.options as { value: string; label: string }[])
               : undefined,
           placeholder: e.placeholder ? String(e.placeholder) : undefined,
@@ -925,8 +955,12 @@ export function QueryCard({
     <div
       className={
         hideHeader
-          ? "bg-white overflow-hidden flex flex-col h-full w-full group"
-          : "bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col resize flex-shrink-0 group"
+          ? "bg-white overflow-hidden flex flex-col h-full w-full group transition-shadow duration-150"
+          : `bg-white rounded-xl overflow-hidden flex flex-col resize flex-shrink-0 group transition-shadow duration-150 ${
+              isHovered
+                ? "border border-blue-300 shadow-lg"
+                : "border border-gray-200 shadow-sm"
+            }`
       }
       style={
         hideHeader
@@ -966,6 +1000,14 @@ export function QueryCard({
               </button>
             )}
             {actions}
+            {isHovered && (
+              <CardToolbar
+                onRefresh={handleRun}
+                onMaximize={() => {}}
+                onSettings={() => setEditingFilters((prev) => !prev)}
+                onMore={() => {}}
+              />
+            )}
           </div>
         </div>
       )}
