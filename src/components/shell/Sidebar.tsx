@@ -1,5 +1,11 @@
 "use client";
-import { useState, useCallback, useRef, type ReactNode } from "react";
+import {
+  useState,
+  useCallback,
+  useSyncExternalStore,
+  useRef,
+  type ReactNode,
+} from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   MessageSquare,
@@ -74,7 +80,7 @@ export function Sidebar({ isAdmin }: SidebarProps) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [pinned, setPinned] = useState(false);
-  const collapseTimer = useRef<ReturnType<typeof setTimeout>>();
+  const collapseTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const handleMouseEnter = useCallback(() => {
     clearTimeout(collapseTimer.current);
@@ -184,8 +190,23 @@ const THEME_OPTIONS: { value: Theme; label: string }[] = [
 function ThemeToggleButton({ isExpanded }: { isExpanded: boolean }) {
   const { theme, setTheme, isDark } = useTheme();
   const [showPicker, setShowPicker] = useState(false);
-  // Always render Moon on server to avoid hydration mismatch; swap after hydration
-  const ThemeIcon = typeof window === "undefined" ? Moon : isDark ? Sun : Moon;
+  // useSyncExternalStore with getServerSnapshot returns false on server, true on client after hydration
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+
+  // Before hydration, render a placeholder to avoid SVG mismatch
+  if (!mounted) {
+    return (
+      <div className="w-full flex items-center justify-center py-[7px]">
+        <div className="w-[18px] h-[18px]" />
+      </div>
+    );
+  }
+
+  const ThemeIcon = isDark ? Sun : Moon;
 
   if (!isExpanded) {
     return (
