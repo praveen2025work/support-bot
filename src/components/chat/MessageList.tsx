@@ -134,7 +134,7 @@ export function MessageList({
           (prevDate === null ||
             msgDate.toDateString() !== prevDate.toDateString());
         return (
-          <div key={msg.id}>
+          <div key={msg.id} className="animate-slide-up">
             {showSeparator && msgDate && (
               <div className="text-center my-3">
                 <span className="text-[10px] text-[var(--text-muted)] bg-[var(--bg-secondary)] px-2 py-0.5 rounded-[var(--radius-full)]">

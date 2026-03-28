@@ -120,7 +120,7 @@ export function Sidebar({ isAdmin }: SidebarProps) {
           key={item.href}
           title={item.title}
           onClick={() => router.push(item.href)}
-          className={`w-full flex items-center gap-2 rounded-[var(--radius-md)] transition-colors duration-150 ${isExpanded ? "px-2 py-[7px]" : "justify-center py-[7px]"} ${isActive(item.href) ? "bg-[var(--brand-subtle)] text-[var(--brand)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]"}`}
+          className={`w-full flex items-center gap-2 rounded-[var(--radius-md)] transition-colors duration-150 hover:scale-105 ${isExpanded ? "px-2 py-[7px]" : "justify-center py-[7px]"} ${isActive(item.href) ? "bg-[var(--brand-subtle)] text-[var(--brand)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]"}`}
         >
           <span className="flex-shrink-0">{item.icon}</span>
           {isExpanded && (
@@ -145,7 +145,7 @@ export function Sidebar({ isAdmin }: SidebarProps) {
           key={item.href}
           title={item.title}
           onClick={() => router.push(item.href)}
-          className={`w-full flex items-center gap-2 rounded-[var(--radius-md)] transition-colors duration-150 ${isExpanded ? "px-2 py-[7px]" : "justify-center py-[7px]"} ${isActive(item.href) ? "bg-[var(--brand-subtle)] text-[var(--brand)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]"}`}
+          className={`w-full flex items-center gap-2 rounded-[var(--radius-md)] transition-colors duration-150 hover:scale-105 ${isExpanded ? "px-2 py-[7px]" : "justify-center py-[7px]"} ${isActive(item.href) ? "bg-[var(--brand-subtle)] text-[var(--brand)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]"}`}
         >
           <span className="flex-shrink-0">{item.icon}</span>
           {isExpanded && (

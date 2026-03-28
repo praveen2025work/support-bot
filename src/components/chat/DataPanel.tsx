@@ -36,8 +36,6 @@ export function DataPanel({
   onPinnedQueryClick,
   onPin,
 }: DataPanelProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>("table");
-
   if (!activeResult) {
     return (
       <PinnedDashboard
@@ -46,6 +44,47 @@ export function DataPanel({
       />
     );
   }
+
+  // Key resets internal state (page, sort) when result changes
+  const resultKey = `${activeResult.queryName}-${activeResult.data.length}`;
+  return (
+    <ResultView
+      key={resultKey}
+      activeResult={activeResult}
+      pinnedQueries={pinnedQueries}
+      onPin={onPin}
+    />
+  );
+}
+
+function ResultView({
+  activeResult,
+  pinnedQueries,
+  onPin,
+}: {
+  activeResult: ActiveResult;
+  pinnedQueries?: DataPanelProps["pinnedQueries"];
+  onPin?: (queryName: string) => void;
+}) {
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [page, setPage] = useState(0);
+  const [sortCol, setSortCol] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const pageSize = 25;
+  const sortedData = sortCol
+    ? [...activeResult.data].sort((a, b) => {
+        const va = a[sortCol] ?? "";
+        const vb = b[sortCol] ?? "";
+        if (typeof va === "number" && typeof vb === "number")
+          return sortDir === "asc" ? va - vb : vb - va;
+        return sortDir === "asc"
+          ? String(va).localeCompare(String(vb))
+          : String(vb).localeCompare(String(va));
+      })
+    : activeResult.data;
+  const totalPages = Math.ceil(sortedData.length / pageSize);
+  const pagedData = sortedData.slice(page * pageSize, (page + 1) * pageSize);
 
   return (
     <div className="flex-1 p-3 overflow-auto">
@@ -72,6 +111,49 @@ export function DataPanel({
           </div>
         </div>
 
+        {/* Inline KPI summary */}
+        {viewMode === "table" &&
+          activeResult.data.length > 0 &&
+          (() => {
+            const numCols = activeResult.columns.filter((col) =>
+              activeResult.data.some((row) => typeof row[col] === "number"),
+            );
+            const stats = numCols.slice(0, 3).map((col) => {
+              const values = activeResult.data
+                .map((r) => Number(r[col]))
+                .filter((v) => !isNaN(v));
+              const sum = values.reduce((a, b) => a + b, 0);
+              const avg = values.length > 0 ? sum / values.length : 0;
+              return { col, total: sum.toLocaleString(), avg: avg.toFixed(1) };
+            });
+            if (stats.length === 0) return null;
+            return (
+              <div className="px-4 py-2 flex gap-2 border-b border-[var(--border-subtle)] overflow-x-auto">
+                <div className="bg-[var(--bg-secondary)] rounded-[var(--radius-md)] px-3 py-1.5 flex-shrink-0">
+                  <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+                    Rows
+                  </div>
+                  <div className="text-[16px] font-bold text-[var(--text-primary)]">
+                    {activeResult.data.length}
+                  </div>
+                </div>
+                {stats.map((s) => (
+                  <div
+                    key={s.col}
+                    className="bg-[var(--bg-secondary)] rounded-[var(--radius-md)] px-3 py-1.5 flex-shrink-0"
+                  >
+                    <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+                      {s.col}
+                    </div>
+                    <div className="text-[16px] font-bold text-[var(--text-primary)]">
+                      {s.total}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
         <div className="flex-1 overflow-auto px-4 py-3">
           {viewMode === "table" && (
             <div className="border border-[var(--border-subtle)] rounded-[var(--radius-md)] overflow-auto">
@@ -81,15 +163,25 @@ export function DataPanel({
                     {activeResult.columns.map((col) => (
                       <th
                         key={col}
-                        className="px-3 py-2 text-left font-semibold text-[var(--text-muted)] whitespace-nowrap"
+                        onClick={() => {
+                          if (sortCol === col)
+                            setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+                          else {
+                            setSortCol(col);
+                            setSortDir("asc");
+                          }
+                          setPage(0);
+                        }}
+                        className="px-3 py-2 text-left font-semibold text-[var(--text-muted)] whitespace-nowrap cursor-pointer hover:text-[var(--text-secondary)] select-none"
                       >
-                        {col}
+                        {col}{" "}
+                        {sortCol === col && (sortDir === "asc" ? "↑" : "↓")}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {activeResult.data.slice(0, 50).map((row, i) => (
+                  {pagedData.map((row, i) => (
                     <tr
                       key={i}
                       className="border-b border-[var(--border-subtle)] last:border-0 text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors"
@@ -123,9 +215,44 @@ export function DataPanel({
 
         <div className="px-4 py-2 border-t border-[var(--border-subtle)] flex justify-between items-center text-[10px] text-[var(--text-muted)]">
           <span>
+            {page * pageSize + 1}–
+            {Math.min((page + 1) * pageSize, activeResult.data.length)} of{" "}
             {activeResult.data.length} rows
             {activeResult.executionMs && ` · ${activeResult.executionMs}ms`}
           </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(0)}
+              disabled={page === 0}
+              className="px-1.5 py-0.5 rounded border border-[var(--border)] disabled:opacity-30 hover:bg-[var(--bg-secondary)]"
+            >
+              «
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="px-1.5 py-0.5 rounded border border-[var(--border)] disabled:opacity-30 hover:bg-[var(--bg-secondary)]"
+            >
+              ‹
+            </button>
+            <span className="px-2">
+              {page + 1} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+              className="px-1.5 py-0.5 rounded border border-[var(--border)] disabled:opacity-30 hover:bg-[var(--bg-secondary)]"
+            >
+              ›
+            </button>
+            <button
+              onClick={() => setPage(totalPages - 1)}
+              disabled={page >= totalPages - 1}
+              className="px-1.5 py-0.5 rounded border border-[var(--border)] disabled:opacity-30 hover:bg-[var(--bg-secondary)]"
+            >
+              »
+            </button>
+          </div>
           <div className="flex gap-2">
             <button
               onClick={() => activeResult && onPin?.(activeResult.queryName)}

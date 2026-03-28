@@ -68,7 +68,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`pointer-events-auto flex items-center gap-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded-[var(--radius-lg)] px-3.5 py-2.5 shadow-[var(--shadow-md)] text-[13px] text-[var(--text-primary)] ${borderColors[toast.type]}`}
+            className={`animate-slide-in-right pointer-events-auto flex items-center gap-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded-[var(--radius-lg)] px-3.5 py-2.5 shadow-[var(--shadow-md)] text-[13px] text-[var(--text-primary)] ${borderColors[toast.type]}`}
           >
             {toast.type === "success" && (
               <CheckCircle2 className="w-[18px] h-[18px] text-[var(--success)] flex-shrink-0" />

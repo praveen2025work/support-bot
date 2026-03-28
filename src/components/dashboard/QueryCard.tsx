@@ -958,8 +958,8 @@ export function QueryCard({
           ? "bg-[var(--bg-primary)] overflow-hidden flex flex-col h-full w-full group transition-shadow duration-150"
           : `bg-[var(--bg-primary)] rounded-[var(--radius-lg)] overflow-hidden flex flex-col resize flex-shrink-0 group transition-shadow duration-150 ${
               isHovered
-                ? "border border-[var(--brand)] shadow-lg"
-                : "border border-[var(--border)] shadow-[var(--shadow-sm)]"
+                ? "border border-[var(--brand)] shadow-[var(--shadow-md)]"
+                : "border border-[var(--border)] shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)]"
             }`
       }
       style={
