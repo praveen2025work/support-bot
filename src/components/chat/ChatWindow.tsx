@@ -111,9 +111,41 @@ export function ChatWindow({
     if (!TABULAR_TYPES.has(rc.type)) return;
 
     const d = rc.data as Record<string, unknown>;
-    const rows = ((d?.data ?? d?.rows) as Record<string, unknown>[]) ?? [];
-    const columns =
-      (d?.headers as string[]) ?? (rows.length > 0 ? Object.keys(rows[0]) : []);
+    let rows: Record<string, unknown>[] = [];
+    let columns: string[] = [];
+
+    if (rc.type === "csv_group_by" && d?.groups) {
+      // csv_group_by: { groupColumn, groups: [{groupValue, count, aggregations}], aggregatedColumns }
+      const groups = d.groups as Array<{
+        groupValue?: string | number;
+        groupValues?: Record<string, string | number>;
+        count: number;
+        aggregations: Record<string, number>;
+      }>;
+      const groupCol = (d.groupColumn as string) ?? "Group";
+      const groupCols = (d.groupColumns as string[]) ?? [groupCol];
+      const aggCols = (
+        (d.aggregatedColumns as Array<{ column: string }>) ?? []
+      ).map((c) => `${c.column} (sum)`);
+      rows = groups.map((g) => {
+        const row: Record<string, unknown> = {};
+        if (g.groupValues) {
+          for (const [k, v] of Object.entries(g.groupValues)) row[k] = v;
+        } else {
+          row[groupCol] = g.groupValue;
+        }
+        for (const [k, v] of Object.entries(g.aggregations)) row[k] = v;
+        row.count = g.count;
+        return row;
+      });
+      columns = [...groupCols, ...aggCols, "count"];
+    } else {
+      // query_result / csv_table: { data: [...], headers: [...] }
+      rows = ((d?.data ?? d?.rows) as Record<string, unknown>[]) ?? [];
+      columns =
+        (d?.headers as string[]) ??
+        (rows.length > 0 ? Object.keys(rows[0]) : []);
+    }
 
     onQueryResult({
       queryName:

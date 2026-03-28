@@ -355,18 +355,20 @@ export function MessageBubble({
               </span>
             </div>
           )}
-        {/* Anomaly alerts (hidden in dashboard mode) */}
+        {/* Anomaly alerts (hidden in dashboard/compact mode) */}
         {!isUser &&
           !dashboardMode &&
+          !compactRichContent &&
           message.anomalies &&
           message.anomalies.length > 0 && (
             <div className="mt-2">
               <AnomalyAlert anomalies={message.anomalies} />
             </div>
           )}
-        {/* Execution time badge + source + confidence + reference link (hidden in dashboard mode) */}
+        {/* Execution time badge + source + confidence + reference link (hidden in dashboard/compact mode) */}
         {!isUser &&
           !dashboardMode &&
+          !compactRichContent &&
           (message.executionMs != null ||
             message.referenceUrl ||
             message.sourceName ||
@@ -399,10 +401,14 @@ export function MessageBubble({
               )}
             </div>
           )}
-        {/* Feedback bar (thumbs up/down) — hidden in dashboard mode */}
-        {!isUser && !dashboardMode && !message.isError && onFeedback && (
-          <FeedbackBar messageId={message.id} onFeedback={onFeedback} />
-        )}
+        {/* Feedback bar (thumbs up/down) — hidden in dashboard/compact mode */}
+        {!isUser &&
+          !dashboardMode &&
+          !compactRichContent &&
+          !message.isError &&
+          onFeedback && (
+            <FeedbackBar messageId={message.id} onFeedback={onFeedback} />
+          )}
         {/* Retry button for errors */}
         {message.isError && message.retryText && onRetry && (
           <button
