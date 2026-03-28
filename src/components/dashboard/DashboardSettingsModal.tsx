@@ -109,9 +109,9 @@ function DashboardSettingsEditor({
   };
 
   const labelCls =
-    "block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1";
+    "block text-xs font-medium text-[var(--text-secondary)] mb-1";
   const inputCls =
-    "w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100";
+    "w-full px-2 py-1.5 text-sm border border-[var(--border)] rounded-md bg-[var(--bg-primary)] text-[var(--text-primary)]";
   const selectCls = `${inputCls} appearance-none`;
 
   return (
@@ -120,23 +120,23 @@ function DashboardSettingsEditor({
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl mx-4 overflow-hidden"
+        className="bg-[var(--bg-primary)] rounded-xl shadow-xl w-full max-w-2xl mx-4 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">
             Dashboard Settings
           </h2>
-          <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
+          <div className="flex gap-1 bg-[var(--bg-secondary)] rounded-lg p-0.5">
             {(["kpi", "parameters"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                   activeTab === tab
-                    ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm"
-                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700"
+                    ? "bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 }`}
               >
                 {tab === "kpi" ? "KPI Tiles" : "Parameters"}
@@ -149,22 +149,22 @@ function DashboardSettingsEditor({
         <div className="px-6 py-4 max-h-[60vh] overflow-y-auto space-y-3">
           {activeTab === "kpi" && (
             <>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-[var(--text-secondary)]">
                 KPI tiles show live counts from a query, grouped by a column.
                 Leave empty to disable KPI tiles.
               </p>
               {kpis.map((kpi, i) => (
                 <div
                   key={i}
-                  className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-2"
+                  className="border border-[var(--border)] rounded-lg p-3 space-y-2"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <GripVertical
                         size={14}
-                        className="text-gray-400 cursor-grab"
+                        className="text-[var(--text-muted)] cursor-grab"
                       />
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <span className="text-sm font-medium text-[var(--text-primary)]">
                         Tile {i + 1}
                       </span>
                     </div>
@@ -240,7 +240,7 @@ function DashboardSettingsEditor({
                             onClick={() => updateKpi(i, { color: c })}
                             className={`w-5 h-5 rounded-full border-2 transition-transform ${
                               kpi.color === c
-                                ? "border-gray-900 dark:border-white scale-110"
+                                ? "border-[var(--text-primary)] scale-110"
                                 : "border-transparent hover:scale-110"
                             }`}
                             style={{ backgroundColor: c }}
@@ -272,7 +272,7 @@ function DashboardSettingsEditor({
               ))}
               <button
                 onClick={() => setKpis((prev) => [...prev, emptyKpi()])}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--brand)] border border-[var(--brand)] rounded-lg hover:bg-[var(--brand-subtle)]"
               >
                 <Plus size={14} /> Add KPI Tile
               </button>
@@ -281,7 +281,7 @@ function DashboardSettingsEditor({
 
           {activeTab === "parameters" && (
             <>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-[var(--text-secondary)]">
                 Parameters add dropdown filters at the top of the dashboard.
                 When applied, they filter all cards and KPI tiles. Leave empty
                 to disable.
@@ -289,10 +289,10 @@ function DashboardSettingsEditor({
               {params.map((param, i) => (
                 <div
                   key={param.id}
-                  className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-2"
+                  className="border border-[var(--border)] rounded-lg p-3 space-y-2"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span className="text-sm font-medium text-[var(--text-primary)]">
                       Filter {i + 1}
                     </span>
                     <button
@@ -361,7 +361,7 @@ function DashboardSettingsEditor({
                     <div>
                       <label className={labelCls}>
                         Source Query{" "}
-                        <span className="text-gray-400">(for dropdown)</span>
+                        <span className="text-[var(--text-muted)]">(for dropdown)</span>
                       </label>
                       <select
                         className={selectCls}
@@ -384,7 +384,7 @@ function DashboardSettingsEditor({
               ))}
               <button
                 onClick={() => setParams((prev) => [...prev, emptyParam()])}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--brand)] border border-[var(--brand)] rounded-lg hover:bg-[var(--brand-subtle)]"
               >
                 <Plus size={14} /> Add Parameter
               </button>
@@ -393,21 +393,21 @@ function DashboardSettingsEditor({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <p className="text-xs text-gray-400">
+        <div className="px-6 py-3 border-t border-[var(--border)] flex justify-between items-center">
+          <p className="text-xs text-[var(--text-muted)]">
             {kpis.length} KPI tile{kpis.length !== 1 ? "s" : ""} &middot;{" "}
             {params.length} parameter{params.length !== 1 ? "s" : ""}
           </p>
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="px-4 py-2 text-sm text-[var(--text-primary)] border border-[var(--border)] rounded-lg hover:bg-[var(--bg-secondary)]"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+              className="px-4 py-2 text-sm text-white bg-[var(--brand)] rounded-lg hover:opacity-90"
             >
               Save
             </button>
