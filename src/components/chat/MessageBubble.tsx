@@ -308,6 +308,7 @@ export function MessageBubble({
           message.richContent &&
           ![
             "filter_form",
+            "query_filter_form",
             "url_list",
             "knowledge_answer",
             "query_list",
