@@ -212,6 +212,28 @@ export default function ConfigGuidePage() {
                   </td>
                   <td className="px-3 py-2">{"//server/shared/reports"}</td>
                 </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">
+                    CSV_XLSX_CONNECTOR_URL
+                  </td>
+                  <td className="px-3 py-2">
+                    URL for CSV/XLSX connector service
+                  </td>
+                  <td className="px-3 py-2">http://localhost:4004</td>
+                  <td className="px-3 py-2">http://localhost:4004</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">
+                    CSV_XLSX_CONNECTOR_API_KEY
+                  </td>
+                  <td className="px-3 py-2">
+                    Optional API key for CSV/XLSX connector auth
+                  </td>
+                  <td className="px-3 py-2">
+                    <em>empty</em>
+                  </td>
+                  <td className="px-3 py-2">Your connector API key</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -2026,10 +2048,80 @@ SMTP_FROM=noreply@example.com`}</pre>
             <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap">{`# .env
 FILE_BASE_DIR=./data/files`}</pre>
           </div>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 mb-3">
             A per-query override is available via <Code>fileBaseDir</Code> in
             the query definition. This takes precedence over the global{" "}
             <Code>FILE_BASE_DIR</Code> variable.
+          </p>
+
+          <div className="text-xs font-medium text-gray-700 mb-2">
+            Standalone CSV/XLSX Connector Microservice
+          </div>
+          <p className="text-sm text-gray-600 mb-3">
+            In addition to the built-in file handling in the Engine, a
+            standalone CSV/XLSX connector microservice runs as a separate
+            service on port 4004 (alongside MSSQL on 4002 and Oracle on 4003).
+            This connector provides its own REST API for managing file-based
+            data sources independently.
+          </p>
+
+          <div className="text-xs font-medium text-gray-700 mb-2">
+            Connector API Endpoints
+          </div>
+          <div className="overflow-x-auto mb-3">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Endpoint
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Purpose
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">/api/connectors</td>
+                  <td className="px-3 py-2">
+                    CRUD operations for file connector definitions
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">/api/queries</td>
+                  <td className="px-3 py-2">
+                    CRUD operations for queries plus query execution
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">/api/filters</td>
+                  <td className="px-3 py-2">
+                    Retrieve distinct filter values from file data
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">/health</td>
+                  <td className="px-3 py-2">Health check endpoint</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="text-xs font-medium text-gray-700 mb-2">
+            Starting the Connector
+          </div>
+          <div className="bg-gray-50 rounded-lg p-4 mb-3">
+            <pre className="text-[10px] text-gray-600 font-mono whitespace-pre-wrap">{`npm run svc:csv    # Start the CSV/XLSX connector service only
+npm run dev:csv    # Start Engine + CSV connector + UI together`}</pre>
+          </div>
+
+          <div className="text-xs font-medium text-gray-700 mb-2">
+            Configuration Storage
+          </div>
+          <p className="text-sm text-gray-600">
+            Connector definitions are stored in{" "}
+            <FileRef path="services/csv-xlsx-connector/data/connectors/connectors.json" />
+            .
           </p>
         </Section>
 
@@ -2093,6 +2185,112 @@ FILE_BASE_DIR=./data/files`}</pre>
             configuration is needed &mdash; the explorer inherits anomaly
             settings from the global anomaly configuration.
           </p>
+        </Section>
+
+        <Section title="17. Service Architecture">
+          <p className="text-sm text-gray-600 mb-3">
+            The platform consists of six services that can be started
+            independently or together depending on your development needs.
+          </p>
+
+          <div className="text-xs font-medium text-gray-700 mb-2">
+            Service Overview
+          </div>
+          <div className="overflow-x-auto mb-4">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Service
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Port
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Description
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">Mock API</td>
+                  <td className="px-3 py-2 font-mono">3000</td>
+                  <td className="px-3 py-2">Sample data provider</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">Engine</td>
+                  <td className="px-3 py-2 font-mono">4001</td>
+                  <td className="px-3 py-2">Core NLP engine, query routing</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">MSSQL Connector</td>
+                  <td className="px-3 py-2 font-mono">4002</td>
+                  <td className="px-3 py-2">
+                    SQL Server database connectivity
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">Oracle Connector</td>
+                  <td className="px-3 py-2 font-mono">4003</td>
+                  <td className="px-3 py-2">Oracle database connectivity</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">CSV/XLSX Connector</td>
+                  <td className="px-3 py-2 font-mono">4004</td>
+                  <td className="px-3 py-2">
+                    CSV and Excel file data connectivity
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">Next.js UI</td>
+                  <td className="px-3 py-2 font-mono">3001</td>
+                  <td className="px-3 py-2">Web interface</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="text-xs font-medium text-gray-700 mb-2">
+            Startup Commands
+          </div>
+          <div className="overflow-x-auto mb-3">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Command
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Services Started
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">npm run dev:mock</td>
+                  <td className="px-3 py-2">
+                    Mock API + Engine + UI (3 services)
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">npm run dev:csv</td>
+                  <td className="px-3 py-2">
+                    Engine + CSV/XLSX Connector + UI
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">npm run dev:sql</td>
+                  <td className="px-3 py-2">
+                    Mock API + Engine + MSSQL + Oracle + UI (5 services)
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">npm run dev:all</td>
+                  <td className="px-3 py-2">All 6 services</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </Section>
       </div>
     </div>

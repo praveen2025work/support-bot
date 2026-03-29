@@ -80,6 +80,7 @@ const FLOWS = [
   { id: "flow-4", label: "Monitor Data", surface: "Dashboard" },
   { id: "flow-5", label: "Edit & Analyze", surface: "GridBoard" },
   { id: "flow-5b", label: "Data Explorer", surface: "Explorer" },
+  { id: "flow-5c", label: "CSV/XLSX Query Builder", surface: "Admin" },
   { id: "flow-6", label: "Embedded Chat", surface: "Widget" },
   { id: "flow-7", label: "Configure", surface: "Admin" },
   { id: "query-ref", label: "Query Reference", surface: "Reference" },
@@ -1213,6 +1214,136 @@ export default function UserGuidePage() {
         </Section>
 
         {/* ============================================================ */}
+        {/*  FLOW 5c: CSV/XLSX Query Builder                             */}
+        {/* ============================================================ */}
+        <Section id="flow-5c" title="Flow 5c: CSV/XLSX Query Builder">
+          <p className="text-sm text-gray-600 mb-4">
+            Build, preview, and save structured queries against CSV and XLSX
+            file sources from the Admin connector detail page.
+          </p>
+
+          <h3 className="text-sm font-semibold text-gray-800 mb-2">
+            Getting Started
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            Navigate to <Cmd>Admin &rarr; Data Sources &rarr; CSV / XLSX</Cmd>{" "}
+            to see the list of registered file sources. Click any source to open
+            its detail page.
+          </p>
+
+          <Screenshot
+            src="/images/guide/admin-connectors-file.png"
+            alt="CSV / XLSX file sources list showing registered files with row counts and last-updated timestamps"
+          />
+
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            File Info Tab
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            The default tab displays source metadata including file name, row
+            count, column count, upload date, and file size. Click{" "}
+            <Cmd>Validate File</Cmd> to re-parse the file and confirm its
+            integrity.
+          </p>
+
+          <Screenshot
+            src="/images/guide/admin-connectors-file-detail.png"
+            alt="File connector detail page showing File Info tab with source metadata and Validate File button"
+          />
+
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Schema Tab
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            Browse every column in the file. Each column shows a type badge
+            (string, number, date, boolean) and the count of distinct values.
+            Use this tab to understand the shape of your data before building
+            queries.
+          </p>
+
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Query Builder Tab
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            Construct queries against the file using a six-step pipeline that
+            mirrors standard SQL operations:
+          </p>
+
+          <Screenshot
+            src="/images/guide/admin-connectors-query-builder.png"
+            alt="Query Builder tab showing the six-step pipeline: SELECT, WHERE, GROUP BY, HAVING, ORDER BY, LIMIT"
+          />
+
+          <div className="overflow-x-auto mb-4">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Step
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Purpose
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                {[
+                  ["SELECT", "Choose which columns to include in results"],
+                  ["WHERE", "Filter rows by column conditions"],
+                  ["GROUP BY", "Group rows by one or more columns"],
+                  ["HAVING", "Filter groups after aggregation"],
+                  ["ORDER BY", "Sort results ascending or descending"],
+                  ["LIMIT", "Cap the number of returned rows"],
+                ].map(([step, purpose]) => (
+                  <tr key={step} className="border-t border-gray-100">
+                    <td className="px-3 py-2 font-medium font-mono">{step}</td>
+                    <td className="px-3 py-2">{purpose}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Preview Tab
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            After building a query, switch to the Preview tab to execute it
+            against the file. The preview shows execution time, total row count,
+            and a paginated data table so you can verify results before saving.
+          </p>
+
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Saved Queries Tab
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            Save query configurations for reuse. Each saved query stores the
+            full pipeline (SELECT through LIMIT). You can also publish a saved
+            query to the Engine so it becomes available in Chat and Dashboard
+            like any other query.
+          </p>
+          <div className="space-y-1 text-xs text-gray-600">
+            <div>1. Build your query in the Query Builder tab</div>
+            <div>
+              2. Click <Cmd>Save Query</Cmd> and give it a name
+            </div>
+            <div>
+              3. Open the Saved Queries tab to view, edit, or delete saved
+              queries
+            </div>
+            <div>
+              4. Click <Cmd>Publish</Cmd> to make the query available
+              platform-wide
+            </div>
+          </div>
+
+          <Tip>
+            Published file queries appear in Chat as CSV or XLSX query types and
+            can be pinned to dashboards just like API or SQL queries.
+          </Tip>
+        </Section>
+
+        {/* ============================================================ */}
         {/*  FLOW 6: Widget — Embedded Chat                              */}
         {/* ============================================================ */}
         <Section id="flow-6" title="Flow 6: Widget — Embedded Chat">
@@ -1355,11 +1486,33 @@ export default function UserGuidePage() {
               the Data Explorer source dropdown
             </div>
           </div>
+          <p className="text-sm text-gray-600 mb-2">
+            Click any file source to open the connector detail page. From there
+            you can inspect schema, build queries with the six-step Query
+            Builder, preview results, and save or publish queries. See{" "}
+            <button
+              onClick={() => scrollTo("flow-5c")}
+              className="text-blue-600 hover:underline font-medium"
+            >
+              Flow 5c: CSV/XLSX Query Builder
+            </button>{" "}
+            for the full walkthrough.
+          </p>
           <Tip>
             Use the column type configuration to get the best results. Marking a
             column as a date enables time-series charts, while marking a column
             as a label enables group-by operations in the Data Explorer.
           </Tip>
+
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            CSV / XLSX Connector Service (port 4004)
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            The CSV/XLSX connector runs as a standalone service on port 4004,
+            alongside the MSSQL (4002) and Oracle (4003) connectors. It handles
+            file parsing, schema detection, query execution against file data,
+            and serves the Query Builder API used by the admin detail page.
+          </p>
 
           <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
             Anomaly Detection Settings

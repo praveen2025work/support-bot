@@ -339,7 +339,10 @@ NODE_ENV=production
 # Optional: SQL connectors
 # MSSQL_PORT=4002
 # ORACLE_PORT=4003
-# ENCRYPTION_SECRET=change-me-in-production`}</CmdBlock>
+# ENCRYPTION_SECRET=change-me-in-production
+
+# Optional: CSV/XLSX connector
+# CONNECTOR_PORT=4004`}</CmdBlock>
 
             <div
               className="text-[10px] font-medium"
@@ -405,9 +408,9 @@ curl -s http://localhost:3001 | head -5`}</CmdBlock>
             className="text-sm mb-3"
             style={{ color: "hsl(var(--muted-foreground))" }}
           >
-            The platform includes optional no-code SQL connector services for
-            MSSQL and Oracle. Uncomment them in any compose file to enable
-            direct database queries.
+            The platform includes optional no-code connector services for MSSQL,
+            Oracle, and CSV/XLSX files. Uncomment them in any compose file to
+            enable direct database queries or file-based data access.
           </p>
 
           <div className="grid grid-cols-2 gap-3 mb-3">
@@ -423,6 +426,12 @@ curl -s http://localhost:3001 | head -5`}</CmdBlock>
                 port: "4003",
                 path: "services/oracle-connector",
                 color: "orange",
+              },
+              {
+                name: "CSV/XLSX Connector",
+                port: "4004",
+                path: "services/csv-xlsx-connector",
+                color: "green",
               },
             ].map((c) => (
               <div
@@ -450,8 +459,21 @@ curl -s http://localhost:3001 | head -5`}</CmdBlock>
           </div>
 
           <CmdBlock label="Enable in compose file (uncomment the service block)">{`# In docker-compose.yml, docker-compose.dev.yml, or docker-compose.prod.yml:
-# Uncomment the mssql-connector and/or oracle-connector service blocks
-# Set ENCRYPTION_SECRET to a strong random value
+# Uncomment the mssql-connector, oracle-connector, and/or csv-xlsx-connector service blocks
+# Set ENCRYPTION_SECRET to a strong random value for SQL connectors
+
+# CSV/XLSX Connector service definition:
+csv-xlsx-connector:
+  build: ./services/csv-xlsx-connector
+  ports:
+    - "4004:4004"
+  environment:
+    - CONNECTOR_PORT=4004
+    - UI_ORIGIN=http://localhost:3001
+    - DATA_DIR=/app/data
+  volumes:
+    - csv-data:/app/data
+  restart: unless-stopped
 
 # Then rebuild:
 docker compose -f <your-compose-file> up --build -d`}</CmdBlock>
