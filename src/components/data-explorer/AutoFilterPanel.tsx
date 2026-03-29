@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, X, Layers } from "lucide-react";
+import { Search, X, Layers, ChevronDown } from "lucide-react";
 import type { ColumnSchema } from "./types";
 
 interface FilterableColumn {
@@ -72,8 +72,7 @@ export function AutoFilterPanel({
   const groupableColumns = (schema ?? []).filter(
     (c) => c.type === "string" || c.type === "id",
   );
-  const totalActive =
-    activeCount + (search ? 1 : 0) + (groupByCol ? 1 : 0);
+  const totalActive = activeCount + (search ? 1 : 0) + (groupByCol ? 1 : 0);
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -87,41 +86,58 @@ export function AutoFilterPanel({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search all columns…"
-          className="pl-8 pr-3 py-2 text-xs border border-[var(--border)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] w-48 outline-none focus:ring-2 focus:ring-[var(--brand)]"
+          className="pl-8 pr-3 py-2 text-[12px] border border-[var(--border)] rounded-[var(--radius-md)] bg-[var(--bg-primary)] text-[var(--text-primary)] w-48 outline-none focus:ring-1 focus:ring-[var(--brand)]"
         />
       </div>
 
       {/* Dynamic filter dropdowns */}
       {filterableColumns.map((col) => {
         const values = distinctValues[col.name] ?? [];
+        const hasValue = !!filters[col.name];
         return (
-          <select
-            key={col.name}
-            value={filters[col.name] ?? ""}
-            onChange={(e) => onFilterChange(col.name, e.target.value)}
-            className="px-3 py-2 text-xs border border-[var(--border)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] min-w-[120px] outline-none"
-          >
-            <option value="">All {col.name}</option>
-            {values.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
+          <div key={col.name} className="relative">
+            <select
+              value={filters[col.name] ?? ""}
+              onChange={(e) => onFilterChange(col.name, e.target.value)}
+              className={`appearance-none pl-3 pr-7 py-2 text-[12px] border rounded-[var(--radius-md)] bg-[var(--bg-primary)] min-w-[130px] outline-none transition-colors cursor-pointer ${
+                hasValue
+                  ? "border-[var(--brand)] text-[var(--brand)] ring-1 ring-[var(--brand-subtle)]"
+                  : "border-[var(--border)] text-[var(--text-primary)]"
+              }`}
+            >
+              <option value="">All {col.name}</option>
+              {values.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={12}
+              className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
+              style={{ color: hasValue ? "var(--brand)" : "var(--text-muted)" }}
+            />
+          </div>
         );
       })}
 
       {/* Group By dropdown */}
       {groupableColumns.length > 0 && onGroupByChange && (
-        <div className="flex items-center gap-1">
-          <Layers size={12} className="text-[var(--text-muted)]" />
+        <div className="relative flex items-center gap-1">
+          <Layers
+            size={12}
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+            style={{
+              color: groupByCol ? "var(--brand)" : "var(--text-muted)",
+            }}
+          />
           <select
             value={groupByCol ?? ""}
             onChange={(e) => onGroupByChange(e.target.value || null)}
-            className={`px-3 py-2 text-xs border rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] min-w-[120px] outline-none ${
+            className={`appearance-none pl-8 pr-7 py-2 text-[12px] border rounded-[var(--radius-md)] bg-[var(--bg-primary)] min-w-[130px] outline-none transition-colors cursor-pointer ${
               groupByCol
-                ? "border-purple-400 ring-1 ring-purple-300"
-                : "border-[var(--border)]"
+                ? "border-[var(--brand)] text-[var(--brand)] ring-1 ring-[var(--brand-subtle)]"
+                : "border-[var(--border)] text-[var(--text-primary)]"
             }`}
           >
             <option value="">No grouping</option>
@@ -131,6 +147,13 @@ export function AutoFilterPanel({
               </option>
             ))}
           </select>
+          <ChevronDown
+            size={12}
+            className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
+            style={{
+              color: groupByCol ? "var(--brand)" : "var(--text-muted)",
+            }}
+          />
         </div>
       )}
 
@@ -146,7 +169,7 @@ export function AutoFilterPanel({
               onGroupByChange?.(null);
             }
           }}
-          className="inline-flex items-center gap-1 px-2.5 py-2 text-xs text-[var(--danger)] hover:text-[var(--danger)] border border-red-200 rounded-lg hover:bg-[var(--danger-subtle)]"
+          className="inline-flex items-center gap-1 px-2.5 py-2 text-[12px] text-[var(--danger)] border border-[var(--danger-subtle)] rounded-[var(--radius-md)] hover:bg-[var(--danger-subtle)] transition-colors"
         >
           <X size={12} />
           Clear ({totalActive})
