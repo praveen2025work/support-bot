@@ -22,12 +22,38 @@ interface ParsedData {
   rows: Record<string, string | number>[];
 }
 
+import { existsSync } from "fs";
+
+const PROJECT_ROOT = process.env.PROJECT_ROOT || join(process.cwd(), "../..");
+const ENGINE_DATA_DIR = join(process.cwd(), "../engine");
+
 export function resolveFilePath(
   filePath: string,
   fileBaseDir?: string,
 ): string {
-  if (fileBaseDir) return join(fileBaseDir, filePath);
-  return join(process.cwd(), filePath);
+  // 1. Explicit base dir
+  if (fileBaseDir) {
+    const abs = join(fileBaseDir, filePath);
+    if (existsSync(abs)) return abs;
+    // Try relative to project root
+    const fromRoot = join(PROJECT_ROOT, fileBaseDir, filePath);
+    if (existsSync(fromRoot)) return fromRoot;
+  }
+
+  // 2. Try from connector cwd
+  const fromCwd = join(process.cwd(), filePath);
+  if (existsSync(fromCwd)) return fromCwd;
+
+  // 3. Try from engine directory (where data/ files typically live)
+  const fromEngine = join(ENGINE_DATA_DIR, filePath);
+  if (existsSync(fromEngine)) return fromEngine;
+
+  // 4. Try from project root
+  const fromRoot = join(PROJECT_ROOT, filePath);
+  if (existsSync(fromRoot)) return fromRoot;
+
+  // Fallback to cwd-based path (will error on read with clear message)
+  return fromCwd;
 }
 
 export function parseFile(

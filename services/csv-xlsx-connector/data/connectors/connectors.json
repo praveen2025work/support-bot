@@ -1,1 +1,151 @@
-[]
+[
+  {
+    "id": "sales_data",
+    "name": "sales_data",
+    "type": "csv",
+    "filePath": "data/sales-data.csv",
+    "source": "finance",
+    "description": "Regional sales data with revenue and unit metrics",
+    "columnConfig": {},
+    "maxRows": 10000,
+    "createdAt": "2026-03-29T16:43:21.547Z",
+    "updatedAt": "2026-03-29T16:43:21.547Z"
+  },
+  {
+    "id": "support_tickets",
+    "name": "support_tickets",
+    "type": "csv",
+    "filePath": "data/support-tickets.csv",
+    "source": "analytics",
+    "description": "Support ticket data with priority, status, and resolution times",
+    "columnConfig": {
+      "idColumns": ["ticket_id"],
+      "dateColumns": ["created_date", "resolved_date"]
+    },
+    "maxRows": 10000,
+    "createdAt": "2026-03-29T16:43:21.553Z",
+    "updatedAt": "2026-03-29T16:43:21.553Z"
+  },
+  {
+    "id": "employee_metrics",
+    "name": "employee_metrics",
+    "type": "csv",
+    "filePath": "data/employee-metrics.csv",
+    "source": "hr",
+    "description": "Employee data with department, salary, performance, and tenure",
+    "columnConfig": {},
+    "maxRows": 10000,
+    "createdAt": "2026-03-29T16:43:21.554Z",
+    "updatedAt": "2026-03-29T16:43:21.554Z"
+  },
+  {
+    "id": "employee_compensation",
+    "name": "employee_compensation",
+    "type": "xlsx",
+    "filePath": "data/employee-compensation.xlsx",
+    "source": "hr_team",
+    "description": "Employee compensation data with salary, bonus, and ratings by department",
+    "columnConfig": {
+      "dateColumns": ["start_date"]
+    },
+    "maxRows": 10000,
+    "createdAt": "2026-03-29T16:43:21.556Z",
+    "updatedAt": "2026-03-29T16:43:21.556Z"
+  },
+  {
+    "id": "hr_report_salaries",
+    "name": "hr_report_salaries",
+    "type": "xlsx",
+    "filePath": "data/hr-report.xlsx",
+    "sheetName": "Salaries",
+    "source": "hr_team",
+    "description": "HR report — sheet \"Salaries\"",
+    "columnConfig": {},
+    "maxRows": 10000,
+    "createdAt": "2026-03-29T16:43:21.557Z",
+    "updatedAt": "2026-03-29T16:43:21.557Z"
+  },
+  {
+    "id": "hr_report_bonuses",
+    "name": "hr_report_bonuses",
+    "type": "xlsx",
+    "filePath": "data/hr-report.xlsx",
+    "sheetName": "Bonuses",
+    "source": "hr_team",
+    "description": "HR report — sheet \"Bonuses\"",
+    "columnConfig": {},
+    "maxRows": 10000,
+    "createdAt": "2026-03-29T16:43:21.558Z",
+    "updatedAt": "2026-03-29T16:43:21.558Z"
+  },
+  {
+    "id": "hr_report_ratings",
+    "name": "hr_report_ratings",
+    "type": "xlsx",
+    "filePath": "data/hr-report.xlsx",
+    "sheetName": "Ratings",
+    "source": "hr_team",
+    "description": "HR report — sheet \"Ratings\"",
+    "columnConfig": {
+      "dateColumns": ["review_date"]
+    },
+    "maxRows": 10000,
+    "createdAt": "2026-03-29T16:43:21.559Z",
+    "updatedAt": "2026-03-29T16:43:21.559Z"
+  },
+  {
+    "id": "pnl_lineage",
+    "name": "pnl_lineage",
+    "type": "csv",
+    "filePath": "pnl-signoff.csv",
+    "fileBaseDir": "../../data",
+    "source": "finance",
+    "description": "PnL sign-off lineage tracker — traces feed availability, BOFC/FOBO completion, VP sign-off, and delay classification across named PnLs, master books, feeds, and regions",
+    "columnConfig": {
+      "ignoreColumns": [
+        "businessdate",
+        "namedpnl",
+        "businessarea",
+        "bofc_completedon",
+        "fobo_completedon",
+        "bofc_status",
+        "fobo_status",
+        "vpsignoffutc",
+        "vpsignoffby",
+        "vpsignoffcount",
+        "vpsignoff_bofc_hours",
+        "sla_bofc",
+        "feed_source",
+        "feed_available_at",
+        "feed_sla",
+        "feed_on_time",
+        "issue_type",
+        "delay_flag"
+      ],
+      "labelColumns": [
+        "NamedPnlName",
+        "MasterBookID",
+        "MasterBookName",
+        "FeedName",
+        "Region",
+        "SYEY_ID",
+        "NamedPnLID",
+        "MSBk_ID"
+      ],
+      "valueColumns": [
+        "Avg_DelTimePCLocationTime",
+        "Max_DelTimePCLocationTime",
+        "Min_DelTimePCLocationTime",
+        "Avg_CompletedOnTime",
+        "Max_CompletedOnTime",
+        "Min_CompletedOnTime",
+        "DurationAvg",
+        "DurationMax",
+        "DurationMin"
+      ]
+    },
+    "maxRows": 10000,
+    "createdAt": "2026-03-29T16:43:21.561Z",
+    "updatedAt": "2026-03-29T16:43:21.561Z"
+  }
+]
