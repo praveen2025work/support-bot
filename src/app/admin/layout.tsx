@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { ChatbotWidget } from "./components/ChatbotWidget";
-import { AppHeader } from "@/components/AppHeader";
+import { ContextualTopBar } from "@/components/shell/ContextualTopBar";
 import { ScrollToTop } from "@/components/shared/ScrollToTop";
 
 export default function AdminLayout({
@@ -80,7 +80,7 @@ export default function AdminLayout({
       className="flex flex-col h-screen"
       style={{ backgroundColor: "hsl(var(--background))" }}
     >
-      <AppHeader />
+      <ContextualTopBar title="Admin" />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <main

@@ -1,5 +1,11 @@
 "use client";
-import { useState, useCallback, useRef, type ReactNode } from "react";
+import {
+  useState,
+  useCallback,
+  useSyncExternalStore,
+  useRef,
+  type ReactNode,
+} from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   MessageSquare,
@@ -9,7 +15,10 @@ import {
   Settings,
   Shield,
   Pin,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme, type Theme } from "@/contexts/ThemeContext";
 
 interface NavItem {
   icon: ReactNode;
@@ -71,7 +80,7 @@ export function Sidebar({ isAdmin }: SidebarProps) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [pinned, setPinned] = useState(false);
-  const collapseTimer = useRef<ReturnType<typeof setTimeout>>();
+  const collapseTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const handleMouseEnter = useCallback(() => {
     clearTimeout(collapseTimer.current);
@@ -117,7 +126,7 @@ export function Sidebar({ isAdmin }: SidebarProps) {
           key={item.href}
           title={item.title}
           onClick={() => router.push(item.href)}
-          className={`w-full flex items-center gap-2 rounded-[var(--radius-md)] transition-colors duration-150 ${isExpanded ? "px-2 py-[7px]" : "justify-center py-[7px]"} ${isActive(item.href) ? "bg-[var(--brand-subtle)] text-[var(--brand)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]"}`}
+          className={`w-full flex items-center gap-2 rounded-[var(--radius-md)] transition-colors duration-150 hover:scale-105 ${isExpanded ? "px-2 py-[7px]" : "justify-center py-[7px]"} ${isActive(item.href) ? "bg-[var(--brand-subtle)] text-[var(--brand)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]"}`}
         >
           <span className="flex-shrink-0">{item.icon}</span>
           {isExpanded && (
@@ -134,12 +143,15 @@ export function Sidebar({ isAdmin }: SidebarProps) {
         className={`h-px bg-[var(--border)] my-1 ${isExpanded ? "w-full" : "w-[30px]"}`}
       />
 
+      {/* Theme toggle */}
+      <ThemeToggleButton isExpanded={isExpanded} />
+
       {BOTTOM_ITEMS.filter((item) => !item.adminOnly || isAdmin).map((item) => (
         <button
           key={item.href}
           title={item.title}
           onClick={() => router.push(item.href)}
-          className={`w-full flex items-center gap-2 rounded-[var(--radius-md)] transition-colors duration-150 ${isExpanded ? "px-2 py-[7px]" : "justify-center py-[7px]"} ${isActive(item.href) ? "bg-[var(--brand-subtle)] text-[var(--brand)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]"}`}
+          className={`w-full flex items-center gap-2 rounded-[var(--radius-md)] transition-colors duration-150 hover:scale-105 ${isExpanded ? "px-2 py-[7px]" : "justify-center py-[7px]"} ${isActive(item.href) ? "bg-[var(--brand-subtle)] text-[var(--brand)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]"}`}
         >
           <span className="flex-shrink-0">{item.icon}</span>
           {isExpanded && (
@@ -165,5 +177,78 @@ export function Sidebar({ isAdmin }: SidebarProps) {
         <div className="w-[26px] h-[26px] rounded-[var(--radius-full)] bg-gradient-to-br from-[var(--brand-subtle)] to-[var(--bg-tertiary)]" />
       </div>
     </nav>
+  );
+}
+
+const THEME_OPTIONS: { value: Theme; label: string }[] = [
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+  { value: "midnight", label: "Midnight" },
+  { value: "ocean", label: "Ocean" },
+];
+
+function ThemeToggleButton({ isExpanded }: { isExpanded: boolean }) {
+  const { theme, setTheme, isDark } = useTheme();
+  const [showPicker, setShowPicker] = useState(false);
+  // useSyncExternalStore with getServerSnapshot returns false on server, true on client after hydration
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+
+  // Before hydration, render a placeholder to avoid SVG mismatch
+  if (!mounted) {
+    return (
+      <div className="w-full flex items-center justify-center py-[7px]">
+        <div className="w-[18px] h-[18px]" />
+      </div>
+    );
+  }
+
+  const ThemeIcon = isDark ? Sun : Moon;
+
+  if (!isExpanded) {
+    return (
+      <button
+        title={`Theme: ${theme} (click to toggle)`}
+        onClick={() => setTheme(isDark ? "light" : "dark")}
+        className="w-full flex items-center justify-center py-[7px] rounded-[var(--radius-md)] text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)] transition-colors"
+      >
+        <ThemeIcon className="w-[18px] h-[18px]" />
+      </button>
+    );
+  }
+
+  return (
+    <div className="w-full relative">
+      <button
+        onClick={() => setShowPicker((p) => !p)}
+        className="w-full flex items-center gap-2 px-2 py-[7px] rounded-[var(--radius-md)] text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)] transition-colors"
+      >
+        <ThemeIcon className="w-[18px] h-[18px] flex-shrink-0" />
+        <span className="text-[12px] font-medium capitalize">{theme}</span>
+      </button>
+      {showPicker && (
+        <div className="absolute bottom-full left-0 mb-1 w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-[var(--radius-md)] shadow-[var(--shadow-lg)] py-1 z-50">
+          {THEME_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => {
+                setTheme(opt.value);
+                setShowPicker(false);
+              }}
+              className={`w-full text-left px-3 py-1.5 text-[12px] transition-colors ${
+                theme === opt.value
+                  ? "text-[var(--brand)] bg-[var(--brand-subtle)]"
+                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

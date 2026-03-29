@@ -4,31 +4,31 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ═══════════════════════════════════════════════════════════════════════
-   Tailwind v4 Theme — semantic color tokens via CSS variables (HSL)
+   Tailwind v4 Theme — semantic color tokens via CSS variables
    ═══════════════════════════════════════════════════════════════════════ */
 @theme {
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
+  --color-card: var(--bg-primary);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--bg-primary);
+  --color-popover-foreground: var(--text-primary);
+  --color-primary: var(--brand);
+  --color-primary-foreground: var(--brand-text);
+  --color-secondary: var(--bg-secondary);
+  --color-secondary-foreground: var(--text-secondary);
+  --color-muted: var(--bg-tertiary);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--brand-subtle);
+  --color-accent-foreground: var(--brand);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: #ffffff;
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--brand);
+  --radius-lg: var(--radius-lg);
+  --radius-md: var(--radius-md);
+  --radius-sm: var(--radius-sm);
 }
 
 
@@ -37,12 +37,12 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 * {
-  border-color: hsl(var(--border));
+  border-color: var(--border);
 }
 
 body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   position: relative;
   overflow-x: hidden;
 }
@@ -160,7 +160,7 @@ html, body {
 
 /* Fix white backgrounds in dark theme */
 .dark [class*="bg-white"] {
-  background-color: hsl(var(--card)) !important;
+  background-color: var(--bg-primary) !important;
 }
 
 /* Backgrounds */
@@ -193,15 +193,15 @@ html, body {
 .dark input:not([type="checkbox"]):not([type="radio"]),
 .dark textarea,
 .dark select {
-  background-color: hsl(var(--input)) !important;
-  border-color: hsl(var(--border)) !important;
-  color: hsl(var(--foreground)) !important;
+  background-color: var(--border) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
 }
 .dark input::placeholder, .dark textarea::placeholder {
-  color: hsl(var(--muted-foreground)) !important;
+  color: var(--text-muted) !important;
 }
 .dark input:focus, .dark textarea:focus, .dark select:focus {
-  border-color: hsl(var(--ring)) !important;
+  border-color: var(--brand) !important;
 }
 
 /* Accent color adjustments for dark mode */
@@ -250,19 +250,19 @@ html, body {
 .dark .text-amber-700 { color: #fbbf24 !important; }
 
 /* Tables */
-.dark table { color: hsl(var(--foreground)); }
-.dark thead tr { background-color: hsl(var(--background)) !important; }
-.dark tbody tr:hover { background-color: hsl(var(--muted)) !important; }
-.dark th { color: hsl(var(--muted-foreground)) !important; }
-.dark td { color: hsl(var(--foreground)) !important; border-color: hsl(var(--border)) !important; }
+.dark table { color: var(--text-primary); }
+.dark thead tr { background-color: var(--bg-primary) !important; }
+.dark tbody tr:hover { background-color: var(--bg-tertiary) !important; }
+.dark th { color: var(--text-muted) !important; }
+.dark td { color: var(--text-primary) !important; border-color: var(--border) !important; }
 
 /* Popovers and dropdowns */
 .dark [role="dialog"],
 .dark [role="menu"],
 .dark [role="listbox"] {
-  background-color: hsl(var(--popover)) !important;
-  color: hsl(var(--popover-foreground)) !important;
-  border-color: hsl(var(--border)) !important;
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -285,7 +285,7 @@ html, body {
 
 /* Scrollbar styling for dark mode */
 .dark ::-webkit-scrollbar { width: 6px; height: 6px; }
-.dark ::-webkit-scrollbar-track { background: hsl(var(--card)); }
+.dark ::-webkit-scrollbar-track { background: var(--bg-primary); }
 .dark ::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.4); border-radius: 3px; }
 .dark ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.6); }
 
@@ -296,9 +296,9 @@ html, body {
 .dark .recharts-cartesian-grid line { stroke: #334155 !important; }
 .dark .recharts-text { fill: #94a3b8 !important; }
 .dark .recharts-tooltip-wrapper .recharts-default-tooltip {
-  background-color: hsl(var(--popover)) !important;
-  border-color: hsl(var(--border)) !important;
-  color: hsl(var(--foreground)) !important;
+  background-color: var(--bg-primary) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
 }
 .dark .recharts-legend-item-text { color: #94a3b8 !important; }
 .dark .recharts-label { fill: #94a3b8 !important; }
@@ -311,8 +311,8 @@ html, body {
 .dark .animate-pulse { opacity: 0.4; }
 
 /* Pre/code blocks */
-.dark pre { background-color: hsl(var(--background)) !important; border-color: hsl(var(--border)) !important; color: hsl(var(--foreground)) !important; }
-.dark code { background-color: hsl(var(--background)) !important; color: hsl(var(--foreground)) !important; }
+.dark pre { background-color: var(--bg-primary) !important; border-color: var(--border) !important; color: var(--text-primary) !important; }
+.dark code { background-color: var(--bg-primary) !important; color: var(--text-primary) !important; }
 
 /* ═══════════════════════════════════════════════════════════════════════
    Print Styles

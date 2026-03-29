@@ -37,6 +37,12 @@ function ChatPage() {
   const [sessionKey, setSessionKey] = useState(0);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [activeResult, setActiveResult] = useState<ActiveResult | null>(null);
+  const [pinnedQueryNames, setPinnedQueryNames] = useState<Set<string>>(
+    new Set(),
+  );
+  const [pinnedQueries, setPinnedQueries] = useState<
+    Array<{ name: string; label: string }>
+  >([]);
   const { userInfo } = useUser();
   const { toggleTheme } = useTheme();
 
@@ -92,10 +98,59 @@ function ChatPage() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (!userInfo?.samAccountName) return;
+    fetch(`/api/preferences?userId=${userInfo.samAccountName}`)
+      .then((r) => r.json())
+      .then((prefs: unknown) => {
+        if (
+          prefs &&
+          typeof prefs === "object" &&
+          "favorites" in prefs &&
+          Array.isArray((prefs as { favorites: unknown }).favorites)
+        ) {
+          const favs = (
+            prefs as { favorites: Array<{ queryName: string; label?: string }> }
+          ).favorites.map((f) => ({
+            name: f.queryName,
+            label: f.label ?? f.queryName,
+          }));
+          setPinnedQueries(favs);
+          setPinnedQueryNames(new Set(favs.map((f) => f.name)));
+        }
+      })
+      .catch(() => {});
+  }, [userInfo?.samAccountName]);
+
   const handleGroupChange = useCallback((id: string) => {
     setGroupId(id);
     setSessionKey((k) => k + 1);
     setActiveResult(null);
+  }, []);
+
+  const handlePin = useCallback((queryName: string) => {
+    setPinnedQueryNames((prev) => {
+      const next = new Set(prev);
+      if (next.has(queryName)) {
+        next.delete(queryName);
+        setPinnedQueries((pq) => pq.filter((q) => q.name !== queryName));
+      } else {
+        next.add(queryName);
+        setPinnedQueries((pq) => [
+          ...pq,
+          { name: queryName, label: queryName },
+        ]);
+      }
+      return next;
+    });
+  }, []);
+
+  const handlePinnedQueryClick = useCallback((_queryName: string) => {
+    // Placeholder: full integration requires ChatWindow to expose an executeQuery callback
+  }, []);
+
+  const handleQueryResult = useCallback((result: ActiveResult) => {
+    setActiveResult(result);
   }, []);
 
   return (
@@ -106,6 +161,14 @@ function ChatPage() {
         activeGroupId={groupId}
         onGroupChange={handleGroupChange}
       >
+        {activeResult && (
+          <div className="flex items-center gap-1.5 bg-[var(--brand-subtle)] px-2.5 py-1 rounded-[var(--radius-md)]">
+            <div className="w-1.5 h-1.5 bg-[var(--brand)] rounded-full" />
+            <span className="text-[11px] text-[var(--brand)] font-medium">
+              {activeResult.queryName}
+            </span>
+          </div>
+        )}
         <span className="text-[11px] text-[var(--text-muted)]">
           Cmd+K to search
         </span>
@@ -119,9 +182,18 @@ function ChatPage() {
             hideHeader
             groupId={groupId}
             userName={userInfo?.samAccountName}
+            onQueryResult={handleQueryResult}
+            splitView
           />
         }
-        dataPanel={<DataPanel activeResult={activeResult} />}
+        dataPanel={
+          <DataPanel
+            activeResult={activeResult}
+            pinnedQueries={pinnedQueries}
+            onPinnedQueryClick={handlePinnedQueryClick}
+            onPin={handlePin}
+          />
+        }
       />
 
       {showShortcuts && (

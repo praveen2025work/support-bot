@@ -72,17 +72,17 @@ function PaginatedTableBody<T>({
         <table
           className={
             tableClassName ||
-            "min-w-full text-xs border border-gray-200 rounded"
+            "min-w-full text-xs border border-[var(--border)] rounded"
           }
         >
           <thead>
-            <tr className={headerClassName || "bg-gray-50"}>
+            <tr className={headerClassName || "bg-[var(--bg-secondary)]"}>
               {renderHeader
-                ? headers.map((h) => <th key={h}>{renderHeader(h)}</th>)
+                ? headers.map((h) => renderHeader(h))
                 : headers.map((h) => (
                     <th
                       key={h}
-                      className="px-2 py-1 text-left font-medium text-gray-600 border-b"
+                      className="px-2 py-1 text-left font-medium text-[var(--text-secondary)] border-b"
                     >
                       {h}
                     </th>
@@ -150,7 +150,7 @@ function renderMarkdownText(text: string, onAction?: (text: string) => void) {
         <button
           key={i}
           onClick={() => onAction(quoteMatch[1])}
-          className="inline-flex items-center mx-0.5 rounded-md border border-blue-300 bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer align-baseline"
+          className="inline-flex items-center mx-0.5 rounded-md border border-[var(--brand)] bg-[var(--brand-subtle)] px-1.5 py-0.5 text-xs text-[var(--brand)] hover:bg-[var(--brand-subtle)] transition-colors cursor-pointer align-baseline"
         >
           {quoteMatch[1]}
         </button>
@@ -179,9 +179,11 @@ export function MessageBubble({
   onDrillDown,
   displayMode,
   compactAuto,
+  compactRichContent,
   savedChartType,
   onChartTypeChange,
   hideExecutionTime,
+  dashboardMode,
   diffInfo,
 }: {
   message: Message;
@@ -198,6 +200,8 @@ export function MessageBubble({
   onCellClick?: (column: string, value: unknown) => void;
   /** Config-based drill-down definitions from query config */
   drillDownConfig?: DrillDownConfig[];
+  /** When true, render a one-line summary instead of full tables/charts */
+  compactRichContent?: boolean;
   /** Callback when user triggers a drill-down (config-based or picker) */
   onDrillDown?: (
     targetQuery: string,
@@ -215,6 +219,8 @@ export function MessageBubble({
   onChartTypeChange?: (type: string) => void;
   /** Hide "Completed in Xms" badge (used in dashboard grid where header shows it) */
   hideExecutionTime?: boolean;
+  /** Dashboard mode — suppress conversational text, copy button, badges, and feedback bar; show only rich content */
+  dashboardMode?: boolean;
   /** Diff info from previous query run — highlights changes in table */
   diffInfo?: {
     addedIndices: Set<number>;
@@ -258,41 +264,60 @@ export function MessageBubble({
 
   return (
     <div
-      className={`group/msg flex ${isUser ? "justify-end" : "justify-start"} mb-3`}
+      className={`group/msg flex ${isUser ? "justify-end" : "justify-start"} ${dashboardMode ? "mb-0" : "mb-3"}`}
     >
       <div
-        className={`relative ${isUser ? "max-w-[80%]" : hasRichContent ? "max-w-[98%] w-full" : "max-w-[85%]"} rounded-2xl px-4 py-3 ${
-          isUser
-            ? "bg-blue-600 text-white"
-            : message.isError
-              ? "bg-red-50 text-gray-900 border border-red-200"
-              : "bg-gray-100 text-gray-900"
+        className={`relative ${
+          dashboardMode
+            ? "w-full"
+            : `${isUser ? "max-w-[80%]" : hasRichContent ? "max-w-[98%] w-full" : "max-w-[85%]"} rounded-2xl px-4 py-3 ${
+                isUser
+                  ? "bg-[var(--brand)] text-white"
+                  : message.isError
+                    ? "bg-[var(--danger-subtle)] text-[var(--text-primary)] border border-[var(--danger)]"
+                    : "bg-[var(--bg-secondary)] text-[var(--text-primary)]"
+              }`
         }`}
       >
-        {/* Copy button — visible on hover */}
-        {!isUser && (
+        {/* Copy button — visible on hover (hidden in dashboard mode) */}
+        {!isUser && !dashboardMode && (
           <button
             onClick={handleMessageCopy}
-            className="absolute top-2 right-2 opacity-0 group-hover/msg:opacity-100 transition-opacity inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 bg-white border border-gray-200 rounded-md hover:bg-gray-100 hover:text-gray-700 shadow-sm z-10"
+            className="absolute top-2 right-2 opacity-0 group-hover/msg:opacity-100 transition-opacity inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-secondary)] bg-[var(--bg-primary)] border border-[var(--border)] rounded-md hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] shadow-sm z-10"
             title="Copy to clipboard"
           >
             {msgCopied ? (
-              <Check size={12} className="text-green-600" />
+              <Check size={12} className="text-[var(--success)]" />
             ) : (
               <ClipboardCopy size={12} />
             )}
             {msgCopied ? "Copied!" : "Copy"}
           </button>
         )}
-        <p className="whitespace-pre-wrap text-sm">
-          {renderMarkdownText(message.text, isUser ? undefined : onAction)}
-        </p>
+        {/* Conversational text — hidden in dashboard mode (card title already shows context) */}
+        {!dashboardMode && (
+          <p className="whitespace-pre-wrap text-sm">
+            {renderMarkdownText(message.text, isUser ? undefined : onAction)}
+          </p>
+        )}
         {message.richContent && message.richContent.data === null ? (
-          <div className="mt-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500 italic">
+          <div className="mt-2 rounded-md border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-xs text-[var(--text-secondary)] italic">
             Results collapsed to save memory. Re-run the query to view again.
           </div>
+        ) : compactRichContent &&
+          message.richContent &&
+          [
+            "query_result",
+            "csv_table",
+            "csv_group_by",
+            "csv_aggregation",
+            "multi_query_result",
+          ].includes(message.richContent.type) ? (
+          <div className="mt-1 text-[11px] text-[var(--text-muted)]">
+            Results shown in panel →
+          </div>
         ) : message.richContent ? (
-          <div className="mt-2">
+          <div className={dashboardMode ? "" : "mt-2"}>
             <RichContentRenderer
               richContent={message.richContent}
               onExecuteQuery={onExecuteQuery}
@@ -315,8 +340,8 @@ export function MessageBubble({
           message.truncated &&
           message.totalRowsBeforeTruncation &&
           message.displayedRows && (
-            <div className="mt-2 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-800">
-              <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-500" />
+            <div className="mt-2 flex items-center gap-2 rounded-md border border-[var(--warning)] bg-[var(--warning-subtle)] px-3 py-1.5 text-xs text-[var(--warning)]">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0 text-[var(--warning)]" />
               <span>
                 Showing {message.displayedRows.toLocaleString()} of{" "}
                 {message.totalRowsBeforeTruncation.toLocaleString()} rows
@@ -326,21 +351,27 @@ export function MessageBubble({
               </span>
             </div>
           )}
-        {/* Anomaly alerts */}
-        {!isUser && message.anomalies && message.anomalies.length > 0 && (
-          <div className="mt-2">
-            <AnomalyAlert anomalies={message.anomalies} />
-          </div>
-        )}
-        {/* Execution time badge + source + confidence + reference link */}
+        {/* Anomaly alerts (hidden in dashboard/compact mode) */}
         {!isUser &&
+          !dashboardMode &&
+          !compactRichContent &&
+          message.anomalies &&
+          message.anomalies.length > 0 && (
+            <div className="mt-2">
+              <AnomalyAlert anomalies={message.anomalies} />
+            </div>
+          )}
+        {/* Execution time badge + source + confidence + reference link (hidden in dashboard/compact mode) */}
+        {!isUser &&
+          !dashboardMode &&
+          !compactRichContent &&
           (message.executionMs != null ||
             message.referenceUrl ||
             message.sourceName ||
             message.confidence != null) && (
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {message.executionMs != null && !hideExecutionTime && (
-                <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
+                <span className="inline-flex items-center rounded-full bg-[var(--success-subtle)] px-2 py-0.5 text-[10px] font-medium text-[var(--success)]">
                   Completed in {message.executionMs}ms
                 </span>
               )}
@@ -358,7 +389,7 @@ export function MessageBubble({
                   href={message.referenceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-medium text-blue-600 hover:bg-blue-100 transition-colors"
+                  className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-subtle)] border border-[var(--brand)] px-2 py-0.5 text-[10px] font-medium text-[var(--brand)] hover:bg-[var(--brand-subtle)] transition-colors"
                 >
                   <Info className="w-3 h-3" />
                   More info
@@ -366,15 +397,19 @@ export function MessageBubble({
               )}
             </div>
           )}
-        {/* Feedback bar (thumbs up/down) */}
-        {!isUser && !message.isError && onFeedback && (
-          <FeedbackBar messageId={message.id} onFeedback={onFeedback} />
-        )}
+        {/* Feedback bar (thumbs up/down) — hidden in dashboard/compact mode */}
+        {!isUser &&
+          !dashboardMode &&
+          !compactRichContent &&
+          !message.isError &&
+          onFeedback && (
+            <FeedbackBar messageId={message.id} onFeedback={onFeedback} />
+          )}
         {/* Retry button for errors */}
         {message.isError && message.retryText && onRetry && (
           <button
             onClick={() => onRetry(message.retryText!)}
-            className="mt-2 inline-flex items-center gap-1 rounded-md border border-red-300 bg-white px-2.5 py-1 text-xs text-red-600 hover:bg-red-50 transition-colors"
+            className="mt-2 inline-flex items-center gap-1 rounded-md border border-[var(--danger)] bg-[var(--bg-primary)] px-2.5 py-1 text-xs text-[var(--danger)] hover:bg-[var(--danger-subtle)] transition-colors"
           >
             <RefreshCw className="w-3 h-3" />
             Retry
@@ -436,7 +471,7 @@ function RichContentRenderer({
                 href={url.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-700 underline text-sm hover:text-blue-900"
+                className="text-[var(--brand)] underline text-sm hover:text-[var(--brand)]"
               >
                 {url.title}
               </a>
@@ -458,6 +493,8 @@ function RichContentRenderer({
           displayMode={displayMode}
           compactAuto={compactAuto}
           diffInfo={diffInfo}
+          savedChartType={savedChartType}
+          onChartTypeChange={onChartTypeChange}
         />
       );
     }
@@ -467,7 +504,7 @@ function RichContentRenderer({
         <div className="mt-1 space-y-4">
           {results.map((item, i) => (
             <div key={i}>
-              <h4 className="text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wide">
+              <h4 className="text-xs font-semibold text-[var(--text-primary)] mb-1 uppercase tracking-wide">
                 {item.queryName}
               </h4>
               <QueryResultTable
@@ -488,7 +525,7 @@ function RichContentRenderer({
     case "estimation": {
       const est = richContent.data as EstimationData;
       return (
-        <div className="mt-1 text-xs text-gray-600">
+        <div className="mt-1 text-xs text-[var(--text-secondary)]">
           <p>Duration: {est.estimatedDuration}ms</p>
           <p>{est.description}</p>
         </div>
@@ -513,10 +550,10 @@ function RichContentRenderer({
       };
       return (
         <div className="mt-1">
-          <p className="text-[10px] text-gray-400 mb-1 font-mono">
+          <p className="text-[10px] text-[var(--text-muted)] mb-1 font-mono">
             {fileData.filePath}
           </p>
-          <pre className="text-xs bg-gray-50 border border-gray-200 rounded p-2 overflow-x-auto whitespace-pre-wrap max-h-80 overflow-y-auto">
+          <pre className="text-xs bg-[var(--bg-secondary)] border border-[var(--border)] rounded p-2 overflow-x-auto whitespace-pre-wrap max-h-80 overflow-y-auto">
             {fileData.content}
           </pre>
         </div>
@@ -534,17 +571,17 @@ function RichContentRenderer({
       };
       return (
         <div className="mt-1">
-          <p className="text-[10px] text-gray-400 mb-1 font-mono">
+          <p className="text-[10px] text-[var(--text-muted)] mb-1 font-mono">
             {docData.filePath}
           </p>
           {docData.searchResults.map((section, i) => (
             <div key={i} className="mb-2">
               {section.heading && (
-                <p className="text-xs font-semibold text-gray-700">
+                <p className="text-xs font-semibold text-[var(--text-primary)]">
                   {section.heading}
                 </p>
               )}
-              <pre className="text-xs bg-gray-50 border border-gray-200 rounded p-2 overflow-x-auto whitespace-pre-wrap max-h-40 overflow-y-auto">
+              <pre className="text-xs bg-[var(--bg-secondary)] border border-[var(--border)] rounded p-2 overflow-x-auto whitespace-pre-wrap max-h-40 overflow-y-auto">
                 {section.content}
               </pre>
             </div>
@@ -561,10 +598,12 @@ function RichContentRenderer({
       };
       return (
         <div className="mt-1 text-xs">
-          <p className="text-[10px] text-gray-400 mb-1 font-mono">
+          <p className="text-[10px] text-[var(--text-muted)] mb-1 font-mono">
             {csvData.filePath}
           </p>
-          <p className="text-gray-500">{csvData.rowCount} rows</p>
+          <p className="text-[var(--text-secondary)]">
+            {csvData.rowCount} rows
+          </p>
           {csvData.headers.length > 0 && (
             <>
               <div className="mt-1">
@@ -574,7 +613,11 @@ function RichContentRenderer({
                   renderRow={(row, i) => (
                     <tr
                       key={i}
-                      className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                      className={
+                        i % 2 === 0
+                          ? "bg-[var(--bg-primary)]"
+                          : "bg-[var(--bg-secondary)]"
+                      }
                     >
                       {csvData.headers.map((h) => {
                         const val = row[h];
@@ -588,9 +631,9 @@ function RichContentRenderer({
                         return (
                           <td
                             key={h}
-                            className={`px-2 py-1 border-b border-gray-100 ${
+                            className={`px-2 py-1 border-b border-[var(--border)] ${
                               isNum && num < 0
-                                ? "text-red-600 dark:text-red-400"
+                                ? "text-[var(--danger)] dark:text-[var(--danger)]"
                                 : ""
                             }`}
                           >
@@ -652,27 +695,27 @@ function RichContentRenderer({
         aggData.aggregation.topRows && aggData.aggregation.topHeaders;
       return (
         <div className="mt-1 text-xs">
-          <p className="text-[10px] text-gray-400 mb-1 font-mono">
+          <p className="text-[10px] text-[var(--text-muted)] mb-1 font-mono">
             {aggData.filePath}
           </p>
           {isTop ? (
             <PaginatedTableBody
               rows={aggData.aggregation.topRows!}
               headers={["#", ...aggData.aggregation.topHeaders!]}
-              tableClassName="min-w-full text-xs border border-blue-200 rounded"
-              headerClassName="bg-blue-50"
+              tableClassName="min-w-full text-xs border border-[var(--brand)] rounded"
+              headerClassName="bg-[var(--brand-subtle)]"
               renderHeader={(h) =>
                 h === "#" ? (
                   <th
                     key={h}
-                    className="px-2 py-1 text-left font-medium text-blue-700 border-b border-blue-200 w-8"
+                    className="px-2 py-1 text-left font-medium text-[var(--brand)] border-b border-[var(--brand)] w-8"
                   >
                     #
                   </th>
                 ) : (
                   <th
                     key={h}
-                    className={`px-2 py-1 text-left font-medium border-b border-blue-200 ${h === aggData.aggregation.column ? "text-blue-800 bg-blue-100" : "text-blue-700"}`}
+                    className={`px-2 py-1 text-left font-medium border-b border-[var(--brand)] ${h === aggData.aggregation.column ? "text-[var(--brand)] bg-[var(--brand-subtle)]" : "text-[var(--brand)]"}`}
                   >
                     {h}
                     {h === aggData.aggregation.column ? " \u2193" : ""}
@@ -682,15 +725,19 @@ function RichContentRenderer({
               renderRow={(row, i) => (
                 <tr
                   key={i}
-                  className={i % 2 === 0 ? "bg-white" : "bg-blue-50/30"}
+                  className={
+                    i % 2 === 0
+                      ? "bg-[var(--bg-primary)]"
+                      : "bg-[var(--brand-subtle)]/30"
+                  }
                 >
-                  <td className="px-2 py-1 border-b border-gray-100 text-gray-400 font-medium">
+                  <td className="px-2 py-1 border-b border-[var(--border)] text-[var(--text-muted)] font-medium">
                     {i + 1}
                   </td>
                   {aggData.aggregation.topHeaders!.map((h) => (
                     <td
                       key={h}
-                      className={`px-2 py-1 border-b border-gray-100 ${h === aggData.aggregation.column ? "font-semibold text-blue-800" : ""}`}
+                      className={`px-2 py-1 border-b border-[var(--border)] ${h === aggData.aggregation.column ? "font-semibold text-[var(--brand)]" : ""}`}
                     >
                       {String(row[h] ?? "")}
                     </td>
@@ -698,20 +745,20 @@ function RichContentRenderer({
                 </tr>
               )}
               footer={
-                <p className="text-gray-400 mt-1">
+                <p className="text-[var(--text-muted)] mt-1">
                   Sorted by {aggData.aggregation.column} (descending) from{" "}
                   {aggData.rowCount} total rows
                 </p>
               }
             />
           ) : (
-            <div className="bg-blue-50 border border-blue-200 rounded p-3">
-              <p className="font-semibold text-blue-800 text-sm">
+            <div className="bg-[var(--brand-subtle)] border border-[var(--brand)] rounded p-3">
+              <p className="font-semibold text-[var(--brand)] text-sm">
                 {aggData.aggregation.operation.toUpperCase()}(
                 {aggData.aggregation.column}) ={" "}
                 {String(aggData.aggregation.result)}
               </p>
-              <p className="text-gray-500 mt-1">
+              <p className="text-[var(--text-secondary)] mt-1">
                 Computed over {aggData.rowCount} rows
               </p>
             </div>
@@ -757,14 +804,14 @@ function RichContentRenderer({
           <PaginatedTableBody
             rows={gbData.groups}
             headers={gbHeaders}
-            tableClassName="min-w-full text-xs border border-blue-200 rounded"
-            headerClassName="bg-blue-50"
+            tableClassName="min-w-full text-xs border border-[var(--brand)] rounded"
+            headerClassName="bg-[var(--brand-subtle)]"
             renderHeader={(h) => {
               const isGroupCol = groupCols.includes(h);
               return (
                 <th
                   key={h}
-                  className={`px-2 py-1 text-left font-medium border-b border-blue-200 ${isGroupCol ? "text-blue-800 bg-blue-100" : "text-blue-700"}`}
+                  className={`px-2 py-1 text-left font-medium border-b border-[var(--brand)] ${isGroupCol ? "text-[var(--brand)] bg-[var(--brand-subtle)]" : "text-[var(--brand)]"}`}
                 >
                   {h}
                 </th>
@@ -773,28 +820,35 @@ function RichContentRenderer({
             renderRow={(g, i) => (
               <tr
                 key={i}
-                className={i % 2 === 0 ? "bg-white" : "bg-blue-50/30"}
+                className={
+                  i % 2 === 0
+                    ? "bg-[var(--bg-primary)]"
+                    : "bg-[var(--brand-subtle)]/30"
+                }
               >
                 {isMultiCol && g.groupValues ? (
                   groupCols.map((col) => (
                     <td
                       key={col}
-                      className="px-2 py-1 border-b border-gray-100 font-semibold text-blue-800"
+                      className="px-2 py-1 border-b border-[var(--border)] font-semibold text-[var(--brand)]"
                     >
                       {String(g.groupValues![col] ?? "")}
                     </td>
                   ))
                 ) : (
-                  <td className="px-2 py-1 border-b border-gray-100 font-semibold text-blue-800">
+                  <td className="px-2 py-1 border-b border-[var(--border)] font-semibold text-[var(--brand)]">
                     {String(g.groupValue)}
                   </td>
                 )}
                 {aggCols.map((c) => (
-                  <td key={c} className="px-2 py-1 border-b border-gray-100">
+                  <td
+                    key={c}
+                    className="px-2 py-1 border-b border-[var(--border)]"
+                  >
                     {g.aggregations[c]?.toLocaleString() ?? 0}
                   </td>
                 ))}
-                <td className="px-2 py-1 border-b border-gray-100">
+                <td className="px-2 py-1 border-b border-[var(--border)]">
                   {g.count}
                 </td>
               </tr>
@@ -842,7 +896,7 @@ function RichContentRenderer({
                 <span className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-[10px] font-medium">
                   {doc.queryName}
                 </span>
-                <span className="text-gray-500 text-[10px] truncate flex-1">
+                <span className="text-[var(--text-secondary)] text-[10px] truncate flex-1">
                   {doc.queryDescription}
                 </span>
                 {doc.referenceUrl && (
@@ -860,11 +914,11 @@ function RichContentRenderer({
                 {doc.sections.map((sec, i) => (
                   <div key={i} className="px-3 py-1.5">
                     {sec.heading && (
-                      <p className="font-semibold text-gray-700 text-[11px] mb-0.5">
+                      <p className="font-semibold text-[var(--text-primary)] text-[11px] mb-0.5">
                         {sec.heading.replace(/^#+\s*/, "")}
                       </p>
                     )}
-                    <pre className="text-[10px] text-gray-600 whitespace-pre-wrap font-sans max-h-[120px] overflow-y-auto leading-relaxed">
+                    <pre className="text-[10px] text-[var(--text-secondary)] whitespace-pre-wrap font-sans max-h-[120px] overflow-y-auto leading-relaxed">
                       {sec.content.length > 500
                         ? sec.content.substring(0, 500) + "..."
                         : sec.content}
@@ -900,12 +954,15 @@ function RichContentRenderer({
           {docSummary.sections.length > 0 && (
             <div className="space-y-1">
               {docSummary.sections.map((sec, i) => (
-                <div key={i} className="border border-gray-200 rounded p-1.5">
-                  <p className="font-semibold text-gray-700 text-[11px]">
+                <div
+                  key={i}
+                  className="border border-[var(--border)] rounded p-1.5"
+                >
+                  <p className="font-semibold text-[var(--text-primary)] text-[11px]">
                     {sec.heading}
                   </p>
                   {sec.preview && (
-                    <p className="text-gray-400 text-[10px] mt-0.5 line-clamp-1">
+                    <p className="text-[var(--text-muted)] text-[10px] mt-0.5 line-clamp-1">
                       {sec.preview}
                     </p>
                   )}
@@ -932,50 +989,50 @@ function RichContentRenderer({
       };
       return (
         <div className="mt-1 text-xs space-y-2">
-          <div className="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-medium text-[11px]">
+          <div className="inline-block bg-[var(--brand-subtle)] text-[var(--brand)] px-2 py-0.5 rounded font-medium text-[11px]">
             {summary.rowCount} rows
           </div>
           <div className="grid grid-cols-2 gap-2">
             {summary.columns.map((col) => (
               <div
                 key={col.column}
-                className="border border-gray-200 rounded p-2"
+                className="border border-[var(--border)] rounded p-2"
               >
-                <p className="font-semibold text-gray-700 text-[11px] mb-1">
+                <p className="font-semibold text-[var(--text-primary)] text-[11px] mb-1">
                   {col.column}
                 </p>
                 {col.type === "numeric" ? (
                   <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px]">
-                    <span className="text-gray-400">Sum</span>
+                    <span className="text-[var(--text-muted)]">Sum</span>
                     <span className="text-right font-medium">
                       {col.sum?.toLocaleString()}
                     </span>
-                    <span className="text-gray-400">Avg</span>
+                    <span className="text-[var(--text-muted)]">Avg</span>
                     <span className="text-right font-medium">
                       {col.avg?.toLocaleString()}
                     </span>
-                    <span className="text-gray-400">Min</span>
+                    <span className="text-[var(--text-muted)]">Min</span>
                     <span className="text-right font-medium">
                       {col.min?.toLocaleString()}
                     </span>
-                    <span className="text-gray-400">Max</span>
+                    <span className="text-[var(--text-muted)]">Max</span>
                     <span className="text-right font-medium">
                       {col.max?.toLocaleString()}
                     </span>
                   </div>
                 ) : (
                   <div className="text-[10px]">
-                    <p className="text-gray-400">
+                    <p className="text-[var(--text-muted)]">
                       {col.uniqueValues} unique values
                     </p>
                     {col.topValues && col.topValues.length > 0 && (
                       <div className="mt-0.5 space-y-0.5">
                         {col.topValues.slice(0, 3).map((tv) => (
                           <div key={tv.value} className="flex justify-between">
-                            <span className="text-gray-600 truncate">
+                            <span className="text-[var(--text-secondary)] truncate">
                               {tv.value}
                             </span>
-                            <span className="text-gray-400 ml-1">
+                            <span className="text-[var(--text-muted)] ml-1">
                               ({tv.count})
                             </span>
                           </div>
@@ -993,10 +1050,10 @@ function RichContentRenderer({
     case "query_list": {
       const items = richContent.data as QueryListItem[];
       const typeColors: Record<string, string> = {
-        api: "bg-blue-100 text-blue-700",
-        url: "bg-green-100 text-green-700",
+        api: "bg-[var(--brand-subtle)] text-[var(--brand)]",
+        url: "bg-[var(--success-subtle)] text-[var(--success)]",
         document: "bg-purple-100 text-purple-700",
-        csv: "bg-amber-100 text-amber-700",
+        csv: "bg-[var(--warning-subtle)] text-[var(--warning)]",
         xlsx: "bg-emerald-100 text-emerald-700",
         xls: "bg-emerald-100 text-emerald-700",
       };
@@ -1012,27 +1069,27 @@ function RichContentRenderer({
                   onAction?.(`run ${item.name}`);
                 }
               }}
-              className="w-full flex items-start gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-left hover:border-blue-400 hover:bg-blue-50 transition-colors"
+              className="w-full flex items-start gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2 text-left hover:border-[var(--brand)] hover:bg-[var(--brand-subtle)] transition-colors"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-semibold text-gray-800 truncate">
+                  <span className="text-xs font-semibold text-[var(--text-primary)] truncate">
                     {item.name}
                   </span>
                   <span
-                    className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${typeColors[item.type] || "bg-gray-100 text-gray-700"}`}
+                    className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${typeColors[item.type] || "bg-[var(--bg-secondary)] text-[var(--text-primary)]"}`}
                   >
                     {item.type}
                   </span>
                 </div>
                 {item.description && (
-                  <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">
+                  <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 line-clamp-1">
                     {item.description}
                   </p>
                 )}
               </div>
               {item.filters.length > 0 && (
-                <span className="text-[10px] text-gray-400 whitespace-nowrap mt-0.5">
+                <span className="text-[10px] text-[var(--text-muted)] whitespace-nowrap mt-0.5">
                   {item.filters.length} filter
                   {item.filters.length > 1 ? "s" : ""}
                 </span>
@@ -1052,21 +1109,21 @@ function RichContentRenderer({
             {data.answers.map((a: any, i: number) => (
               <div
                 key={i}
-                className="rounded-lg border border-blue-200 bg-blue-50 p-3"
+                className="rounded-lg border border-[var(--brand)] bg-[var(--brand-subtle)] p-3"
               >
-                <p className="text-sm text-gray-900 leading-relaxed">
-                  <span className="bg-yellow-200 font-medium px-0.5 rounded">
+                <p className="text-sm text-[var(--text-primary)] leading-relaxed">
+                  <span className="bg-[var(--warning-subtle)] font-medium px-0.5 rounded">
                     {a.answer}
                   </span>
                 </p>
                 {a.context && a.context !== a.answer && (
-                  <p className="mt-1.5 text-xs text-gray-600 leading-relaxed italic">
+                  <p className="mt-1.5 text-xs text-[var(--text-secondary)] leading-relaxed italic">
                     {a.context}
                   </p>
                 )}
-                <div className="mt-2 flex items-center gap-2 text-[10px] text-gray-500">
+                <div className="mt-2 flex items-center gap-2 text-[10px] text-[var(--text-secondary)]">
                   {a.sourceHeading && (
-                    <span className="bg-white px-1.5 py-0.5 rounded border border-gray-200">
+                    <span className="bg-[var(--bg-primary)] px-1.5 py-0.5 rounded border border-[var(--border)]">
                       {a.sourceHeading}
                     </span>
                   )}
@@ -1085,14 +1142,14 @@ function RichContentRenderer({
             {data.sections.map((s: any, i: number) => (
               <div
                 key={i}
-                className="rounded border border-gray-200 bg-gray-50 p-2.5"
+                className="rounded border border-[var(--border)] bg-[var(--bg-secondary)] p-2.5"
               >
                 {s.heading && (
-                  <p className="text-xs font-semibold text-gray-700 mb-1">
+                  <p className="text-xs font-semibold text-[var(--text-primary)] mb-1">
                     {s.heading}
                   </p>
                 )}
-                <p className="text-xs text-gray-600 leading-relaxed">
+                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                   {s.content}
                 </p>
               </div>
@@ -1112,7 +1169,7 @@ function RichContentRenderer({
             {data.documents.map((doc: any, i: number) => (
               <div
                 key={i}
-                className="flex items-center justify-between rounded border border-gray-200 bg-white px-3 py-2"
+                className="flex items-center justify-between rounded border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2"
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-lg">
@@ -1123,10 +1180,10 @@ function RichContentRenderer({
                         : "\u{1F4C3}"}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-gray-800 truncate">
+                    <p className="text-xs font-medium text-[var(--text-primary)] truncate">
                       {doc.filename}
                     </p>
-                    <p className="text-[10px] text-gray-500">
+                    <p className="text-[10px] text-[var(--text-secondary)]">
                       {doc.wordCount.toLocaleString()} words &middot;{" "}
                       {doc.chunkCount} chunks
                       {doc.pageCount ? ` \u00b7 ${doc.pageCount} pages` : ""}
@@ -1138,7 +1195,7 @@ function RichContentRenderer({
                 </span>
               </div>
             ))}
-            <p className="text-[10px] text-gray-500 mt-1">
+            <p className="text-[10px] text-[var(--text-secondary)] mt-1">
               Total: {data.totalChunks} searchable chunks
             </p>
           </div>
@@ -1147,8 +1204,10 @@ function RichContentRenderer({
       // Single upload result
       if (data.document) {
         return (
-          <div className="mt-2 rounded border border-green-200 bg-green-50 p-3">
-            <p className="text-xs font-medium text-green-800">{data.message}</p>
+          <div className="mt-2 rounded border border-[var(--success)] bg-[var(--success-subtle)] p-3">
+            <p className="text-xs font-medium text-[var(--success)]">
+              {data.message}
+            </p>
           </div>
         );
       }
@@ -1164,7 +1223,7 @@ function RichContentRenderer({
             <button
               key={i}
               onClick={() => onAction?.(rec.name)}
-              className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 hover:border-blue-400 hover:bg-blue-50 transition-colors"
+              className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-1.5 text-xs text-[var(--text-primary)] hover:border-[var(--brand)] hover:bg-[var(--brand-subtle)] transition-colors"
             >
               <span className="text-[10px]">
                 {rec.type === "query"
@@ -1174,7 +1233,9 @@ function RichContentRenderer({
                     : "\u2753"}
               </span>
               <span className="font-medium">{rec.name}</span>
-              <span className="text-[10px] text-gray-400">{rec.reason}</span>
+              <span className="text-[10px] text-[var(--text-muted)]">
+                {rec.reason}
+              </span>
             </button>
           ))}
         </div>
@@ -1187,22 +1248,22 @@ function RichContentRenderer({
       return (
         <div className="mt-1 text-xs">
           <div className="overflow-x-auto max-h-80 overflow-y-auto">
-            <table className="min-w-full text-xs border border-blue-200 rounded">
+            <table className="min-w-full text-xs border border-[var(--brand)] rounded">
               <thead>
-                <tr className="bg-blue-50">
-                  <th className="px-2 py-1 text-left font-medium text-blue-800 border-b border-blue-200">
+                <tr className="bg-[var(--brand-subtle)]">
+                  <th className="px-2 py-1 text-left font-medium text-[var(--brand)] border-b border-[var(--brand)]">
                     Column
                   </th>
-                  <th className="px-2 py-1 text-left font-medium text-blue-700 border-b border-blue-200">
+                  <th className="px-2 py-1 text-left font-medium text-[var(--brand)] border-b border-[var(--brand)]">
                     Type
                   </th>
-                  <th className="px-2 py-1 text-left font-medium text-blue-700 border-b border-blue-200">
+                  <th className="px-2 py-1 text-left font-medium text-[var(--brand)] border-b border-[var(--brand)]">
                     Null %
                   </th>
-                  <th className="px-2 py-1 text-left font-medium text-blue-700 border-b border-blue-200">
+                  <th className="px-2 py-1 text-left font-medium text-[var(--brand)] border-b border-[var(--brand)]">
                     Unique
                   </th>
-                  <th className="px-2 py-1 text-left font-medium text-blue-700 border-b border-blue-200">
+                  <th className="px-2 py-1 text-left font-medium text-[var(--brand)] border-b border-[var(--brand)]">
                     Stats
                   </th>
                 </tr>
@@ -1212,23 +1273,27 @@ function RichContentRenderer({
                 {profiles.map((p: any, i: number) => (
                   <tr
                     key={i}
-                    className={i % 2 === 0 ? "bg-white" : "bg-blue-50/30"}
+                    className={
+                      i % 2 === 0
+                        ? "bg-[var(--bg-primary)]"
+                        : "bg-[var(--brand-subtle)]/30"
+                    }
                   >
-                    <td className="px-2 py-1 border-b border-gray-100 font-semibold text-blue-800">
+                    <td className="px-2 py-1 border-b border-[var(--border)] font-semibold text-[var(--brand)]">
                       {p.column}
                     </td>
-                    <td className="px-2 py-1 border-b border-gray-100">
-                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-gray-100 text-gray-600">
+                    <td className="px-2 py-1 border-b border-[var(--border)]">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                         {p.type}
                       </span>
                     </td>
-                    <td className="px-2 py-1 border-b border-gray-100">
+                    <td className="px-2 py-1 border-b border-[var(--border)]">
                       {p.nullPercent.toFixed(1)}%
                     </td>
-                    <td className="px-2 py-1 border-b border-gray-100">
+                    <td className="px-2 py-1 border-b border-[var(--border)]">
                       {p.cardinality}
                     </td>
-                    <td className="px-2 py-1 border-b border-gray-100 text-[10px] text-gray-500">
+                    <td className="px-2 py-1 border-b border-[var(--border)] text-[10px] text-[var(--text-secondary)]">
                       {p.stats
                         ? `mean=${p.stats.mean?.toFixed(1)}, std=${p.stats.stdDev?.toFixed(1)}`
                         : p.topValues?.slice(0, 3).join(", ")}
@@ -1245,9 +1310,9 @@ function RichContentRenderer({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const summary = richContent.data as any;
       const severityColors: Record<string, string> = {
-        info: "border-blue-300 bg-blue-50",
-        notable: "border-amber-300 bg-amber-50",
-        critical: "border-red-300 bg-red-50",
+        info: "border-[var(--brand)] bg-[var(--brand-subtle)]",
+        notable: "border-[var(--warning)] bg-[var(--warning-subtle)]",
+        critical: "border-[var(--danger)] bg-[var(--danger-subtle)]",
       };
       return (
         <div className="mt-1 space-y-1.5">
@@ -1255,10 +1320,12 @@ function RichContentRenderer({
           {(summary.highlights || []).map((h: any, i: number) => (
             <div
               key={i}
-              className={`text-xs rounded-md border-l-4 px-3 py-2 ${severityColors[h.severity] || "border-gray-300 bg-gray-50"}`}
+              className={`text-xs rounded-md border-l-4 px-3 py-2 ${severityColors[h.severity] || "border-[var(--border)] bg-[var(--bg-secondary)]"}`}
             >
-              <span className="font-medium text-gray-700">{h.column}:</span>{" "}
-              <span className="text-gray-600">{h.insight}</span>
+              <span className="font-medium text-[var(--text-primary)]">
+                {h.column}:
+              </span>{" "}
+              <span className="text-[var(--text-secondary)]">{h.insight}</span>
             </div>
           ))}
         </div>
@@ -1271,7 +1338,9 @@ function RichContentRenderer({
         <div className="mt-1">
           <Suspense
             fallback={
-              <div className="text-xs text-gray-400">Loading heatmap...</div>
+              <div className="text-xs text-[var(--text-muted)]">
+                Loading heatmap...
+              </div>
             }
           >
             <HeatmapChart
@@ -1292,7 +1361,9 @@ function RichContentRenderer({
         <div className="mt-1">
           <Suspense
             fallback={
-              <div className="text-xs text-gray-400">Loading histogram...</div>
+              <div className="text-xs text-[var(--text-muted)]">
+                Loading histogram...
+              </div>
             }
           >
             <HistogramChart
@@ -1310,21 +1381,21 @@ function RichContentRenderer({
       return (
         <div className="mt-1 text-xs">
           <div className="overflow-x-auto max-h-80 overflow-y-auto">
-            <table className="min-w-full text-xs border border-red-200 rounded">
+            <table className="min-w-full text-xs border border-[var(--danger)] rounded">
               <thead>
-                <tr className="bg-red-50">
-                  <th className="px-2 py-1 text-left font-medium text-red-800 border-b border-red-200">
+                <tr className="bg-[var(--danger-subtle)]">
+                  <th className="px-2 py-1 text-left font-medium text-[var(--danger)] border-b border-[var(--danger)]">
                     Row
                   </th>
                   {anomalyData.headers.slice(0, 6).map((h: string) => (
                     <th
                       key={h}
-                      className="px-2 py-1 text-left font-medium text-red-700 border-b border-red-200"
+                      className="px-2 py-1 text-left font-medium text-[var(--danger)] border-b border-[var(--danger)]"
                     >
                       {h}
                     </th>
                   ))}
-                  <th className="px-2 py-1 text-left font-medium text-red-700 border-b border-red-200">
+                  <th className="px-2 py-1 text-left font-medium text-[var(--danger)] border-b border-[var(--danger)]">
                     Outlier Details
                   </th>
                 </tr>
@@ -1334,25 +1405,25 @@ function RichContentRenderer({
                 {anomalyData.outlierRows
                   .slice(0, 30)
                   .map((o: any, i: number) => (
-                    <tr key={i} className="bg-red-50/40">
-                      <td className="px-2 py-1 border-b border-gray-100 font-semibold text-red-800">
+                    <tr key={i} className="bg-[var(--danger-subtle)]/40">
+                      <td className="px-2 py-1 border-b border-[var(--border)] font-semibold text-[var(--danger)]">
                         #{o.rowIndex}
                       </td>
                       {anomalyData.headers.slice(0, 6).map((h: string) => (
                         <td
                           key={h}
-                          className={`px-2 py-1 border-b border-gray-100 ${
+                          className={`px-2 py-1 border-b border-[var(--border)] ${
                             o.outlierColumns.some(
                               (oc: { column: string }) => oc.column === h,
                             )
-                              ? "bg-red-100 font-semibold text-red-700"
+                              ? "bg-[var(--danger-subtle)] font-semibold text-[var(--danger)]"
                               : ""
                           }`}
                         >
                           {String(o.row[h] ?? "")}
                         </td>
                       ))}
-                      <td className="px-2 py-1 border-b border-gray-100 text-[10px] text-red-600">
+                      <td className="px-2 py-1 border-b border-[var(--border)] text-[10px] text-[var(--danger)]">
                         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                         {o.outlierColumns.map((oc: any, ocIdx: number) => {
                           // Human-readable column name: strip prefix, replace _ with space, title case
@@ -1373,12 +1444,14 @@ function RichContentRenderer({
                           return (
                             <span key={ocIdx}>
                               {ocIdx > 0 && (
-                                <span className="mx-1 text-gray-300">|</span>
+                                <span className="mx-1 text-[var(--text-muted)]">
+                                  |
+                                </span>
                               )}
                               <span
                                 className={
                                   Math.abs(oc.zScore) >= 3
-                                    ? "text-red-700 font-semibold"
+                                    ? "text-[var(--danger)] font-semibold"
                                     : ""
                                 }
                               >
@@ -1400,7 +1473,7 @@ function RichContentRenderer({
             </table>
           </div>
           {anomalyData.totalOutliers > 30 && (
-            <p className="text-[10px] text-gray-400 mt-1">
+            <p className="text-[10px] text-[var(--text-muted)] mt-1">
               Showing 30 of {anomalyData.totalOutliers} outlier rows
             </p>
           )}
@@ -1414,7 +1487,7 @@ function RichContentRenderer({
         <div className="mt-1">
           <Suspense
             fallback={
-              <div className="text-xs text-gray-400">
+              <div className="text-xs text-[var(--text-muted)]">
                 Loading trend chart...
               </div>
             }
@@ -1439,19 +1512,19 @@ function RichContentRenderer({
           {dupData.groups.slice(0, 10).map((group: any, gi: number) => (
             <div
               key={gi}
-              className="border border-amber-200 rounded p-2 bg-amber-50/30"
+              className="border border-[var(--warning)] rounded p-2 bg-[var(--warning-subtle)]/30"
             >
-              <div className="font-medium text-amber-800 mb-1">
+              <div className="font-medium text-[var(--warning)] mb-1">
                 Group {gi + 1} ({group.duplicates.length + 1} rows, similarity:{" "}
                 {(group.similarity * 100).toFixed(0)}%)
               </div>
-              <div className="text-[10px] text-gray-600">
+              <div className="text-[10px] text-[var(--text-secondary)]">
                 <div className="font-medium">
                   Original: {JSON.stringify(group.canonical).slice(0, 120)}...
                 </div>
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {group.duplicates.slice(0, 3).map((d: any, di: number) => (
-                  <div key={di} className="text-amber-700 ml-3">
+                  <div key={di} className="text-[var(--warning)] ml-3">
                     Dup: {JSON.stringify(d).slice(0, 120)}...
                   </div>
                 ))}
@@ -1459,7 +1532,7 @@ function RichContentRenderer({
             </div>
           ))}
           {dupData.groups.length > 10 && (
-            <p className="text-[10px] text-gray-400">
+            <p className="text-[10px] text-[var(--text-muted)]">
               Showing 10 of {dupData.groups.length} duplicate groups
             </p>
           )}
@@ -1478,23 +1551,23 @@ function RichContentRenderer({
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {missingCols.map((c: any, i: number) => (
               <div key={i} className="flex items-center gap-2">
-                <span className="w-24 truncate font-medium text-gray-700">
+                <span className="w-24 truncate font-medium text-[var(--text-primary)]">
                   {c.column}
                 </span>
-                <div className="flex-1 h-3 bg-gray-100 rounded overflow-hidden">
+                <div className="flex-1 h-3 bg-[var(--bg-secondary)] rounded overflow-hidden">
                   <div
-                    className="h-full bg-red-400 rounded"
+                    className="h-full bg-[var(--danger)] rounded"
                     style={{ width: `${Math.min(c.nullPercent, 100)}%` }}
                   />
                 </div>
-                <span className="w-12 text-right text-gray-500">
+                <span className="w-12 text-right text-[var(--text-secondary)]">
                   {c.nullPercent.toFixed(1)}%
                 </span>
               </div>
             ))}
           </div>
           {missingCols.length === 0 && (
-            <p className="text-gray-400">No missing values found</p>
+            <p className="text-[var(--text-muted)]">No missing values found</p>
           )}
         </div>
       );
@@ -1509,7 +1582,7 @@ function RichContentRenderer({
             {clusterData.clusters.map((c: any, i: number) => (
               <span
                 key={i}
-                className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200"
+                className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--brand-subtle)] text-[var(--brand)] border border-[var(--brand)]"
               >
                 Cluster {i + 1}: {c.size} rows — {c.label}
               </span>
@@ -1517,7 +1590,7 @@ function RichContentRenderer({
           </div>
           <Suspense
             fallback={
-              <div className="text-xs text-gray-400">
+              <div className="text-xs text-[var(--text-muted)]">
                 Loading scatter plot...
               </div>
             }
@@ -1539,7 +1612,7 @@ function RichContentRenderer({
         <div className="mt-1">
           <Suspense
             fallback={
-              <div className="text-xs text-gray-400">
+              <div className="text-xs text-[var(--text-muted)]">
                 Loading decision tree...
               </div>
             }
@@ -1561,7 +1634,7 @@ function RichContentRenderer({
         <div className="mt-1">
           <Suspense
             fallback={
-              <div className="text-xs text-gray-400">
+              <div className="text-xs text-[var(--text-muted)]">
                 Loading forecast chart...
               </div>
             }
@@ -1581,18 +1654,18 @@ function RichContentRenderer({
       return (
         <div className="mt-1">
           <div className="flex gap-2 mb-2">
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--brand-subtle)] text-[var(--brand)] border border-[var(--brand)]">
               PC1: {((pcaData.varianceExplained?.[0] ?? 0) * 100).toFixed(1)}%
               variance
             </span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--brand-subtle)] text-[var(--brand)] border border-[var(--brand)]">
               PC2: {((pcaData.varianceExplained?.[1] ?? 0) * 100).toFixed(1)}%
               variance
             </span>
           </div>
           <Suspense
             fallback={
-              <div className="text-xs text-gray-400">
+              <div className="text-xs text-[var(--text-muted)]">
                 Loading PCA scatter...
               </div>
             }
@@ -1616,7 +1689,7 @@ function RichContentRenderer({
             {reportData.sections?.map((s: string, i: number) => (
               <span
                 key={i}
-                className="px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200 text-[10px]"
+                className="px-2 py-0.5 rounded-full bg-[var(--success-subtle)] text-[var(--success)] border border-[var(--success)] text-[10px]"
               >
                 {s}
               </span>
@@ -1633,7 +1706,7 @@ function RichContentRenderer({
                 a.click();
                 URL.revokeObjectURL(url);
               }}
-              className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs text-blue-700 hover:bg-blue-100 transition-colors"
+              className="inline-flex items-center gap-1 rounded border border-[var(--brand)] bg-[var(--brand-subtle)] px-3 py-1.5 text-xs text-[var(--brand)] hover:bg-[var(--brand-subtle)] transition-colors"
             >
               Download HTML Report
             </button>
@@ -1649,7 +1722,7 @@ function RichContentRenderer({
                 a.click();
                 URL.revokeObjectURL(url);
               }}
-              className="inline-flex items-center gap-1 rounded border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-100 transition-colors"
+              className="inline-flex items-center gap-1 rounded border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-1.5 text-xs text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
             >
               Download CSV Summary
             </button>
@@ -1721,6 +1794,8 @@ function QueryResultTable({
   displayMode,
   compactAuto = true,
   diffInfo,
+  savedChartType,
+  onChartTypeChange,
 }: {
   result: QueryResultData & {
     chartConfig?: Record<string, unknown>;
@@ -1751,6 +1826,8 @@ function QueryResultTable({
     removedRows: Record<string, unknown>[];
     totalChanges: number;
   };
+  savedChartType?: string;
+  onChartTypeChange?: (type: string) => void;
 }) {
   const [pageRange, setPageRange] = useState({ start: 0, end: 10 });
   const [sortCol, setSortCol] = useState<string | null>(null);
@@ -1942,7 +2019,7 @@ function QueryResultTable({
 
   return (
     <div className="mt-1 text-xs">
-      <div className="flex items-center gap-2 text-gray-500">
+      <div className="flex items-center gap-2 text-[var(--text-secondary)]">
         <span>
           {result.rowCount} rows in {result.executionTime}ms
         </span>
@@ -1950,7 +2027,7 @@ function QueryResultTable({
           <button
             onClick={handleInlineSave}
             disabled={saving}
-            className="px-2 py-0.5 rounded text-[10px] font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--brand)] text-white hover:bg-[var(--brand)] disabled:opacity-50 transition-colors"
           >
             {saving
               ? "Saving..."
@@ -1959,7 +2036,7 @@ function QueryResultTable({
         )}
         {saveMsg && (
           <span
-            className={`text-[10px] ${saveMsg.startsWith("Error") ? "text-red-500" : "text-green-600"}`}
+            className={`text-[10px] ${saveMsg.startsWith("Error") ? "text-[var(--danger)]" : "text-[var(--success)]"}`}
           >
             {saveMsg}
           </span>
@@ -1969,8 +2046,8 @@ function QueryResultTable({
             onClick={() => setShowSummary((s) => !s)}
             className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
               showSummary
-                ? "bg-blue-100 text-blue-700"
-                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                ? "bg-[var(--brand-subtle)] text-[var(--brand)]"
+                : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
             }`}
             title={
               showSummary
@@ -1991,8 +2068,8 @@ function QueryResultTable({
                 onClick={() => setAutoTab("table")}
                 className={`px-2 py-0.5 text-[10px] font-medium rounded-l-md border transition-colors ${
                   autoTab === "table"
-                    ? "bg-blue-50 text-blue-700 border-blue-300"
-                    : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+                    ? "bg-[var(--brand-subtle)] text-[var(--brand)] border-[var(--brand)]"
+                    : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-secondary)]"
                 }`}
               >
                 Table
@@ -2001,8 +2078,8 @@ function QueryResultTable({
                 onClick={() => setAutoTab("chart")}
                 className={`px-2 py-0.5 text-[10px] font-medium rounded-r-md border border-l-0 transition-colors ${
                   autoTab === "chart"
-                    ? "bg-blue-50 text-blue-700 border-blue-300"
-                    : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+                    ? "bg-[var(--brand-subtle)] text-[var(--brand)] border-[var(--brand)]"
+                    : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-secondary)]"
                 }`}
               >
                 Chart
@@ -2016,17 +2093,19 @@ function QueryResultTable({
             : displayMode !== "chart") && (
             <>
               <div className="mt-1 overflow-x-auto">
-                <table className="min-w-full text-xs border border-gray-200 rounded">
+                <table className="min-w-full text-xs border border-[var(--border)] rounded">
                   <thead>
-                    <tr className="bg-gray-50">
+                    <tr className="bg-[var(--bg-secondary)]">
                       {columns.map((key) => {
                         const hasDrillDown = drillDownMap.has(key);
                         const isSorted = sortCol === key;
                         return (
                           <th
                             key={key}
-                            className={`px-2 py-1 text-left font-medium border-b cursor-pointer select-none hover:bg-gray-100 ${
-                              hasDrillDown ? "text-blue-600" : "text-gray-600"
+                            className={`px-2 py-1 text-left font-medium border-b cursor-pointer select-none hover:bg-[var(--bg-secondary)] ${
+                              hasDrillDown
+                                ? "text-[var(--brand)]"
+                                : "text-[var(--text-secondary)]"
                             }`}
                             title={
                               hasDrillDown
@@ -2038,10 +2117,10 @@ function QueryResultTable({
                             <span className="inline-flex items-center gap-0.5">
                               {key}
                               {hasDrillDown && (
-                                <ArrowRight className="w-3 h-3 text-blue-400" />
+                                <ArrowRight className="w-3 h-3 text-[var(--brand)]" />
                               )}
                               {isSorted && (
-                                <span className="text-blue-500 text-[9px] ml-0.5">
+                                <span className="text-[var(--brand)] text-[9px] ml-0.5">
                                   {sortDir === "asc" ? "▲" : "▼"}
                                 </span>
                               )}
@@ -2062,14 +2141,14 @@ function QueryResultTable({
                       const rowChangedCells =
                         diffInfo?.changedCells.get(actualRowIdx);
                       const diffRowClass = isAddedRow
-                        ? "bg-green-50"
+                        ? "bg-[var(--success-subtle)]"
                         : isChangedRow
-                          ? "bg-amber-50/50"
+                          ? "bg-[var(--warning-subtle)]/50"
                           : "";
                       return (
                         <tr
                           key={i}
-                          className={`border-b border-gray-100 ${highlighted ? "bg-yellow-50" : diffRowClass}`}
+                          className={`border-b border-[var(--border)] ${highlighted ? "bg-[var(--warning-subtle)]" : diffRowClass}`}
                         >
                           {Object.entries(row).map(([key, val], j) => {
                             const dd = drillDownMap.get(key);
@@ -2095,20 +2174,20 @@ function QueryResultTable({
                                 String(displayVal ?? "").trim() !== "");
                             const numColor =
                               !hasDrillDown && isNumeric && numVal < 0
-                                ? "text-red-600 dark:text-red-400"
+                                ? "text-[var(--danger)] dark:text-[var(--danger)]"
                                 : "";
                             return (
                               <td
                                 key={j}
                                 className={`px-2 py-1 ${
                                   hasDrillDown
-                                    ? "text-blue-600 underline decoration-dotted cursor-pointer hover:bg-blue-50 hover:text-blue-800"
+                                    ? "text-[var(--brand)] underline decoration-dotted cursor-pointer hover:bg-[var(--brand-subtle)] hover:text-[var(--brand)]"
                                     : hasEventClick
-                                      ? "cursor-pointer hover:bg-blue-50"
+                                      ? "cursor-pointer hover:bg-[var(--brand-subtle)]"
                                       : editable
                                         ? "cursor-cell"
                                         : ""
-                                } ${numColor} ${highlighted && String(val) === highlightValue ? "bg-yellow-100 font-semibold" : ""} ${cellDirty ? "bg-amber-50" : ""} ${cellPrevValue !== undefined ? "bg-yellow-100 ring-1 ring-inset ring-yellow-300" : ""} ${isAddedRow ? "bg-green-50" : ""}`}
+                                } ${numColor} ${highlighted && String(val) === highlightValue ? "bg-[var(--warning-subtle)] font-semibold" : ""} ${cellDirty ? "bg-[var(--warning-subtle)]" : ""} ${cellPrevValue !== undefined ? "bg-[var(--warning-subtle)] ring-1 ring-inset ring-[var(--warning)]" : ""} ${isAddedRow ? "bg-[var(--success-subtle)]" : ""}`}
                                 onClick={() => {
                                   if (hasDrillDown) {
                                     onDrillDown!(
@@ -2149,7 +2228,7 @@ function QueryResultTable({
                                       else if (e.key === "Escape")
                                         setEditingCell(null);
                                     }}
-                                    className="w-full px-1 py-0 text-xs border border-blue-400 rounded outline-none bg-white"
+                                    className="w-full px-1 py-0 text-xs border border-[var(--brand)] rounded outline-none bg-[var(--bg-primary)]"
                                   />
                                 ) : (
                                   formatCellValue(displayVal)
@@ -2163,7 +2242,7 @@ function QueryResultTable({
                   </tbody>
                   {showSummary && summaryStats && (
                     <tfoot>
-                      <tr className="bg-gray-100 border-t-2 border-gray-300">
+                      <tr className="bg-[var(--bg-secondary)] border-t-2 border-[var(--border)]">
                         {columns.map((col) => {
                           const s = summaryStats[col];
                           if (!s)
@@ -2172,16 +2251,16 @@ function QueryResultTable({
                             return (
                               <td
                                 key={col}
-                                className="px-2 py-1.5 font-semibold text-gray-700"
+                                className="px-2 py-1.5 font-semibold text-[var(--text-primary)]"
                               >
                                 <div className="leading-tight">
-                                  <span className="text-[10px] text-gray-400">
+                                  <span className="text-[10px] text-[var(--text-muted)]">
                                     Sum{" "}
                                   </span>
                                   <span>{s.sum.toLocaleString()}</span>
                                 </div>
                                 <div className="leading-tight">
-                                  <span className="text-[10px] text-gray-400">
+                                  <span className="text-[10px] text-[var(--text-muted)]">
                                     Avg{" "}
                                   </span>
                                   <span>{s.avg!.toLocaleString()}</span>
@@ -2192,7 +2271,7 @@ function QueryResultTable({
                           return (
                             <td
                               key={col}
-                              className="px-2 py-1.5 text-gray-500 italic"
+                              className="px-2 py-1.5 text-[var(--text-secondary)] italic"
                             >
                               {s.distinct} unique
                             </td>

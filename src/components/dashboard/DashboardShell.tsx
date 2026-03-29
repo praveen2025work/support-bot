@@ -10,20 +10,21 @@ import { RecentQueriesPanel } from "./RecentQueriesPanel";
 import { AddFavoriteModal } from "./AddFavoriteModal";
 import { AddCardModal } from "./AddCardModal";
 import { DashboardSelector } from "./DashboardSelector";
-import { SearchBar } from "./SearchBar";
+// SearchBar moved behind Cmd+K or removed from toolbar — import retained for potential future use
+// import { SearchBar } from "./SearchBar";
 import {
   DashboardProvider,
   useDashboardContext,
 } from "@/contexts/DashboardContext";
 import type { QueryInfo } from "@/types/dashboard";
-import { X, Monitor, Settings2, CalendarClock } from "lucide-react";
+import { X } from "lucide-react";
 import { useStompNotifications } from "@/hooks/useStompNotifications";
 import { ShareModal } from "./ShareModal";
 import { ScheduleModal, type ScheduleConfig } from "./ScheduleModal";
 import { ActionPanel, type ActionPanelConfig } from "./ActionPanel";
-import { FilterPresetsBar } from "./GridDashboard";
+// FilterPresetsBar removed from toolbar — import retained for potential future use
+// import { FilterPresetsBar } from "./GridDashboard";
 import { ParameterBar } from "./ParameterBar";
-import { KpiCard } from "./KpiCard";
 import { DashboardSettingsModal } from "./DashboardSettingsModal";
 import { SlidersHorizontal } from "lucide-react";
 import { KpiStrip } from "@/components/dashboard/KpiStrip";
@@ -163,6 +164,7 @@ function DashboardShellInner({
   const [schedules, setSchedules] = useState<ScheduleConfig[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [presentationMode, setPresentationMode] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // STOMP WebSocket for real-time dashboard card refresh
   const stompBrokerUrl =
@@ -454,13 +456,69 @@ function DashboardShellInner({
   const isReadOnly = !!multiDashboard.activeDashboard?.simpleMode || isViewOnly;
 
   const dashboardContent = (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[var(--bg-secondary)]">
       <ContextualTopBar
         title={multiDashboard.activeDashboard?.name ?? "Dashboard"}
         groups={groups}
         activeGroupId={groupId}
         onGroupChange={setGroupId}
       >
+        {/* Dashboard selector — compact pill in top bar */}
+        <DashboardSelector
+          dashboards={multiDashboard.dashboards}
+          activeDashboardId={multiDashboard.activeDashboard?.id}
+          onSelect={handleDashboardSelect}
+          onCreate={handleCreateDashboard}
+          onDelete={handleDeleteDashboard}
+          onRename={(id, name) => multiDashboard.renameDashboard(id, name)}
+          onExport={handleExport}
+          onImport={(data) => multiDashboard.importDashboard(data)}
+          onShare={(id) => setShareTargetId(id)}
+          sharedDashboards={multiDashboard.sharedDashboards}
+        />
+
+        {/* Filters toggle — compact pill */}
+        {isGridView &&
+          multiDashboard.activeDashboard?.parameters &&
+          multiDashboard.activeDashboard.parameters.length > 0 && (
+            <button
+              onClick={() => setFiltersOpen((prev) => !prev)}
+              className={`text-[11px] px-2.5 py-1 rounded-[var(--radius-md)] border transition-colors ${
+                filtersOpen
+                  ? "bg-[var(--brand-subtle)] text-[var(--brand)] border-[var(--brand)]"
+                  : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-tertiary)]"
+              }`}
+              title="Toggle filters panel"
+            >
+              <span className="inline-flex items-center gap-1">
+                <SlidersHorizontal size={12} />
+                Filters
+              </span>
+            </button>
+          )}
+
+        {/* Simple/Interactive toggle */}
+        {isGridView && (
+          <button
+            onClick={() => {
+              if (multiDashboard.activeDashboard) {
+                multiDashboard.toggleSimpleMode(
+                  multiDashboard.activeDashboard.id,
+                );
+              }
+            }}
+            className={`text-[11px] px-2.5 py-1 rounded-[var(--radius-md)] border transition-colors ${
+              multiDashboard.activeDashboard?.simpleMode
+                ? "bg-[var(--brand-subtle)] text-[var(--brand)] border-[var(--brand)]"
+                : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-tertiary)]"
+            }`}
+          >
+            {multiDashboard.activeDashboard?.simpleMode
+              ? "Simple"
+              : "Interactive"}
+          </button>
+        )}
+
         {isGridView && !isReadOnly && (
           <>
             <button
@@ -493,184 +551,93 @@ function DashboardShellInner({
         />
       )}
 
-      <div className="px-6 pt-4 pb-2 flex flex-wrap items-center gap-3">
-        {/* Dashboard selector */}
-        <DashboardSelector
-          dashboards={multiDashboard.dashboards}
-          activeDashboardId={multiDashboard.activeDashboard?.id}
-          onSelect={handleDashboardSelect}
-          onCreate={handleCreateDashboard}
-          onDelete={handleDeleteDashboard}
-          onRename={(id, name) => multiDashboard.renameDashboard(id, name)}
-          onExport={handleExport}
-          onImport={(data) => multiDashboard.importDashboard(data)}
-          onShare={(id) => setShareTargetId(id)}
-          sharedDashboards={multiDashboard.sharedDashboards}
-        />
-
-        {/* Simple mode toggle — owner only */}
-        {isGridView && multiDashboard.activeDashboard && !isViewOnly && (
-          <button
-            onClick={() =>
-              multiDashboard.toggleSimpleMode(
-                multiDashboard.activeDashboard!.id,
-              )
-            }
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-              multiDashboard.activeDashboard.simpleMode
-                ? "bg-green-50 text-green-700 border-green-300"
-                : "text-gray-600 bg-white border-gray-200 hover:bg-gray-50"
-            }`}
-            title={
-              multiDashboard.activeDashboard.simpleMode
-                ? "Switch to interactive mode"
-                : "Switch to simple/read-only mode"
-            }
-          >
-            {multiDashboard.activeDashboard.simpleMode ? (
-              <>
-                <Monitor size={14} />
-                Simple
-              </>
-            ) : (
-              <>
-                <Settings2 size={14} />
-                Interactive
-              </>
-            )}
-          </button>
-        )}
-
-        {/* View-only indicator for shared dashboards */}
-        {isGridView && isViewOnly && (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg">
-            View Only
-          </span>
-        )}
-
-        {/* Schedule Reports */}
-        {isGridView && multiDashboard.activeDashboard && !isReadOnly && (
-          <button
-            onClick={() => setShowSchedule(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            title="Scheduled Reports"
-          >
-            <CalendarClock size={14} />
-            Schedule
-          </button>
-        )}
-
-        {/* Dashboard Settings — KPI tiles & parameters */}
-        {isGridView && multiDashboard.activeDashboard && !isReadOnly && (
-          <button
-            onClick={() => setShowDashSettings(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            title="Configure KPI tiles and parameters"
-          >
-            <SlidersHorizontal size={14} />
-            Settings
-          </button>
-        )}
-
-        <div className="flex-1 min-w-[200px]">
-          <SearchBar
-            groupId={groupId}
-            onSelect={(queryName) => {
-              window.location.href = `/?q=run+${encodeURIComponent(queryName)}`;
-            }}
-          />
-        </div>
-
-        {/* Filter Presets — inline next to search */}
-        {isGridView && multiDashboard.activeDashboard && !isReadOnly && (
-          <FilterPresetsBar />
-        )}
-
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-500 whitespace-nowrap">
-            Business Date:
-          </label>
-          <input
-            type="date"
-            value={businessDate || ""}
-            onChange={(e) => setBusinessDate(e.target.value || null)}
-            className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-          {businessDate && (
+      {/* Active filter pills — compact row, only shown when filters or events are active */}
+      {(activeEvents.length > 0 ||
+        Object.keys(sharedFilters).length > 0 ||
+        isViewOnly) && (
+        <div className="px-6 pt-2 pb-1 flex flex-wrap items-center gap-2">
+          {/* View-only indicator for shared dashboards */}
+          {isGridView && isViewOnly && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full">
+              View Only
+            </span>
+          )}
+          {activeEvents.length > 0 && !isReadOnly && (
+            <>
+              {activeEvents.map((evt) => (
+                <span
+                  key={`${evt.column}-${evt.value}`}
+                  className="inline-flex items-center gap-1 rounded-full bg-yellow-50 border border-yellow-300 px-2.5 py-1 text-[11px] text-yellow-700"
+                >
+                  {evt.column}={evt.value}
+                </span>
+              ))}
+              <button
+                onClick={clearAllEvents}
+                className="text-[11px] text-yellow-600 hover:text-yellow-800 underline"
+              >
+                Clear all
+              </button>
+            </>
+          )}
+          {Object.keys(sharedFilters).length > 0 && !isReadOnly && (
             <button
-              onClick={() => setBusinessDate(null)}
-              className="text-[10px] text-gray-400 hover:text-gray-600"
-              title="Clear date filter"
+              onClick={clearSharedFilters}
+              className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-subtle)] border border-[var(--border)] px-2.5 py-1 text-[11px] text-[var(--brand)] hover:opacity-80 transition-colors"
             >
-              Clear
+              Clear shared filters ({Object.keys(sharedFilters).length})
+              <X size={12} />
             </button>
           )}
         </div>
-        {activeEvents.length > 0 && !isReadOnly && (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {activeEvents.map((evt) => (
-              <span
-                key={`${evt.column}-${evt.value}`}
-                className="inline-flex items-center gap-1 rounded-full bg-yellow-50 border border-yellow-300 px-2.5 py-1 text-[11px] text-yellow-700"
-              >
-                {evt.column}={evt.value}
-              </span>
-            ))}
-            <button
-              onClick={clearAllEvents}
-              className="text-[11px] text-yellow-600 hover:text-yellow-800 underline"
-            >
-              Clear all
-            </button>
-          </div>
-        )}
-        {Object.keys(sharedFilters).length > 0 && !isReadOnly && (
-          <button
-            onClick={clearSharedFilters}
-            className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2.5 py-1 text-[11px] text-blue-600 hover:bg-blue-100 transition-colors"
-          >
-            Clear shared filters ({Object.keys(sharedFilters).length})
-            <X size={12} />
-          </button>
-        )}
-      </div>
+      )}
 
-      {/* Parameter Bar — global dashboard filters */}
+      {/* Parameter Bar — global dashboard filters (collapsible, toggled from top bar) */}
       {isGridView &&
         multiDashboard.activeDashboard?.parameters &&
         multiDashboard.activeDashboard.parameters.length > 0 && (
           <div className="px-6 pt-2">
-            <ParameterBar
-              parameters={multiDashboard.activeDashboard.parameters.map((p) => {
-                const colKey = p.key || p.name;
-                const dynamicOpts = paramOptions[colKey];
-                if (dynamicOpts && p.type === "select" && !p.options?.length) {
-                  return { ...p, options: dynamicOpts };
-                }
-                return p;
-              })}
-              values={paramValues}
-              onChange={handleParamChange}
-              onApply={() => {
-                // Inject param values as shared filters so all cards pick them up
-                clearSharedFilters();
-                for (const [key, val] of Object.entries(paramValues)) {
-                  if (val) {
-                    setSharedFilter(key, val);
-                  }
-                }
-              }}
-              onReset={() => {
-                const defaults: Record<string, string> = {};
-                for (const p of multiDashboard.activeDashboard?.parameters ??
-                  []) {
-                  defaults[p.name] = p.defaultValue;
-                }
-                setParamValues(defaults);
-                // Clear shared filters so all cards and KPIs reset to unfiltered
-                clearSharedFilters();
-              }}
-            />
+            {filtersOpen && (
+              <div>
+                <ParameterBar
+                  parameters={multiDashboard.activeDashboard.parameters.map(
+                    (p) => {
+                      const colKey = p.key || p.name;
+                      const dynamicOpts = paramOptions[colKey];
+                      if (
+                        dynamicOpts &&
+                        p.type === "select" &&
+                        !p.options?.length
+                      ) {
+                        return { ...p, options: dynamicOpts };
+                      }
+                      return p;
+                    },
+                  )}
+                  values={paramValues}
+                  onChange={handleParamChange}
+                  onApply={() => {
+                    // Inject param values as shared filters so all cards pick them up
+                    clearSharedFilters();
+                    for (const [key, val] of Object.entries(paramValues)) {
+                      if (val) {
+                        setSharedFilter(key, val);
+                      }
+                    }
+                  }}
+                  onReset={() => {
+                    const defaults: Record<string, string> = {};
+                    for (const p of multiDashboard.activeDashboard
+                      ?.parameters ?? []) {
+                      defaults[p.name] = p.defaultValue;
+                    }
+                    setParamValues(defaults);
+                    // Clear shared filters so all cards and KPIs reset to unfiltered
+                    clearSharedFilters();
+                  }}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -713,40 +680,14 @@ function DashboardShellInner({
         />
       )}
 
-      {/* KPI Scorecard Cards row */}
-      {isGridView &&
-        multiDashboard.activeDashboard?.kpiCards &&
-        multiDashboard.activeDashboard.kpiCards.length > 0 && (
-          <div className="px-6 pt-3">
-            <div className="flex flex-wrap gap-2">
-              {multiDashboard.activeDashboard.kpiCards.map((kpi, i) => {
-                const kpiData = kpiValues[kpi.title];
-                return (
-                  <KpiCard
-                    key={kpi.title + i}
-                    title={kpi.title}
-                    value={kpiData?.value ?? 0}
-                    previousValue={kpiData?.previousValue}
-                    sparklineData={kpiData?.sparkline}
-                    prefix={kpi.prefix}
-                    unit={kpi.unit}
-                    format={kpi.format}
-                    thresholds={kpi.thresholds}
-                    trendLabel={kpi.trendLabel}
-                    color={kpi.color}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        )}
+      {/* KPI Scorecard Cards row — removed: KpiStrip above replaces this */}
 
       <div className="px-6 py-6 space-y-6">
         {isGridView && multiDashboard.activeDashboard ? (
           /* Grid Dashboard View */
           <Suspense
             fallback={
-              <div className="text-center py-12 text-gray-400 text-sm">
+              <div className="text-center py-12 text-[var(--text-muted)] text-sm">
                 Loading grid...
               </div>
             }
@@ -824,7 +765,7 @@ function DashboardShellInner({
                 <div className="flex justify-center gap-3">
                   <button
                     onClick={() => setShowAddCard(true)}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                    className="px-4 py-2 bg-[var(--brand)] text-white text-sm rounded-[var(--radius-lg)] hover:opacity-90"
                   >
                     Add a Card
                   </button>
@@ -834,7 +775,7 @@ function DashboardShellInner({
                         multiDashboard.activeDashboard!.id,
                       )
                     }
-                    className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-100"
+                    className="px-4 py-2 border border-[var(--border)] text-[var(--text-primary)] text-sm rounded-[var(--radius-lg)] hover:bg-[var(--bg-secondary)]"
                   >
                     Import from Favorites
                   </button>
@@ -845,7 +786,7 @@ function DashboardShellInner({
           /* Legacy Favorites/Recents View */
           <>
             {dashboard.loading ? (
-              <div className="text-center py-12 text-gray-400 text-sm">
+              <div className="text-center py-12 text-[var(--text-muted)] text-sm">
                 Loading your dashboard...
               </div>
             ) : isEmpty ? (
@@ -982,31 +923,31 @@ function EmptyState({
   return (
     <div className="text-center py-16">
       <div className="text-4xl mb-4">&#128202;</div>
-      <h2 className="text-lg font-semibold text-gray-700 mb-2">
+      <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
         Your Dashboard is Empty
       </h2>
-      <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+      <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-md mx-auto">
         Add favorite queries for quick access, create a grid dashboard, or start
         chatting to build your recent history.
       </p>
       <div className="flex gap-3 justify-center">
         <button
           onClick={onAddFavorite}
-          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 bg-[var(--brand)] text-white text-sm rounded-[var(--radius-lg)] hover:opacity-90 transition-colors"
         >
           Add a Favorite
         </button>
         {onCreateDashboard && (
           <button
             onClick={onCreateDashboard}
-            className="px-4 py-2 border border-blue-300 text-blue-600 text-sm rounded-lg hover:bg-blue-50 transition-colors"
+            className="px-4 py-2 border border-[var(--border)] text-[var(--brand)] text-sm rounded-[var(--radius-lg)] hover:bg-[var(--brand-subtle)] transition-colors"
           >
             Create Dashboard
           </button>
         )}
         <Link
           href="/"
-          className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-100 transition-colors"
+          className="px-4 py-2 border border-[var(--border)] text-[var(--text-primary)] text-sm rounded-[var(--radius-lg)] hover:bg-[var(--bg-secondary)] transition-colors"
         >
           Open Chat
         </Link>

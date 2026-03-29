@@ -75,7 +75,7 @@ export function ChatInput({
 
   const displayControls = hasResults && onDisplayModeChange && (
     <div className="flex items-center gap-1">
-      <div className="flex items-center gap-0.5 bg-gray-100 rounded-md p-0.5">
+      <div className="flex items-center gap-0.5 bg-[var(--bg-secondary)] rounded-md p-0.5">
         {DISPLAY_OPTIONS.map((opt) => {
           const Icon = opt.icon;
           const active = displayMode === opt.value;
@@ -85,13 +85,12 @@ export function ChatInput({
               onClick={() => onDisplayModeChange(opt.value)}
               className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
                 active
-                  ? "bg-white text-blue-700 shadow-sm"
-                  : "text-gray-400 hover:text-gray-600"
+                  ? "bg-[var(--bg-primary)] text-[var(--brand)] shadow-sm"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
               }`}
               title={`${opt.label} view`}
             >
-              <Icon size={10} />
-              {opt.label}
+              <Icon size={12} />
             </button>
           );
         })}
@@ -99,7 +98,7 @@ export function ChatInput({
       {displayMode === "auto" && onCompactAutoChange && (
         <button
           onClick={() => onCompactAutoChange(!compactAuto)}
-          className="flex items-center gap-0.5 text-[10px] text-gray-400 hover:text-gray-600 transition-colors"
+          className="flex items-center gap-0.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
           title={
             compactAuto
               ? "Compact: tab toggle (click to stack)"
@@ -107,18 +106,17 @@ export function ChatInput({
           }
         >
           {compactAuto ? (
-            <ToggleRight size={12} className="text-blue-500" />
+            <ToggleRight size={12} className="text-[var(--brand)]" />
           ) : (
             <ToggleLeft size={12} />
           )}
-          <span>{compactAuto ? "Compact" : "Stacked"}</span>
         </button>
       )}
     </div>
   );
 
   return (
-    <div className="sticky bottom-0 z-10 bg-white border-t border-gray-200 flex-shrink-0">
+    <div className="sticky bottom-0 z-10 bg-[var(--bg-primary)] border-t border-[var(--border)] flex-shrink-0">
       <div className="flex gap-2 p-3 pb-2">
         {/* Hidden file input */}
         <input
@@ -135,7 +133,7 @@ export function ChatInput({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled}
-            className="rounded-full p-2 text-gray-400 hover:text-blue-600 hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-full p-2 text-[var(--text-muted)] hover:text-[var(--brand)] hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title="Attach a file (CSV, Excel, PDF, DOCX)"
             aria-label="Attach file"
           >
@@ -149,12 +147,12 @@ export function ChatInput({
           onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
           placeholder="Type a message..."
           disabled={disabled}
-          className="flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+          className="flex-1 rounded-full border border-[var(--border)] px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:border-transparent disabled:opacity-50"
         />
         <button
           onClick={handleSubmit}
           disabled={disabled || !text.trim()}
-          className="rounded-full bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="rounded-full bg-[var(--brand)] px-4 py-2 text-sm text-[var(--brand-text)] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           Send
         </button>
@@ -166,7 +164,7 @@ export function ChatInput({
             {/* Widget: icon-only session buttons to save space */}
             <button
               onClick={onNewSession}
-              className="p-1.5 rounded-md text-gray-400 hover:text-blue-600 hover:bg-gray-100 transition-colors"
+              className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--brand)] hover:bg-[var(--bg-secondary)] transition-colors"
               title="New Session"
             >
               <Plus size={14} />
@@ -174,58 +172,53 @@ export function ChatInput({
             <button
               onClick={onClearChat}
               disabled={disabled}
-              className="p-1.5 rounded-md text-gray-400 hover:text-orange-500 hover:bg-gray-100 transition-colors disabled:opacity-50"
+              className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--warning)] hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-50"
               title="Clear Chat"
             >
               <Trash2 size={14} />
             </button>
             <button
               onClick={onDisconnect}
-              className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-gray-100 transition-colors"
+              className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--bg-secondary)] transition-colors"
               title="Disconnect"
             >
               <LogOut size={14} />
             </button>
             {displayControls && (
               <>
-                <span className="text-gray-200">|</span>
+                <span className="text-[var(--border)]">|</span>
                 {displayControls}
               </>
             )}
           </>
         ) : (
           <>
-            {/* Web: labeled session buttons */}
+            {/* Web: icon-only session buttons (compact for split view) */}
             <button
               onClick={onNewSession}
-              className="text-[11px] text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-1"
-              title="Start a new conversation session"
+              className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--brand)] hover:bg-[var(--bg-secondary)] transition-colors"
+              title="New Session"
             >
-              <Plus size={12} />
-              New Session
+              <Plus size={14} />
             </button>
-            <span className="text-gray-200">|</span>
             <button
               onClick={onClearChat}
               disabled={disabled}
-              className="text-[11px] text-gray-400 hover:text-orange-500 transition-colors flex items-center gap-1 disabled:opacity-50"
-              title="Clear all messages"
+              className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--warning)] hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-50"
+              title="Clear Chat"
             >
-              <Trash2 size={12} />
-              Clear Chat
+              <Trash2 size={14} />
             </button>
-            <span className="text-gray-200">|</span>
             <button
               onClick={onDisconnect}
-              className="text-[11px] text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1"
-              title="Disconnect and end session"
+              className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--bg-secondary)] transition-colors"
+              title="Disconnect"
             >
-              <LogOut size={12} />
-              Disconnect
+              <LogOut size={14} />
             </button>
             {displayControls && (
               <>
-                <span className="text-gray-200">|</span>
+                <span className="text-[var(--border)]">|</span>
                 {displayControls}
               </>
             )}

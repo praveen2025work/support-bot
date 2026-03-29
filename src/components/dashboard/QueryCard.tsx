@@ -955,11 +955,11 @@ export function QueryCard({
     <div
       className={
         hideHeader
-          ? "bg-white overflow-hidden flex flex-col h-full w-full group transition-shadow duration-150"
-          : `bg-white rounded-xl overflow-hidden flex flex-col resize flex-shrink-0 group transition-shadow duration-150 ${
+          ? "bg-[var(--bg-primary)] overflow-hidden flex flex-col h-full w-full group transition-shadow duration-150"
+          : `bg-[var(--bg-primary)] rounded-[var(--radius-lg)] overflow-hidden flex flex-col resize flex-shrink-0 group transition-shadow duration-150 ${
               isHovered
-                ? "border border-blue-300 shadow-lg"
-                : "border border-gray-200 shadow-sm"
+                ? "border border-[var(--brand)] shadow-[var(--shadow-md)]"
+                : "border border-[var(--border)] shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)]"
             }`
       }
       style={
@@ -980,19 +980,21 @@ export function QueryCard({
       {!hideHeader && (
         <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2 shrink-0">
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-gray-900 truncate">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)] truncate">
               {label}
             </h3>
-            <p className="text-xs text-gray-400 truncate">{queryName}</p>
+            <p className="text-xs text-[var(--text-muted)] truncate">
+              {queryName}
+            </p>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
             {hasFilters && !readOnly && (
               <button
                 onClick={() => setEditingFilters((prev) => !prev)}
-                className={`p-1.5 rounded-lg transition-colors ${
+                className={`p-1.5 rounded-[var(--radius-lg)] transition-colors ${
                   editingFilters
-                    ? "bg-blue-100 text-blue-600"
-                    : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                    ? "bg-[var(--brand-subtle)] text-[var(--brand)]"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
                 }`}
                 title="Edit filters"
               >
@@ -1014,11 +1016,11 @@ export function QueryCard({
 
       {/* Filter pills (compact view when not editing) */}
       {activeFilterEntries.length > 0 && !editingFilters && (
-        <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex flex-wrap gap-1 shrink-0">
+        <div className="px-4 py-2 bg-[var(--bg-secondary)] border-b border-[var(--border)] flex flex-wrap gap-1 shrink-0">
           {activeFilterEntries.map(([key, value]) => (
             <span
               key={key}
-              className="inline-flex items-center rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] text-blue-700"
+              className="inline-flex items-center rounded-full bg-[var(--brand-subtle)] border border-[var(--border)] px-2 py-0.5 text-[10px] text-[var(--brand)]"
             >
               {key}: {value}
             </span>
@@ -1026,7 +1028,7 @@ export function QueryCard({
           {hideHeader && hasFilters && !readOnly && (
             <button
               onClick={() => setEditingFilters(true)}
-              className="inline-flex items-center rounded-full bg-gray-100 border border-gray-300 px-2 py-0.5 text-[10px] text-gray-600 hover:bg-gray-200"
+              className="inline-flex items-center rounded-full bg-[var(--bg-secondary)] border border-[var(--border)] px-2 py-0.5 text-[10px] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
               title="Edit filters"
             >
               ✎ Edit
@@ -1041,10 +1043,10 @@ export function QueryCard({
         !readOnly &&
         activeFilterEntries.length === 0 &&
         !editingFilters && (
-          <div className="px-4 py-1.5 border-b border-gray-100 shrink-0">
+          <div className="px-4 py-1.5 border-b border-[var(--border)] shrink-0">
             <button
               onClick={() => setEditingFilters(true)}
-              className="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-blue-600"
+              className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--brand)]"
               title="Edit filters"
             >
               <Filter size={14} />
@@ -1055,23 +1057,23 @@ export function QueryCard({
 
       {/* Editable filter panel */}
       {editingFilters && !readOnly && (
-        <div className="px-4 py-3 bg-blue-50/50 border-b border-blue-100 space-y-2 shrink-0 overflow-y-auto max-h-48">
+        <div className="px-4 py-3 bg-[var(--brand-subtle)] border-b border-[var(--border)] space-y-2 shrink-0 overflow-y-auto max-h-48">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-gray-600">
+            <span className="text-[11px] font-medium text-[var(--text-secondary)]">
               Query Filters
             </span>
             <div className="flex items-center gap-2">
               {Object.keys(defaultFilters || {}).length > 0 && (
                 <button
                   onClick={handleResetFilters}
-                  className="text-[10px] text-blue-600 hover:underline"
+                  className="text-[10px] text-[var(--brand)] hover:underline"
                 >
                   Reset to defaults
                 </button>
               )}
               <button
                 onClick={() => setEditingFilters(false)}
-                className="p-0.5 text-gray-400 hover:text-gray-600 rounded"
+                className="p-0.5 text-[var(--text-muted)] hover:text-[var(--text-secondary)] rounded"
                 title="Close filters"
               >
                 <X size={14} />
@@ -1082,7 +1084,7 @@ export function QueryCard({
             const config = getConfig(filterKey);
             return (
               <div key={filterKey}>
-                <label className="block text-[11px] font-medium text-gray-500 mb-0.5">
+                <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-0.5">
                   {config.label}
                 </label>
                 <FilterInput
@@ -1102,7 +1104,7 @@ export function QueryCard({
             <button
               onClick={handleRun}
               disabled={isLoading}
-              className="flex-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              className="flex-1 px-3 py-1.5 text-xs font-medium text-white bg-[var(--brand)] rounded-[var(--radius-lg)] hover:opacity-90 transition-colors disabled:opacity-50"
             >
               {hasRun ? "Re-run with Filters" : "Run with Filters"}
             </button>
@@ -1110,7 +1112,7 @@ export function QueryCard({
               <button
                 onClick={handleSaveFilters}
                 disabled={saving}
-                className="px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50"
+                className="px-3 py-1.5 text-xs font-medium text-[var(--brand)] border border-[var(--border)] rounded-[var(--radius-lg)] hover:bg-[var(--brand-subtle)] transition-colors disabled:opacity-50"
               >
                 {saveSuccess
                   ? "Saved!"
@@ -1129,7 +1131,7 @@ export function QueryCard({
           <div className="px-4 py-3">
             <button
               onClick={handleRun}
-              className="w-full py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+              className="w-full py-2 text-sm font-medium text-[var(--brand)] border border-[var(--border)] rounded-[var(--radius-lg)] hover:bg-[var(--brand-subtle)] transition-colors"
             >
               Run Query
             </button>
@@ -1174,6 +1176,7 @@ export function QueryCard({
                   savedChartType={savedChartType}
                   onChartTypeChange={onChartTypeChange}
                   hideExecutionTime={hideHeader}
+                  dashboardMode
                   diffInfo={showDiff ? msg.diffInfo : undefined}
                 />
                 {/* Follow-up mode badge */}
@@ -1182,7 +1185,7 @@ export function QueryCard({
                     <span
                       className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium ${
                         msg.followUpMode === "local"
-                          ? "bg-blue-50 text-blue-600 border border-blue-200"
+                          ? "bg-[var(--brand-subtle)] text-[var(--brand)] border border-[var(--border)]"
                           : "bg-green-50 text-green-600 border border-green-200"
                       }`}
                     >
@@ -1202,7 +1205,7 @@ export function QueryCard({
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
                           showDiff
                             ? "bg-amber-50 text-amber-700 border border-amber-300"
-                            : "bg-gray-50 text-gray-500 border border-gray-200 hover:bg-amber-50 hover:text-amber-600"
+                            : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-amber-50 hover:text-amber-600"
                         }`}
                         title={
                           showDiff
@@ -1214,7 +1217,7 @@ export function QueryCard({
                         change{msg.diffInfo.totalChanges !== 1 ? "s" : ""}
                       </button>
                       {msg.diffInfo.previousTimestamp && (
-                        <span className="text-[9px] text-gray-400">
+                        <span className="text-[9px] text-[var(--text-muted)]">
                           vs{" "}
                           {msg.diffInfo.previousTimestamp.toLocaleTimeString()}
                         </span>
@@ -1227,7 +1230,7 @@ export function QueryCard({
                     <button
                       onClick={() => handleRerun(msg.originalQuery!)}
                       disabled={isLoading}
-                      className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-0.5 text-[10px] text-gray-500 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--bg-primary)] px-2 py-0.5 text-[10px] text-[var(--text-secondary)] hover:text-[var(--brand)] hover:border-[var(--brand)] hover:bg-[var(--brand-subtle)] transition-colors disabled:opacity-50"
                       title="Re-run this query for latest data"
                     >
                       <RefreshCw size={12} />
@@ -1239,7 +1242,7 @@ export function QueryCard({
             ))}
             {isLoading && (
               <div className="flex justify-start mb-3">
-                <div className="bg-gray-100 rounded-2xl px-4 py-3">
+                <div className="bg-[var(--bg-secondary)] rounded-2xl px-4 py-3">
                   <div className="flex items-center gap-1.5">
                     <div
                       className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
@@ -1262,63 +1265,69 @@ export function QueryCard({
         )}
       </div>
 
-      {/* Read-only action bar — always visible with just Refresh + Export */}
+      {/* Read-only action bar — hidden by default, appears on hover */}
       {readOnly && hasRun && (
-        <div className="shrink-0 bg-white border-t border-gray-200 px-3 py-2 flex items-center gap-1.5">
-          <button
-            onClick={() => sendMessage(`run ${queryName}`, mergedFilters)}
-            disabled={isLoading}
-            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
-            title="Refresh"
-          >
-            <RefreshCw size={14} />
-            Refresh
-          </button>
-          <button
-            onClick={handleCopy}
-            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
-            title="Copy to clipboard"
-          >
-            {copied ? <Check size={14} /> : <ClipboardCopy size={14} />}
-            {copied ? "Copied!" : "Copy"}
-          </button>
-          <button
-            onClick={() => {
-              const lastResult = [...messages]
-                .reverse()
-                .find(
+        <div
+          className={`shrink-0 overflow-hidden transition-all duration-200 ease-in-out ${
+            isHovered ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="bg-[var(--bg-primary)] border-t border-[var(--border)] px-3 py-2 flex items-center gap-1.5">
+            <button
+              onClick={() => sendMessage(`run ${queryName}`, mergedFilters)}
+              disabled={isLoading}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] bg-[var(--bg-secondary)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-40"
+              title="Refresh"
+            >
+              <RefreshCw size={14} />
+              Refresh
+            </button>
+            <button
+              onClick={handleCopy}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] bg-[var(--bg-secondary)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-40"
+              title="Copy to clipboard"
+            >
+              {copied ? <Check size={14} /> : <ClipboardCopy size={14} />}
+              {copied ? "Copied!" : "Copy"}
+            </button>
+            <button
+              onClick={() => {
+                const lastResult = [...messages]
+                  .reverse()
+                  .find(
+                    (m) =>
+                      m.role === "bot" &&
+                      m.richContent?.type === "query_result" &&
+                      m.richContent.data,
+                  );
+                if (lastResult?.richContent?.data) {
+                  const data = lastResult.richContent.data as {
+                    data?: Record<string, unknown>[];
+                  };
+                  if (data.data) exportToCsv(data.data, `${queryName}.csv`);
+                }
+              }}
+              disabled={
+                !messages.some(
                   (m) =>
                     m.role === "bot" &&
                     m.richContent?.type === "query_result" &&
                     m.richContent.data,
-                );
-              if (lastResult?.richContent?.data) {
-                const data = lastResult.richContent.data as {
-                  data?: Record<string, unknown>[];
-                };
-                if (data.data) exportToCsv(data.data, `${queryName}.csv`);
+                )
               }
-            }}
-            disabled={
-              !messages.some(
-                (m) =>
-                  m.role === "bot" &&
-                  m.richContent?.type === "query_result" &&
-                  m.richContent.data,
-              )
-            }
-            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
-            title="Export to CSV"
-          >
-            <FileDown size={14} />
-            Export
-          </button>
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] bg-[var(--bg-secondary)] rounded-md hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-40"
+              title="Export to CSV"
+            >
+              <FileDown size={14} />
+              Export
+            </button>
+          </div>
         </div>
       )}
 
       {/* Always-visible follow-up bar at bottom of card */}
       {!readOnly && hasRun && (
-        <div className="shrink-0 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 space-y-1.5">
+        <div className="shrink-0 border-t border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 space-y-1.5">
           {/* Suggestion chips from last bot response */}
           {(() => {
             const lastBot = [...messages]
@@ -1335,7 +1344,7 @@ export function QueryCard({
                 {chips.map((chip: string, i: number) => (
                   <span
                     key={i}
-                    className="group/chip inline-flex items-center rounded-full border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-[10px] text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/40 transition-colors whitespace-nowrap"
+                    className="group/chip inline-flex items-center rounded-full border border-[var(--border)] bg-[var(--brand-subtle)] text-[10px] text-[var(--brand)] hover:opacity-80 transition-colors whitespace-nowrap"
                   >
                     <button
                       onClick={() => {
@@ -1357,7 +1366,7 @@ export function QueryCard({
                           })
                           .catch(() => {});
                       }}
-                      className="pr-1.5 pl-0.5 py-0.5 text-blue-300 dark:text-blue-500 hover:text-blue-600 dark:hover:text-blue-300 transition-colors cursor-pointer"
+                      className="pr-1.5 pl-0.5 py-0.5 text-[var(--text-muted)] hover:text-[var(--brand)] transition-colors cursor-pointer"
                       title="Copy to clipboard"
                     >
                       {copiedChipIndex === i ? (
@@ -1386,12 +1395,12 @@ export function QueryCard({
                   : "Re-query with filters..."
               }
               disabled={isLoading}
-              className="flex-1 text-[11px] border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 rounded-md px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+              className="flex-1 text-[11px] border border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] rounded-md px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-[var(--brand)] focus:border-[var(--brand)] disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={isLoading || !followUpText.trim()}
-              className="px-2.5 py-1 text-[11px] font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+              className="px-2.5 py-1 text-[11px] font-medium text-white bg-[var(--brand)] rounded-md hover:opacity-90 transition-colors disabled:opacity-50"
             >
               Send
             </button>
@@ -1406,13 +1415,13 @@ export function QueryCard({
             isHovered ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
           }`}
         >
-          <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-3 py-2 space-y-2">
+          <div className="bg-[var(--bg-primary)] border-t border-[var(--border)] px-3 py-2 space-y-2">
             {/* Action buttons row */}
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => sendMessage(`run ${queryName}`, mergedFilters)}
                 disabled={isLoading || !hasRun}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] bg-[var(--bg-secondary)] rounded-md hover:opacity-80 transition-colors disabled:opacity-40"
                 title="Refresh"
               >
                 <RefreshCw size={14} />
@@ -1421,7 +1430,7 @@ export function QueryCard({
               <button
                 onClick={handleClear}
                 disabled={!hasRun}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] bg-[var(--bg-secondary)] rounded-md hover:opacity-80 transition-colors disabled:opacity-40"
                 title="Clear & Reset"
               >
                 <Trash2 size={14} />
@@ -1430,7 +1439,7 @@ export function QueryCard({
               <button
                 onClick={handleCopy}
                 disabled={!hasRun}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] bg-[var(--bg-secondary)] rounded-md hover:opacity-80 transition-colors disabled:opacity-40"
                 title="Copy to clipboard"
               >
                 {copied ? <Check size={14} /> : <ClipboardCopy size={14} />}
@@ -1463,7 +1472,7 @@ export function QueryCard({
                       m.richContent.data,
                   )
                 }
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-40"
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] bg-[var(--bg-secondary)] rounded-md hover:opacity-80 transition-colors disabled:opacity-40"
                 title="Export to CSV"
               >
                 <FileDown size={14} />
@@ -1471,14 +1480,14 @@ export function QueryCard({
               </button>
               {/* Mode toggle — inline with action buttons */}
               {hasRun && (
-                <div className="inline-flex items-center border border-gray-300 rounded-md overflow-hidden">
+                <div className="inline-flex items-center border border-[var(--border)] rounded-md overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setFollowUpMode("local")}
                     className={`px-2 py-1 text-[10px] font-medium transition-colors ${
                       followUpMode === "local"
-                        ? "bg-blue-600 text-white"
-                        : "bg-white text-gray-500 hover:bg-gray-50"
+                        ? "bg-[var(--brand)] text-white"
+                        : "bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
                     }`}
                     title="Operate on cached data (sort, group, summarize)"
                   >
@@ -1487,10 +1496,10 @@ export function QueryCard({
                   <button
                     type="button"
                     onClick={() => setFollowUpMode("requery")}
-                    className={`px-2 py-1 text-[10px] font-medium border-l border-gray-300 transition-colors ${
+                    className={`px-2 py-1 text-[10px] font-medium border-l border-[var(--border)] transition-colors ${
                       followUpMode === "requery"
                         ? "bg-green-600 text-white"
-                        : "bg-white text-gray-500 hover:bg-gray-50"
+                        : "bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
                     }`}
                     title="Re-execute the query against the data source with new filters"
                   >
@@ -1502,7 +1511,7 @@ export function QueryCard({
                 href={`/?group=${encodeURIComponent(groupId)}&query=${encodeURIComponent(queryName)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors ml-auto"
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[var(--brand)] bg-[var(--brand-subtle)] rounded-md hover:opacity-80 transition-colors ml-auto"
                 title="Open in Chat (new tab)"
               >
                 <ExternalLink size={14} />

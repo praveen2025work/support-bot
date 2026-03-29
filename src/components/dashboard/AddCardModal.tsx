@@ -82,11 +82,11 @@ export function AddCardModal({
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 overflow-hidden"
+        className="bg-[var(--bg-primary)] rounded-xl shadow-xl w-full max-w-lg mx-4 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        <div className="px-6 py-4 border-b border-[var(--border)]">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">
             Add Query Card
           </h2>
         </div>
@@ -94,16 +94,16 @@ export function AddCardModal({
         <div className="px-6 py-4 space-y-4 max-h-[60vh] overflow-y-auto">
           {/* Query search */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
               Query
             </label>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search queries..."
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm"
             />
-            <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="mt-2 max-h-40 overflow-y-auto border border-[var(--border)] rounded-lg">
               {filtered.map((q) => (
                 <button
                   key={q.name}
@@ -111,16 +111,16 @@ export function AddCardModal({
                     setSelectedQuery(q.name);
                     if (!label) setLabel(q.name);
                   }}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-750 border-b border-gray-100 dark:border-gray-700 last:border-0 ${selectedQuery === q.name ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700" : "text-gray-700 dark:text-gray-300"}`}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-secondary)] border-b border-[var(--border)] last:border-0 ${selectedQuery === q.name ? "bg-[var(--brand-subtle)] text-[var(--brand)]" : "text-[var(--text-primary)]"}`}
                 >
                   <div className="font-medium">{q.name}</div>
-                  <div className="text-xs text-gray-500 truncate">
+                  <div className="text-xs text-[var(--text-secondary)] truncate">
                     {q.description}
                   </div>
                 </button>
               ))}
               {filtered.length === 0 && (
-                <p className="px-3 py-4 text-sm text-gray-500 text-center">
+                <p className="px-3 py-4 text-sm text-[var(--text-secondary)] text-center">
                   No queries found
                 </p>
               )}
@@ -129,14 +129,14 @@ export function AddCardModal({
 
           {/* Label */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
               Card Label
             </label>
             <input
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="Display name for this card"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm"
             />
           </div>
 
@@ -146,13 +146,13 @@ export function AddCardModal({
               type="checkbox"
               checked={autoRun}
               onChange={(e) => setAutoRun(e.target.checked)}
-              className="w-4 h-4 text-blue-600 rounded"
+              className="w-4 h-4 text-[var(--brand)] rounded"
             />
             <div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span className="text-sm font-medium text-[var(--text-primary)]">
                 Auto-run on load
               </span>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-[var(--text-secondary)]">
                 Execute this query automatically when the dashboard opens
               </p>
             </div>
@@ -167,10 +167,10 @@ export function AddCardModal({
               className="w-4 h-4 text-cyan-600 rounded"
             />
             <div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span className="text-sm font-medium text-[var(--text-primary)]">
                 Enable Live Notifications
               </span>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-[var(--text-secondary)]">
                 Receive real-time STOMP WebSocket updates for this card
               </p>
             </div>
@@ -178,7 +178,7 @@ export function AddCardModal({
 
           {/* Display mode */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
               Default Display
             </label>
             <div className="flex gap-2">
@@ -193,7 +193,7 @@ export function AddCardModal({
                   key={mode}
                   type="button"
                   onClick={() => setDisplayMode(mode)}
-                  className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg border transition-colors ${displayMode === mode ? "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-600" : "text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-750"}`}
+                  className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg border transition-colors ${displayMode === mode ? "bg-[var(--brand-subtle)] text-[var(--brand)] border-[var(--brand)]" : "text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-secondary)]"}`}
                 >
                   {modeLabel}
                 </button>
@@ -206,13 +206,13 @@ export function AddCardModal({
                   type="checkbox"
                   checked={compactAuto}
                   onChange={(e) => setCompactAuto(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded"
+                  className="w-4 h-4 text-[var(--brand)] rounded"
                 />
                 <div>
-                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  <span className="text-xs font-medium text-[var(--text-primary)]">
                     Compact
                   </span>
-                  <span className="text-xs text-gray-500 ml-1">
+                  <span className="text-xs text-[var(--text-secondary)] ml-1">
                     — Tab toggle between Table and Chart instead of stacking
                     both
                   </span>
@@ -223,7 +223,7 @@ export function AddCardModal({
 
           {/* Event link mode */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
               Cross-card Linking
             </label>
             <div className="space-y-2">
@@ -238,13 +238,13 @@ export function AddCardModal({
                     value={mode}
                     checked={linkMode === mode}
                     onChange={() => setLinkMode(mode)}
-                    className="w-4 h-4 text-blue-600"
+                    className="w-4 h-4 text-[var(--brand)]"
                   />
                   <div>
-                    <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">
+                    <span className="text-sm text-[var(--text-primary)] capitalize">
                       {mode}
                     </span>
-                    <span className="text-xs text-gray-500 ml-2">
+                    <span className="text-xs text-[var(--text-secondary)] ml-2">
                       {mode === "auto" &&
                         "— Filter when matching columns are clicked in other cards"}
                       {mode === "manual" &&
@@ -259,17 +259,17 @@ export function AddCardModal({
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+        <div className="px-6 py-4 border-t border-[var(--border)] flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-750 rounded-lg"
+            className="px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] rounded-lg"
           >
             Cancel
           </button>
           <button
             onClick={handleAdd}
             disabled={!selectedQuery}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm bg-[var(--brand)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Add Card
           </button>

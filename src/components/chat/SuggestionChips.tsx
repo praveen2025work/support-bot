@@ -30,7 +30,7 @@ export function SuggestionChips({
       {suggestions.map((suggestion, i) => (
         <span
           key={i}
-          className="group inline-flex items-center gap-1 rounded-full border border-blue-300 bg-blue-50 text-xs text-blue-700 hover:bg-blue-100 transition-colors"
+          className="group inline-flex items-center gap-1 rounded-full border border-[var(--brand)] bg-[var(--brand-subtle)] text-xs text-[var(--brand)] hover:opacity-80 transition-colors"
         >
           <button
             onClick={() => onSelect(suggestion, "suggestion_click")}
@@ -41,7 +41,7 @@ export function SuggestionChips({
           </button>
           <button
             onClick={(e) => handleCopy(suggestion, i, e)}
-            className="pr-2 py-1 text-blue-400 hover:text-blue-700 transition-colors cursor-pointer"
+            className="pr-2 py-1 text-[var(--brand)] hover:opacity-70 transition-colors cursor-pointer"
             title="Copy to clipboard"
           >
             {copiedIndex === i ? (
