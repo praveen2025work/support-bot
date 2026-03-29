@@ -290,7 +290,7 @@ const DATE_COLUMN_PATTERN =
   /(?:_|^)(date|time|timestamp|datetime|created|updated|modified|period|asof|effective)$|date$|time$/i;
 
 /** Column role configuration — explicit overrides for auto-detection */
-interface ColumnConfig {
+export interface ColumnConfig {
   idColumns?: string[];
   dateColumns?: string[];
   labelColumns?: string[];
@@ -431,6 +431,7 @@ export function getNumericColumns(
 export function groupBy(
   data: CsvData,
   groupColumn: string,
+  columnConfig?: ColumnConfig,
 ): GroupByResult | null {
   // Check if this is a multi-column request: "product and region", "product, region"
   const multiCols = groupColumn
@@ -438,13 +439,15 @@ export function groupBy(
     .map((c) => c.trim())
     .filter(Boolean);
   if (multiCols.length > 1) {
-    return groupByMultiple(data, multiCols);
+    return groupByMultiple(data, multiCols, columnConfig);
   }
 
   const matchedCol = findMatchingHeader(groupColumn, data.headers);
   if (!matchedCol) return null;
 
-  const numericCols = getNumericColumns(data).filter((c) => c !== matchedCol);
+  const numericCols = getNumericColumns(data, columnConfig).filter(
+    (c) => c !== matchedCol,
+  );
   const buckets = new Map<
     string | number,
     { count: number; sums: Record<string, number> }
@@ -496,6 +499,7 @@ export function groupBy(
 export function groupByMultiple(
   data: CsvData,
   groupColumns: string[],
+  columnConfig?: ColumnConfig,
 ): GroupByResult | null {
   // Resolve each column name
   const matchedCols: string[] = [];
@@ -506,7 +510,7 @@ export function groupByMultiple(
   }
 
   const groupColSet = new Set(matchedCols);
-  const numericCols = getNumericColumns(data).filter(
+  const numericCols = getNumericColumns(data, columnConfig).filter(
     (c) => !groupColSet.has(c),
   );
 
@@ -1237,4 +1241,204 @@ export function computePeriodOverPeriod(
     periodType: period,
     aggregation: aggOp,
   };
+}
+
+/**
+ * Execute a query pipeline against parsed CSV/XLSX data.
+ * Pipeline steps: SELECT → WHERE → GROUP BY → HAVING → ORDER BY → LIMIT
+ */
+export function executePipeline(
+  data: CsvData,
+  pipeline: {
+    select?: string[];
+    where?: Array<{
+      column: string;
+      operator: string;
+      value: string | number | string[];
+      logic?: "and" | "or";
+    }>;
+    groupBy?: {
+      columns: string[];
+      aggregations: Array<{ column: string; operation: string }>;
+    };
+    having?: Array<{
+      column: string;
+      operator: string;
+      value: string | number | string[];
+      logic?: "and" | "or";
+    }>;
+    orderBy?: Array<{ column: string; dir: "asc" | "desc" }>;
+    limit?: number;
+  },
+): {
+  headers: string[];
+  rows: Record<string, string | number>[];
+  totalSourceRows: number;
+} {
+  const totalSourceRows = data.rows.length;
+  let rows = [...data.rows];
+  let headers = pipeline.select?.length ? pipeline.select : [...data.headers];
+
+  // 1. SELECT — filter columns
+  if (pipeline.select?.length) {
+    rows = rows.map((r) => {
+      const out: Record<string, string | number> = {};
+      for (const col of pipeline.select!) {
+        if (col in r) out[col] = r[col];
+      }
+      return out;
+    });
+  }
+
+  // 2. WHERE — filter rows
+  if (pipeline.where?.length) {
+    rows = rows.filter((row) => evaluateConditions(row, pipeline.where!));
+  }
+
+  // 3. GROUP BY — group and aggregate
+  if (pipeline.groupBy) {
+    const { columns: groupCols, aggregations: aggs } = pipeline.groupBy;
+    const groups = new Map<string, Record<string, string | number>[]>();
+    for (const row of rows) {
+      const key = groupCols.map((c) => String(row[c] ?? "")).join("||");
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(row);
+    }
+
+    const aggHeaders = aggs.map(
+      (a) => `${a.operation.toUpperCase()}(${a.column})`,
+    );
+    headers = [...groupCols, ...aggHeaders, "count"];
+
+    rows = Array.from(groups.entries()).map(([, groupRows]) => {
+      const out: Record<string, string | number> = {};
+      for (const gc of groupCols) out[gc] = groupRows[0][gc];
+      for (const agg of aggs) {
+        const vals = groupRows
+          .map((r) => Number(r[agg.column]))
+          .filter((v) => !isNaN(v));
+        switch (agg.operation) {
+          case "sum":
+            out[`SUM(${agg.column})`] = vals.reduce((a, b) => a + b, 0);
+            break;
+          case "avg":
+            out[`AVG(${agg.column})`] = vals.length
+              ? +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2)
+              : 0;
+            break;
+          case "min":
+            out[`MIN(${agg.column})`] = vals.length ? Math.min(...vals) : 0;
+            break;
+          case "max":
+            out[`MAX(${agg.column})`] = vals.length ? Math.max(...vals) : 0;
+            break;
+          case "count":
+            out[`COUNT(${agg.column})`] = groupRows.length;
+            break;
+        }
+      }
+      out.count = groupRows.length;
+      return out;
+    });
+  }
+
+  // 4. HAVING — filter grouped results
+  if (pipeline.having?.length) {
+    rows = rows.filter((row) => evaluateConditions(row, pipeline.having!));
+  }
+
+  // 5. ORDER BY
+  if (pipeline.orderBy?.length) {
+    rows.sort((a, b) => {
+      for (const { column, dir } of pipeline.orderBy!) {
+        const va = a[column] ?? "";
+        const vb = b[column] ?? "";
+        const numA = Number(va);
+        const numB = Number(vb);
+        const cmp =
+          !isNaN(numA) && !isNaN(numB)
+            ? numA - numB
+            : String(va).localeCompare(String(vb));
+        if (cmp !== 0) return dir === "asc" ? cmp : -cmp;
+      }
+      return 0;
+    });
+  }
+
+  // 6. LIMIT
+  if (pipeline.limit && pipeline.limit > 0) {
+    rows = rows.slice(0, pipeline.limit);
+  }
+
+  return { headers, rows, totalSourceRows };
+}
+
+function evaluateConditions(
+  row: Record<string, string | number>,
+  conditions: Array<{
+    column: string;
+    operator: string;
+    value: string | number | string[];
+    logic?: "and" | "or";
+  }>,
+): boolean {
+  let result = true;
+  for (let i = 0; i < conditions.length; i++) {
+    const c = conditions[i];
+    const cellVal = row[c.column];
+    const matches = evaluateSingle(cellVal, c.operator, c.value);
+    if (i === 0) {
+      result = matches;
+    } else {
+      const logic = conditions[i - 1].logic ?? "and";
+      result = logic === "and" ? result && matches : result || matches;
+    }
+  }
+  return result;
+}
+
+function evaluateSingle(
+  cellVal: string | number | undefined,
+  operator: string,
+  value: string | number | string[],
+): boolean {
+  const s = String(cellVal ?? "").toLowerCase();
+  const v = Array.isArray(value) ? value : String(value).toLowerCase();
+  switch (operator) {
+    case "eq":
+      return s === v;
+    case "neq":
+      return s !== v;
+    case "contains":
+      return typeof v === "string" && s.includes(v);
+    case "starts_with":
+      return typeof v === "string" && s.startsWith(v);
+    case "ends_with":
+      return typeof v === "string" && s.endsWith(v);
+    case "gt":
+      return Number(cellVal) > Number(value);
+    case "lt":
+      return Number(cellVal) < Number(value);
+    case "gte":
+      return Number(cellVal) >= Number(value);
+    case "lte":
+      return Number(cellVal) <= Number(value);
+    case "between":
+      return (
+        Array.isArray(value) &&
+        Number(cellVal) >= Number(value[0]) &&
+        Number(cellVal) <= Number(value[1])
+      );
+    case "in":
+      return (
+        Array.isArray(value) &&
+        value.map((x) => String(x).toLowerCase()).includes(s)
+      );
+    case "is_null":
+      return cellVal == null || s === "";
+    case "is_not_null":
+      return cellVal != null && s !== "";
+    default:
+      return true;
+  }
 }

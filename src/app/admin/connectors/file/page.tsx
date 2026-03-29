@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   FileSpreadsheet,
   Plus,
@@ -212,6 +213,7 @@ function formatCell(val: unknown): string {
 /* ------------------------------------------------------------------ */
 
 export default function FileSourcesPage() {
+  const router = useRouter();
   const [queries, setQueries] = useState<QueryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -810,6 +812,16 @@ export default function FileSourcesPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-0.5 shrink-0 ml-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/admin/connectors/file/${q.name}`);
+                        }}
+                        className="p-1 rounded text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
+                        title="View Detail Page"
+                      >
+                        <ExternalLink size={13} />
+                      </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
