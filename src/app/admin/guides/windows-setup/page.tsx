@@ -301,13 +301,16 @@ xcopy /E /I .next\\static .next\\standalone\\.next\\static`}</CmdBlock>
               Optional — SQL Connectors:
             </span>{" "}
             Only install if you need no-code SQL APIs for MSSQL or Oracle
-            databases.
+            databases, or file-based data access for CSV/XLSX files.
           </div>
           <CmdBlock label="PowerShell — Optional SQL connectors">{`# MSSQL Connector (optional)
 cd services\\mssql-connector && npm install && cd ..\\..
 
 # Oracle Connector (optional — requires Oracle Instant Client)
-cd services\\oracle-connector && npm install && cd ..\\..`}</CmdBlock>
+cd services\\oracle-connector && npm install && cd ..\\..
+
+# CSV/XLSX Connector (optional)
+cd services\\csv-xlsx-connector && npm install && cd ..\\..`}</CmdBlock>
         </Section>
 
         {/* Environment Configuration */}
@@ -545,7 +548,14 @@ nssm install ChatbotOracle "C:\\Program Files\\nodejs\\node.exe"
 nssm set ChatbotOracle AppParameters "dist\\server.js"
 nssm set ChatbotOracle AppDirectory "C:\\Chatbot\\services\\oracle-connector"
 nssm set ChatbotOracle AppEnvironmentExtra ORACLE_PORT=4003 ENCRYPTION_SECRET=your-key
-nssm start ChatbotOracle`}</CmdBlock>
+nssm start ChatbotOracle
+
+# CSV/XLSX Connector (optional)
+nssm install ChatbotCSV "C:\\Program Files\\nodejs\\node.exe"
+nssm set ChatbotCSV AppParameters "dist\\server.js"
+nssm set ChatbotCSV AppDirectory "C:\\Chatbot\\services\\csv-xlsx-connector"
+nssm set ChatbotCSV AppEnvironmentExtra CONNECTOR_PORT=4004
+nssm start ChatbotCSV`}</CmdBlock>
         </Section>
 
         {/* IIS Reverse Proxy */}

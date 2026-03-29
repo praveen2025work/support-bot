@@ -254,13 +254,17 @@ cp -r .next/static .next/standalone/.next/static`}</CmdBlock>
             >
               Optional — SQL Connectors:
             </span>{" "}
-            Only install if you need no-code SQL APIs for MSSQL or Oracle.
+            Only install if you need no-code SQL APIs for MSSQL or Oracle, or
+            file-based data access for CSV/XLSX files.
           </div>
           <CmdBlock label="Terminal — Optional SQL connectors">{`# MSSQL Connector (optional)
 cd services/mssql-connector && npm install && cd ../..
 
 # Oracle Connector (optional — requires Oracle Instant Client)
-cd services/oracle-connector && npm install && cd ../..`}</CmdBlock>
+cd services/oracle-connector && npm install && cd ../..
+
+# CSV/XLSX Connector (optional)
+cd services/csv-xlsx-connector && npm install && cd ../..`}</CmdBlock>
 
           <CmdBlock label="Create a dedicated service user">{`# Create non-root user for running services
 sudo useradd -r -s /bin/false chatbot
@@ -417,8 +421,33 @@ sudo systemctl start chatbot-mockapi`}</CmdBlock>
 
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 mt-3">
             <span className="font-semibold">Optional — SQL Connectors:</span>{" "}
-            Create similar unit files for MSSQL (port 4002) and Oracle (port
-            4003) connectors if needed for no-code SQL APIs.
+            Create similar unit files for MSSQL (port 4002), Oracle (port 4003),
+            and CSV/XLSX (port 4004) connectors if needed.
+          </div>
+
+          <CmdBlock label="/etc/systemd/system/chatbot-csv-connector.service">{`[Unit]
+Description=Chatbot CSV/XLSX Connector
+After=network.target
+
+[Service]
+Type=simple
+User=chatbot
+WorkingDirectory=/opt/chatbot/services/csv-xlsx-connector
+ExecStart=/usr/bin/node dist/server.js
+Environment=CONNECTOR_PORT=4004
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=chatbot-csv-connector
+
+[Install]
+WantedBy=multi-user.target`}</CmdBlock>
+
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 mt-3">
+            <span className="font-semibold">Note:</span> Enable and start the
+            CSV/XLSX connector with:{" "}
+            <code>sudo systemctl enable --now chatbot-csv-connector</code>
           </div>
         </Section>
 
