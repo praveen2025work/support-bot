@@ -36,7 +36,7 @@ const CONNECTOR_TYPES = [
     title: "CSV / XLSX Files",
     description:
       "Query CSV and Excel files as data sources. Upload files or point to a shared directory for automatic discovery.",
-    href: "/admin/connectors/file",
+    href: "/admin/connectors/csv",
     icon: "📊",
     features: [
       "CSV & XLSX auto-detection",

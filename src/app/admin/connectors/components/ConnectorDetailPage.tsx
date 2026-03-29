@@ -94,7 +94,7 @@ function formatCellValue(val: unknown): string {
 type Tab = "connection" | "schema" | "query" | "preview" | "save" | "saved";
 
 interface ConnectorDetailPageProps {
-  connectorType: "mssql" | "oracle";
+  connectorType: "mssql" | "oracle" | "csv-xlsx";
   apiBasePath: string; // e.g. '/api/admin/mssql-connector'
   queriesApiPath: string; // e.g. '/api/admin/mssql-connector/queries'
   connectorBaseUrl: string; // e.g. 'http://localhost:4002'

@@ -27,7 +27,7 @@ interface ConnectionStatus {
 }
 
 interface ConnectorListPageProps {
-  connectorType: "mssql" | "oracle";
+  connectorType: "mssql" | "oracle" | "csv-xlsx";
   apiBasePath: string; // e.g. '/api/admin/mssql-connector'
   detailBasePath: string; // e.g. '/admin/connectors/mssql'
   title: string;
