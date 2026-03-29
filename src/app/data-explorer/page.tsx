@@ -128,7 +128,7 @@ export default function DataExplorerPage() {
   const globalFilters = dashboard.config?.globalFilters ?? explorer.filters;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)]">
+    <div className="h-screen flex flex-col bg-[var(--bg-secondary)] text-[var(--text-primary)]">
       {/* ── HEADER ───────────────────────────────────────────── */}
       <ContextualTopBar title="Data Explorer">
         <div className="flex items-center gap-2">
@@ -139,12 +139,7 @@ export default function DataExplorerPage() {
               explorer.setSelectedSource(e.target.value || null);
               dashboard.resetDashboard();
             }}
-            className="px-2 py-1.5 text-xs border rounded-lg outline-none font-medium"
-            style={{
-              backgroundColor: "hsl(var(--card))",
-              borderColor: "hsl(var(--border))",
-              color: "hsl(var(--foreground))",
-            }}
+            className="px-2 py-1.5 text-xs border border-[var(--border)] rounded-[var(--radius-md)] outline-none font-medium bg-[var(--bg-primary)] text-[var(--text-primary)]"
           >
             <option value="">— Select data source —</option>
             {explorer.sources.map((s) => (
@@ -159,20 +154,11 @@ export default function DataExplorerPage() {
             <>
               <button
                 onClick={() => setEditMode((m) => !m)}
-                className={`inline-flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                className={`inline-flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium rounded-[var(--radius-md)] border transition-colors ${
                   editMode
-                    ? "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-700"
-                    : "hover:bg-[var(--bg-secondary)]"
+                    ? "bg-[var(--warning-subtle)] text-[var(--warning)] border-[var(--warning)]"
+                    : "bg-[var(--bg-primary)] text-[var(--text-muted)] border-[var(--border)] hover:bg-[var(--bg-secondary)]"
                 }`}
-                style={
-                  editMode
-                    ? undefined
-                    : {
-                        color: "hsl(var(--muted-foreground))",
-                        borderColor: "hsl(var(--border))",
-                        backgroundColor: "hsl(var(--card))",
-                      }
-                }
               >
                 {editMode ? <Unlock size={12} /> : <Lock size={12} />}
                 {editMode ? "Editing" : "View"}
@@ -181,15 +167,14 @@ export default function DataExplorerPage() {
                 <>
                   <button
                     onClick={() => setShowAddCard(true)}
-                    className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium text-white bg-[var(--brand)] hover:opacity-90 rounded-lg"
+                    className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium text-[var(--brand-text)] bg-[var(--brand)] hover:opacity-90 rounded-[var(--radius-md)]"
                   >
                     <Plus size={14} />
                     Add Card
                   </button>
                   <button
                     onClick={handleResetDashboard}
-                    className="p-1.5 rounded-lg hover:bg-[var(--bg-secondary)]"
-                    style={{ color: "hsl(var(--muted-foreground))" }}
+                    className="p-1.5 rounded-[var(--radius-md)] text-[var(--text-muted)] hover:bg-[var(--bg-secondary)]"
                     title="Reset to default layout"
                   >
                     <RotateCcw size={14} />
@@ -201,7 +186,7 @@ export default function DataExplorerPage() {
                 <>
                   <button
                     onClick={() => dashboard.persistDashboard()}
-                    className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg"
+                    className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-[var(--brand-text)] bg-[var(--success)] hover:opacity-90 rounded-[var(--radius-md)]"
                     title="Save changes"
                   >
                     <Save size={12} />
@@ -209,7 +194,7 @@ export default function DataExplorerPage() {
                   </button>
                   <button
                     onClick={() => dashboard.revertDashboard()}
-                    className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-700"
+                    className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-[var(--warning)] bg-[var(--warning-subtle)] hover:opacity-90 border border-[var(--warning)] rounded-[var(--radius-md)]"
                     title="Revert unsaved changes"
                   >
                     <Undo2 size={12} />
@@ -224,7 +209,7 @@ export default function DataExplorerPage() {
 
       {/* ── No source selected ───────────────────────────────── */}
       {!explorer.selectedSource && (
-        <div className="flex flex-col items-center justify-center py-32 text-[var(--text-muted)]">
+        <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-muted)]">
           <Database size={48} className="mb-4 opacity-30" />
           <div className="text-lg font-semibold mb-1">Select a data source</div>
           <div className="text-sm mb-6">
