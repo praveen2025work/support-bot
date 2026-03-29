@@ -11,7 +11,10 @@ import {
   Unlock,
   Save,
   Undo2,
+  ChevronDown,
+  Search,
 } from "lucide-react";
+import { useRef } from "react";
 import { ContextualTopBar } from "@/components/shell/ContextualTopBar";
 import { useState } from "react";
 import { useDataExplorer } from "@/components/data-explorer/useDataExplorer";
@@ -31,6 +34,23 @@ export default function DataExplorerPage() {
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [editMode, setEditMode] = useState(false);
+  const [sourceDropdownOpen, setSourceDropdownOpen] = useState(false);
+  const [sourceSearch, setSourceSearch] = useState("");
+  const sourceDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close source dropdown on outside click
+  useEffect(() => {
+    if (!sourceDropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        sourceDropdownRef.current &&
+        !sourceDropdownRef.current.contains(e.target as Node)
+      )
+        setSourceDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [sourceDropdownOpen]);
 
   const explorer = useDataExplorer(groupId);
   const dashboard = useDataDashboard(explorer.selectedSource ?? "", groupId);
@@ -133,21 +153,149 @@ export default function DataExplorerPage() {
       <ContextualTopBar title="Data Explorer">
         <div className="flex items-center gap-2">
           {/* Source picker */}
-          <select
-            value={explorer.selectedSource ?? ""}
-            onChange={(e) => {
-              explorer.setSelectedSource(e.target.value || null);
-              dashboard.resetDashboard();
-            }}
-            className="px-2 py-1.5 text-xs border border-[var(--border)] rounded-[var(--radius-md)] outline-none font-medium bg-[var(--bg-primary)] text-[var(--text-primary)]"
-          >
-            <option value="">— Select data source —</option>
-            {explorer.sources.map((s) => (
-              <option key={s.name} value={s.name}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          <div ref={sourceDropdownRef} className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setSourceDropdownOpen((o) => !o);
+                setSourceSearch("");
+              }}
+              className="flex items-center gap-2 text-[12px] border rounded-[var(--radius-md)] px-3 py-1.5 text-left transition-colors min-w-[180px] max-w-[280px]"
+              style={{
+                backgroundColor: "var(--bg-primary)",
+                borderColor: sourceDropdownOpen
+                  ? "var(--brand)"
+                  : "var(--border)",
+                color: explorer.selectedSource
+                  ? "var(--text-primary)"
+                  : "var(--text-muted)",
+                boxShadow: sourceDropdownOpen
+                  ? "0 0 0 2px var(--brand-subtle)"
+                  : "none",
+              }}
+            >
+              {explorer.selectedSource ? (
+                <span className="flex items-center gap-1.5 flex-1 truncate">
+                  <Database
+                    size={12}
+                    style={{ color: "var(--brand)" }}
+                    className="shrink-0"
+                  />
+                  <span className="truncate">{explorer.selectedSource}</span>
+                </span>
+              ) : (
+                <span className="flex-1 truncate">Select data source...</span>
+              )}
+              <ChevronDown
+                size={14}
+                className="shrink-0 transition-transform"
+                style={{
+                  color: "var(--text-muted)",
+                  transform: sourceDropdownOpen
+                    ? "rotate(180deg)"
+                    : "rotate(0deg)",
+                }}
+              />
+            </button>
+
+            {sourceDropdownOpen && (
+              <div
+                className="absolute z-50 top-full right-0 mt-1 w-72 rounded-[var(--radius-md)] border overflow-hidden"
+                style={{
+                  backgroundColor: "var(--bg-primary)",
+                  borderColor: "var(--border)",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                }}
+              >
+                <div
+                  className="flex items-center gap-2 px-3 py-2 border-b"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <Search size={12} style={{ color: "var(--text-muted)" }} />
+                  <input
+                    type="text"
+                    value={sourceSearch}
+                    onChange={(e) => setSourceSearch(e.target.value)}
+                    placeholder="Search sources..."
+                    className="flex-1 text-[12px] bg-transparent outline-none"
+                    style={{ color: "var(--text-primary)" }}
+                    autoFocus
+                  />
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {explorer.sources
+                    .filter((s) =>
+                      s.name.toLowerCase().includes(sourceSearch.toLowerCase()),
+                    )
+                    .map((s) => {
+                      const isSelected = s.name === explorer.selectedSource;
+                      return (
+                        <button
+                          key={s.name}
+                          type="button"
+                          onClick={() => {
+                            explorer.setSelectedSource(s.name);
+                            dashboard.resetDashboard();
+                            setSourceDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-[12px] transition-colors"
+                          style={{
+                            backgroundColor: isSelected
+                              ? "var(--brand-subtle)"
+                              : "transparent",
+                            color: isSelected
+                              ? "var(--brand)"
+                              : "var(--text-primary)",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSelected)
+                              e.currentTarget.style.backgroundColor =
+                                "var(--bg-secondary)";
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected)
+                              e.currentTarget.style.backgroundColor =
+                                "transparent";
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Database
+                              size={11}
+                              style={{
+                                color: isSelected
+                                  ? "var(--brand)"
+                                  : "var(--text-muted)",
+                              }}
+                            />
+                            <span className="font-medium truncate">
+                              {s.name}
+                            </span>
+                            <span
+                              className="ml-auto text-[10px] uppercase"
+                              style={{
+                                color: "var(--text-muted)",
+                              }}
+                            >
+                              {s.type}
+                            </span>
+                          </div>
+                          {s.description && (
+                            <div
+                              className="text-[10px] mt-0.5 truncate pl-[19px]"
+                              style={{
+                                color: "var(--text-muted)",
+                              }}
+                            >
+                              {s.description}
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Edit/View toggle + actions */}
           {explorer.selectedSource && dashboard.config && (

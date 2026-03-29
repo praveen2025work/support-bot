@@ -63,8 +63,8 @@ export function FilterInput({
   refreshing,
 }: FilterInputProps) {
   const inputCls = compact
-    ? "text-xs border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-    : "text-xs border border-gray-300 rounded px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500";
+    ? "text-xs border border-[var(--border)] rounded-[var(--radius-md)] px-2 py-1.5 bg-[var(--bg-primary)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)]"
+    : "text-xs border border-[var(--border)] rounded-[var(--radius-md)] px-2 py-1.5 bg-[var(--bg-primary)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)]";
 
   switch (config.type) {
     /* ──── Select dropdown ──────────────────────────────────────── */
@@ -123,7 +123,7 @@ export function FilterInput({
     /* ──── Boolean toggle ──────────────────────────────────────── */
     case "boolean":
       return (
-        <div className="inline-flex items-center border border-gray-300 rounded-md overflow-hidden">
+        <div className="inline-flex items-center border border-[var(--border)] rounded-[var(--radius-md)] overflow-hidden">
           {[
             { val: "", label: "All" },
             { val: "true", label: "True" },
@@ -137,12 +137,12 @@ export function FilterInput({
               className={`${compact ? "px-2 py-1 text-[10px]" : "px-3 py-1.5 text-xs"} font-medium transition-colors disabled:opacity-50 ${
                 (value || "") === val
                   ? val === ""
-                    ? "bg-gray-600 text-white"
+                    ? "bg-[var(--text-muted)] text-[var(--brand-text)]"
                     : val === "true"
-                      ? "bg-green-600 text-white"
-                      : "bg-red-500 text-white"
-                  : "bg-white text-gray-500 hover:bg-gray-50"
-              } ${val !== "" ? "border-l border-gray-300" : ""}`}
+                      ? "bg-[var(--success)] text-[var(--brand-text)]"
+                      : "bg-[var(--danger)] text-[var(--brand-text)]"
+                  : "bg-[var(--bg-primary)] text-[var(--text-muted)] hover:bg-[var(--bg-secondary)]"
+              } ${val !== "" ? "border-l border-[var(--border)]" : ""}`}
             >
               {label}
             </button>
@@ -233,7 +233,7 @@ function RefreshButton({
     <button
       onClick={onClick}
       disabled={spinning}
-      className="p-1 text-purple-500 hover:text-purple-700 disabled:opacity-50 rounded"
+      className="p-1 text-purple-500 hover:text-purple-700 disabled:opacity-50 rounded-[var(--radius-md)]"
       title="Refresh options from source"
     >
       <RefreshCw size={14} className={spinning ? "animate-spin" : ""} />
@@ -310,20 +310,20 @@ function SearchableSelectInput({
           {value ? (
             <span className="truncate">{selectedLabel}</span>
           ) : (
-            <span className="text-gray-400">
+            <span className="text-[var(--text-muted)]">
               {config.placeholder || "All (no filter)"}
             </span>
           )}
           <ChevronDown
             size={12}
-            className={`shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+            className={`shrink-0 text-[var(--text-muted)] transition-transform ${open ? "rotate-180" : ""}`}
           />
         </button>
         {value && (
           <button
             type="button"
             onClick={() => onChange(filterKey, "")}
-            className="p-0.5 text-gray-400 hover:text-gray-600 rounded"
+            className="p-0.5 text-[var(--text-muted)] hover:text-[var(--text-secondary)] rounded-[var(--radius-md)]"
             title="Clear"
           >
             <X size={12} />
@@ -335,13 +335,13 @@ function SearchableSelectInput({
       </div>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg overflow-hidden">
+        <div className="absolute z-50 mt-1 w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-[var(--radius-md)] shadow-[var(--shadow-lg)] overflow-hidden">
           {/* Search input */}
-          <div className="p-1.5 border-b border-gray-100 dark:border-gray-700">
+          <div className="p-1.5 border-b border-[var(--border)]">
             <div className="relative">
               <Search
                 size={12}
-                className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400"
+                className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
               />
               <input
                 ref={searchRef}
@@ -349,7 +349,7 @@ function SearchableSelectInput({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search..."
-                className="w-full text-xs pl-6 pr-2 py-1.5 border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full text-xs pl-6 pr-2 py-1.5 border border-[var(--border)] rounded-[var(--radius-md)] bg-[var(--bg-primary)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)]"
               />
             </div>
           </div>
@@ -364,14 +364,14 @@ function SearchableSelectInput({
               }}
               className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${
                 !value
-                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium"
-                  : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  ? "bg-[var(--brand-subtle)] text-[var(--brand)] font-medium"
+                  : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)]"
               }`}
             >
               All (no filter)
             </button>
             {filtered.length === 0 ? (
-              <div className="px-3 py-3 text-xs text-gray-400 text-center">
+              <div className="px-3 py-3 text-xs text-[var(--text-muted)] text-center">
                 No matches
               </div>
             ) : (
@@ -385,8 +385,8 @@ function SearchableSelectInput({
                   }}
                   className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${
                     value === opt.value
-                      ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium"
-                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      ? "bg-[var(--brand-subtle)] text-[var(--brand)] font-medium"
+                      : "text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
                   }`}
                 >
                   {opt.label}
@@ -458,7 +458,7 @@ function MultiSelectInput({
           className={`flex-1 text-left ${inputCls} ${disabled ? "opacity-50" : ""}`}
         >
           {selected.length === 0 ? (
-            <span className="text-gray-400">All (no filter)</span>
+            <span className="text-[var(--text-muted)]">All (no filter)</span>
           ) : (
             <span>{selected.length} selected</span>
           )}
@@ -468,19 +468,19 @@ function MultiSelectInput({
         )}
       </div>
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
-          <div className="flex items-center justify-between px-2 py-1 border-b border-gray-100">
+        <div className="absolute z-50 mt-1 w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-[var(--radius-md)] shadow-[var(--shadow-lg)] max-h-48 overflow-y-auto">
+          <div className="flex items-center justify-between px-2 py-1 border-b border-[var(--border)]">
             <button
               type="button"
               onClick={selectAll}
-              className="text-[10px] text-blue-600 hover:underline"
+              className="text-[10px] text-[var(--brand)] hover:underline"
             >
               Select All
             </button>
             <button
               type="button"
               onClick={clearAll}
-              className="text-[10px] text-gray-500 hover:underline"
+              className="text-[10px] text-[var(--text-muted)] hover:underline"
             >
               Clear
             </button>
@@ -488,15 +488,17 @@ function MultiSelectInput({
           {options.map((opt) => (
             <label
               key={opt.value}
-              className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 cursor-pointer"
+              className="flex items-center gap-2 px-2 py-1 hover:bg-[var(--bg-secondary)] cursor-pointer"
             >
               <input
                 type="checkbox"
                 checked={selected.includes(opt.value)}
                 onChange={() => toggle(opt.value)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded-[var(--radius-md)] border-[var(--border)] text-[var(--brand)] focus:ring-[var(--brand)]"
               />
-              <span className="text-xs text-gray-700">{opt.label}</span>
+              <span className="text-xs text-[var(--text-primary)]">
+                {opt.label}
+              </span>
             </label>
           ))}
         </div>
@@ -555,8 +557,8 @@ function DateRangeInput({
               disabled={disabled}
               className={`${compact ? "px-1.5 py-0.5 text-[9px]" : "px-2 py-0.5 text-[10px]"} rounded-full border transition-colors disabled:opacity-50 ${
                 allValues[filterKey] === p.value
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "border-gray-300 text-gray-600 hover:bg-gray-100"
+                  ? "bg-[var(--brand)] text-[var(--brand-text)] border-[var(--brand)]"
+                  : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
               }`}
             >
               {p.label}
@@ -576,7 +578,7 @@ function DateRangeInput({
           className={`flex-1 ${inputCls}`}
           placeholder="From"
         />
-        <span className="text-[10px] text-gray-400">to</span>
+        <span className="text-[10px] text-[var(--text-muted)]">to</span>
         <input
           type="date"
           value={endVal}
@@ -627,7 +629,7 @@ function NumberRangeInput({
         placeholder="Min"
         className={`flex-1 ${inputCls}`}
       />
-      <span className="text-[10px] text-gray-400">to</span>
+      <span className="text-[10px] text-[var(--text-muted)]">to</span>
       <input
         type="number"
         value={allValues[maxKey] || ""}
@@ -747,12 +749,15 @@ function SearchInput({
         />
         {loading && (
           <div className="absolute right-2 top-1/2 -translate-y-1/2">
-            <Loader2 size={12} className="animate-spin text-gray-400" />
+            <Loader2
+              size={12}
+              className="animate-spin text-[var(--text-muted)]"
+            />
           </div>
         )}
       </div>
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
+        <div className="absolute z-50 mt-1 w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-[var(--radius-md)] shadow-[var(--shadow-lg)] max-h-40 overflow-y-auto">
           {suggestions.map((s, i) => (
             <button
               key={`${s.value}-${i}`}
@@ -761,7 +766,7 @@ function SearchInput({
                 onChange(filterKey, s.value);
                 setShowSuggestions(false);
               }}
-              className="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+              className="w-full text-left px-2 py-1.5 text-xs text-[var(--text-primary)] hover:bg-[var(--brand-subtle)] hover:text-[var(--brand)]"
             >
               {s.label}
             </button>
