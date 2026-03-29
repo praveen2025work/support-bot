@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { resolveDateRange, isDatePreset } from "@/lib/date-resolver";
-import { RefreshCw, Loader2 } from "lucide-react";
+import { RefreshCw, Loader2, Search, ChevronDown, X } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -10,6 +10,7 @@ import { RefreshCw, Loader2 } from "lucide-react";
 
 export type FilterType =
   | "select"
+  | "searchable_select"
   | "text"
   | "boolean"
   | "multi_select"
@@ -87,6 +88,21 @@ export function FilterInput({
             <RefreshButton onClick={onRefresh} spinning={refreshing} />
           )}
         </div>
+      );
+
+    /* ──── Searchable select (dropdown with search) ────────────── */
+    case "searchable_select":
+      return (
+        <SearchableSelectInput
+          filterKey={filterKey}
+          config={config}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          inputCls={inputCls}
+          onRefresh={onRefresh}
+          refreshing={refreshing}
+        />
       );
 
     /* ──── Multi-select checkbox dropdown ──────────────────────── */
@@ -222,6 +238,165 @@ function RefreshButton({
     >
       <RefreshCw size={14} className={spinning ? "animate-spin" : ""} />
     </button>
+  );
+}
+
+/* ──── Searchable select (dropdown with search) ────────────────── */
+
+function SearchableSelectInput({
+  filterKey,
+  config,
+  value,
+  onChange,
+  disabled,
+  inputCls,
+  onRefresh,
+  refreshing,
+}: {
+  filterKey: string;
+  config: FilterInputConfig;
+  value: string;
+  onChange: (key: string, value: string) => void;
+  disabled?: boolean;
+  inputCls: string;
+  onRefresh?: () => void;
+  refreshing?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const options = config.options || [];
+
+  // Close on click outside
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  // Focus search input when opened
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => searchRef.current?.focus(), 0);
+    }
+  }, [open]);
+
+  const filtered = query
+    ? options.filter(
+        (opt) =>
+          opt.label.toLowerCase().includes(query.toLowerCase()) ||
+          opt.value.toLowerCase().includes(query.toLowerCase()),
+      )
+    : options;
+
+  const selectedLabel = value
+    ? options.find((o) => o.value === value)?.label || value
+    : "";
+
+  return (
+    <div ref={ref} className="relative">
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          disabled={disabled}
+          className={`flex-1 text-left flex items-center justify-between ${inputCls} ${disabled ? "opacity-50" : ""}`}
+        >
+          {value ? (
+            <span className="truncate">{selectedLabel}</span>
+          ) : (
+            <span className="text-gray-400">
+              {config.placeholder || "All (no filter)"}
+            </span>
+          )}
+          <ChevronDown
+            size={12}
+            className={`shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+          />
+        </button>
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange(filterKey, "")}
+            className="p-0.5 text-gray-400 hover:text-gray-600 rounded"
+            title="Clear"
+          >
+            <X size={12} />
+          </button>
+        )}
+        {config.hasDynamicSource && onRefresh && (
+          <RefreshButton onClick={onRefresh} spinning={refreshing} />
+        )}
+      </div>
+
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg overflow-hidden">
+          {/* Search input */}
+          <div className="p-1.5 border-b border-gray-100 dark:border-gray-700">
+            <div className="relative">
+              <Search
+                size={12}
+                className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                ref={searchRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search..."
+                className="w-full text-xs pl-6 pr-2 py-1.5 border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          {/* Options */}
+          <div className="max-h-48 overflow-y-auto">
+            {/* "All" option */}
+            <button
+              type="button"
+              onClick={() => {
+                onChange(filterKey, "");
+                setOpen(false);
+              }}
+              className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${
+                !value
+                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium"
+                  : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+              }`}
+            >
+              All (no filter)
+            </button>
+            {filtered.length === 0 ? (
+              <div className="px-3 py-3 text-xs text-gray-400 text-center">
+                No matches
+              </div>
+            ) : (
+              filtered.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(filterKey, opt.value);
+                    setOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${
+                    value === opt.value
+                      ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

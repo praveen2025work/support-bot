@@ -79,6 +79,7 @@ const FLOWS = [
   { id: "flow-3", label: "Export & Actions", surface: "Chat" },
   { id: "flow-4", label: "Monitor Data", surface: "Dashboard" },
   { id: "flow-5", label: "Edit & Analyze", surface: "GridBoard" },
+  { id: "flow-5b", label: "Data Explorer", surface: "Explorer" },
   { id: "flow-6", label: "Embedded Chat", surface: "Widget" },
   { id: "flow-7", label: "Configure", surface: "Admin" },
   { id: "query-ref", label: "Query Reference", surface: "Reference" },
@@ -1102,6 +1103,116 @@ export default function UserGuidePage() {
         </Section>
 
         {/* ============================================================ */}
+        {/*  FLOW 5b: Data Explorer                                      */}
+        {/* ============================================================ */}
+        <Section
+          id="flow-5b"
+          title="Flow 5b: Data Explorer — Browse & Build Dashboards"
+        >
+          <p className="text-sm text-gray-600 mb-4">
+            Explore any CSV or XLSX data source interactively, view
+            auto-generated KPIs, and build custom card-based dashboards.
+          </p>
+
+          <h3 className="text-sm font-semibold text-gray-800 mb-2">
+            Getting Started
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            Navigate to <Cmd>Data Explorer</Cmd> from the main sidebar (or visit{" "}
+            <Cmd>/data-explorer</Cmd> directly). Select a data source from the
+            dropdown at the top of the page to load its contents.
+          </p>
+
+          <Screenshot
+            src="/images/guide/data-explorer-overview.png"
+            alt="Data Explorer page showing the data source dropdown, KPI summary cards, and sortable data table"
+          />
+
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            KPI Summary Cards
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            When a data source loads, the explorer auto-generates KPI cards for
+            every numeric column. Each card shows the column name, aggregated
+            value, and a trend indicator.
+          </p>
+
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Data Table
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            Below the KPIs, a sortable, paginated table displays all rows. Click
+            any column header to sort ascending or descending. Use the
+            pagination controls at the bottom to navigate through large
+            datasets.
+          </p>
+
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Filtering
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            An auto-filter panel appears alongside the table. Filters are
+            generated automatically based on the columns in the selected data
+            source. Apply one or more filters to narrow down the displayed rows
+            and KPI values.
+          </p>
+
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Custom Dashboard Builder
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            Build a custom dashboard from your data source using three card
+            types:
+          </p>
+          <div className="space-y-2 text-xs text-gray-600 mb-3">
+            <div>
+              <span className="font-medium">KPI Card</span> — Displays a single
+              aggregated metric (sum, average, count, min, max) for a chosen
+              column.
+            </div>
+            <div>
+              <span className="font-medium">Chart Card</span> — Visualizes data
+              as Bar, Line, Pie, or Area charts with configurable axes and
+              group-by dimensions.
+            </div>
+            <div>
+              <span className="font-medium">Table Card</span> — Shows a filtered
+              or grouped subset of the data in a compact table view.
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mb-2">
+            Click <Cmd>+ Add Card</Cmd> to open the card builder. Choose the
+            card type, configure the column, aggregation, and optional group-by
+            field, then save. Cards can be rearranged by dragging and removed
+            with the delete button.
+          </p>
+
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Group-By &amp; Aggregations
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            Both KPI and Chart cards support group-by operations. Select a
+            categorical column to group by, then choose an aggregation function
+            (Sum, Average, Count, Min, Max) to summarize each group.
+          </p>
+
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Anomaly Detection
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            The Data Explorer integrates with the platform&apos;s anomaly
+            detection engine. Numeric columns are automatically scanned for
+            outliers, and anomalous values are highlighted in the table and KPI
+            cards with warning or critical indicators.
+          </p>
+
+          <Tip>
+            Use the Data Explorer for ad-hoc analysis of file-based data
+            sources. For live API or SQL data, use Chat or Dashboard instead.
+          </Tip>
+        </Section>
+
+        {/* ============================================================ */}
         {/*  FLOW 6: Widget — Embedded Chat                              */}
         {/* ============================================================ */}
         <Section id="flow-6" title="Flow 6: Widget — Embedded Chat">
@@ -1221,6 +1332,36 @@ export default function UserGuidePage() {
           </div>
 
           <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            CSV / XLSX File Sources
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            Go to <Cmd>Admin &rarr; CSV / XLSX</Cmd> to manage file-based data
+            sources. Upload CSV or XLSX files to make them available as
+            queryable data across Chat and Data Explorer.
+          </p>
+          <div className="space-y-2 text-xs text-gray-600 mb-4">
+            <div>1. Upload a CSV or XLSX file from the file source manager</div>
+            <div>
+              2. XLSX files automatically register each sheet as a separate
+              query
+            </div>
+            <div>
+              3. Configure column types — mark date columns, ID columns, and
+              label columns so the platform can generate appropriate filters and
+              KPIs
+            </div>
+            <div>
+              4. File sources appear in Chat (as CSV/XLSX query types) and in
+              the Data Explorer source dropdown
+            </div>
+          </div>
+          <Tip>
+            Use the column type configuration to get the best results. Marking a
+            column as a date enables time-series charts, while marking a column
+            as a label enables group-by operations in the Data Explorer.
+          </Tip>
+
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
             Anomaly Detection Settings
           </h3>
 
@@ -1304,21 +1445,18 @@ export default function UserGuidePage() {
         </Section>
 
         <Section id="stomp" title="Live Notifications (STOMP WebSocket)">
-          <p
-            className="text-sm mb-3"
-            style={{ color: "hsl(var(--muted-foreground))" }}
-          >
+          <p className="text-sm mb-3" style={{ color: "var(--text-muted)" }}>
             Dashboard cards can receive real-time refresh events via STOMP
             WebSocket. This requires a two-level opt-in:
           </p>
           <ol
             className="text-sm space-y-3 list-decimal list-inside"
-            style={{ color: "hsl(var(--muted-foreground))" }}
+            style={{ color: "var(--text-muted)" }}
           >
             <li>
               <span
                 className="font-medium"
-                style={{ color: "hsl(var(--foreground))" }}
+                style={{ color: "var(--text-primary)" }}
               >
                 App-level toggle:
               </span>{" "}
@@ -1329,7 +1467,7 @@ export default function UserGuidePage() {
             <li>
               <span
                 className="font-medium"
-                style={{ color: "hsl(var(--foreground))" }}
+                style={{ color: "var(--text-primary)" }}
               >
                 Per-card toggle:
               </span>{" "}
@@ -1340,7 +1478,7 @@ export default function UserGuidePage() {
             <li>
               <span
                 className="font-medium"
-                style={{ color: "hsl(var(--foreground))" }}
+                style={{ color: "var(--text-primary)" }}
               >
                 Both must be enabled:
               </span>{" "}
@@ -1348,18 +1486,12 @@ export default function UserGuidePage() {
               enabled will auto-refresh when a matching STOMP event arrives.
             </li>
           </ol>
-          <p
-            className="text-sm mt-3"
-            style={{ color: "hsl(var(--muted-foreground))" }}
-          >
+          <p className="text-sm mt-3" style={{ color: "var(--text-muted)" }}>
             You can also enable live notifications when adding a new card via
             the &quot;Enable Live Notifications&quot; checkbox in the Add Card
             modal, or later via the card settings gear icon.
           </p>
-          <p
-            className="text-sm mt-2"
-            style={{ color: "hsl(var(--muted-foreground))" }}
-          >
+          <p className="text-sm mt-2" style={{ color: "var(--text-muted)" }}>
             <strong>Configure the STOMP broker:</strong> Click the gear icon
             next to the &quot;Live&quot; button, or go to{" "}
             <span className="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded">

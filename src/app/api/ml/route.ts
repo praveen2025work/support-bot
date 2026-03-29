@@ -15,23 +15,8 @@ import { INTENT_TO_ANALYSIS } from "../../../types/ml";
 
 // ── ML libs (server-side) ─────────────────────────────────────────────────────
 import * as ss from "../../../lib/ml/simple-stats";
-// Optional ML libs — may not be available in all environments
-/* eslint-disable @typescript-eslint/no-require-imports */
-let kmeans: typeof import("ml-kmeans").kmeans | undefined;
-let SimpleLinearRegression:
-  | typeof import("ml-regression").SimpleLinearRegression
-  | undefined;
-try {
-  kmeans = require("ml-kmeans").kmeans;
-} catch {
-  /* ml-kmeans not installed */
-}
-try {
-  SimpleLinearRegression = require("ml-regression").SimpleLinearRegression;
-} catch {
-  /* ml-regression not installed */
-}
-/* eslint-enable @typescript-eslint/no-require-imports */
+import { kmeans } from "../../../lib/ml/kmeans";
+import { SimpleLinearRegression } from "../../../lib/ml/linear-regression";
 import Fuse from "fuse.js";
 
 // ── Tenant config loader (replace with your actual config store) ───────────────
@@ -156,7 +141,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, result });
   } catch (err) {
-    console.error("[ML API Error]", err);
+    // ML API error handled via response below
     return NextResponse.json(
       {
         success: false,

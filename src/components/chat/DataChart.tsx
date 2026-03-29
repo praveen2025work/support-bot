@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -756,7 +756,7 @@ export function DataChart({
   };
 
   return (
-    <div className="mt-3 border border-gray-200 rounded-lg p-2 bg-white">
+    <div className="mt-3 border border-gray-200 rounded-lg p-2 bg-white dark:bg-gray-800 dark:border-gray-700">
       <ChartToolbar activeType={activeType} onTypeChange={handleTypeChange} />
       {renderChart()}
     </div>

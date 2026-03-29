@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   LayoutGrid,
   Database,
+  FileSpreadsheet,
   SlidersHorizontal,
   Users,
   Settings,
@@ -130,7 +131,15 @@ const NAV_SECTIONS: NavSection[] = [
         href: "/admin/connectors",
         label: "SQL Connectors",
         icon: Database,
-        match: (p: string) => p.startsWith("/admin/connectors"),
+        match: (p: string) =>
+          p.startsWith("/admin/connectors") &&
+          !p.startsWith("/admin/connectors/file"),
+      },
+      {
+        href: "/admin/connectors/file",
+        label: "CSV / XLSX",
+        icon: FileSpreadsheet,
+        match: (p: string) => p.startsWith("/admin/connectors/file"),
       },
     ],
   },
@@ -208,24 +217,21 @@ export function Sidebar() {
     <aside
       className="w-56 flex flex-col border-r"
       style={{
-        backgroundColor: "hsl(var(--card))",
-        borderColor: "hsl(var(--border))",
+        backgroundColor: "var(--bg-primary)",
+        borderColor: "var(--border)",
       }}
     >
       <div
         className="px-4 py-4 border-b"
-        style={{ borderColor: "hsl(var(--border))" }}
+        style={{ borderColor: "var(--border)" }}
       >
         <h1
           className="text-lg font-bold"
-          style={{ color: "hsl(var(--foreground))" }}
+          style={{ color: "var(--text-primary)" }}
         >
           Admin
         </h1>
-        <p
-          className="text-xs"
-          style={{ color: "hsl(var(--muted-foreground))" }}
-        >
+        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
           Bot Platform Dashboard
         </p>
       </div>
@@ -235,7 +241,7 @@ export function Sidebar() {
           <div key={section.label} className="mb-4">
             <div
               className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider"
-              style={{ color: "hsl(var(--muted-foreground))" }}
+              style={{ color: "var(--text-muted)" }}
             >
               {section.label}
             </div>
@@ -250,16 +256,16 @@ export function Sidebar() {
                     className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-150"
                     style={{
                       backgroundColor: isActive
-                        ? "hsl(var(--primary) / 0.1)"
+                        ? "color-mix(in srgb, var(--brand) 10%, transparent)"
                         : "transparent",
                       color: isActive
-                        ? "hsl(var(--primary))"
-                        : "hsl(var(--foreground) / 0.8)",
+                        ? "var(--brand)"
+                        : "var(--text-secondary)",
                     }}
                     onMouseEnter={(e) => {
                       if (!isActive)
                         e.currentTarget.style.backgroundColor =
-                          "hsl(var(--muted))";
+                          "var(--bg-tertiary)";
                     }}
                     onMouseLeave={(e) => {
                       if (!isActive)
@@ -269,9 +275,7 @@ export function Sidebar() {
                     <Icon
                       size={16}
                       style={{
-                        color: isActive
-                          ? "hsl(var(--primary))"
-                          : "hsl(var(--muted-foreground))",
+                        color: isActive ? "var(--brand)" : "var(--text-muted)",
                       }}
                     />
                     {item.label}
@@ -285,17 +289,17 @@ export function Sidebar() {
 
       <div
         className="px-4 py-3 border-t"
-        style={{ borderColor: "hsl(var(--border))" }}
+        style={{ borderColor: "var(--border)" }}
       >
         {userLoading ? (
           <div className="flex items-center gap-2">
             <div
               className="w-6 h-6 rounded-full animate-pulse"
-              style={{ backgroundColor: "hsl(var(--muted))" }}
+              style={{ backgroundColor: "var(--bg-tertiary)" }}
             />
             <div
               className="h-3 w-20 rounded animate-pulse"
-              style={{ backgroundColor: "hsl(var(--muted))" }}
+              style={{ backgroundColor: "var(--bg-tertiary)" }}
             />
           </div>
         ) : userInfo ? (
@@ -303,8 +307,8 @@ export function Sidebar() {
             <div
               className="w-6 h-6 rounded-full text-[10px] font-semibold flex items-center justify-center flex-shrink-0"
               style={{
-                backgroundColor: "hsl(var(--primary))",
-                color: "hsl(var(--primary-foreground))",
+                backgroundColor: "var(--brand)",
+                color: "var(--brand-text)",
               }}
             >
               {userInfo.givenName?.[0]}
@@ -313,13 +317,13 @@ export function Sidebar() {
             <div className="min-w-0">
               <p
                 className="text-xs font-medium truncate"
-                style={{ color: "hsl(var(--foreground))" }}
+                style={{ color: "var(--text-primary)" }}
               >
                 {userInfo.displayName}
               </p>
               <p
                 className="text-[10px] truncate"
-                style={{ color: "hsl(var(--muted-foreground))" }}
+                style={{ color: "var(--text-muted)" }}
               >
                 {userInfo.department || userInfo.role}
               </p>

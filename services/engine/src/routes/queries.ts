@@ -63,6 +63,7 @@ queriesRouter.get("/queries", async (req: Request, res: Response) => {
         ...(q.drillDown ? { drillDown: q.drillDown } : {}),
         ...(q.combinedConfig ? { combinedConfig: q.combinedConfig } : {}),
         ...(q.actionConfig ? { actionConfig: q.actionConfig } : {}),
+        ...(q.columnConfig ? { columnConfig: q.columnConfig } : {}),
       })),
     });
   } catch (error) {

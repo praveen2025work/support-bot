@@ -29,20 +29,17 @@ export default function AdminLayout({
     return (
       <div
         className="flex h-screen items-center justify-center"
-        style={{ backgroundColor: "hsl(var(--background))" }}
+        style={{ backgroundColor: "var(--bg-primary)" }}
       >
         <div className="text-center">
           <div
             className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-t-transparent"
             style={{
-              borderColor: "hsl(var(--primary))",
+              borderColor: "var(--brand)",
               borderTopColor: "transparent",
             }}
           />
-          <p
-            className="mt-2 text-sm"
-            style={{ color: "hsl(var(--muted-foreground))" }}
-          >
+          <p className="mt-2 text-sm" style={{ color: "var(--text-muted)" }}>
             Checking access...
           </p>
         </div>
@@ -55,19 +52,16 @@ export default function AdminLayout({
     return (
       <div
         className="flex h-screen items-center justify-center"
-        style={{ backgroundColor: "hsl(var(--background))" }}
+        style={{ backgroundColor: "var(--bg-primary)" }}
       >
         <div className="text-center">
           <p
             className="text-lg font-semibold"
-            style={{ color: "hsl(var(--foreground))" }}
+            style={{ color: "var(--text-primary)" }}
           >
             Access Denied
           </p>
-          <p
-            className="mt-1 text-sm"
-            style={{ color: "hsl(var(--muted-foreground))" }}
-          >
+          <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
             You do not have admin privileges.
           </p>
         </div>
@@ -78,14 +72,14 @@ export default function AdminLayout({
   return (
     <div
       className="flex flex-col h-screen"
-      style={{ backgroundColor: "hsl(var(--background))" }}
+      style={{ backgroundColor: "var(--bg-primary)" }}
     >
       <ContextualTopBar title="Admin" />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <main
           className="flex-1 overflow-auto p-6"
-          style={{ backgroundColor: "hsl(var(--background))" }}
+          style={{ backgroundColor: "var(--bg-primary)" }}
         >
           {children}
           <ScrollToTop />

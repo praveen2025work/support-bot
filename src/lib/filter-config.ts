@@ -53,8 +53,9 @@ function parseFilterEntry(
     label: String(entry.label || key),
     type: (entry.type as FilterInputConfig["type"]) || "text",
     options:
-      ["select", "multi_select"].includes(String(entry.type)) &&
-      Array.isArray(entry.options)
+      ["select", "multi_select", "searchable_select"].includes(
+        String(entry.type),
+      ) && Array.isArray(entry.options)
         ? (entry.options as { value: string; label: string }[])
         : undefined,
     placeholder: entry.placeholder ? String(entry.placeholder) : undefined,

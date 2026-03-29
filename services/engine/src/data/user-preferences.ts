@@ -65,6 +65,12 @@ export interface DashboardCard {
   /** Enable STOMP WebSocket live refresh for this card */
   stompEnabled?: boolean;
   migratedFromFavoriteId?: string;
+  /** Saved follow-up commands to auto-replay after initial query */
+  followUpChain?: string[];
+  /** Saved chart type override */
+  savedChartType?: string;
+  /** Per-card override: only aggregate/display these numeric columns in group-by */
+  valueColumns?: string[];
   createdAt: string;
 }
 
@@ -531,10 +537,11 @@ export class UserPreferencesStore {
       if (!dash) return null;
       const card = dash.cards.find((c) => c.id === cardId);
       if (!card) return null;
-      Object.assign(card, partial, { id: cardId });
+      const updatedCard: DashboardCard = { ...card, ...partial, id: cardId };
+      dash.cards = dash.cards.map((c) => (c.id === cardId ? updatedCard : c));
       dash.updatedAt = new Date().toISOString();
       await this.write(prefs);
-      return card;
+      return updatedCard;
     });
   }
 
@@ -807,12 +814,17 @@ export class UserPreferencesStore {
       const prefs = await this.read(userId);
       const view = (prefs.gridBoardViews || []).find((v) => v.id === viewId);
       if (!view) return null;
-      Object.assign(view, partial, {
+      const updatedView: GridBoardView = {
+        ...view,
+        ...partial,
         id: viewId,
         updatedAt: new Date().toISOString(),
-      });
+      };
+      prefs.gridBoardViews = (prefs.gridBoardViews || []).map((v) =>
+        v.id === viewId ? updatedView : v,
+      );
       await this.write(prefs);
-      return view;
+      return updatedView;
     });
   }
 

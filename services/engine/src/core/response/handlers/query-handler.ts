@@ -37,6 +37,33 @@ import { getAnomalyDetector } from "../../anomaly/anomaly-detector";
 import { addToDictionary } from "../../nlp/typo-corrector";
 
 /**
+ * Strip columns listed in columnConfig.ignoreColumns from CSV headers and rows
+ * so they don't appear in the table display.
+ */
+function stripIgnoredColumnsFromCsv(
+  csv: Record<string, unknown>,
+  columnConfig?: ColumnConfig,
+): Record<string, unknown> {
+  if (!columnConfig?.ignoreColumns || columnConfig.ignoreColumns.length === 0)
+    return csv;
+  const headers = csv.headers as string[] | undefined;
+  const rows = csv.rows as Record<string, string | number>[] | undefined;
+  if (!headers || !rows) return csv;
+  const ignoreSet = new Set(
+    columnConfig.ignoreColumns.map((c) => c.toLowerCase()),
+  );
+  const visibleHeaders = headers.filter((h) => !ignoreSet.has(h.toLowerCase()));
+  const visibleRows = rows.map((row) => {
+    const filtered: Record<string, string | number> = {};
+    for (const h of visibleHeaders) {
+      filtered[h] = row[h];
+    }
+    return filtered;
+  });
+  return { ...csv, headers: visibleHeaders, rows: visibleRows };
+}
+
+/**
  * Get the last user message text from conversation history.
  */
 export function getLastUserText(context: ConversationContext): string {
@@ -173,11 +200,18 @@ export async function rerunLastQueryWithFilters(
     switch (result.type) {
       case "csv": {
         const csv = result.csvResult!;
+        const filteredCsvDisplay = stripIgnoredColumnsFromCsv(
+          csv as unknown as Record<string, unknown>,
+          (context.lastColumnConfig as ColumnConfig) ?? undefined,
+        );
         return {
           text: `Here is "${context.lastQueryName}" filtered${filterLabel} (${csv.rowCount} rows):`,
           richContent: csv.aggregation
             ? { type: "csv_aggregation", data: csv }
-            : { type: "csv_table", data: { ...csv, ...chartMeta } },
+            : {
+                type: "csv_table",
+                data: { ...filteredCsvDisplay, ...chartMeta },
+              },
           sessionId: context.sessionId,
           intent: "followup.filter",
           confidence: 1,
@@ -831,6 +865,10 @@ export async function handleQueryExecute(
             anomalies,
           };
         }
+        const displayCsv = stripIgnoredColumnsFromCsv(
+          csv as unknown as Record<string, unknown>,
+          columnConfig as ColumnConfig | undefined,
+        );
         return {
           text: totalRowCount
             ? `Here is the data from "${queryNameEntity.value}" (showing first ${displayedRows} of ${totalRowCount} rows):`
@@ -838,7 +876,7 @@ export async function handleQueryExecute(
           richContent: {
             type: "csv_table",
             data: {
-              ...csv,
+              ...displayCsv,
               ...(chartConfig && { chartConfig }),
               ...(columnConfig && { columnConfig }),
               ...(columnMetadata && { columnMetadata }),

@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
 
     const data = await readFilterConfig();
 
-    const typesWithOptions = ["select", "multi_select"];
+    const typesWithOptions = ["select", "multi_select", "searchable_select"];
     const typesWithPlaceholder = ["text", "search"];
 
     const filterEntry: FilterConfig = {

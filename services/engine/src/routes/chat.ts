@@ -73,6 +73,7 @@ chatRouter.post("/", async (req: Request, res: Response) => {
     // Follow-up chain: process initial query + all follow-ups server-side,
     // returning only the final result (avoids sequential round-trips)
     const followUpChain = body.followUpChain as string[] | undefined;
+    const cardValueColumns = body.valueColumns as string[] | undefined;
     const hdrs =
       Object.keys(incomingHeaders).length > 0 ? incomingHeaders : undefined;
 
@@ -97,6 +98,17 @@ chatRouter.post("/", async (req: Request, res: Response) => {
         },
         "Chain: initial query result",
       );
+
+      // Apply per-card valueColumns override to context before follow-ups
+      if (cardValueColumns?.length) {
+        const ctx = await engine.getContext(message.sessionId, message.userId);
+        const existing = (ctx.lastColumnConfig || {}) as Record<
+          string,
+          unknown
+        >;
+        ctx.lastColumnConfig = { ...existing, valueColumns: cardValueColumns };
+      }
+
       // Then process each follow-up in sequence
       for (const followUpText of followUpChain) {
         const followUpMsg = await adapter.parseIncoming({

@@ -26,12 +26,13 @@ import {
   MessageCircle,
   ExternalLink,
   Radio,
+  Settings,
 } from "lucide-react";
 import { DashboardTabBar } from "./DashboardTabBar";
 import { useRouter } from "next/navigation";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { CardSettingsPopover } from "./CardSettingsPopover";
+import { CardSettingsModal } from "./CardSettingsModal";
 
 interface GridDashboardProps {
   dashboard: Dashboard;
@@ -52,6 +53,11 @@ interface GridDashboardProps {
       label?: string;
       contextFields?: string[];
       metadata?: Record<string, string>;
+    };
+    columnConfig?: {
+      valueColumns?: string[];
+      labelColumns?: string[];
+      ignoreColumns?: string[];
     };
   }>;
   onLayoutChange: (layouts: CardLayout[]) => void;
@@ -108,6 +114,7 @@ function CardHeader({
   onOpenAction,
   onSaveView,
   hasUnsavedFollowUps,
+  onOpenSettings,
 }: {
   card: DashboardCard;
   executionMs: number | null;
@@ -127,6 +134,8 @@ function CardHeader({
   onSaveView?: () => void;
   /** Whether the card has unsaved follow-up operations */
   hasUnsavedFollowUps?: boolean;
+  /** Open the card settings modal */
+  onOpenSettings?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [editLabel, setEditLabel] = useState(card.label);
@@ -540,19 +549,15 @@ function CardHeader({
               </button>
             </Tooltip>
           )}
-        {/* Card Settings Popover */}
-        {!simpleMode && onCardUpdate && (
-          <CardSettingsPopover
-            label={card.label}
-            autoRun={card.autoRun}
-            eventLink={card.eventLink}
-            displayMode={displayMode}
-            compactAuto={card.compactAuto ?? true}
-            stompEnabled={card.stompEnabled}
-            refreshIntervalSec={card.refreshIntervalSec}
-            followUpChain={card.followUpChain}
-            onUpdate={(partial) => onCardUpdate(card.id, partial)}
-          />
+        {/* Card Settings */}
+        {!simpleMode && onOpenSettings && (
+          <button
+            onClick={onOpenSettings}
+            className="p-1 text-gray-400 hover:text-gray-600 rounded"
+            title="Card settings"
+          >
+            <Settings size={16} />
+          </button>
         )}
         {/* Remove */}
         {!simpleMode && !isMaximized && (
@@ -762,6 +767,7 @@ export function GridDashboard({
     Record<string, number | null>
   >({});
   const [maximizedCardId, setMaximizedCardId] = useState<string | null>(null);
+  const [settingsCardId, setSettingsCardId] = useState<string | null>(null);
   // Track pending follow-up chains per card (reported by QueryCard)
   const [pendingChains, setPendingChains] = useState<Record<string, string[]>>(
     {},
@@ -899,6 +905,9 @@ export function GridDashboard({
               (!!pendingChartTypes[card.id] &&
                 pendingChartTypes[card.id] !== card.savedChartType)
             }
+            onOpenSettings={
+              simpleMode ? undefined : () => setSettingsCardId(card.id)
+            }
           />
         </div>
         <div
@@ -951,6 +960,7 @@ export function GridDashboard({
                       [card.id]: type,
                     }))
             }
+            valueColumns={card.valueColumns}
           />
         </div>
       </>
@@ -1005,6 +1015,31 @@ export function GridDashboard({
           ))}
         </SimpleGrid>
       </div>
+
+      {/* Card Settings Modal */}
+      {settingsCardId &&
+        (() => {
+          const settingsCard = visibleCards.find(
+            (c) => c.id === settingsCardId,
+          );
+          if (!settingsCard) return null;
+          const qi = availableQueries?.find(
+            (q) => q.name === settingsCard.queryName,
+          );
+          return (
+            <CardSettingsModal
+              isOpen
+              onClose={() => setSettingsCardId(null)}
+              card={settingsCard}
+              queryName={settingsCard.queryName}
+              availableValueColumns={qi?.columnConfig?.valueColumns}
+              onSave={(partial) => {
+                onCardUpdate(settingsCard.id, partial);
+                setSettingsCardId(null);
+              }}
+            />
+          );
+        })()}
     </div>
   );
 }

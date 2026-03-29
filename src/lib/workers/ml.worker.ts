@@ -15,25 +15,10 @@ import { predictColumn } from "../ml/regression";
 import { computeHistogram } from "../ml/histogram";
 import type { WorkerRequest, WorkerResponse } from "../../types/ml";
 
-// ── Dynamic imports of ML libs (bundled by Next.js webpack) ──────────────────
+// ── ML libs (zero-dependency, bundled with the worker) ───────────────────────
 import * as ss from "../ml/simple-stats";
-// Optional ML libs — may not be available in all environments
-/* eslint-disable @typescript-eslint/no-require-imports */
-let kmeans: typeof import("ml-kmeans").kmeans | undefined;
-let SimpleLinearRegression:
-  | typeof import("ml-regression").SimpleLinearRegression
-  | undefined;
-try {
-  kmeans = require("ml-kmeans").kmeans;
-} catch {
-  /* ml-kmeans not installed */
-}
-try {
-  SimpleLinearRegression = require("ml-regression").SimpleLinearRegression;
-} catch {
-  /* ml-regression not installed */
-}
-/* eslint-enable @typescript-eslint/no-require-imports */
+import { kmeans } from "../ml/kmeans";
+import { SimpleLinearRegression } from "../ml/linear-regression";
 import Fuse from "fuse.js";
 
 // ─── Message Handler ──────────────────────────────────────────────────────────
@@ -65,10 +50,6 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       }
 
       case "trend": {
-        if (!SimpleLinearRegression) {
-          result = { error: "ml-regression not installed" };
-          break;
-        }
         result = detectTrend(
           data,
           opts.valueColumn as string,
@@ -79,12 +60,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
         break;
       }
 
-      // Gap L fix: forecast reuses trend with forecast-specific periods
       case "forecast": {
-        if (!SimpleLinearRegression) {
-          result = { error: "ml-regression not installed" };
-          break;
-        }
         result = detectTrend(
           data,
           opts.valueColumn as string,
@@ -100,11 +76,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
         result = clusterData(
           numericData,
           opts.columns as string[],
-          kmeans as unknown as (
-            data: number[][],
-            k: number,
-            options?: object,
-          ) => { clusters: number[]; centroids: number[][] },
+          kmeans,
           opts.k as number | undefined,
         );
         break;

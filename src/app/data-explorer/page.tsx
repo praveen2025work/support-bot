@@ -282,10 +282,11 @@ export default function DataExplorerPage() {
                   />
                   <button
                     onClick={() => {
-                      dashboard.saveDashboard({
+                      dashboard.setConfig({
                         ...dashboard.config!,
                         name: nameInput.trim() || dashboard.config!.name,
                       });
+                      dashboard.persistDashboard();
                       setEditingName(false);
                     }}
                     className="p-1 text-green-500 hover:text-green-700"
@@ -347,7 +348,11 @@ export default function DataExplorerPage() {
               onFilterChange={handleFilterChange}
               search={explorer.search}
               onSearchChange={handleSearchChange}
-              schema={explorer.schema?.schema}
+              schema={
+                explorer.schema?.schema as
+                  | import("@/components/data-explorer/types").ColumnSchema[]
+                  | undefined
+              }
               groupByCol={explorer.groupByCol}
               onGroupByChange={(col) => explorer.setGroupByCol(col)}
               onClearAll={handleClearAll}

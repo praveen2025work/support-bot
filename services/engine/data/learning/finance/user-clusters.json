@@ -7,6 +7,6 @@
   {
     "clusterId": 1,
     "userIds": ["jdoe"],
-    "topQueries": ["pnl_signoff"]
+    "topQueries": ["pnl_signoff", "pnl_lineage"]
   }
 ]

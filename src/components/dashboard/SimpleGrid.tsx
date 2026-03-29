@@ -8,6 +8,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -30,6 +31,8 @@ interface SimpleGridProps {
   rowHeight?: number;
   gap?: number;
   readOnly?: boolean;
+  /** When true, position items at their x,y coordinates instead of auto-flow */
+  explicitPlacement?: boolean;
   onLayoutChange?: (layout: GridItem[]) => void;
   children: ReactNode[];
 }
@@ -40,6 +43,7 @@ export function SimpleGrid({
   rowHeight = 80,
   gap = 16,
   readOnly = false,
+  explicitPlacement = false,
   onLayoutChange,
   children,
 }: SimpleGridProps) {
@@ -73,22 +77,49 @@ export function SimpleGrid({
     return () => ro.disconnect();
   }, []);
 
-  // Responsive column count
+  // Responsive column count (default to full cols before first measurement)
   const effectiveCols =
-    containerWidth < 480
-      ? 2
-      : containerWidth < 768
-        ? 4
-        : containerWidth < 996
-          ? 8
-          : cols;
+    containerWidth === 0
+      ? cols
+      : containerWidth < 480
+        ? 2
+        : containerWidth < 768
+          ? 4
+          : containerWidth < 996
+            ? 8
+            : cols;
   const colWidth =
     containerWidth > 0
       ? (containerWidth - gap * (effectiveCols - 1)) / effectiveCols
       : 0;
 
+  // ── Compact: pack cards upward to prevent overlaps (explicit mode only) ──
+  const compacted = useMemo(() => {
+    if (!explicitPlacement || layouts.length === 0) return layouts;
+    const items = [...layouts].sort((a, b) => a.y - b.y || a.x - b.x);
+    const result: GridItem[] = [];
+    for (const item of items) {
+      let bestY = 0;
+      // Find lowest y where this card fits without overlapping placed cards
+
+      while (true) {
+        const overlaps = result.some(
+          (p) =>
+            item.x < p.x + p.w &&
+            item.x + item.w > p.x &&
+            bestY < p.y + p.h &&
+            bestY + item.h > p.y,
+        );
+        if (!overlaps) break;
+        bestY++;
+      }
+      result.push({ ...item, y: bestY });
+    }
+    return result;
+  }, [layouts, explicitPlacement]);
+
   // Sort layouts by y then x for row-major order
-  const sorted = [...layouts].sort((a, b) => a.y - b.y || a.x - b.x);
+  const sorted = [...compacted].sort((a, b) => a.y - b.y || a.x - b.x);
 
   // ── Drag handlers ──────────────────────────────────────────────────────────
   const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
@@ -216,6 +247,9 @@ export function SimpleGrid({
     effectiveCols,
   ]);
 
+  // Use explicit grid placement when opted-in and at full column count
+  const useExplicit = explicitPlacement && effectiveCols >= cols;
+
   // Compute child map by key
   const childMap = new Map<string, ReactNode>();
   (Array.isArray(children) ? children : [children]).forEach((child) => {
@@ -236,6 +270,7 @@ export function SimpleGrid({
       style={{
         display: "grid",
         gridTemplateColumns: `repeat(${effectiveCols}, 1fr)`,
+        ...(useExplicit ? { gridAutoRows: `${rowHeight}px` } : {}),
         gap: `${gap}px`,
         width: "100%",
       }}
@@ -258,8 +293,13 @@ export function SimpleGrid({
             key={item.i}
             className={`simple-grid-item${isDragging ? " dragging" : ""}${isDropTarget ? " drop-target" : ""}`}
             style={{
-              gridColumn: `span ${spanW}`,
-              height: `${previewH * rowHeight}px`,
+              gridColumn: useExplicit
+                ? `${item.x + 1} / span ${spanW}`
+                : `span ${spanW}`,
+              gridRow: useExplicit
+                ? `${item.y + 1} / span ${previewH}`
+                : undefined,
+              height: useExplicit ? undefined : `${previewH * rowHeight}px`,
               opacity: isDragging ? 0.5 : 1,
               outline: isDropTarget
                 ? "2px dashed #3b82f6"
