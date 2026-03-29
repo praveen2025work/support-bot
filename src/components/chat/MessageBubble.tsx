@@ -184,6 +184,7 @@ export function MessageBubble({
   onChartTypeChange,
   hideExecutionTime,
   dashboardMode,
+  onShowInPanel,
   diffInfo,
 }: {
   message: Message;
@@ -221,6 +222,12 @@ export function MessageBubble({
   hideExecutionTime?: boolean;
   /** Dashboard mode — suppress conversational text, copy button, badges, and feedback bar; show only rich content */
   dashboardMode?: boolean;
+  /** Show rich content result in the right-hand DataPanel */
+  onShowInPanel?: (
+    data: Record<string, unknown>[],
+    columns: string[],
+    title: string,
+  ) => void;
   /** Diff info from previous query run — highlights changes in table */
   diffInfo?: {
     addedIndices: Set<number>;
@@ -322,6 +329,7 @@ export function MessageBubble({
               richContent={message.richContent}
               onExecuteQuery={onExecuteQuery}
               onAction={onAction}
+              onShowInPanel={onShowInPanel}
               cardId={cardId}
               linkedSelection={linkedSelection}
               onCellClick={onCellClick}
@@ -424,6 +432,7 @@ function RichContentRenderer({
   richContent,
   onExecuteQuery,
   onAction,
+  onShowInPanel,
   cardId,
   linkedSelection,
   onCellClick,
@@ -438,6 +447,11 @@ function RichContentRenderer({
   richContent: NonNullable<Message["richContent"]>;
   onExecuteQuery?: (queryName: string, filters: Record<string, string>) => void;
   onAction?: (text: string) => void;
+  onShowInPanel?: (
+    data: Record<string, unknown>[],
+    columns: string[],
+    title: string,
+  ) => void;
   cardId?: string;
   linkedSelection?: LinkedSelection;
   onCellClick?: (column: string, value: unknown) => void;
@@ -1472,11 +1486,27 @@ function RichContentRenderer({
               </tbody>
             </table>
           </div>
-          {anomalyData.totalOutliers > 30 && (
-            <p className="text-[10px] text-[var(--text-muted)] mt-1">
-              Showing 30 of {anomalyData.totalOutliers} outlier rows
-            </p>
-          )}
+          <div className="flex items-center gap-2 mt-2">
+            {anomalyData.totalOutliers > 30 && (
+              <span className="text-[10px] text-[var(--text-muted)]">
+                Showing 30 of {anomalyData.totalOutliers} outlier rows
+              </span>
+            )}
+            {onShowInPanel && anomalyData.outlierRows && (
+              <button
+                onClick={() =>
+                  onShowInPanel(
+                    anomalyData.outlierRows,
+                    anomalyData.headers,
+                    "Anomaly Results",
+                  )
+                }
+                className="ml-auto text-[11px] text-[var(--brand)] hover:underline"
+              >
+                Show in Panel &rarr;
+              </button>
+            )}
+          </div>
         </div>
       );
     }
@@ -1630,6 +1660,18 @@ function RichContentRenderer({
     case "forecast_result": {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const fcData = richContent.data as any;
+      const forecastRows = [
+        ...(fcData.historical || []).map((h: Record<string, unknown>) => ({
+          ...h,
+          type: "historical",
+        })),
+        ...(fcData.predicted || []).map((p: Record<string, unknown>) => ({
+          ...p,
+          type: "forecast",
+        })),
+      ];
+      const forecastCols =
+        forecastRows.length > 0 ? Object.keys(forecastRows[0]) : [];
       return (
         <div className="mt-1">
           <Suspense
@@ -1645,6 +1687,16 @@ function RichContentRenderer({
               valueLabel={fcData.valueColumn}
             />
           </Suspense>
+          {onShowInPanel && forecastRows.length > 0 && (
+            <button
+              onClick={() =>
+                onShowInPanel(forecastRows, forecastCols, "Forecast Results")
+              }
+              className="mt-1 text-[11px] text-[var(--brand)] hover:underline"
+            >
+              Show in Panel &rarr;
+            </button>
+          )}
         </div>
       );
     }

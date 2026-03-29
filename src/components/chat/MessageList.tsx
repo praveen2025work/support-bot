@@ -55,6 +55,7 @@ export function MessageList({
   onExecuteQuery,
   onRetry,
   onFeedback,
+  onShowInPanel,
   displayMode = "auto",
   compactAuto = true,
   compactRichContent,
@@ -69,6 +70,11 @@ export function MessageList({
     messageId: string,
     type: "positive" | "negative",
     correction?: string,
+  ) => void;
+  onShowInPanel?: (
+    data: Record<string, unknown>[],
+    columns: string[],
+    title: string,
   ) => void;
   displayMode?: "auto" | "table" | "chart";
   compactAuto?: boolean;
@@ -148,6 +154,7 @@ export function MessageList({
               onExecuteQuery={onExecuteQuery}
               onRetry={onRetry}
               onFeedback={onFeedback}
+              onShowInPanel={onShowInPanel}
               displayMode={displayMode}
               compactAuto={compactAuto}
               compactRichContent={compactRichContent}

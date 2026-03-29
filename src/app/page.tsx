@@ -153,6 +153,19 @@ function ChatPage() {
     setActiveResult(result);
   }, []);
 
+  const handleShowInPanel = useCallback(
+    (data: Record<string, unknown>[], columns: string[], title: string) => {
+      setActiveResult({
+        queryName: title,
+        title,
+        subtitle: `${data.length} rows`,
+        data,
+        columns,
+      });
+    },
+    [],
+  );
+
   return (
     <>
       <ContextualTopBar
@@ -183,6 +196,7 @@ function ChatPage() {
             groupId={groupId}
             userName={userInfo?.samAccountName}
             onQueryResult={handleQueryResult}
+            onShowInPanel={handleShowInPanel}
             splitView
           />
         }
