@@ -14,8 +14,10 @@ export function AppShell({ children }: AppShellProps) {
     <div className="flex h-screen overflow-hidden bg-[var(--bg-secondary)]">
       <Sidebar isAdmin={isAdmin} />
       <main
-        className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden animate-slide-up"
-        style={{ marginLeft: "var(--sidebar-width)" }}
+        className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden animate-slide-up transition-[margin-left] duration-200 ease-out"
+        style={{
+          marginLeft: "var(--sidebar-current-width, var(--sidebar-width))",
+        }}
       >
         {children}
       </main>

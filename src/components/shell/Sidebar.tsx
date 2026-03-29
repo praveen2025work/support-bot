@@ -82,15 +82,26 @@ export function Sidebar({ isAdmin }: SidebarProps) {
   const [pinned, setPinned] = useState(false);
   const collapseTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+  const setSidebarWidth = useCallback((wide: boolean) => {
+    document.documentElement.style.setProperty(
+      "--sidebar-current-width",
+      wide ? "var(--sidebar-expanded)" : "var(--sidebar-width)",
+    );
+  }, []);
+
   const handleMouseEnter = useCallback(() => {
     clearTimeout(collapseTimer.current);
     setExpanded(true);
-  }, []);
+    setSidebarWidth(true);
+  }, [setSidebarWidth]);
 
   const handleMouseLeave = useCallback(() => {
     if (pinned) return;
-    collapseTimer.current = setTimeout(() => setExpanded(false), 300);
-  }, [pinned]);
+    collapseTimer.current = setTimeout(() => {
+      setExpanded(false);
+      setSidebarWidth(false);
+    }, 300);
+  }, [pinned, setSidebarWidth]);
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -164,7 +175,13 @@ export function Sidebar({ isAdmin }: SidebarProps) {
 
       {isExpanded && (
         <button
-          onClick={() => setPinned((p) => !p)}
+          onClick={() => {
+            setPinned((p) => {
+              const next = !p;
+              setSidebarWidth(next);
+              return next;
+            });
+          }}
           className={`mt-1 w-full flex items-center gap-2 px-2 py-[5px] rounded-[var(--radius-md)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors text-[11px] ${pinned ? "text-[var(--brand)]" : ""}`}
           title={pinned ? "Unpin sidebar" : "Pin sidebar open"}
         >

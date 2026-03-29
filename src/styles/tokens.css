@@ -63,6 +63,7 @@
   /* Sidebar */
   --sidebar-width: 48px;
   --sidebar-expanded: 200px;
+  --sidebar-current-width: 48px;
   --topbar-height: 44px;
 }
 
