@@ -108,6 +108,7 @@ export function AppHeader({
             { href: "/", label: "Chat" },
             { href: "/dashboard", label: "Dashboard" },
             { href: "/gridboard", label: "Grid Board" },
+            { href: "/data-explorer", label: "Data Explorer" },
             { href: "/features", label: "Features" },
             ...(isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
           ].map(({ href, label }) => (

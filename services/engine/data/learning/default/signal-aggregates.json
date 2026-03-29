@@ -29,11 +29,6 @@
     "positive": 1,
     "negative": 0
   },
-  "group by category": {
-    "intent": "query.execute",
-    "positive": 2,
-    "negative": 0
-  },
   "group by region": {
     "intent": "query.execute",
     "positive": 1,
@@ -199,16 +194,11 @@
     "positive": 1,
     "negative": 0
   },
-  "profile columns": {
-    "intent": "analysis.profile",
-    "positive": 1,
-    "negative": 0
-  },
   "find outliers": {
     "intent": "analysis.anomaly",
-    "positive": 3,
+    "positive": 6,
     "negative": 6,
-    "lastSignalAt": "2026-03-24T03:13:57.076Z"
+    "lastSignalAt": "2026-03-28T20:11:07.141Z"
   },
   "what is sal_base_salary": {
     "intent": "followup.data_lookup",
@@ -275,12 +265,6 @@
     "positive": 1,
     "negative": 0
   },
-  "show trend": {
-    "intent": "analysis.trend",
-    "positive": 1,
-    "negative": 0,
-    "lastSignalAt": "2026-03-20T17:18:56.368Z"
-  },
   "forecast ahead": {
     "intent": "analysis.forecast",
     "positive": 3,
@@ -295,9 +279,9 @@
   },
   "run employee_full_review": {
     "intent": "query.execute",
-    "positive": 1,
-    "negative": 1,
-    "lastSignalAt": "2026-03-20T22:15:43.502Z"
+    "positive": 2,
+    "negative": 3,
+    "lastSignalAt": "2026-03-28T22:53:09.242Z"
   },
   "run order_details": {
     "intent": "query.execute",
@@ -313,14 +297,92 @@
   },
   "top 5": {
     "intent": "followup.top_n",
-    "positive": 1,
+    "positive": 2,
     "negative": 0,
-    "lastSignalAt": "2026-03-24T03:18:28.492Z"
+    "lastSignalAt": "2026-03-28T18:53:31.853Z"
   },
   "summarize": {
     "intent": "None",
+    "positive": 2,
+    "negative": 0,
+    "lastSignalAt": "2026-03-28T18:53:13.729Z"
+  },
+  "run sales_data": {
+    "intent": "query.execute",
+    "positive": 4,
+    "negative": 3,
+    "lastSignalAt": "2026-03-28T20:10:59.210Z"
+  },
+  "group by month": {
+    "intent": "followup.group_by",
+    "positive": 3,
+    "negative": 0,
+    "lastSignalAt": "2026-03-28T18:52:15.555Z"
+  },
+  "run cash_position": {
+    "intent": "query.execute",
     "positive": 1,
     "negative": 0,
-    "lastSignalAt": "2026-03-24T03:18:33.610Z"
+    "lastSignalAt": "2026-03-28T18:52:08.722Z"
+  },
+  "sort by count desc": {
+    "intent": "followup.sort",
+    "positive": 2,
+    "negative": 0,
+    "lastSignalAt": "2026-03-28T19:10:33.116Z"
+  },
+  "run service_reliability_report": {
+    "intent": "query.execute",
+    "positive": 2,
+    "negative": 0,
+    "lastSignalAt": "2026-03-28T22:13:55.427Z"
+  },
+  "bottom 10 by revenue": {
+    "intent": "followup.top_n",
+    "positive": 2,
+    "negative": 0,
+    "lastSignalAt": "2026-03-28T19:10:41.264Z"
+  },
+  "group by category": {
+    "intent": "followup.group_by",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-03-28T19:29:36.970Z"
+  },
+  "show trend": {
+    "intent": "analysis.trend",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-03-28T20:11:01.973Z"
+  },
+  "run summarize": {
+    "intent": "followup.summary",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-03-28T22:10:54.115Z"
+  },
+  "run report_generator": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-03-28T22:10:59.659Z"
+  },
+  "search documents": {
+    "intent": "document.ask",
+    "positive": 1,
+    "negative": 1,
+    "lastSignalAt": "2026-03-28T22:11:15.580Z"
+  },
+  "list queries": {
+    "intent": "query.list",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-03-28T22:11:33.154Z"
+  },
+  "run dept_metrics_compensation": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-03-28T22:13:54.228Z"
   }
 }

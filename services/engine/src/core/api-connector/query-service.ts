@@ -637,7 +637,11 @@ export class QueryService {
 
     // Inline group-by: "run sales_data group by region"
     if (options?.groupByColumn) {
-      const gbResult = groupBy(csvData, options.groupByColumn);
+      const gbResult = groupBy(
+        csvData,
+        options.groupByColumn,
+        query.columnConfig as import("./csv-analyzer").ColumnConfig | undefined,
+      );
       if (gbResult) {
         return {
           type: "csv",

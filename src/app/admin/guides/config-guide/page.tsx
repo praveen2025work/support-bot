@@ -1890,22 +1890,35 @@ SMTP_FROM=noreply@example.com`}</pre>
           </p>
         </Section>
 
-        <Section title="15. XLSX / XLS File Sources">
+        <Section title="15. CSV & XLSX File Sources">
           <p className="text-sm text-gray-600 mb-3">
-            Upload Excel files to create queries automatically. Each sheet in
-            the workbook becomes a separate query.
+            Register CSV and Excel files as data sources. CSV files map
+            one-to-one with queries, while each sheet in an XLSX workbook
+            becomes a separate query.
           </p>
 
+          <div className="text-xs font-medium text-gray-700 mb-2">Admin UI</div>
+          <p className="text-sm text-gray-600 mb-3">
+            Navigate to{" "}
+            <span className="font-medium">Admin &rarr; CSV / XLSX</span> to
+            upload, preview, and manage file-based data sources.
+          </p>
+
+          <div className="text-xs font-medium text-gray-700 mb-2">
+            Registration
+          </div>
           <div className="space-y-2 text-sm text-gray-600 mb-3">
             <div>
-              <span className="font-medium">Auto-registration:</span> Place{" "}
-              <Code>.xlsx</Code> or <Code>.xls</Code> files in the configured
-              file directory. The Engine detects them on startup and registers
-              each sheet as a query.
+              <span className="font-medium">CSV files:</span> Set{" "}
+              <Code>type: &quot;csv&quot;</Code> and provide a{" "}
+              <Code>filePath</Code> pointing to the file. One file equals one
+              query.
             </div>
             <div>
-              <span className="font-medium">Sheet naming:</span> Queries are
-              named as <Code>filename_sheetname</Code> (e.g.,{" "}
+              <span className="font-medium">XLSX / XLS files:</span> Place{" "}
+              <Code>.xlsx</Code> or <Code>.xls</Code> files in the configured
+              file directory. The Engine detects them on startup and registers
+              each sheet as a query named <Code>filename_sheetname</Code> (e.g.,{" "}
               <Code>finance_revenue</Code> from <Code>finance.xlsx</Code> sheet
               &quot;revenue&quot;).
             </div>
@@ -1916,11 +1929,169 @@ SMTP_FROM=noreply@example.com`}</pre>
             </div>
           </div>
 
+          <div className="text-xs font-medium text-gray-700 mb-2">
+            Example Query Configurations
+          </div>
+          <div className="bg-gray-50 rounded-lg p-4 mb-3">
+            <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap">{`// CSV source
+{
+  "id": "pnl-signoff",
+  "type": "csv",
+  "filePath": "pnl-signoff.csv",
+  "label": "P&L Sign-off",
+  "columns": {
+    "idColumns": ["entity_id"],
+    "dateColumns": ["report_date"],
+    "labelColumns": ["entity_name", "status"],
+    "valueColumns": ["revenue", "expenses", "net_income"],
+    "ignoreColumns": ["internal_notes"]
+  }
+}
+
+// XLSX source (auto-registered per sheet)
+{
+  "id": "finance_revenue",
+  "type": "xlsx",
+  "filePath": "finance.xlsx",
+  "sheet": "revenue",
+  "label": "Finance Revenue",
+  "columns": {
+    "idColumns": ["transaction_id"],
+    "dateColumns": ["posting_date"],
+    "valueColumns": ["amount", "tax"]
+  }
+}`}</pre>
+          </div>
+
+          <div className="text-xs font-medium text-gray-700 mb-2">
+            Column Configuration Options
+          </div>
+          <div className="overflow-x-auto mb-3">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Option
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Purpose
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">idColumns</td>
+                  <td className="px-3 py-2">
+                    Unique identifier columns used for row-level lookups
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">dateColumns</td>
+                  <td className="px-3 py-2">
+                    Date/time columns used for time-series filtering and sorting
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">labelColumns</td>
+                  <td className="px-3 py-2">
+                    Categorical text columns used for grouping and display
+                    labels
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">valueColumns</td>
+                  <td className="px-3 py-2">
+                    Numeric columns used for KPIs, aggregations, and charting
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">ignoreColumns</td>
+                  <td className="px-3 py-2">
+                    Columns excluded from query results and analysis
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="text-xs font-medium text-gray-700 mb-2">
+            File Base Directory
+          </div>
+          <p className="text-sm text-gray-600 mb-2">
+            Set the <Code>FILE_BASE_DIR</Code> environment variable to specify
+            the root directory where file-based data sources are stored. All
+            relative <Code>filePath</Code> values resolve from this directory.
+          </p>
+          <div className="bg-gray-50 rounded-lg p-4 mb-3">
+            <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap">{`# .env
+FILE_BASE_DIR=./data/files`}</pre>
+          </div>
           <p className="text-sm text-gray-600">
-            Set <Code>FILE_BASE_DIR</Code> environment variable to specify the
-            directory where file-based data sources are stored. Per-query
-            override is available via <Code>fileBaseDir</Code> in the query
-            definition.
+            A per-query override is available via <Code>fileBaseDir</Code> in
+            the query definition. This takes precedence over the global{" "}
+            <Code>FILE_BASE_DIR</Code> variable.
+          </p>
+        </Section>
+
+        <Section title="16. Data Explorer Configuration">
+          <p className="text-sm text-gray-600 mb-3">
+            The Data Explorer at <Code>/data-explorer</Code> surfaces CSV and
+            XLSX data sources in an interactive dashboard. It reads directly
+            from the query registry so no extra configuration is required beyond
+            registering file sources (see Section 15).
+          </p>
+
+          <div className="text-xs font-medium text-gray-700 mb-2">
+            Auto-Generated KPI Cards
+          </div>
+          <p className="text-sm text-gray-600 mb-3">
+            Numeric columns (those listed in <Code>valueColumns</Code> or
+            auto-detected) are automatically turned into KPI cards showing sum,
+            average, min, and max. Each card can be switched between KPI, Chart,
+            and Table views through the card header controls.
+          </p>
+
+          <div className="text-xs font-medium text-gray-700 mb-2">
+            Dashboard Card Views
+          </div>
+          <div className="space-y-2 text-sm text-gray-600 mb-3">
+            <div>
+              <span className="font-medium">KPI view:</span> Displays an
+              aggregate value with optional trend indicator and comparison to
+              the previous period.
+            </div>
+            <div>
+              <span className="font-medium">Chart view:</span> Renders a bar,
+              line, or area chart from the selected value and date columns.
+            </div>
+            <div>
+              <span className="font-medium">Table view:</span> Shows the raw
+              data rows with sortable columns, pagination, and column visibility
+              toggles.
+            </div>
+          </div>
+
+          <div className="text-xs font-medium text-gray-700 mb-2">
+            Group-By & Aggregation
+          </div>
+          <p className="text-sm text-gray-600 mb-3">
+            Any label or date column can be used as a group-by dimension.
+            Supported aggregation operations include <Code>sum</Code>,{" "}
+            <Code>avg</Code>, <Code>min</Code>, <Code>max</Code>, and{" "}
+            <Code>count</Code>. Aggregations are computed client-side for
+            file-based sources and pushed to the server for API-backed queries.
+          </p>
+
+          <div className="text-xs font-medium text-gray-700 mb-2">
+            Anomaly Detection Integration
+          </div>
+          <p className="text-sm text-gray-600">
+            When the anomaly detection engine is enabled, the Data Explorer
+            highlights outlier values and unusual trends directly on KPI cards
+            and charts. Anomaly baselines are built from historical data and
+            updated automatically as new data arrives. No additional
+            configuration is needed &mdash; the explorer inherits anomaly
+            settings from the global anomaly configuration.
           </p>
         </Section>
       </div>

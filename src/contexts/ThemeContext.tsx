@@ -17,7 +17,7 @@ const AVAILABLE_THEMES: readonly Theme[] = [
   "ocean",
 ] as const;
 
-const DARK_THEMES: ReadonlySet<Theme> = new Set(["dark", "midnight"]);
+const DARK_THEMES: ReadonlySet<Theme> = new Set<Theme>(["dark", "midnight"]);
 
 const STORAGE_KEY = "chatbot-theme";
 

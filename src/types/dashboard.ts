@@ -105,6 +105,8 @@ export interface DashboardCard {
   followUpChain?: string[];
   /** Saved chart type override (bar, stacked-bar, line, pie, etc.) */
   savedChartType?: string;
+  /** Per-card override: only aggregate/display these numeric columns in group-by */
+  valueColumns?: string[];
   createdAt: string;
 }
 

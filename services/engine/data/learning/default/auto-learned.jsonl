@@ -13,3 +13,8 @@
 {"id":"82f24f0b-9e60-444d-8a04-7aade05958bd","timestamp":"2026-03-18T03:14:39.829Z","utterance":"group by books_open","intent":"query.execute","positiveSignals":3,"source":"auto"}
 {"id":"76272de9-b028-428b-8f81-b7700b69e76e","timestamp":"2026-03-18T03:14:39.831Z","utterance":"group by employee","intent":"query.execute","positiveSignals":3,"source":"auto"}
 {"id":"fe674016-f0ce-4b97-b573-6c59c4afa671","timestamp":"2026-03-18T03:14:39.831Z","utterance":"[feedback:positive]","intent":"unknown","positiveSignals":4,"source":"auto"}
+{"id":"dc062e36-07ae-481a-85b2-00d6a91e3d9d","timestamp":"2026-03-28T18:52:48.599Z","utterance":"bottom 10 by revenue","intent":"followup.top_n","positiveSignals":7,"source":"auto"}
+{"id":"555d8f43-e41c-4f5e-9524-c14046664a11","timestamp":"2026-03-28T18:52:48.600Z","utterance":"sort by count desc","intent":"followup.sort","positiveSignals":4,"source":"auto"}
+{"id":"41cd3f1a-6b1f-4987-8c34-944299cf599d","timestamp":"2026-03-28T19:17:42.864Z","utterance":"group by category","intent":"query.execute","positiveSignals":4,"source":"auto"}
+{"id":"eff597dd-e3b7-498f-abbb-ac7da9781b38","timestamp":"2026-03-28T19:17:42.866Z","utterance":"find outliers in revenue","intent":"analysis.anomaly","positiveSignals":5,"source":"auto"}
+{"id":"e8b7807d-5dce-4c6e-a201-624a84150a40","timestamp":"2026-03-28T20:10:37.988Z","utterance":"profile columns","intent":"analysis.profile","positiveSignals":4,"source":"auto"}

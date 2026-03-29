@@ -1,4 +1,15 @@
 {
   "pnl_availability": [],
-  "pnl_signoff": []
+  "pnl_signoff": [
+    {
+      "name": "pnl_lineage",
+      "score": 1
+    }
+  ],
+  "pnl_lineage": [
+    {
+      "name": "pnl_signoff",
+      "score": 1
+    }
+  ]
 }

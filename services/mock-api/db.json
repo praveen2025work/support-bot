@@ -734,47 +734,35 @@
       "fileBaseDir": "../../data",
       "filters": [
         {
-          "key": "namedpnlname",
+          "key": "NamedPnlName",
           "binding": "column"
         },
         {
-          "key": "masterbookid",
+          "key": "MasterBookID",
           "binding": "column"
         },
         {
-          "key": "masterbookname",
+          "key": "MasterBookName",
           "binding": "column"
         },
         {
-          "key": "feedname",
+          "key": "FeedName",
           "binding": "column"
         },
         {
-          "key": "region",
+          "key": "Region",
           "binding": "column"
         },
         {
-          "key": "namedpnl",
+          "key": "SYEY_ID",
           "binding": "column"
         },
         {
-          "key": "businessarea",
+          "key": "NamedPnLID",
           "binding": "column"
         },
         {
-          "key": "issue_type",
-          "binding": "column"
-        },
-        {
-          "key": "feed_on_time",
-          "binding": "column"
-        },
-        {
-          "key": "msbk_id",
-          "binding": "column"
-        },
-        {
-          "key": "delay_flag",
+          "key": "MSBk_ID",
           "binding": "column"
         }
       ],
@@ -784,37 +772,46 @@
       "authType": "none",
       "bamTokenUrl": "",
       "columnConfig": {
-        "dateColumns": [
-          "businessdate",
-          "bofc_completedon",
-          "fobo_completedon",
-          "vpsignoffutc",
-          "feed_available_at"
-        ],
         "ignoreColumns": [
-          "namedpnlid",
-          "vpsignoffcount",
-          "syey_id",
-          "avg_deltimepc",
-          "max_deltimepc",
-          "min_deltimepc",
-          "avg_completedon",
-          "max_completedon",
-          "min_completedon"
-        ],
-        "labelColumns": [
-          "namedpnlname",
-          "masterbookid",
-          "masterbookname",
-          "feedname",
-          "region",
+          "businessdate",
           "namedpnl",
           "businessarea",
+          "bofc_completedon",
+          "fobo_completedon",
+          "bofc_status",
+          "fobo_status",
+          "vpsignoffutc",
+          "vpsignoffby",
+          "vpsignoffcount",
+          "vpsignoff_bofc_hours",
+          "sla_bofc",
           "feed_source",
-          "issue_type",
+          "feed_available_at",
+          "feed_sla",
           "feed_on_time",
-          "msbk_id",
+          "issue_type",
           "delay_flag"
+        ],
+        "labelColumns": [
+          "NamedPnlName",
+          "MasterBookID",
+          "MasterBookName",
+          "FeedName",
+          "Region",
+          "SYEY_ID",
+          "NamedPnLID",
+          "MSBk_ID"
+        ],
+        "valueColumns": [
+          "Avg_DelTimePCLocationTime",
+          "Max_DelTimePCLocationTime",
+          "Min_DelTimePCLocationTime",
+          "Avg_CompletedOnTime",
+          "Max_CompletedOnTime",
+          "Min_CompletedOnTime",
+          "DurationAvg",
+          "DurationMax",
+          "DurationMin"
         ]
       }
     }

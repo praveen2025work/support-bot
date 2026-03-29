@@ -1,8 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Settings, X, RefreshCw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import type { DataCard, DataQueryResponse, ColumnSchema } from "./types";
+import {
+  Settings,
+  X,
+  RefreshCw,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import type { DataCard, DataQueryResponse } from "./types";
 import { ExplorerDataTable } from "./ExplorerDataTable";
 import { ExplorerKpis } from "./ExplorerKpis";
 
@@ -59,8 +67,8 @@ export function DataCardRenderer({
   onMoveRight,
   onGrow,
   onShrink,
-  isFirst = false,
-  isLast = false,
+  isFirst: _isFirst = false,
+  isLast: _isLast = false,
   onOpenSettings,
   onRemove,
   cachedAllRows,
@@ -68,9 +76,7 @@ export function DataCardRenderer({
   globalGroupBy,
 }: DataCardRendererProps) {
   const [data, setData] = useState<DataQueryResponse | null>(null);
-  const [allRows, setAllRows] = useState<Record<string, string | number>[]>(
-    [],
-  );
+  const [allRows, setAllRows] = useState<Record<string, string | number>[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tablePage, setTablePage] = useState(1);
@@ -94,7 +100,8 @@ export function DataCardRenderer({
     // KPI and summary cards skip global group-by (they show single aggregate values).
     const cardGroupBy = card.groupBy || card.chartConfig?.groupBy || null;
     const skipGlobalGroupBy = card.type === "kpi" || card.type === "summary";
-    const effectiveGroupBy = cardGroupBy || (skipGlobalGroupBy ? null : globalGroupBy) || null;
+    const effectiveGroupBy =
+      cardGroupBy || (skipGlobalGroupBy ? null : globalGroupBy) || null;
     const hasGroupBy = !!effectiveGroupBy;
 
     // ── Local path: filter client-side for small datasets (non-table, no groupBy) ──
@@ -108,7 +115,8 @@ export function DataCardRenderer({
 
     if (canFilterLocally) {
       const filtered = filterRowsLocally(cachedAllRows, activeFilters);
-      const headers = cachedAllRows.length > 0 ? Object.keys(cachedAllRows[0]) : [];
+      const headers =
+        cachedAllRows.length > 0 ? Object.keys(cachedAllRows[0]) : [];
       setData({
         headers,
         rows: filtered,
@@ -117,6 +125,7 @@ export function DataCardRenderer({
         pageSize: filtered.length,
         totalPages: 1,
         schema: [],
+        durationMs: 0,
       });
       setAllRows(filtered);
       setLoading(false);
@@ -130,7 +139,8 @@ export function DataCardRenderer({
       const body: Record<string, unknown> = {
         queryName: effectiveSource,
         groupId,
-        pageSize: card.type === "table" ? (card.tableConfig?.pageSize ?? 25) : 10000,
+        pageSize:
+          card.type === "table" ? (card.tableConfig?.pageSize ?? 25) : 10000,
         page: card.type === "table" ? tablePage : 1,
       };
 
@@ -152,14 +162,16 @@ export function DataCardRenderer({
       const result: DataQueryResponse = await res.json();
 
       // If groupByResult is present, transform it into flat rows for charts/KPIs/tables
-      const gbr = result.groupByResult as {
-        groupColumn?: string;
-        groups?: Array<{
-          groupValue: string | number;
-          count: number;
-          aggregations: Record<string, number>;
-        }>;
-      } | undefined;
+      const gbr = result.groupByResult as
+        | {
+            groupColumn?: string;
+            groups?: Array<{
+              groupValue: string | number;
+              count: number;
+              aggregations: Record<string, number>;
+            }>;
+          }
+        | undefined;
 
       if (gbr?.groups?.length) {
         const groupCol = gbr.groupColumn ?? effectiveGroupBy ?? "group";
@@ -168,7 +180,11 @@ export function DataCardRenderer({
           count: g.count,
           ...g.aggregations,
         }));
-        const groupedHeaders = [groupCol, "count", ...Object.keys(gbr.groups[0].aggregations ?? {})];
+        const groupedHeaders = [
+          groupCol,
+          "count",
+          ...Object.keys(gbr.groups[0].aggregations ?? {}),
+        ];
 
         const groupedResult: DataQueryResponse = {
           ...result,
@@ -190,7 +206,18 @@ export function DataCardRenderer({
     } finally {
       setLoading(false);
     }
-  }, [effectiveSource, groupId, globalFilters, card, tablePage, tableSortCol, tableSortDir, cachedAllRows, totalDatasetRows, globalGroupBy]);
+  }, [
+    effectiveSource,
+    groupId,
+    globalFilters,
+    card,
+    tablePage,
+    tableSortCol,
+    tableSortDir,
+    cachedAllRows,
+    totalDatasetRows,
+    globalGroupBy,
+  ]);
 
   useEffect(() => {
     fetchData();
@@ -203,7 +230,10 @@ export function DataCardRenderer({
         {card.label}
       </span>
       {loading && (
-        <RefreshCw size={11} className="text-[var(--brand)] animate-spin shrink-0" />
+        <RefreshCw
+          size={11}
+          className="text-[var(--brand)] animate-spin shrink-0"
+        />
       )}
     </div>
   ) : (
@@ -212,35 +242,72 @@ export function DataCardRenderer({
         <span className="text-xs font-semibold text-[var(--text-primary)] truncate">
           {card.label}
         </span>
-        <span className="text-[9px] text-[var(--text-muted)] uppercase">{card.type}</span>
+        <span className="text-[9px] text-[var(--text-muted)] uppercase">
+          {card.type}
+        </span>
       </div>
       <div className="flex items-center gap-0.5 shrink-0">
         {loading && (
-          <RefreshCw size={12} className="text-[var(--brand)] animate-spin mr-1" />
+          <RefreshCw
+            size={12}
+            className="text-[var(--brand)] animate-spin mr-1"
+          />
         )}
         {/* Position controls — directional + resize */}
         {(onMoveUp || onMoveDown || onMoveLeft || onMoveRight) && (
           <>
-            <button onClick={onMoveLeft} className="p-0.5 text-[var(--text-muted)] hover:text-[var(--brand)] disabled:opacity-20 transition-colors" title="Move left" disabled={!onMoveLeft}>
+            <button
+              onClick={onMoveLeft}
+              className="p-0.5 text-[var(--text-muted)] hover:text-[var(--brand)] disabled:opacity-20 transition-colors"
+              title="Move left"
+              disabled={!onMoveLeft}
+            >
               <ChevronLeft size={13} />
             </button>
             <div className="flex flex-col -my-0.5">
-              <button onClick={onMoveUp} className="p-0 text-[var(--text-muted)] hover:text-[var(--brand)] disabled:opacity-20 transition-colors leading-none" title="Move up" disabled={!onMoveUp}>
+              <button
+                onClick={onMoveUp}
+                className="p-0 text-[var(--text-muted)] hover:text-[var(--brand)] disabled:opacity-20 transition-colors leading-none"
+                title="Move up"
+                disabled={!onMoveUp}
+              >
                 <ChevronUp size={13} />
               </button>
-              <button onClick={onMoveDown} className="p-0 text-[var(--text-muted)] hover:text-[var(--brand)] disabled:opacity-20 transition-colors leading-none" title="Move down" disabled={!onMoveDown}>
+              <button
+                onClick={onMoveDown}
+                className="p-0 text-[var(--text-muted)] hover:text-[var(--brand)] disabled:opacity-20 transition-colors leading-none"
+                title="Move down"
+                disabled={!onMoveDown}
+              >
                 <ChevronDown size={13} />
               </button>
             </div>
-            <button onClick={onMoveRight} className="p-0.5 text-[var(--text-muted)] hover:text-[var(--brand)] disabled:opacity-20 transition-colors" title="Move right" disabled={!onMoveRight}>
+            <button
+              onClick={onMoveRight}
+              className="p-0.5 text-[var(--text-muted)] hover:text-[var(--brand)] disabled:opacity-20 transition-colors"
+              title="Move right"
+              disabled={!onMoveRight}
+            >
               <ChevronRight size={13} />
             </button>
             <span className="mx-1 w-px h-4 bg-[var(--border)]" />
             {onShrink && (
-              <button onClick={onShrink} className="px-1 py-0.5 text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--brand)] rounded transition-colors" title="Shrink width">−</button>
+              <button
+                onClick={onShrink}
+                className="px-1 py-0.5 text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--brand)] rounded transition-colors"
+                title="Shrink width"
+              >
+                −
+              </button>
             )}
             {onGrow && (
-              <button onClick={onGrow} className="px-1 py-0.5 text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--brand)] rounded transition-colors" title="Grow width">+</button>
+              <button
+                onClick={onGrow}
+                className="px-1 py-0.5 text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--brand)] rounded transition-colors"
+                title="Grow width"
+              >
+                +
+              </button>
             )}
             <span className="mx-1 w-px h-4 bg-[var(--border)]" />
           </>
@@ -306,7 +373,9 @@ export function DataCardRenderer({
           result = vals.reduce((a, b) => a + b, 0);
           break;
         case "avg":
-          result = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+          result = vals.length
+            ? vals.reduce((a, b) => a + b, 0) / vals.length
+            : 0;
           break;
         case "min":
           result = vals.length ? Math.min(...vals) : 0;
@@ -331,13 +400,17 @@ export function DataCardRenderer({
         <div className="flex-1 flex flex-col items-center justify-center p-4">
           <div
             className={`text-3xl font-extrabold font-mono ${thresholdColor}`}
-            style={!thresholdColor && kpi.color ? { color: kpi.color } : undefined}
+            style={
+              !thresholdColor && kpi.color ? { color: kpi.color } : undefined
+            }
           >
             {kpi.operation === "count"
               ? result.toLocaleString()
               : result < 100
                 ? result.toFixed(2)
-                : result.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                : result.toLocaleString(undefined, {
+                    maximumFractionDigits: 0,
+                  })}
           </div>
           <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mt-1">
             {kpi.operation} of {kpi.column}
@@ -360,9 +433,9 @@ export function DataCardRenderer({
         );
         break;
       }
-      // Dynamic import DataChart
-      const { DataChart } =
-        require("@/components/chat/DataChart");
+      // Synchronous require for render-time lazy load (dynamic import() is async)
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { DataChart } = require("@/components/chat/DataChart");
       body = (
         <div className="flex-1 overflow-auto p-2">
           <DataChart
@@ -371,7 +444,12 @@ export function DataCardRenderer({
             savedChartType={card.chartConfig?.chartType}
             columnConfig={
               card.chartConfig?.valueColumns?.length
-                ? { valueColumns: card.chartConfig.valueColumns, labelColumns: card.chartConfig?.labelColumn ? [card.chartConfig.labelColumn] : undefined }
+                ? {
+                    valueColumns: card.chartConfig.valueColumns,
+                    labelColumns: card.chartConfig?.labelColumn
+                      ? [card.chartConfig.labelColumn]
+                      : undefined,
+                  }
                 : undefined
             }
           />
@@ -432,13 +510,23 @@ export function DataCardRenderer({
         );
         break;
       }
-      const { LineageFlowDiagram } = require("@/components/dashboard/LineageFlowDiagram");
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const {
+        LineageFlowDiagram: _LineageFlowDiagram,
+      } = require("@/components/dashboard/LineageFlowDiagram");
       const pnlNames = Array.from(
         new Set(allRows.map((r) => String(r.NamedPnlName ?? ""))),
       )
         .filter(Boolean)
         .sort();
-      body = <LineageCardBody rows={allRows} pnlNames={pnlNames} initialPnl={card.lineageConfig?.selectedPnl} compact={card.lineageConfig?.compact ?? true} />;
+      body = (
+        <LineageCardBody
+          rows={allRows}
+          pnlNames={pnlNames}
+          initialPnl={card.lineageConfig?.selectedPnl}
+          compact={card.lineageConfig?.compact ?? true}
+        />
+      );
       break;
     }
 
@@ -453,7 +541,11 @@ export function DataCardRenderer({
       }
       body = (
         <div className="flex-1 overflow-auto p-3">
-          <ExplorerKpis rows={allRows} schema={data?.schema ?? []} summaryConfig={card.summaryConfig} />
+          <ExplorerKpis
+            rows={allRows}
+            schema={data?.schema ?? []}
+            summaryConfig={card.summaryConfig}
+          />
         </div>
       );
       break;
@@ -483,12 +575,17 @@ function LineageCardBody({
   const [selectedPnl, setSelectedPnl] = useState<string | null>(
     initialPnl ?? pnlNames[0] ?? null,
   );
-  const { LineageFlowDiagram } = require("@/components/dashboard/LineageFlowDiagram");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const {
+    LineageFlowDiagram,
+  } = require("@/components/dashboard/LineageFlowDiagram");
 
   return (
     <div className="flex-1 overflow-auto p-3 space-y-2">
       <div className="flex items-center gap-2">
-        <span className="text-xs text-[var(--text-secondary)] font-semibold">Named P&L:</span>
+        <span className="text-xs text-[var(--text-secondary)] font-semibold">
+          Named P&L:
+        </span>
         <select
           value={selectedPnl ?? ""}
           onChange={(e) => setSelectedPnl(e.target.value || null)}
@@ -496,11 +593,17 @@ function LineageCardBody({
         >
           <option value="">— Select —</option>
           {pnlNames.map((n) => (
-            <option key={n} value={n}>{n}</option>
+            <option key={n} value={n}>
+              {n}
+            </option>
           ))}
         </select>
       </div>
-      <LineageFlowDiagram data={rows} selectedPnl={selectedPnl} compact={compactProp} />
+      <LineageFlowDiagram
+        data={rows}
+        selectedPnl={selectedPnl}
+        compact={compactProp}
+      />
     </div>
   );
 }

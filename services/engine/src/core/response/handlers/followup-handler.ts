@@ -19,6 +19,7 @@ import {
   computePeriodOverPeriod,
   getNumericColumns,
   type CsvData,
+  type ColumnConfig,
 } from "../../api-connector/csv-analyzer";
 import {
   FOLLOWUP_PATTERN,
@@ -55,6 +56,33 @@ function chartMetaFrom(context: ConversationContext): Record<string, unknown> {
       columnMetadata: context.lastColumnMetadata,
     }),
   };
+}
+
+/**
+ * Strip columns listed in columnConfig.ignoreColumns from headers and row data.
+ * Returns a new CsvData with only the visible columns.
+ */
+function stripIgnoredColumns(
+  data: CsvData,
+  context: ConversationContext,
+): CsvData {
+  const colConfig = context.lastColumnConfig as ColumnConfig | undefined;
+  if (!colConfig?.ignoreColumns || colConfig.ignoreColumns.length === 0)
+    return data;
+  const ignoreSet = new Set(
+    colConfig.ignoreColumns.map((c) => c.toLowerCase()),
+  );
+  const visibleHeaders = data.headers.filter(
+    (h) => !ignoreSet.has(h.toLowerCase()),
+  );
+  const visibleRows = data.rows.map((row) => {
+    const filtered: Record<string, string | number> = {};
+    for (const h of visibleHeaders) {
+      filtered[h] = row[h];
+    }
+    return filtered;
+  });
+  return { headers: visibleHeaders, rows: visibleRows };
 }
 
 // ── Context extractors ──────────────────────────────────────────────
@@ -160,7 +188,8 @@ export function handleGroupByFollowUp(
     }
   }
 
-  const result = groupBy(dataToGroup, groupCol);
+  const colConfig = context.lastColumnConfig as ColumnConfig | undefined;
+  const result = groupBy(dataToGroup, groupCol, colConfig);
   if (!result || result.groups.length === 0) {
     return {
       text: `No groups found when grouping "${context.lastQueryName}" by **${groupCol}**.`,
@@ -235,15 +264,16 @@ export function handleSortFollowUp(
     "Sort follow-up",
   );
 
+  const displayData = stripIgnoredColumns(sorted, context);
   return {
     text: `Here is "${context.lastQueryName}" sorted by **${sortReq.column}** (${sortReq.direction}) — ${sorted.rows.length} rows:`,
     richContent: {
       type: "csv_table",
       data: {
-        headers: sorted.headers,
-        rows: sorted.rows,
+        headers: displayData.headers,
+        rows: displayData.rows,
         filePath: (context.lastApiResult as Record<string, unknown>)?.filePath,
-        rowCount: sorted.rows.length,
+        rowCount: displayData.rows.length,
         ...chartMetaFrom(context),
       },
     },
@@ -356,7 +386,10 @@ export function handleTopNFollowUp(
     if (csvData.rows.length > 0) {
       // Data may already be sorted from a prior step; take first N as-is
       const topRows = csvData.rows.slice(0, n);
-      const slicedData = { headers: csvData.headers, rows: topRows };
+      const slicedData = stripIgnoredColumns(
+        { headers: csvData.headers, rows: topRows },
+        context,
+      );
       return {
         text: `${isBottom ? "Bottom" : "Top"} **${n}** rows (${topRows.length} shown):`,
         richContent: { type: "csv_table", data: slicedData },
@@ -387,15 +420,19 @@ export function handleTopNFollowUp(
     "Top-N follow-up",
   );
 
+  const topDisplayData = stripIgnoredColumns(
+    { headers: sorted.headers, rows: topRows },
+    context,
+  );
   return {
     text: `${isBottom ? "Bottom" : "Top"} ${n} by **${column}** from "${context.lastQueryName}":`,
     richContent: {
       type: "csv_table",
       data: {
-        headers: sorted.headers,
-        rows: topRows,
+        headers: topDisplayData.headers,
+        rows: topDisplayData.rows,
         filePath: (context.lastApiResult as Record<string, unknown>)?.filePath,
-        rowCount: topRows.length,
+        rowCount: topDisplayData.rows.length,
         ...chartMetaFrom(context),
       },
     },
@@ -1112,7 +1149,12 @@ export function handleDateBucketGroupByFollowUp(
     headers: [...csvData.headers, bucketed.computedHeader],
     rows: bucketed.rows,
   };
-  const gbResult = groupBy(bucketedData, bucketed.computedHeader);
+  const dateColConfig = context.lastColumnConfig as ColumnConfig | undefined;
+  const gbResult = groupBy(
+    bucketedData,
+    bucketed.computedHeader,
+    dateColConfig,
+  );
   if (!gbResult) return null;
 
   logger.info(

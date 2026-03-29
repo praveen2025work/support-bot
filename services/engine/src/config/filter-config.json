@@ -159,6 +159,30 @@
         { "value": "Auto", "label": "Auto" }
       ],
       "placeholder": null
+    },
+    "NamedPnlName": {
+      "label": "Named PnL",
+      "type": "searchable_select",
+      "options": [
+        { "value": "Alpha Conduit Revenue", "label": "Alpha Conduit Revenue" },
+        { "value": "Beta Trading Book", "label": "Beta Trading Book" },
+        { "value": "Delta CMBS Portfolio", "label": "Delta CMBS Portfolio" },
+        { "value": "Epsilon RMBS Trust", "label": "Epsilon RMBS Trust" },
+        { "value": "Gamma Advisory Fund", "label": "Gamma Advisory Fund" }
+      ],
+      "placeholder": "Search Named PnL..."
+    },
+    "MasterBookName": {
+      "label": "Master Book",
+      "type": "searchable_select",
+      "options": [
+        { "value": "CMBS Trading Book", "label": "CMBS Trading Book" },
+        { "value": "Credit Flow Book", "label": "Credit Flow Book" },
+        { "value": "Equity Advisory Book", "label": "Equity Advisory Book" },
+        { "value": "Rates Flow Book", "label": "Rates Flow Book" },
+        { "value": "RMBS Trust Book", "label": "RMBS Trust Book" }
+      ],
+      "placeholder": "Search Master Book..."
     }
   }
 }

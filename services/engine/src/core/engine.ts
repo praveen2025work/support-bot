@@ -168,6 +168,11 @@ export class ChatbotEngine {
     return response;
   }
 
+  /** Get the conversation context for a session (used by chat route for card-level overrides). */
+  async getContext(sessionId: string, userId?: string) {
+    return this.sessionManager.getContext(sessionId, userId);
+  }
+
   /** Returns intent overlap warnings detected during NLP training. */
   async getIntentOverlaps(): Promise<IntentOverlap[]> {
     await this.initialize();

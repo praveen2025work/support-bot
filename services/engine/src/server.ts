@@ -12,6 +12,7 @@ import { preferencesRouter } from "./routes/preferences";
 import { dashboardsRouter } from "./routes/dashboards";
 import { gridboardViewsRouter } from "./routes/gridboard-views";
 import { eventsRouter } from "./routes/events";
+import { dataApiRouter } from "./routes/data-api";
 import { integrationsRouter } from "./routes/integrations";
 import { feedbackRouter } from "./routes/feedback";
 import { sessionRouter } from "./routes/session";
@@ -100,6 +101,7 @@ app.use((req, _res, next) => {
 app.use("/api/chat", chatLimiter, concurrencyLimiter, chatRouter);
 app.use("/api/admin", adminLimiter, adminRouter);
 app.use("/api", queriesRouter);
+app.use("/api/data", chatLimiter, dataApiRouter);
 app.use("/api/stats", statsRouter);
 app.use("/api", healthRouter);
 app.use("/api", userRouter);

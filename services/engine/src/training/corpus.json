@@ -599,7 +599,8 @@
         "group by product",
         "group by pnl_name",
         "group by books_open",
-        "group by employee"
+        "group by employee",
+        "group by category"
       ],
       "answers": []
     },
@@ -836,7 +837,8 @@
         "sort by amount desc",
         "sort by status",
         "order by revenue descending",
-        "sort ascending by @column_name"
+        "sort ascending by @column_name",
+        "sort by count desc"
       ],
       "answers": []
     },
@@ -900,7 +902,8 @@
         "lowest 5 by @column_name",
         "top 3 by revenue",
         "bottom 5 by amount",
-        "show the top 10 results"
+        "show the top 10 results",
+        "bottom 10 by revenue"
       ],
       "answers": []
     },
@@ -997,7 +1000,8 @@
         "inspect columns",
         "show me column types",
         "analyze the columns",
-        "column analysis"
+        "column analysis",
+        "profile columns"
       ],
       "answers": []
     },
@@ -1071,7 +1075,8 @@
         "are there any outliers",
         "flag outliers in @column_name",
         "z-score analysis",
-        "iqr outliers"
+        "iqr outliers",
+        "find outliers in revenue"
       ],
       "answers": []
     },
