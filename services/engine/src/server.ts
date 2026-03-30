@@ -18,6 +18,7 @@ import { feedbackRouter } from "./routes/feedback";
 import { sessionRouter } from "./routes/session";
 import { uploadRouter } from "./routes/upload";
 import { urlIngestRouter } from "./routes/url-ingest";
+import catalogRouter from "./routes/catalog";
 import { logger } from "./lib/logger";
 import {
   startScheduleExecutor,
@@ -115,6 +116,7 @@ app.use("/api/feedback", feedbackRouter);
 app.use("/api/session", sessionRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/url-ingest", urlIngestRouter);
+app.use("/api/catalog", catalogRouter);
 
 // 404 handler
 app.use((_req, res) => {
