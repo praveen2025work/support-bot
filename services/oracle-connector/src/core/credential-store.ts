@@ -16,7 +16,7 @@ import { logger } from "@/lib/logger";
 const ALGORITHM = "aes-256-gcm";
 const KEY_LENGTH = 32;
 const IV_LENGTH = 16;
-const SALT = "chatbot-sql-connector-salt";
+const SALT = process.env.CREDENTIAL_SALT || "chatbot-sql-connector-salt";
 
 function getEncryptionKey(): Buffer {
   const envKey = process.env.SQL_CREDENTIAL_KEY;

@@ -8,16 +8,11 @@ import {
   type ReactNode,
 } from "react";
 
-export type Theme = "light" | "dark" | "midnight" | "ocean";
+export type Theme = "light" | "dark";
 
-const AVAILABLE_THEMES: readonly Theme[] = [
-  "light",
-  "dark",
-  "midnight",
-  "ocean",
-] as const;
+const AVAILABLE_THEMES: readonly Theme[] = ["light", "dark"] as const;
 
-const DARK_THEMES: ReadonlySet<Theme> = new Set<Theme>(["dark", "midnight"]);
+const DARK_THEMES: ReadonlySet<Theme> = new Set<Theme>(["dark"]);
 
 const STORAGE_KEY = "chatbot-theme";
 
@@ -46,7 +41,7 @@ function readStoredTheme(): Theme {
 
 function applyThemeClass(theme: Theme) {
   const el = document.documentElement;
-  el.classList.remove("dark", "midnight", "ocean");
+  el.classList.remove("dark");
   // Remove legacy classes
   el.classList.remove(
     "banking-blue",

@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 
 export function TablePagination({
   totalRows,
@@ -29,15 +29,17 @@ export function TablePagination({
   };
 
   return (
-    <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+    <div className="flex items-center justify-between mt-2 text-xs text-[var(--text-muted)]">
       <div className="flex items-center gap-2">
         <span>
-          {Math.min(page * pageSize + 1, totalRows)}–{Math.min((page + 1) * pageSize, totalRows)} of {totalRows}
+          {Math.min(page * pageSize + 1, totalRows)}–
+          {Math.min((page + 1) * pageSize, totalRows)} of {totalRows}
         </span>
         <select
           value={pageSize}
           onChange={(e) => changePageSize(Number(e.target.value))}
-          className="text-xs border border-gray-300 rounded px-1 py-0.5 bg-white"
+          className="text-xs border border-[var(--border)] rounded px-1 py-0.5 bg-[var(--bg-primary)]"
+          aria-label="Rows per page"
         >
           <option value={10}>10</option>
           <option value={25}>25</option>
@@ -50,7 +52,7 @@ export function TablePagination({
         {onExport && (
           <button
             onClick={onExport}
-            className="px-2 py-1 text-xs text-blue-600 border border-blue-200 rounded hover:bg-blue-50 transition-colors mr-2"
+            className="px-2 py-1 text-xs text-[var(--brand)] border border-[var(--border)] rounded hover:bg-[var(--brand-subtle)] transition-colors mr-2"
           >
             Export CSV
           </button>
@@ -58,14 +60,16 @@ export function TablePagination({
         <button
           onClick={() => changePage(0)}
           disabled={page === 0}
-          className="px-1.5 py-0.5 rounded border border-gray-300 disabled:opacity-30 hover:bg-gray-100"
+          className="px-1.5 py-0.5 rounded border border-[var(--border)] disabled:opacity-30 hover:bg-[var(--bg-secondary)]"
+          aria-label="First page"
         >
           &laquo;
         </button>
         <button
           onClick={() => changePage(page - 1)}
           disabled={page === 0}
-          className="px-1.5 py-0.5 rounded border border-gray-300 disabled:opacity-30 hover:bg-gray-100"
+          className="px-1.5 py-0.5 rounded border border-[var(--border)] disabled:opacity-30 hover:bg-[var(--bg-secondary)]"
+          aria-label="Previous page"
         >
           &lsaquo;
         </button>
@@ -75,14 +79,16 @@ export function TablePagination({
         <button
           onClick={() => changePage(page + 1)}
           disabled={page >= totalPages - 1}
-          className="px-1.5 py-0.5 rounded border border-gray-300 disabled:opacity-30 hover:bg-gray-100"
+          className="px-1.5 py-0.5 rounded border border-[var(--border)] disabled:opacity-30 hover:bg-[var(--bg-secondary)]"
+          aria-label="Next page"
         >
           &rsaquo;
         </button>
         <button
           onClick={() => changePage(totalPages - 1)}
           disabled={page >= totalPages - 1}
-          className="px-1.5 py-0.5 rounded border border-gray-300 disabled:opacity-30 hover:bg-gray-100"
+          className="px-1.5 py-0.5 rounded border border-[var(--border)] disabled:opacity-30 hover:bg-[var(--bg-secondary)]"
+          aria-label="Last page"
         >
           &raquo;
         </button>
@@ -91,26 +97,29 @@ export function TablePagination({
   );
 }
 
-export function exportToCsv(data: Record<string, unknown>[], filename = 'export.csv') {
+export function exportToCsv(
+  data: Record<string, unknown>[],
+  filename = "export.csv",
+) {
   if (!data.length) return;
   const headers = Object.keys(data[0]);
   const csvContent = [
-    headers.join(','),
+    headers.join(","),
     ...data.map((row) =>
       headers
         .map((h) => {
-          const val = String(row[h] ?? '');
-          return val.includes(',') || val.includes('"') || val.includes('\n')
+          const val = String(row[h] ?? "");
+          return val.includes(",") || val.includes('"') || val.includes("\n")
             ? `"${val.replace(/"/g, '""')}"`
             : val;
         })
-        .join(',')
+        .join(","),
     ),
-  ].join('\n');
+  ].join("\n");
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = url;
   link.download = filename;
   link.click();

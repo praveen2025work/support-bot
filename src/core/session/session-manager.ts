@@ -1,5 +1,7 @@
-import { SESSION_TTL_MS } from '../constants';
-import type { ConversationContext } from '../types';
+import { SESSION_TTL_MS } from "../constants";
+import type { ConversationContext } from "../types";
+
+const SESSION_CLEANUP_INTERVAL_MS = 60_000;
 
 export class SessionManager {
   private sessions = new Map<
@@ -9,7 +11,10 @@ export class SessionManager {
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
-    this.cleanupInterval = setInterval(() => this.cleanup(), 60_000);
+    this.cleanupInterval = setInterval(
+      () => this.cleanup(),
+      SESSION_CLEANUP_INTERVAL_MS,
+    );
   }
 
   async getContext(sessionId: string): Promise<ConversationContext> {

@@ -10,6 +10,7 @@ import type {
 } from "./types";
 
 const DEFAULT_PAGE_SIZE = 50;
+const MAX_FILTER_DISTINCT_VALUES = 100;
 
 export function useDataExplorer(groupId = "default") {
   const [sources, setSources] = useState<DataSource[]>([]);
@@ -193,7 +194,7 @@ export function useDataExplorer(groupId = "default") {
       (c) =>
         (c.type === "string" || c.type === "id") &&
         c.distinctCount > 0 &&
-        c.distinctCount <= 100,
+        c.distinctCount <= MAX_FILTER_DISTINCT_VALUES,
     );
   }, [schema]);
 

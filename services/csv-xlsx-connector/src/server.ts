@@ -66,10 +66,6 @@ const server = app.listen(CONNECTOR_PORT, () => {
   logger.info(
     `CSV/XLSX Connector service (${CONNECTOR_TYPE}) running at http://localhost:${CONNECTOR_PORT}`,
   );
-  // eslint-disable-next-line no-console
-  console.log(
-    `CSV/XLSX Connector service running at http://localhost:${CONNECTOR_PORT}`,
-  );
 });
 
 // ── Graceful shutdown ────────────────────────────────────────────────

@@ -93,13 +93,18 @@ export function GridBoardShell() {
         );
         setQueries(list);
       })
-      .catch(() => setQueries([]))
+      .catch((err) => {
+        console.error("Failed to fetch queries:", err);
+        setQueries([]);
+      })
       .finally(() => setLoadingQueries(false));
   }, []);
 
   // Fetch filter configs (shared cached utility)
   useEffect(() => {
-    fetchFilterConfigs().then(setFilterConfigs);
+    fetchFilterConfigs()
+      .then(setFilterConfigs)
+      .catch((err) => console.error("Failed to fetch filter configs:", err));
   }, []);
 
   // ── Read URL params (Dashboard → GridBoard integration) ──

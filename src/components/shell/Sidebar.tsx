@@ -200,8 +200,6 @@ export function Sidebar({ isAdmin }: SidebarProps) {
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
   { value: "light", label: "Light" },
   { value: "dark", label: "Dark" },
-  { value: "midnight", label: "Midnight" },
-  { value: "ocean", label: "Ocean" },
 ];
 
 function ThemeToggleButton({ isExpanded }: { isExpanded: boolean }) {

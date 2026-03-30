@@ -48,10 +48,7 @@ router.get("/:connectorId/departments", async (req: Request, res: Response) => {
       "Failed to fetch departments",
     );
     return res.status(500).json({
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch department filter options",
+      error: "Query execution failed",
     });
   }
 });
@@ -95,10 +92,7 @@ router.get("/:connectorId/query", async (req: Request, res: Response) => {
       "Failed to fetch filter options via query",
     );
     return res.status(500).json({
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch filter options",
+      error: "Query execution failed",
     });
   }
 });

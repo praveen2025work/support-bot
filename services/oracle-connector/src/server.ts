@@ -69,9 +69,6 @@ const server = app.listen(CONNECTOR_PORT, () => {
   logger.info(
     `Oracle Connector service (${CONNECTOR_TYPE}) running at http://localhost:${CONNECTOR_PORT}`,
   );
-  console.log(
-    `Oracle Connector service running at http://localhost:${CONNECTOR_PORT}`,
-  );
 });
 
 // ── Graceful shutdown ────────────────────────────────────────────────

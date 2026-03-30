@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useMemo } from 'react';
+import { useMemo } from "react";
 import {
   ScatterChart,
   Scatter,
@@ -10,14 +10,20 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from 'recharts';
+} from "recharts";
 
 const COLORS = [
-  '#3b82f6', '#6366f1', '#8b5cf6', '#06b6d4',
-  '#10b981', '#f59e0b', '#ef4444', '#ec4899',
+  "#3b82f6",
+  "#6366f1",
+  "#8b5cf6",
+  "#06b6d4",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#ec4899",
 ];
 
-interface ScatterPoint {
+export interface ScatterPoint {
   x: number;
   y: number;
   cluster?: number;
@@ -38,17 +44,24 @@ interface CustomTooltipProps {
   yLabel?: string;
 }
 
-function CustomTooltip({ active, payload, xLabel, yLabel }: CustomTooltipProps) {
+function CustomTooltip({
+  active,
+  payload,
+  xLabel,
+  yLabel,
+}: CustomTooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
   const point = payload[0].payload;
   return (
     <div className="bg-white border border-gray-200 rounded px-2 py-1 shadow-sm text-[11px]">
-      {point.label && <div className="font-medium text-gray-700">{point.label}</div>}
+      {point.label && (
+        <div className="font-medium text-gray-700">{point.label}</div>
+      )}
       <div className="text-gray-500">
-        {xLabel || 'x'}: {point.x.toFixed(2)}
+        {xLabel || "x"}: {point.x.toFixed(2)}
       </div>
       <div className="text-gray-500">
-        {yLabel || 'y'}: {point.y.toFixed(2)}
+        {yLabel || "y"}: {point.y.toFixed(2)}
       </div>
       {point.cluster !== undefined && (
         <div className="text-gray-400">Cluster: {point.cluster}</div>
@@ -57,7 +70,12 @@ function CustomTooltip({ active, payload, xLabel, yLabel }: CustomTooltipProps) 
   );
 }
 
-export default function ScatterPlot({ points, xLabel, yLabel, title }: ScatterPlotProps) {
+export default function ScatterPlot({
+  points,
+  xLabel,
+  yLabel,
+  title,
+}: ScatterPlotProps) {
   const clusteredData = useMemo(() => {
     const groups = new Map<number, ScatterPoint[]>();
     for (const pt of points) {
@@ -81,28 +99,43 @@ export default function ScatterPlot({ points, xLabel, yLabel, title }: ScatterPl
           <XAxis
             type="number"
             dataKey="x"
-            name={xLabel || 'x'}
+            name={xLabel || "x"}
             tick={{ fontSize: 10 }}
             stroke="#9ca3af"
             label={
               xLabel
-                ? { value: xLabel, position: 'insideBottom', offset: -2, fontSize: 10, fill: '#6b7280' }
+                ? {
+                    value: xLabel,
+                    position: "insideBottom",
+                    offset: -2,
+                    fontSize: 10,
+                    fill: "#6b7280",
+                  }
                 : undefined
             }
           />
           <YAxis
             type="number"
             dataKey="y"
-            name={yLabel || 'y'}
+            name={yLabel || "y"}
             tick={{ fontSize: 10 }}
             stroke="#9ca3af"
             label={
               yLabel
-                ? { value: yLabel, angle: -90, position: 'insideLeft', offset: 10, fontSize: 10, fill: '#6b7280' }
+                ? {
+                    value: yLabel,
+                    angle: -90,
+                    position: "insideLeft",
+                    offset: 10,
+                    fontSize: 10,
+                    fill: "#6b7280",
+                  }
                 : undefined
             }
           />
-          <Tooltip content={<CustomTooltip xLabel={xLabel} yLabel={yLabel} />} />
+          <Tooltip
+            content={<CustomTooltip xLabel={xLabel} yLabel={yLabel} />}
+          />
           {hasMultipleClusters && <Legend wrapperStyle={{ fontSize: 10 }} />}
           {clusteredData.map(([cluster, data], i) => (
             <Scatter

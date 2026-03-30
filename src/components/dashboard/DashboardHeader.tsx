@@ -30,7 +30,20 @@ export function DashboardHeader({
       extraActions={
         <button
           onClick={onAddFavorite}
-          className="px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+          aria-label="Add favorite"
+          className="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
+          style={{
+            color: "var(--brand)",
+            borderWidth: "1px",
+            borderStyle: "solid",
+            borderColor: "var(--brand-subtle)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "var(--brand-subtle)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
         >
           {addLabel}
         </button>

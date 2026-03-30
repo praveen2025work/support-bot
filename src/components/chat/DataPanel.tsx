@@ -15,8 +15,6 @@ interface ActiveResult {
   executionMs?: number;
 }
 
-type ViewMode = "table" | "chart";
-
 interface DataPanelProps {
   activeResult: ActiveResult | null;
   pinnedQueries?: Array<{
@@ -28,6 +26,7 @@ interface DataPanelProps {
   }>;
   onPinnedQueryClick?: (name: string) => void;
   onPin?: (queryName: string) => void;
+  viewMode?: "table" | "chart";
 }
 
 export function DataPanel({
@@ -35,6 +34,7 @@ export function DataPanel({
   pinnedQueries,
   onPinnedQueryClick,
   onPin,
+  viewMode = "table",
 }: DataPanelProps) {
   if (!activeResult) {
     return (
@@ -53,6 +53,7 @@ export function DataPanel({
       activeResult={activeResult}
       pinnedQueries={pinnedQueries}
       onPin={onPin}
+      viewMode={viewMode}
     />
   );
 }
@@ -61,12 +62,13 @@ function ResultView({
   activeResult,
   pinnedQueries,
   onPin,
+  viewMode,
 }: {
   activeResult: ActiveResult;
   pinnedQueries?: DataPanelProps["pinnedQueries"];
   onPin?: (queryName: string) => void;
+  viewMode: "table" | "chart";
 }) {
-  const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [page, setPage] = useState(0);
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -89,63 +91,6 @@ function ResultView({
   return (
     <div className="flex-1 p-3 overflow-auto">
       <div className="bg-[var(--bg-primary)] rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] flex flex-col h-full">
-        {/* Compact header — single line with all info */}
-        <div className="px-3 py-2 border-b border-[var(--border-subtle)] flex items-center gap-2">
-          <span className="text-[12px] font-semibold text-[var(--text-primary)] truncate">
-            {activeResult.queryName}
-          </span>
-          <span className="text-[10px] text-[var(--text-muted)] shrink-0">
-            {activeResult.data.length} rows
-            {activeResult.executionMs != null &&
-              ` \u00B7 ${activeResult.executionMs}ms`}
-          </span>
-          <div className="ml-auto flex gap-1 shrink-0">
-            {(["table", "chart"] as const).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode)}
-                className={`px-2 py-0.5 rounded-[var(--radius-md)] text-[10px] font-medium capitalize transition-colors ${viewMode === mode ? "bg-[var(--brand-subtle)] text-[var(--brand)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"}`}
-              >
-                {mode === "table" ? "Table" : "Chart"}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Inline KPI summary — compact single row */}
-        {viewMode === "table" &&
-          activeResult.data.length > 0 &&
-          (() => {
-            const numCols = activeResult.columns.filter((col) =>
-              activeResult.data.some((row) => typeof row[col] === "number"),
-            );
-            const stats = numCols.slice(0, 4).map((col) => {
-              const values = activeResult.data
-                .map((r) => Number(r[col]))
-                .filter((v) => !isNaN(v));
-              const sum = values.reduce((a, b) => a + b, 0);
-              return { col, total: sum.toLocaleString() };
-            });
-            if (stats.length === 0) return null;
-            return (
-              <div className="px-3 py-1.5 flex gap-3 border-b border-[var(--border-subtle)] overflow-x-auto">
-                {stats.map((s) => (
-                  <div
-                    key={s.col}
-                    className="flex items-baseline gap-1 shrink-0"
-                  >
-                    <span className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider">
-                      {s.col}
-                    </span>
-                    <span className="text-[13px] font-bold text-[var(--text-primary)]">
-                      {s.total}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-
         <div className="flex-1 overflow-auto px-3 py-2">
           {viewMode === "table" && (
             <div className="border border-[var(--border-subtle)] rounded-[var(--radius-md)] overflow-auto">
@@ -232,6 +177,7 @@ function ResultView({
             <button
               onClick={() => setPage(0)}
               disabled={page === 0}
+              aria-label="First page"
               className="px-1.5 py-0.5 rounded border border-[var(--border)] disabled:opacity-30 hover:bg-[var(--bg-secondary)]"
             >
               &laquo;
@@ -239,6 +185,7 @@ function ResultView({
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
+              aria-label="Previous page"
               className="px-1.5 py-0.5 rounded border border-[var(--border)] disabled:opacity-30 hover:bg-[var(--bg-secondary)]"
             >
               &lsaquo;
@@ -249,6 +196,7 @@ function ResultView({
             <button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
+              aria-label="Next page"
               className="px-1.5 py-0.5 rounded border border-[var(--border)] disabled:opacity-30 hover:bg-[var(--bg-secondary)]"
             >
               &rsaquo;
@@ -256,6 +204,7 @@ function ResultView({
             <button
               onClick={() => setPage(totalPages - 1)}
               disabled={page >= totalPages - 1}
+              aria-label="Last page"
               className="px-1.5 py-0.5 rounded border border-[var(--border)] disabled:opacity-30 hover:bg-[var(--bg-secondary)]"
             >
               &raquo;
