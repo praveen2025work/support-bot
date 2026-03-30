@@ -48,8 +48,8 @@ export function AppHeader({
     <header
       className="border-b sticky top-0 z-50"
       style={{
-        backgroundColor: "hsl(var(--card))",
-        borderColor: "hsl(var(--border))",
+        backgroundColor: "var(--bg-primary)",
+        borderColor: "var(--border)",
       }}
     >
       <div className="px-4 py-2 flex items-center gap-3 flex-wrap">
@@ -58,15 +58,15 @@ export function AppHeader({
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold"
             style={{
-              backgroundColor: "hsl(var(--primary))",
-              color: "hsl(var(--primary-foreground))",
+              backgroundColor: "var(--brand)",
+              color: "var(--brand-text)",
             }}
           >
             M
           </div>
           <span
             className="text-sm font-semibold"
-            style={{ color: "hsl(var(--foreground))" }}
+            style={{ color: "var(--text-primary)" }}
           >
             MITR AI
           </span>
@@ -78,7 +78,7 @@ export function AppHeader({
             <label
               htmlFor="app-group-select"
               className="text-xs font-medium"
-              style={{ color: "hsl(var(--muted-foreground))" }}
+              style={{ color: "var(--text-muted)" }}
             >
               Group:
             </label>
@@ -88,9 +88,9 @@ export function AppHeader({
               onChange={(e) => onGroupChange(e.target.value)}
               className="text-xs rounded-lg px-2 py-1.5 border focus:outline-none focus:ring-1"
               style={{
-                backgroundColor: "hsl(var(--card))",
-                borderColor: "hsl(var(--border))",
-                color: "hsl(var(--foreground))",
+                backgroundColor: "var(--bg-primary)",
+                borderColor: "var(--border)",
+                color: "var(--text-primary)",
               }}
             >
               {groups.map((g) => (
@@ -118,15 +118,13 @@ export function AppHeader({
               className="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
               style={{
                 backgroundColor: isActive(href)
-                  ? "hsl(var(--primary) / 0.1)"
+                  ? "var(--brand-subtle)"
                   : "transparent",
-                color: isActive(href)
-                  ? "hsl(var(--primary))"
-                  : "hsl(var(--muted-foreground))",
+                color: isActive(href) ? "var(--brand)" : "var(--text-muted)",
               }}
               onMouseEnter={(e) => {
                 if (!isActive(href))
-                  e.currentTarget.style.backgroundColor = "hsl(var(--muted))";
+                  e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
               }}
               onMouseLeave={(e) => {
                 if (!isActive(href))
@@ -148,7 +146,7 @@ export function AppHeader({
             {userLoading ? (
               <div
                 className="w-7 h-7 rounded-full animate-pulse"
-                style={{ backgroundColor: "hsl(var(--muted))" }}
+                style={{ backgroundColor: "var(--bg-secondary)" }}
               />
             ) : userInfo ? (
               <>
@@ -156,8 +154,8 @@ export function AppHeader({
                   onClick={() => setShowUserMenu((v) => !v)}
                   className="w-7 h-7 rounded-full text-xs font-semibold flex items-center justify-center transition-colors"
                   style={{
-                    backgroundColor: "hsl(var(--primary))",
-                    color: "hsl(var(--primary-foreground))",
+                    backgroundColor: "var(--brand)",
+                    color: "var(--brand-text)",
                   }}
                   title={userInfo.displayName}
                 >
@@ -168,24 +166,24 @@ export function AppHeader({
                   <div
                     className="absolute right-0 top-9 w-64 rounded-lg shadow-lg z-50 py-2 border"
                     style={{
-                      backgroundColor: "hsl(var(--popover))",
-                      borderColor: "hsl(var(--border))",
-                      color: "hsl(var(--popover-foreground))",
+                      backgroundColor: "var(--bg-primary)",
+                      borderColor: "var(--border)",
+                      color: "var(--text-primary)",
                     }}
                   >
                     <div
                       className="px-4 py-2 border-b"
-                      style={{ borderColor: "hsl(var(--border))" }}
+                      style={{ borderColor: "var(--border)" }}
                     >
                       <p
                         className="text-sm font-semibold"
-                        style={{ color: "hsl(var(--foreground))" }}
+                        style={{ color: "var(--text-primary)" }}
                       >
                         {userInfo.displayName}
                       </p>
                       <p
                         className="text-xs"
-                        style={{ color: "hsl(var(--muted-foreground))" }}
+                        style={{ color: "var(--text-muted)" }}
                       >
                         {userInfo.emailAddress}
                       </p>
@@ -193,45 +191,39 @@ export function AppHeader({
                     <div className="px-4 py-2 space-y-1 text-xs">
                       {userInfo.department && (
                         <div className="flex justify-between">
-                          <span
-                            style={{ color: "hsl(var(--muted-foreground))" }}
-                          >
+                          <span style={{ color: "var(--text-muted)" }}>
                             Department
                           </span>
-                          <span style={{ color: "hsl(var(--foreground))" }}>
+                          <span style={{ color: "var(--text-primary)" }}>
                             {userInfo.department}
                           </span>
                         </div>
                       )}
                       {userInfo.role && (
                         <div className="flex justify-between">
-                          <span
-                            style={{ color: "hsl(var(--muted-foreground))" }}
-                          >
+                          <span style={{ color: "var(--text-muted)" }}>
                             Role
                           </span>
-                          <span style={{ color: "hsl(var(--foreground))" }}>
+                          <span style={{ color: "var(--text-primary)" }}>
                             {userInfo.role}
                           </span>
                         </div>
                       )}
                       {userInfo.location && (
                         <div className="flex justify-between">
-                          <span
-                            style={{ color: "hsl(var(--muted-foreground))" }}
-                          >
+                          <span style={{ color: "var(--text-muted)" }}>
                             Location
                           </span>
-                          <span style={{ color: "hsl(var(--foreground))" }}>
+                          <span style={{ color: "var(--text-primary)" }}>
                             {userInfo.location}
                           </span>
                         </div>
                       )}
                       <div className="flex justify-between">
-                        <span style={{ color: "hsl(var(--muted-foreground))" }}>
+                        <span style={{ color: "var(--text-muted)" }}>
                           Employee ID
                         </span>
-                        <span style={{ color: "hsl(var(--foreground))" }}>
+                        <span style={{ color: "var(--text-primary)" }}>
                           {userInfo.employeeId}
                         </span>
                       </div>

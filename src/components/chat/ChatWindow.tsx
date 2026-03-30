@@ -67,6 +67,7 @@ export function ChatWindow({
   userName,
   hideHeader = false,
   onQueryResult,
+  onShowInPanel,
   splitView,
 }: {
   platform?: "web" | "widget";
@@ -74,6 +75,11 @@ export function ChatWindow({
   userName?: string;
   hideHeader?: boolean;
   onQueryResult?: (result: QueryResult) => void;
+  onShowInPanel?: (
+    data: Record<string, unknown>[],
+    columns: string[],
+    title: string,
+  ) => void;
   splitView?: boolean;
 }) {
   const {
@@ -332,6 +338,7 @@ export function ChatWindow({
             onExecuteQuery={executeQuery}
             onRetry={retryMessage}
             onFeedback={submitFeedback}
+            onShowInPanel={onShowInPanel}
             displayMode={displayMode}
             compactAuto={compactAuto}
             compactRichContent={splitView}

@@ -1,6 +1,13 @@
-'use client';
+"use client";
 
-import { useMemo } from 'react';
+function getToken(name: string): string {
+  if (typeof window === "undefined") return "";
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
+}
+
+import { useMemo } from "react";
 import {
   ComposedChart,
   Line,
@@ -10,7 +17,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from 'recharts';
+} from "recharts";
 
 interface DataPoint {
   date: string;
@@ -29,7 +36,10 @@ export default function ForecastChart({
   valueLabel,
 }: ForecastChartProps) {
   const chartData = useMemo(() => {
-    const dataMap = new Map<string, { date: string; historical?: number; predicted?: number }>();
+    const dataMap = new Map<
+      string,
+      { date: string; historical?: number; predicted?: number }
+    >();
 
     for (const pt of historical) {
       dataMap.set(pt.date, { date: pt.date, historical: pt.value });
@@ -53,10 +63,12 @@ export default function ForecastChart({
       }
     }
 
-    return Array.from(dataMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+    return Array.from(dataMap.values()).sort((a, b) =>
+      a.date.localeCompare(b.date),
+    );
   }, [historical, predicted]);
 
-  const label = valueLabel || 'Value';
+  const label = valueLabel || "Value";
 
   return (
     <div className="mt-3 border border-gray-200 rounded-lg p-2 bg-white">
@@ -68,14 +80,23 @@ export default function ForecastChart({
           data={chartData}
           margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          <CartesianGrid strokeDasharray="3 3" stroke={getToken("--border")} />
           <XAxis
             dataKey="date"
-            tick={{ fontSize: 10 }}
-            stroke="#9ca3af"
+            tick={{ fontSize: 10, fill: getToken("--text-muted") }}
+            stroke={getToken("--text-muted")}
           />
-          <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" />
-          <Tooltip contentStyle={{ fontSize: 11 }} />
+          <YAxis
+            tick={{ fontSize: 10, fill: getToken("--text-muted") }}
+            stroke={getToken("--text-muted")}
+          />
+          <Tooltip
+            contentStyle={{
+              fontSize: 11,
+              backgroundColor: getToken("--bg-primary"),
+              borderColor: getToken("--border"),
+            }}
+          />
           <Legend wrapperStyle={{ fontSize: 10 }} />
           <Line
             type="monotone"

@@ -7,12 +7,16 @@ const MSSQL_CONNECTOR_URL =
   process.env.MSSQL_CONNECTOR_URL || "http://localhost:4002";
 const ORACLE_CONNECTOR_URL =
   process.env.ORACLE_CONNECTOR_URL || "http://localhost:4003";
+const CSV_XLSX_CONNECTOR_URL =
+  process.env.CSV_XLSX_CONNECTOR_URL || "http://localhost:4004";
 const CONNECTOR_TIMEOUT_MS = Number(process.env.CONNECTOR_TIMEOUT_MS) || 30000;
 
-export type ConnectorType = "mssql" | "oracle";
+export type ConnectorType = "mssql" | "oracle" | "csv-xlsx";
 
 function getBaseUrl(type: ConnectorType): string {
-  return type === "mssql" ? MSSQL_CONNECTOR_URL : ORACLE_CONNECTOR_URL;
+  if (type === "mssql") return MSSQL_CONNECTOR_URL;
+  if (type === "oracle") return ORACLE_CONNECTOR_URL;
+  return CSV_XLSX_CONNECTOR_URL;
 }
 
 export async function proxyToConnector(
@@ -33,10 +37,12 @@ export async function proxyToConnector(
   };
 
   // Forward connector API key if set
-  const apiKey =
-    type === "mssql"
-      ? process.env.MSSQL_CONNECTOR_API_KEY
-      : process.env.ORACLE_CONNECTOR_API_KEY;
+  const apiKeyMap: Record<ConnectorType, string | undefined> = {
+    mssql: process.env.MSSQL_CONNECTOR_API_KEY,
+    oracle: process.env.ORACLE_CONNECTOR_API_KEY,
+    "csv-xlsx": process.env.CSV_XLSX_CONNECTOR_API_KEY,
+  };
+  const apiKey = apiKeyMap[type];
   if (apiKey) {
     headers["x-api-key"] = apiKey;
   }

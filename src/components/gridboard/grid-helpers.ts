@@ -19,6 +19,10 @@ export interface RowGroup {
   originalIndices: number[];
 }
 
+// ── Constants ─────────────────────────────────────────────────────
+
+const NUMERIC_DETECTION_THRESHOLD = 0.7;
+
 // ── Helpers ────────────────────────────────────────────────────────
 
 /** Detect if a column is numeric (>= 70% parseable numbers) */
@@ -40,7 +44,7 @@ export function isNumericColumn(
       numCount++;
     }
   }
-  return total > 0 && numCount / total >= 0.7;
+  return total > 0 && numCount / total >= NUMERIC_DETECTION_THRESHOLD;
 }
 
 /** Parse value as number, returns NaN for non-numeric */

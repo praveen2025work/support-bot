@@ -11,7 +11,10 @@ import {
   Unlock,
   Save,
   Undo2,
+  ChevronDown,
+  Search,
 } from "lucide-react";
+import { useRef } from "react";
 import { ContextualTopBar } from "@/components/shell/ContextualTopBar";
 import { useState } from "react";
 import { useDataExplorer } from "@/components/data-explorer/useDataExplorer";
@@ -31,6 +34,23 @@ export default function DataExplorerPage() {
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [editMode, setEditMode] = useState(false);
+  const [sourceDropdownOpen, setSourceDropdownOpen] = useState(false);
+  const [sourceSearch, setSourceSearch] = useState("");
+  const sourceDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close source dropdown on outside click
+  useEffect(() => {
+    if (!sourceDropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        sourceDropdownRef.current &&
+        !sourceDropdownRef.current.contains(e.target as Node)
+      )
+        setSourceDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [sourceDropdownOpen]);
 
   const explorer = useDataExplorer(groupId);
   const dashboard = useDataDashboard(explorer.selectedSource ?? "", groupId);
@@ -128,51 +148,165 @@ export default function DataExplorerPage() {
   const globalFilters = dashboard.config?.globalFilters ?? explorer.filters;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)]">
+    <div className="h-screen flex flex-col bg-[var(--bg-secondary)] text-[var(--text-primary)]">
       {/* ── HEADER ───────────────────────────────────────────── */}
       <ContextualTopBar title="Data Explorer">
         <div className="flex items-center gap-2">
           {/* Source picker */}
-          <select
-            value={explorer.selectedSource ?? ""}
-            onChange={(e) => {
-              explorer.setSelectedSource(e.target.value || null);
-              dashboard.resetDashboard();
-            }}
-            className="px-2 py-1.5 text-xs border rounded-lg outline-none font-medium"
-            style={{
-              backgroundColor: "hsl(var(--card))",
-              borderColor: "hsl(var(--border))",
-              color: "hsl(var(--foreground))",
-            }}
-          >
-            <option value="">— Select data source —</option>
-            {explorer.sources.map((s) => (
-              <option key={s.name} value={s.name}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          <div ref={sourceDropdownRef} className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setSourceDropdownOpen((o) => !o);
+                setSourceSearch("");
+              }}
+              className="flex items-center gap-2 text-[12px] border rounded-[var(--radius-md)] px-3 py-1.5 text-left transition-colors min-w-[180px] max-w-[280px]"
+              style={{
+                backgroundColor: "var(--bg-primary)",
+                borderColor: sourceDropdownOpen
+                  ? "var(--brand)"
+                  : "var(--border)",
+                color: explorer.selectedSource
+                  ? "var(--text-primary)"
+                  : "var(--text-muted)",
+                boxShadow: sourceDropdownOpen
+                  ? "0 0 0 2px var(--brand-subtle)"
+                  : "none",
+              }}
+            >
+              {explorer.selectedSource ? (
+                <span className="flex items-center gap-1.5 flex-1 truncate">
+                  <Database
+                    size={12}
+                    style={{ color: "var(--brand)" }}
+                    className="shrink-0"
+                  />
+                  <span className="truncate">{explorer.selectedSource}</span>
+                </span>
+              ) : (
+                <span className="flex-1 truncate">Select data source...</span>
+              )}
+              <ChevronDown
+                size={14}
+                className="shrink-0 transition-transform"
+                style={{
+                  color: "var(--text-muted)",
+                  transform: sourceDropdownOpen
+                    ? "rotate(180deg)"
+                    : "rotate(0deg)",
+                }}
+              />
+            </button>
+
+            {sourceDropdownOpen && (
+              <div
+                className="absolute z-50 top-full right-0 mt-1 w-72 rounded-[var(--radius-md)] border overflow-hidden"
+                style={{
+                  backgroundColor: "var(--bg-primary)",
+                  borderColor: "var(--border)",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                }}
+              >
+                <div
+                  className="flex items-center gap-2 px-3 py-2 border-b"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <Search size={12} style={{ color: "var(--text-muted)" }} />
+                  <input
+                    type="text"
+                    value={sourceSearch}
+                    onChange={(e) => setSourceSearch(e.target.value)}
+                    placeholder="Search sources..."
+                    className="flex-1 text-[12px] bg-transparent outline-none"
+                    style={{ color: "var(--text-primary)" }}
+                    autoFocus
+                  />
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {explorer.sources
+                    .filter((s) =>
+                      s.name.toLowerCase().includes(sourceSearch.toLowerCase()),
+                    )
+                    .map((s) => {
+                      const isSelected = s.name === explorer.selectedSource;
+                      return (
+                        <button
+                          key={s.name}
+                          type="button"
+                          onClick={() => {
+                            explorer.setSelectedSource(s.name);
+                            dashboard.resetDashboard();
+                            setSourceDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-[12px] transition-colors"
+                          style={{
+                            backgroundColor: isSelected
+                              ? "var(--brand-subtle)"
+                              : "transparent",
+                            color: isSelected
+                              ? "var(--brand)"
+                              : "var(--text-primary)",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSelected)
+                              e.currentTarget.style.backgroundColor =
+                                "var(--bg-secondary)";
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected)
+                              e.currentTarget.style.backgroundColor =
+                                "transparent";
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Database
+                              size={11}
+                              style={{
+                                color: isSelected
+                                  ? "var(--brand)"
+                                  : "var(--text-muted)",
+                              }}
+                            />
+                            <span className="font-medium truncate">
+                              {s.name}
+                            </span>
+                            <span
+                              className="ml-auto text-[10px] uppercase"
+                              style={{
+                                color: "var(--text-muted)",
+                              }}
+                            >
+                              {s.type}
+                            </span>
+                          </div>
+                          {s.description && (
+                            <div
+                              className="text-[10px] mt-0.5 truncate pl-[19px]"
+                              style={{
+                                color: "var(--text-muted)",
+                              }}
+                            >
+                              {s.description}
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Edit/View toggle + actions */}
           {explorer.selectedSource && dashboard.config && (
             <>
               <button
                 onClick={() => setEditMode((m) => !m)}
-                className={`inline-flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                className={`inline-flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium rounded-[var(--radius-md)] border transition-colors ${
                   editMode
-                    ? "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-700"
-                    : "hover:bg-[var(--bg-secondary)]"
+                    ? "bg-[var(--warning-subtle)] text-[var(--warning)] border-[var(--warning)]"
+                    : "bg-[var(--bg-primary)] text-[var(--text-muted)] border-[var(--border)] hover:bg-[var(--bg-secondary)]"
                 }`}
-                style={
-                  editMode
-                    ? undefined
-                    : {
-                        color: "hsl(var(--muted-foreground))",
-                        borderColor: "hsl(var(--border))",
-                        backgroundColor: "hsl(var(--card))",
-                      }
-                }
               >
                 {editMode ? <Unlock size={12} /> : <Lock size={12} />}
                 {editMode ? "Editing" : "View"}
@@ -181,15 +315,14 @@ export default function DataExplorerPage() {
                 <>
                   <button
                     onClick={() => setShowAddCard(true)}
-                    className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium text-white bg-[var(--brand)] hover:opacity-90 rounded-lg"
+                    className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium text-[var(--brand-text)] bg-[var(--brand)] hover:opacity-90 rounded-[var(--radius-md)]"
                   >
                     <Plus size={14} />
                     Add Card
                   </button>
                   <button
                     onClick={handleResetDashboard}
-                    className="p-1.5 rounded-lg hover:bg-[var(--bg-secondary)]"
-                    style={{ color: "hsl(var(--muted-foreground))" }}
+                    className="p-1.5 rounded-[var(--radius-md)] text-[var(--text-muted)] hover:bg-[var(--bg-secondary)]"
                     title="Reset to default layout"
                   >
                     <RotateCcw size={14} />
@@ -201,7 +334,7 @@ export default function DataExplorerPage() {
                 <>
                   <button
                     onClick={() => dashboard.persistDashboard()}
-                    className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg"
+                    className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-[var(--brand-text)] bg-[var(--success)] hover:opacity-90 rounded-[var(--radius-md)]"
                     title="Save changes"
                   >
                     <Save size={12} />
@@ -209,7 +342,7 @@ export default function DataExplorerPage() {
                   </button>
                   <button
                     onClick={() => dashboard.revertDashboard()}
-                    className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-700"
+                    className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-[var(--warning)] bg-[var(--warning-subtle)] hover:opacity-90 border border-[var(--warning)] rounded-[var(--radius-md)]"
                     title="Revert unsaved changes"
                   >
                     <Undo2 size={12} />
@@ -224,7 +357,7 @@ export default function DataExplorerPage() {
 
       {/* ── No source selected ───────────────────────────────── */}
       {!explorer.selectedSource && (
-        <div className="flex flex-col items-center justify-center py-32 text-[var(--text-muted)]">
+        <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-muted)]">
           <Database size={48} className="mb-4 opacity-30" />
           <div className="text-lg font-semibold mb-1">Select a data source</div>
           <div className="text-sm mb-6">

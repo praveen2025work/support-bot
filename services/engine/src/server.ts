@@ -136,8 +136,6 @@ app.use(
 
 const server = app.listen(PORT, () => {
   logger.info(`Engine server running at http://localhost:${PORT}`);
-  // eslint-disable-next-line no-console -- Startup message for operator visibility
-  console.log(`Engine server running at http://localhost:${PORT}`);
 
   // Start the schedule executor (checks every 60s for due schedules)
   startScheduleExecutor();

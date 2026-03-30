@@ -1,18 +1,26 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import { ApiClient } from './api-client';
-import { QuerySchema, QueryResultSchema } from './types';
-import { fetchBamToken } from './bam-auth';
-import { QueryNotFoundError, FileReadError } from '@/lib/errors';
-import { logger } from '@/lib/logger';
-import { resolveDateRange, isDatePreset } from '@/lib/date-resolver';
-import { searchDocument, type DocumentSection } from './document-search';
-import { parseCsv, computeAggregation, parseAggregationFromText, groupBy, sortData, type AggregationResult, type GroupByResult } from './csv-analyzer';
-import filterConfig from '@/config/filter-config.json';
-import type { Query, QueryResult, QueryFilters, FilterBinding } from './types';
+import { promises as fs } from "fs";
+import path from "path";
+import { ApiClient } from "./api-client";
+import { QuerySchema, QueryResultSchema } from "./types";
+import { fetchBamToken } from "./bam-auth";
+import { QueryNotFoundError, FileReadError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
+import { resolveDateRange, isDatePreset } from "@/lib/date-resolver";
+import { searchDocument, type DocumentSection } from "./document-search";
+import {
+  parseCsv,
+  computeAggregation,
+  parseAggregationFromText,
+  groupBy,
+  sortData,
+  type AggregationResult,
+  type GroupByResult,
+} from "./csv-analyzer";
+import filterConfig from "@/config/filter-config.json";
+import type { Query, QueryResult, QueryFilters, FilterBinding } from "./types";
 
 export interface QueryExecutionResult {
-  type: 'api' | 'url' | 'document' | 'csv';
+  type: "api" | "url" | "document" | "csv";
   durationMs?: number;
   apiResult?: QueryResult;
   urlResult?: { title: string; url: string };
@@ -38,7 +46,7 @@ export interface QueryExecuteOptions {
   aggregationText?: string;
   groupByColumn?: string;
   sortColumn?: string;
-  sortDirection?: 'asc' | 'desc';
+  sortDirection?: "asc" | "desc";
 }
 
 export interface MultiQueryResult {
@@ -49,28 +57,51 @@ export interface MultiQueryResult {
 export class QueryService {
   private sources: string[];
 
-  constructor(private apiClient: ApiClient, sources?: string[]) {
+  constructor(
+    private apiClient: ApiClient,
+    sources?: string[],
+  ) {
     this.sources = sources ?? [];
   }
 
   async getQueries(): Promise<Query[]> {
-    const raw = await this.apiClient.get<unknown[]>('queries', {
-      cacheTtl: 60_000,
-    });
-    let queries = raw.map((q) => QuerySchema.parse(q));
+    try {
+      const raw = await this.apiClient.get<unknown[]>("queries", {
+        cacheTtl: 60_000,
+      });
+      let queries = raw.map((q) => QuerySchema.parse(q));
 
-    if (this.sources.length > 0) {
-      queries = queries.filter(
-        (q) => q.source && this.sources.includes(q.source)
+      if (this.sources.length > 0) {
+        queries = queries.filter(
+          (q) => q.source && this.sources.includes(q.source),
+        );
+      }
+
+      return queries;
+    } catch (error) {
+      console.error(
+        "[QueryService.getQueries] Failed to fetch queries:",
+        error,
+      );
+      throw new Error(
+        "Unable to load available queries. Please try again later.",
       );
     }
-
-    return queries;
   }
 
   async getQueryNames(): Promise<string[]> {
-    const queries = await this.getQueries();
-    return queries.map((q) => q.name);
+    try {
+      const queries = await this.getQueries();
+      return queries.map((q) => q.name);
+    } catch (error) {
+      console.error(
+        "[QueryService.getQueryNames] Failed to get query names:",
+        error,
+      );
+      throw new Error(
+        "Unable to retrieve query names. Please try again later.",
+      );
+    }
   }
 
   /**
@@ -85,40 +116,52 @@ export class QueryService {
     queryName: string,
     filters?: QueryFilters,
     options?: QueryExecuteOptions,
-    incomingHeaders?: Record<string, string>
+    incomingHeaders?: Record<string, string>,
   ): Promise<QueryExecutionResult> {
-    const startTime = performance.now();
-    const queries = await this.getQueries();
-    const query = queries.find(
-      (q) => q.name.toLowerCase() === queryName.toLowerCase()
-    );
-    if (!query) throw new QueryNotFoundError(queryName);
+    try {
+      const startTime = performance.now();
+      const queries = await this.getQueries();
+      const query = queries.find(
+        (q) => q.name.toLowerCase() === queryName.toLowerCase(),
+      );
+      if (!query) throw new QueryNotFoundError(queryName);
 
-    const queryType = query.type ?? 'api';
+      const queryType = query.type ?? "api";
 
-    let result: QueryExecutionResult;
-    switch (queryType) {
-      case 'url':
-        result = this.executeUrlQuery(query);
-        break;
-      case 'document':
-        result = await this.executeDocumentQuery(query, options);
-        break;
-      case 'csv':
-        result = await this.executeCsvQuery(query, options, filters);
-        break;
-      case 'api':
-      default:
-        result = await this.executeApiQuery(query, filters, incomingHeaders);
-        break;
+      let result: QueryExecutionResult;
+      switch (queryType) {
+        case "url":
+          result = this.executeUrlQuery(query);
+          break;
+        case "document":
+          result = await this.executeDocumentQuery(query, options);
+          break;
+        case "csv":
+          result = await this.executeCsvQuery(query, options, filters);
+          break;
+        case "api":
+        default:
+          result = await this.executeApiQuery(query, filters, incomingHeaders);
+          break;
+      }
+
+      result.durationMs = Math.round(performance.now() - startTime);
+
+      // Fire-and-forget stats recording
+      this.recordStat(queryName, true, result.durationMs, filters).catch(
+        () => {},
+      );
+
+      return result;
+    } catch (error) {
+      console.error(
+        `[QueryService.executeQuery] Failed to execute query "${queryName}":`,
+        error,
+      );
+      throw new Error(
+        `Failed to execute query "${queryName}". Please try again later.`,
+      );
     }
-
-    result.durationMs = Math.round(performance.now() - startTime);
-
-    // Fire-and-forget stats recording
-    this.recordStat(queryName, true, result.durationMs, filters).catch(() => {});
-
-    return result;
   }
 
   private async recordStat(
@@ -126,13 +169,19 @@ export class QueryService {
     success: boolean,
     durationMs: number,
     filters?: QueryFilters,
-    error?: string
+    error?: string,
   ): Promise<void> {
     try {
       await fetch(`${this.getStatsUrl()}/api/stats`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ queryName, success, durationMs, filters: filters || {}, error }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          queryName,
+          success,
+          durationMs,
+          filters: filters || {},
+          error,
+        }),
       });
     } catch {
       // Silently fail — stats are non-critical
@@ -141,48 +190,62 @@ export class QueryService {
 
   private getStatsUrl(): string {
     // Use the Next.js server URL for internal stats endpoint
-    const port = process.env.PORT || '3000';
+    const port = process.env.PORT || "3000";
     return `http://localhost:${port}`;
   }
 
   private async executeApiQuery(
     query: Query,
     filters?: QueryFilters,
-    incomingHeaders?: Record<string, string>
+    incomingHeaders?: Record<string, string>,
   ): Promise<QueryExecutionResult> {
-    const filterBindings: FilterBinding[] = query.filters ?? [];
-    const resolved = filters ? this.resolveFilters(filters) : undefined;
-    const bodyFilters: Record<string, string> = {};
-    const paramFilters: Record<string, string> = {};
-    let urlPath = query.endpoint
-      ? query.endpoint.replace(/^\//, '')
-      : `queries/${query.id}/execute`;
+    try {
+      const filterBindings: FilterBinding[] = query.filters ?? [];
+      const resolved = filters ? this.resolveFilters(filters) : undefined;
+      const bodyFilters: Record<string, string> = {};
+      const paramFilters: Record<string, string> = {};
+      let urlPath = query.endpoint
+        ? query.endpoint.replace(/^\//, "")
+        : `queries/${query.id}/execute`;
 
-    if (resolved && Object.keys(resolved).length > 0) {
-      for (const [key, value] of Object.entries(resolved)) {
-        // For resolved date keys like date_range_start, find binding for base key
-        const baseKey = key.replace(/_start$|_end$/, '');
-        const binding = filterBindings.find((f) => f.key === baseKey || f.key === key);
-        const bindingType = binding?.binding ?? 'body';
+      if (resolved && Object.keys(resolved).length > 0) {
+        for (const [key, value] of Object.entries(resolved)) {
+          // For resolved date keys like date_range_start, find binding for base key
+          const baseKey = key.replace(/_start$|_end$/, "");
+          const binding = filterBindings.find(
+            (f) => f.key === baseKey || f.key === key,
+          );
+          const bindingType = binding?.binding ?? "body";
 
-        if (bindingType === 'path') {
-          urlPath = urlPath.replace(`{${key}}`, encodeURIComponent(value));
-        } else if (bindingType === 'query_param') {
-          paramFilters[key] = value;
-        } else {
-          bodyFilters[key] = value;
+          if (bindingType === "path") {
+            urlPath = urlPath.replace(`{${key}}`, encodeURIComponent(value));
+          } else if (bindingType === "query_param") {
+            paramFilters[key] = value;
+          } else {
+            bodyFilters[key] = value;
+          }
         }
       }
+
+      // Build per-query auth headers based on authType
+      const authHeaders = await this.resolveQueryAuth(query, incomingHeaders);
+
+      const body =
+        Object.keys(bodyFilters).length > 0 ? { filters: bodyFilters } : {};
+      const params =
+        Object.keys(paramFilters).length > 0 ? paramFilters : undefined;
+      const raw = await this.apiClient.post(urlPath, body, params, authHeaders);
+      const apiResult = this.normalizeApiResponse(raw);
+      return { type: "api", apiResult };
+    } catch (error) {
+      console.error(
+        `[QueryService.executeApiQuery] API query "${query.name}" failed:`,
+        error,
+      );
+      throw new Error(
+        `API query "${query.name}" failed. Please check connectivity and try again.`,
+      );
     }
-
-    // Build per-query auth headers based on authType
-    const authHeaders = await this.resolveQueryAuth(query, incomingHeaders);
-
-    const body = Object.keys(bodyFilters).length > 0 ? { filters: bodyFilters } : {};
-    const params = Object.keys(paramFilters).length > 0 ? paramFilters : undefined;
-    const raw = await this.apiClient.post(urlPath, body, params, authHeaders);
-    const apiResult = this.normalizeApiResponse(raw);
-    return { type: 'api', apiResult };
   }
 
   /**
@@ -203,15 +266,23 @@ export class QueryService {
     if (standard.success) return standard.data;
 
     // 2. Primitive values
-    if (raw === null || raw === undefined || typeof raw !== 'object') {
-      const label = typeof raw === 'number' ? 'count' : 'result';
-      return { data: [{ [label]: raw ?? 'null' }], rowCount: 1, executionTime: 0 };
+    if (raw === null || raw === undefined || typeof raw !== "object") {
+      const label = typeof raw === "number" ? "count" : "result";
+      return {
+        data: [{ [label]: raw ?? "null" }],
+        rowCount: 1,
+        executionTime: 0,
+      };
     }
 
     // 3. Raw array
     if (Array.isArray(raw)) {
-      if (raw.length > 0 && typeof raw[0] !== 'object') {
-        return { data: raw.map((v, i) => ({ index: i, value: v })), rowCount: raw.length, executionTime: 0 };
+      if (raw.length > 0 && typeof raw[0] !== "object") {
+        return {
+          data: raw.map((v, i) => ({ index: i, value: v })),
+          rowCount: raw.length,
+          executionTime: 0,
+        };
       }
       return { data: raw, rowCount: raw.length, executionTime: 0 };
     }
@@ -219,15 +290,39 @@ export class QueryService {
     const obj = raw as Record<string, unknown>;
 
     // 4. Nested array field
-    const arrayKeys = ['data', 'results', 'items', 'records', 'rows', 'content', 'entries', 'list', 'values'];
+    const arrayKeys = [
+      "data",
+      "results",
+      "items",
+      "records",
+      "rows",
+      "content",
+      "entries",
+      "list",
+      "values",
+    ];
     for (const key of arrayKeys) {
       if (Array.isArray(obj[key])) {
         const arr = obj[key] as Record<string, unknown>[];
-        const rowCount = this.extractNumericField(obj, ['rowCount', 'total', 'totalElements', 'totalCount', 'count', 'size', 'length']);
+        const rowCount = this.extractNumericField(obj, [
+          "rowCount",
+          "total",
+          "totalElements",
+          "totalCount",
+          "count",
+          "size",
+          "length",
+        ]);
         return {
           data: arr,
           rowCount: rowCount ?? arr.length,
-          executionTime: this.extractNumericField(obj, ['executionTime', 'elapsed', 'duration', 'took']) ?? 0,
+          executionTime:
+            this.extractNumericField(obj, [
+              "executionTime",
+              "elapsed",
+              "duration",
+              "took",
+            ]) ?? 0,
         };
       }
     }
@@ -235,38 +330,67 @@ export class QueryService {
     // 5. Deeply nested (max 3 levels)
     const nestedArray = this.findNestedArray(obj, 3);
     if (nestedArray) {
-      return { data: nestedArray, rowCount: nestedArray.length, executionTime: 0 };
+      return {
+        data: nestedArray,
+        rowCount: nestedArray.length,
+        executionTime: 0,
+      };
     }
 
     // 6. Extract primitive fields from mixed objects
     const entries = Object.entries(obj);
     const primitiveEntries = entries.filter(
-      ([, v]) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' || v === null
+      ([, v]) =>
+        typeof v === "string" ||
+        typeof v === "number" ||
+        typeof v === "boolean" ||
+        v === null,
     );
     if (primitiveEntries.length > 0) {
-      const data = primitiveEntries.map(([key, value]) => ({ metric: key, value: value as string | number }));
+      const data = primitiveEntries.map(([key, value]) => ({
+        metric: key,
+        value: value as string | number,
+      }));
       return { data, rowCount: data.length, executionTime: 0 };
     }
 
     // 7. Last resort
-    return { data: [{ result: JSON.stringify(raw) }], rowCount: 1, executionTime: 0 };
+    return {
+      data: [{ result: JSON.stringify(raw) }],
+      rowCount: 1,
+      executionTime: 0,
+    };
   }
 
-  private extractNumericField(obj: Record<string, unknown>, keys: string[]): number | undefined {
+  private extractNumericField(
+    obj: Record<string, unknown>,
+    keys: string[],
+  ): number | undefined {
     for (const key of keys) {
-      if (typeof obj[key] === 'number') return obj[key] as number;
+      if (typeof obj[key] === "number") return obj[key] as number;
     }
     return undefined;
   }
 
-  private findNestedArray(obj: Record<string, unknown>, maxDepth: number): Record<string, unknown>[] | null {
+  private findNestedArray(
+    obj: Record<string, unknown>,
+    maxDepth: number,
+  ): Record<string, unknown>[] | null {
     if (maxDepth <= 0) return null;
     for (const value of Object.values(obj)) {
-      if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
+      if (
+        Array.isArray(value) &&
+        value.length > 0 &&
+        typeof value[0] === "object" &&
+        value[0] !== null
+      ) {
         return value as Record<string, unknown>[];
       }
-      if (value && typeof value === 'object' && !Array.isArray(value)) {
-        const found = this.findNestedArray(value as Record<string, unknown>, maxDepth - 1);
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        const found = this.findNestedArray(
+          value as Record<string, unknown>,
+          maxDepth - 1,
+        );
         if (found) return found;
       }
     }
@@ -282,66 +406,86 @@ export class QueryService {
    */
   private async resolveQueryAuth(
     query: Query,
-    incomingHeaders?: Record<string, string>
+    incomingHeaders?: Record<string, string>,
   ): Promise<Record<string, string> | undefined> {
-    const authType = query.authType ?? 'none';
+    try {
+      const authType = query.authType ?? "none";
 
-    switch (authType) {
-      case 'windows': {
-        // Forward the user's Windows auth headers (Authorization, Cookie)
-        if (!incomingHeaders) {
-          logger.warn({ query: query.name }, 'Windows auth query but no incoming headers available');
+      switch (authType) {
+        case "windows": {
+          // Forward the user's Windows auth headers (Authorization, Cookie)
+          if (!incomingHeaders) {
+            logger.warn(
+              { query: query.name },
+              "Windows auth query but no incoming headers available",
+            );
+            return undefined;
+          }
+          const forwarded: Record<string, string> = {};
+          if (incomingHeaders["authorization"]) {
+            forwarded["Authorization"] = incomingHeaders["authorization"];
+          }
+          if (incomingHeaders["cookie"]) {
+            forwarded["Cookie"] = incomingHeaders["cookie"];
+          }
+          logger.debug(
+            {
+              query: query.name,
+              hasAuth: !!forwarded["Authorization"],
+              hasCookie: !!forwarded["Cookie"],
+            },
+            "Windows auth: forwarding user headers",
+          );
+          return Object.keys(forwarded).length > 0 ? forwarded : undefined;
+        }
+
+        case "bam": {
+          // Step 1: Fetch BAM token
+          if (!query.bamTokenUrl) {
+            logger.error(
+              { query: query.name },
+              "BAM auth query missing bamTokenUrl",
+            );
+            return undefined;
+          }
+
+          // Forward user headers to BAM token endpoint too (may need SSO context)
+          const forwardHeaders: Record<string, string> = {};
+          if (incomingHeaders?.["authorization"]) {
+            forwardHeaders["Authorization"] = incomingHeaders["authorization"];
+          }
+          if (incomingHeaders?.["cookie"]) {
+            forwardHeaders["Cookie"] = incomingHeaders["cookie"];
+          }
+
+          const bamResponse = await fetchBamToken(
+            query.bamTokenUrl,
+            Object.keys(forwardHeaders).length > 0 ? forwardHeaders : undefined,
+          );
+
+          logger.debug(
+            { query: query.name, hasRedirectURL: !!bamResponse.redirectURL },
+            "BAM auth: token acquired",
+          );
+
+          // Step 2: Use bamToken as X-BAM-Token header
+          return { "X-BAM-Token": bamResponse.bamToken };
+        }
+
+        case "bearer":
+        case "none":
+        default:
+          // Use global API_TOKEN (handled by ApiClient.buildHeaders())
           return undefined;
-        }
-        const forwarded: Record<string, string> = {};
-        if (incomingHeaders['authorization']) {
-          forwarded['Authorization'] = incomingHeaders['authorization'];
-        }
-        if (incomingHeaders['cookie']) {
-          forwarded['Cookie'] = incomingHeaders['cookie'];
-        }
-        logger.debug(
-          { query: query.name, hasAuth: !!forwarded['Authorization'], hasCookie: !!forwarded['Cookie'] },
-          'Windows auth: forwarding user headers'
-        );
-        return Object.keys(forwarded).length > 0 ? forwarded : undefined;
       }
-
-      case 'bam': {
-        // Step 1: Fetch BAM token
-        if (!query.bamTokenUrl) {
-          logger.error({ query: query.name }, 'BAM auth query missing bamTokenUrl');
-          return undefined;
-        }
-
-        // Forward user headers to BAM token endpoint too (may need SSO context)
-        const forwardHeaders: Record<string, string> = {};
-        if (incomingHeaders?.['authorization']) {
-          forwardHeaders['Authorization'] = incomingHeaders['authorization'];
-        }
-        if (incomingHeaders?.['cookie']) {
-          forwardHeaders['Cookie'] = incomingHeaders['cookie'];
-        }
-
-        const bamResponse = await fetchBamToken(
-          query.bamTokenUrl,
-          Object.keys(forwardHeaders).length > 0 ? forwardHeaders : undefined
-        );
-
-        logger.debug(
-          { query: query.name, hasRedirectURL: !!bamResponse.redirectURL },
-          'BAM auth: token acquired'
-        );
-
-        // Step 2: Use bamToken as X-BAM-Token header
-        return { 'X-BAM-Token': bamResponse.bamToken };
-      }
-
-      case 'bearer':
-      case 'none':
-      default:
-        // Use global API_TOKEN (handled by ApiClient.buildHeaders())
-        return undefined;
+    } catch (error) {
+      console.error(
+        `[QueryService.resolveQueryAuth] Auth resolution failed for query "${query.name}":`,
+        error,
+      );
+      throw new Error(
+        `Authentication failed for query "${query.name}". Please check your credentials.`,
+      );
     }
   }
 
@@ -354,7 +498,10 @@ export class QueryService {
         const range = resolveDateRange(value, dateFormat);
         resolved[`${key}_start`] = range.start;
         resolved[`${key}_end`] = range.end;
-        logger.debug({ key, preset: value, range, dateFormat }, 'Resolved date preset');
+        logger.debug(
+          { key, preset: value, range, dateFormat },
+          "Resolved date preset",
+        );
       } else {
         resolved[key] = value;
       }
@@ -364,191 +511,244 @@ export class QueryService {
   }
 
   private getDateFormat(): string {
-    const cfg = (filterConfig as Record<string, unknown>).filters as Record<string, Record<string, unknown>> | undefined;
+    const cfg = (filterConfig as Record<string, unknown>).filters as
+      | Record<string, Record<string, unknown>>
+      | undefined;
     const dateRangeCfg = cfg?.date_range;
-    return (dateRangeCfg?.dateFormat as string) || 'YYYY-MM-DD';
+    return (dateRangeCfg?.dateFormat as string) || "YYYY-MM-DD";
   }
 
   private executeUrlQuery(query: Query): QueryExecutionResult {
     if (!query.url) {
-      throw new QueryNotFoundError(`URL-type query "${query.name}" has no URL configured`);
+      throw new QueryNotFoundError(
+        `URL-type query "${query.name}" has no URL configured`,
+      );
     }
     return {
-      type: 'url',
+      type: "url",
       urlResult: { title: query.name, url: query.url },
     };
   }
 
   private async executeDocumentQuery(
     query: Query,
-    options?: QueryExecuteOptions
+    options?: QueryExecuteOptions,
   ): Promise<QueryExecutionResult> {
-    const { content, filePath, format } = await this.readFile(query);
+    try {
+      const { content, filePath, format } = await this.readFile(query);
 
-    if (options?.searchKeywords && options.searchKeywords.length > 0) {
-      const searchResults = searchDocument(content, options.searchKeywords);
+      if (options?.searchKeywords && options.searchKeywords.length > 0) {
+        const searchResults = searchDocument(content, options.searchKeywords);
+        return {
+          type: "document",
+          documentResult: {
+            content,
+            filePath,
+            format,
+            searchResults,
+            searchKeywords: options.searchKeywords,
+          },
+        };
+      }
+
       return {
-        type: 'document',
-        documentResult: {
-          content,
-          filePath,
-          format,
-          searchResults,
-          searchKeywords: options.searchKeywords,
-        },
+        type: "document",
+        documentResult: { content, filePath, format },
       };
+    } catch (error) {
+      console.error(
+        `[QueryService.executeDocumentQuery] Document query "${query.name}" failed:`,
+        error,
+      );
+      throw new Error(
+        `Failed to load document for query "${query.name}". The file may be missing or unreadable.`,
+      );
     }
-
-    return {
-      type: 'document',
-      documentResult: { content, filePath, format },
-    };
   }
 
   private async executeCsvQuery(
     query: Query,
     options?: QueryExecuteOptions,
-    filters?: QueryFilters
+    filters?: QueryFilters,
   ): Promise<QueryExecutionResult> {
-    const { content, filePath } = await this.readFile(query);
-    let csvData = await parseCsv(content);
+    try {
+      const { content, filePath } = await this.readFile(query);
+      let csvData = await parseCsv(content);
 
-    // Apply filters: match filter keys against CSV column names (case-insensitive)
-    // Rows are Record<string, string|number> objects keyed by header name
-    if (filters && Object.keys(filters).length > 0) {
-      // Build a map: lowercase filter key → matching header name in CSV
-      const filterToHeader: Record<string, string> = {};
-      for (const filterKey of Object.keys(filters)) {
-        const match = csvData.headers.find((h) => h.toLowerCase() === filterKey.toLowerCase());
-        if (match) filterToHeader[filterKey] = match;
+      // Apply filters: match filter keys against CSV column names (case-insensitive)
+      // Rows are Record<string, string|number> objects keyed by header name
+      if (filters && Object.keys(filters).length > 0) {
+        // Build a map: lowercase filter key → matching header name in CSV
+        const filterToHeader: Record<string, string> = {};
+        for (const filterKey of Object.keys(filters)) {
+          const match = csvData.headers.find(
+            (h) => h.toLowerCase() === filterKey.toLowerCase(),
+          );
+          if (match) filterToHeader[filterKey] = match;
+        }
+
+        if (Object.keys(filterToHeader).length > 0) {
+          const originalCount = csvData.rows.length;
+          const filteredRows = csvData.rows.filter((row) => {
+            for (const [filterKey, filterVal] of Object.entries(filters)) {
+              const header = filterToHeader[filterKey];
+              if (!header) continue; // filter key doesn't match a column, skip
+              const cellVal = String(row[header] ?? "").toLowerCase();
+              if (cellVal !== filterVal.toLowerCase()) return false;
+            }
+            return true;
+          });
+          csvData = { headers: csvData.headers, rows: filteredRows };
+          logger.debug(
+            { filters, original: originalCount, filtered: filteredRows.length },
+            "CSV filter applied",
+          );
+        }
       }
 
-      if (Object.keys(filterToHeader).length > 0) {
-        const originalCount = csvData.rows.length;
-        const filteredRows = csvData.rows.filter((row) => {
-          for (const [filterKey, filterVal] of Object.entries(filters)) {
-            const header = filterToHeader[filterKey];
-            if (!header) continue; // filter key doesn't match a column, skip
-            const cellVal = String(row[header] ?? '').toLowerCase();
-            if (cellVal !== filterVal.toLowerCase()) return false;
-          }
-          return true;
+      // Inline group-by: "run sales_data group by region"
+      if (options?.groupByColumn) {
+        const gbResult = groupBy(csvData, options.groupByColumn);
+        if (gbResult) {
+          return {
+            type: "csv",
+            csvResult: {
+              headers: csvData.headers,
+              rows: csvData.rows,
+              filePath,
+              rowCount: csvData.rows.length,
+              groupByResult: gbResult,
+            },
+          };
+        }
+      }
+
+      // Inline sort: "run sales_data sort by revenue desc"
+      if (options?.sortColumn) {
+        csvData = sortData(csvData, {
+          column: options.sortColumn,
+          direction: options.sortDirection ?? "desc",
         });
-        csvData = { headers: csvData.headers, rows: filteredRows };
-        logger.debug({ filters, original: originalCount, filtered: filteredRows.length }, 'CSV filter applied');
       }
-    }
 
-    // Inline group-by: "run sales_data group by region"
-    if (options?.groupByColumn) {
-      const gbResult = groupBy(csvData, options.groupByColumn);
-      if (gbResult) {
-        return {
-          type: 'csv',
-          csvResult: {
-            headers: csvData.headers,
-            rows: csvData.rows,
-            filePath,
-            rowCount: csvData.rows.length,
-            groupByResult: gbResult,
-          },
-        };
+      if (options?.aggregationText) {
+        const aggRequest = parseAggregationFromText(
+          options.aggregationText,
+          csvData.headers,
+        );
+        if (aggRequest) {
+          const aggregation = computeAggregation(csvData, aggRequest);
+          return {
+            type: "csv",
+            csvResult: {
+              headers: csvData.headers,
+              rows: csvData.rows,
+              filePath,
+              rowCount: csvData.rows.length,
+              aggregation,
+            },
+          };
+        }
       }
-    }
 
-    // Inline sort: "run sales_data sort by revenue desc"
-    if (options?.sortColumn) {
-      csvData = sortData(csvData, { column: options.sortColumn, direction: options.sortDirection ?? 'desc' });
+      return {
+        type: "csv",
+        csvResult: {
+          headers: csvData.headers,
+          rows: csvData.rows,
+          filePath,
+          rowCount: csvData.rows.length,
+        },
+      };
+    } catch (error) {
+      console.error(
+        `[QueryService.executeCsvQuery] CSV query "${query.name}" failed:`,
+        error,
+      );
+      throw new Error(
+        `Failed to process CSV data for query "${query.name}". The file may be missing or malformed.`,
+      );
     }
-
-    if (options?.aggregationText) {
-      const aggRequest = parseAggregationFromText(options.aggregationText, csvData.headers);
-      if (aggRequest) {
-        const aggregation = computeAggregation(csvData, aggRequest);
-        return {
-          type: 'csv',
-          csvResult: {
-            headers: csvData.headers,
-            rows: csvData.rows,
-            filePath,
-            rowCount: csvData.rows.length,
-            aggregation,
-          },
-        };
-      }
-    }
-
-    return {
-      type: 'csv',
-      csvResult: {
-        headers: csvData.headers,
-        rows: csvData.rows,
-        filePath,
-        rowCount: csvData.rows.length,
-      },
-    };
   }
 
-  private async readFile(query: Query): Promise<{ content: string; filePath: string; format: string }> {
+  private async readFile(
+    query: Query,
+  ): Promise<{ content: string; filePath: string; format: string }> {
     if (!query.filePath) {
-      throw new FileReadError(query.name, 'No file path configured');
+      throw new FileReadError(query.name, "No file path configured");
     }
 
     const resolved = path.resolve(process.cwd(), query.filePath);
     if (!resolved.startsWith(process.cwd())) {
-      throw new FileReadError(query.filePath, 'Path outside project directory');
+      throw new FileReadError(query.filePath, "Path outside project directory");
     }
 
     try {
-      const content = await fs.readFile(resolved, 'utf-8');
-      const format = path.extname(query.filePath).toLowerCase().replace('.', '') || 'txt';
+      const content = await fs.readFile(resolved, "utf-8");
+      const format =
+        path.extname(query.filePath).toLowerCase().replace(".", "") || "txt";
       return { content, filePath: query.filePath, format };
     } catch (error) {
-      logger.error({ error, filePath: query.filePath }, 'File read failed');
-      throw new FileReadError(query.filePath, 'File not found or unreadable');
+      logger.error({ error, filePath: query.filePath }, "File read failed");
+      throw new FileReadError(query.filePath, "File not found or unreadable");
     }
   }
 
   async executeMultipleQueries(
     queryNames: string[],
     filters?: QueryFilters,
-    incomingHeaders?: Record<string, string>
+    incomingHeaders?: Record<string, string>,
   ): Promise<MultiQueryResult[]> {
-    const results = await Promise.allSettled(
-      queryNames.map(async (name) => {
-        const result = await this.executeQuery(name, filters, undefined, incomingHeaders);
-        return { queryName: name, result };
-      })
-    );
+    try {
+      const results = await Promise.allSettled(
+        queryNames.map(async (name) => {
+          const result = await this.executeQuery(
+            name,
+            filters,
+            undefined,
+            incomingHeaders,
+          );
+          return { queryName: name, result };
+        }),
+      );
 
-    const successful: MultiQueryResult[] = [];
-    for (const r of results) {
-      if (r.status === 'fulfilled') {
-        successful.push(r.value);
-      } else {
-        logger.error({ error: r.reason }, 'Multi-query: one query failed');
+      const successful: MultiQueryResult[] = [];
+      for (const r of results) {
+        if (r.status === "fulfilled") {
+          successful.push(r.value);
+        } else {
+          logger.error({ error: r.reason }, "Multi-query: one query failed");
+        }
       }
+      return successful;
+    } catch (error) {
+      console.error(
+        "[QueryService.executeMultipleQueries] Failed to execute multiple queries:",
+        error,
+      );
+      throw new Error(
+        "Failed to execute one or more queries. Please try again later.",
+      );
     }
-    return successful;
   }
 
   async getEstimation(
-    queryName: string
+    queryName: string,
   ): Promise<{ estimatedDuration: number; description: string }> {
     const queries = await this.getQueries();
     const query = queries.find(
-      (q) => q.name.toLowerCase() === queryName.toLowerCase()
+      (q) => q.name.toLowerCase() === queryName.toLowerCase(),
     );
     if (!query) throw new QueryNotFoundError(queryName);
 
     return {
       estimatedDuration: query.estimatedDuration ?? 0,
-      description: query.description ?? 'No description available.',
+      description: query.description ?? "No description available.",
     };
   }
 
   async findRelevantUrls(
-    topic: string
+    topic: string,
   ): Promise<Array<{ title: string; url: string }>> {
     const queries = await this.getQueries();
     return queries
@@ -556,7 +756,7 @@ export class QueryService {
         (q) =>
           q.url &&
           (q.name.toLowerCase().includes(topic.toLowerCase()) ||
-            q.description?.toLowerCase().includes(topic.toLowerCase()))
+            q.description?.toLowerCase().includes(topic.toLowerCase())),
       )
       .map((q) => ({ title: q.name, url: q.url! }));
   }
@@ -566,59 +766,69 @@ export class QueryService {
   async searchAllDocuments(
     keywords: string[],
     maxResultsPerDoc: number = 3,
-    maxTotalSections: number = 8
+    maxTotalSections: number = 8,
   ): Promise<KnowledgeSearchResult[]> {
-    const queries = await this.getQueries();
-    const docQueries = queries.filter((q) => (q.type ?? 'api') === 'document');
+    try {
+      const queries = await this.getQueries();
+      const docQueries = queries.filter(
+        (q) => (q.type ?? "api") === "document",
+      );
 
-    if (docQueries.length === 0) return [];
+      if (docQueries.length === 0) return [];
 
-    // Read all documents in parallel
-    const readResults = await Promise.allSettled(
-      docQueries.map(async (q) => {
-        const { content } = await this.readFile(q);
-        return { query: q, content };
-      })
-    );
+      // Read all documents in parallel
+      const readResults = await Promise.allSettled(
+        docQueries.map(async (q) => {
+          const { content } = await this.readFile(q);
+          return { query: q, content };
+        }),
+      );
 
-    const results: KnowledgeSearchResult[] = [];
+      const results: KnowledgeSearchResult[] = [];
 
-    for (const r of readResults) {
-      if (r.status !== 'fulfilled') continue;
-      const { query, content } = r.value;
+      for (const r of readResults) {
+        if (r.status !== "fulfilled") continue;
+        const { query, content } = r.value;
 
-      const sections = searchDocument(content, keywords, maxResultsPerDoc);
-      if (sections.length === 0) continue;
+        const sections = searchDocument(content, keywords, maxResultsPerDoc);
+        if (sections.length === 0) continue;
 
-      results.push({
-        queryName: query.name,
-        queryDescription: query.description ?? '',
-        filePath: query.filePath ?? '',
-        referenceUrl: query.url,
-        sections,
-      });
-    }
-
-    // Sort documents by their best section score (descending)
-    results.sort((a, b) => {
-      const maxA = Math.max(...a.sections.map((s) => s.score));
-      const maxB = Math.max(...b.sections.map((s) => s.score));
-      return maxB - maxA;
-    });
-
-    // Trim total sections to maxTotalSections
-    let total = 0;
-    for (const res of results) {
-      const remaining = maxTotalSections - total;
-      if (remaining <= 0) {
-        res.sections = [];
-      } else if (res.sections.length > remaining) {
-        res.sections = res.sections.slice(0, remaining);
+        results.push({
+          queryName: query.name,
+          queryDescription: query.description ?? "",
+          filePath: query.filePath ?? "",
+          referenceUrl: query.url,
+          sections,
+        });
       }
-      total += res.sections.length;
-    }
 
-    return results.filter((r) => r.sections.length > 0);
+      // Sort documents by their best section score (descending)
+      results.sort((a, b) => {
+        const maxA = Math.max(...a.sections.map((s) => s.score));
+        const maxB = Math.max(...b.sections.map((s) => s.score));
+        return maxB - maxA;
+      });
+
+      // Trim total sections to maxTotalSections
+      let total = 0;
+      for (const res of results) {
+        const remaining = maxTotalSections - total;
+        if (remaining <= 0) {
+          res.sections = [];
+        } else if (res.sections.length > remaining) {
+          res.sections = res.sections.slice(0, remaining);
+        }
+        total += res.sections.length;
+      }
+
+      return results.filter((r) => r.sections.length > 0);
+    } catch (error) {
+      console.error(
+        "[QueryService.searchAllDocuments] Document search failed:",
+        error,
+      );
+      throw new Error("Failed to search documents. Please try again later.");
+    }
   }
 }
 

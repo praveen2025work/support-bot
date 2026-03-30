@@ -94,7 +94,7 @@ function formatCellValue(val: unknown): string {
 type Tab = "connection" | "schema" | "query" | "preview" | "save" | "saved";
 
 interface ConnectorDetailPageProps {
-  connectorType: "mssql" | "oracle";
+  connectorType: "mssql" | "oracle" | "csv-xlsx";
   apiBasePath: string; // e.g. '/api/admin/mssql-connector'
   queriesApiPath: string; // e.g. '/api/admin/mssql-connector/queries'
   connectorBaseUrl: string; // e.g. 'http://localhost:4002'
@@ -234,7 +234,9 @@ export default function ConnectorDetailPage({
         { headers: csrfHeaders() },
       );
       setTables((await res.json()).tables || []);
-    } catch {}
+    } catch (err) {
+      console.error("Failed to fetch tables:", err);
+    }
   };
 
   const fetchColumns = async (schema: string, table: string) => {
@@ -244,7 +246,9 @@ export default function ConnectorDetailPage({
         { headers: csrfHeaders() },
       );
       setColumns((await res.json()).columns || []);
-    } catch {}
+    } catch (err) {
+      console.error("Failed to fetch columns:", err);
+    }
   };
 
   const fetchProcedures = async (schema: string) => {
@@ -254,7 +258,9 @@ export default function ConnectorDetailPage({
         { headers: csrfHeaders() },
       );
       setProcedures((await res.json()).procedures || []);
-    } catch {}
+    } catch (err) {
+      console.error("Failed to fetch procedures:", err);
+    }
   };
 
   useEffect(() => {
@@ -412,7 +418,9 @@ export default function ConnectorDetailPage({
         setSavedQueries((prev) => prev.filter((q) => q.id !== queryId));
         setExpandedQuery(null);
       }
-    } catch {}
+    } catch (err) {
+      console.error("Failed to delete query:", err);
+    }
   };
 
   const getEngineConfig = (queryId: string): EnginePublishConfig => {

@@ -5,6 +5,11 @@ import { validateReadOnly, validateProcedureCall } from "@/core/query-executor";
 import { logger } from "@/lib/logger";
 import type { SavedQuery } from "@/core/types";
 
+/** Reject column names with characters outside the safe identifier set. */
+function isSafeColumnName(name: string): boolean {
+  return /^[a-zA-Z0-9_. ]+$/.test(name);
+}
+
 const router = Router();
 
 // ── List saved queries ──────────────────────────────────────────────
@@ -209,6 +214,10 @@ router.post("/:queryId/execute", async (req: Request, res: Response) => {
       for (const filterDef of query.filters) {
         const colRef =
           (filterDef as { column?: string }).column || filterDef.key;
+        if (!isSafeColumnName(colRef)) {
+          logger.warn(`Skipping filter with unsafe column name: ${colRef}`);
+          continue;
+        }
         const col = colRef.includes(".") ? colRef : `[${colRef}]`;
 
         // ── Multi-select: comma-separated → IN clause ──

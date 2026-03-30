@@ -1,5 +1,7 @@
 "use client";
 
+const MAX_BAR_CHART_ITEMS = 20;
+
 import React, { useMemo, useState } from "react";
 import {
   BarChart,
@@ -20,6 +22,13 @@ import {
   Treemap,
   ReferenceLine,
 } from "recharts";
+
+function getToken(name: string): string {
+  if (typeof window === "undefined") return "";
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
+}
 
 const COLORS = [
   "#3b82f6",
@@ -241,7 +250,7 @@ function detectChartType(
     numericKeys.length === 1 &&
     nonNumericKeys.length >= 1 &&
     data.length >= 3 &&
-    data.length <= 20
+    data.length <= MAX_BAR_CHART_ITEMS
   ) {
     const values = data.map((row) => Number(row[numericKeys[0]]) || 0);
     const hasPositive = values.some((v) => v > 0);
@@ -375,14 +384,26 @@ export function DataChart({
               data={chartData}
               margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={getToken("--border")}
+              />
               <XAxis
                 dataKey={detection.labelKey}
-                tick={{ fontSize: 10 }}
-                stroke="#9ca3af"
+                tick={{ fontSize: 10, fill: getToken("--text-muted") }}
+                stroke={getToken("--text-muted")}
               />
-              <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" />
-              <Tooltip contentStyle={{ fontSize: 11 }} />
+              <YAxis
+                tick={{ fontSize: 10, fill: getToken("--text-muted") }}
+                stroke={getToken("--text-muted")}
+              />
+              <Tooltip
+                contentStyle={{
+                  fontSize: 11,
+                  backgroundColor: getToken("--bg-primary"),
+                  borderColor: getToken("--border"),
+                }}
+              />
               {showLegend && <Legend wrapperStyle={{ fontSize: 10 }} />}
               {detection.numericKeys.map((key, i) => (
                 <Line
@@ -405,14 +426,26 @@ export function DataChart({
               data={chartData}
               margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={getToken("--border")}
+              />
               <XAxis
                 dataKey={detection.labelKey}
-                tick={{ fontSize: 10 }}
-                stroke="#9ca3af"
+                tick={{ fontSize: 10, fill: getToken("--text-muted") }}
+                stroke={getToken("--text-muted")}
               />
-              <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" />
-              <Tooltip contentStyle={{ fontSize: 11 }} />
+              <YAxis
+                tick={{ fontSize: 10, fill: getToken("--text-muted") }}
+                stroke={getToken("--text-muted")}
+              />
+              <Tooltip
+                contentStyle={{
+                  fontSize: 11,
+                  backgroundColor: getToken("--bg-primary"),
+                  borderColor: getToken("--border"),
+                }}
+              />
               {showLegend && <Legend wrapperStyle={{ fontSize: 10 }} />}
               {detection.numericKeys.map((key, i) => (
                 <Bar
@@ -434,14 +467,26 @@ export function DataChart({
               data={chartData}
               margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={getToken("--border")}
+              />
               <XAxis
                 dataKey={detection.labelKey}
-                tick={{ fontSize: 10 }}
-                stroke="#9ca3af"
+                tick={{ fontSize: 10, fill: getToken("--text-muted") }}
+                stroke={getToken("--text-muted")}
               />
-              <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" />
-              <Tooltip contentStyle={{ fontSize: 11 }} />
+              <YAxis
+                tick={{ fontSize: 10, fill: getToken("--text-muted") }}
+                stroke={getToken("--text-muted")}
+              />
+              <Tooltip
+                contentStyle={{
+                  fontSize: 11,
+                  backgroundColor: getToken("--bg-primary"),
+                  borderColor: getToken("--border"),
+                }}
+              />
               {showLegend && <Legend wrapperStyle={{ fontSize: 10 }} />}
               {detection.numericKeys.map((key, i) => (
                 <Bar
@@ -463,14 +508,26 @@ export function DataChart({
               data={chartData}
               margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={getToken("--border")}
+              />
               <XAxis
                 dataKey={detection.labelKey}
-                tick={{ fontSize: 10 }}
-                stroke="#9ca3af"
+                tick={{ fontSize: 10, fill: getToken("--text-muted") }}
+                stroke={getToken("--text-muted")}
               />
-              <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" />
-              <Tooltip contentStyle={{ fontSize: 11 }} />
+              <YAxis
+                tick={{ fontSize: 10, fill: getToken("--text-muted") }}
+                stroke={getToken("--text-muted")}
+              />
+              <Tooltip
+                contentStyle={{
+                  fontSize: 11,
+                  backgroundColor: getToken("--bg-primary"),
+                  borderColor: getToken("--border"),
+                }}
+              />
               {showLegend && <Legend wrapperStyle={{ fontSize: 10 }} />}
               {detection.numericKeys.map((key, i) => (
                 <Area
@@ -495,14 +552,26 @@ export function DataChart({
               data={chartData}
               margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={getToken("--border")}
+              />
               <XAxis
                 dataKey={detection.labelKey}
-                tick={{ fontSize: 10 }}
-                stroke="#9ca3af"
+                tick={{ fontSize: 10, fill: getToken("--text-muted") }}
+                stroke={getToken("--text-muted")}
               />
-              <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" />
-              <Tooltip contentStyle={{ fontSize: 11 }} />
+              <YAxis
+                tick={{ fontSize: 10, fill: getToken("--text-muted") }}
+                stroke={getToken("--text-muted")}
+              />
+              <Tooltip
+                contentStyle={{
+                  fontSize: 11,
+                  backgroundColor: getToken("--bg-primary"),
+                  borderColor: getToken("--border"),
+                }}
+              />
               {showLegend && <Legend wrapperStyle={{ fontSize: 10 }} />}
               {detection.numericKeys.map((key, i) => (
                 <Area
@@ -573,7 +642,13 @@ export function DataChart({
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={{ fontSize: 11 }} />
+              <Tooltip
+                contentStyle={{
+                  fontSize: 11,
+                  backgroundColor: getToken("--bg-primary"),
+                  borderColor: getToken("--border"),
+                }}
+              />
               <Legend
                 layout="horizontal"
                 verticalAlign="bottom"
@@ -617,7 +692,7 @@ export function DataChart({
                 stroke="none"
               >
                 <Cell fill={gaugeColor} />
-                <Cell fill="#e5e7eb" />
+                <Cell fill={getToken("--border")} />
               </Pie>
               <text
                 x="50%"
@@ -665,11 +740,25 @@ export function DataChart({
               data={waterfallData}
               margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#9ca3af" />
-              <YAxis tick={{ fontSize: 10 }} stroke="#9ca3af" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={getToken("--border")}
+              />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 10, fill: getToken("--text-muted") }}
+                stroke={getToken("--text-muted")}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: getToken("--text-muted") }}
+                stroke={getToken("--text-muted")}
+              />
               <Tooltip
-                contentStyle={{ fontSize: 11 }}
+                contentStyle={{
+                  fontSize: 11,
+                  backgroundColor: getToken("--bg-primary"),
+                  borderColor: getToken("--border"),
+                }}
                 formatter={(v: unknown, name: unknown) =>
                   String(name) === "invisible" ? null : [Number(v), "Value"]
                 }
@@ -743,7 +832,13 @@ export function DataChart({
               nameKey="name"
               content={<TreemapContent />}
             >
-              <Tooltip contentStyle={{ fontSize: 11 }} />
+              <Tooltip
+                contentStyle={{
+                  fontSize: 11,
+                  backgroundColor: getToken("--bg-primary"),
+                  borderColor: getToken("--border"),
+                }}
+              />
             </Treemap>
           </ResponsiveContainer>
         );

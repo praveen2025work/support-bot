@@ -171,7 +171,9 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     setFilterPresets(presets);
     try {
       localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
-    } catch {}
+    } catch (err) {
+      console.warn("Failed to persist filter presets to localStorage:", err);
+    }
   }, []);
 
   const saveFilterPreset = useCallback(

@@ -133,13 +133,16 @@ const NAV_SECTIONS: NavSection[] = [
         icon: Database,
         match: (p: string) =>
           p.startsWith("/admin/connectors") &&
-          !p.startsWith("/admin/connectors/file"),
+          !p.startsWith("/admin/connectors/file") &&
+          !p.startsWith("/admin/connectors/csv"),
       },
       {
-        href: "/admin/connectors/file",
+        href: "/admin/connectors/csv",
         label: "CSV / XLSX",
         icon: FileSpreadsheet,
-        match: (p: string) => p.startsWith("/admin/connectors/file"),
+        match: (p: string) =>
+          p.startsWith("/admin/connectors/csv") ||
+          p.startsWith("/admin/connectors/file"),
       },
     ],
   },

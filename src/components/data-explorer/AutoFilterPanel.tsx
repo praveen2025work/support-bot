@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, X, Layers } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, X, Layers, ChevronDown, Check } from "lucide-react";
 import type { ColumnSchema } from "./types";
 
 interface FilterableColumn {
@@ -18,13 +18,191 @@ interface AutoFilterPanelProps {
   onFilterChange: (key: string, value: string) => void;
   search: string;
   onSearchChange: (value: string) => void;
-  /** All columns from schema — used for group-by dropdown */
   schema?: ColumnSchema[];
   groupByCol?: string | null;
   onGroupByChange?: (col: string | null) => void;
-  /** Bulk-clear all filters, search, and group-by in one call */
   onClearAll?: () => void;
 }
+
+/* ── Searchable Filter Dropdown ────────────────────────────────────── */
+
+function SearchableDropdown({
+  label,
+  value,
+  options,
+  onChange,
+  icon,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  icon?: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const hasValue = !!value;
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  // Focus search input when dropdown opens (focus is a DOM side-effect, not state)
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 0);
+    }
+  }, [open]);
+
+  const filtered = query
+    ? options.filter((o) => o.toLowerCase().includes(query.toLowerCase()))
+    : options;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => {
+          setOpen((o) => !o);
+          setQuery("");
+        }}
+        className={`flex items-center gap-1.5 text-[12px] border rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors min-w-[130px] max-w-[200px] ${
+          hasValue
+            ? "border-[var(--brand)] ring-1 ring-[var(--brand-subtle)]"
+            : "border-[var(--border)]"
+        }`}
+        style={{
+          backgroundColor: "var(--bg-primary)",
+          color: hasValue ? "var(--brand)" : "var(--text-primary)",
+          boxShadow: open ? "0 0 0 2px var(--brand-subtle)" : "none",
+          borderColor: open ? "var(--brand)" : undefined,
+        }}
+      >
+        {icon && <span className="shrink-0">{icon}</span>}
+        <span className="flex-1 truncate">{hasValue ? value : label}</span>
+        <ChevronDown
+          size={12}
+          className="shrink-0 transition-transform"
+          style={{
+            color: hasValue ? "var(--brand)" : "var(--text-muted)",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        />
+      </button>
+
+      {open && (
+        <div
+          className="absolute z-50 top-full left-0 mt-1 w-56 rounded-[var(--radius-md)] border overflow-hidden"
+          style={{
+            backgroundColor: "var(--bg-primary)",
+            borderColor: "var(--border)",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+          }}
+        >
+          {/* Search */}
+          <div
+            className="flex items-center gap-2 px-3 py-2 border-b"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <Search size={12} style={{ color: "var(--text-muted)" }} />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={`Search ${label.replace(/^All /, "")}...`}
+              className="flex-1 text-[12px] bg-transparent outline-none"
+              style={{ color: "var(--text-primary)" }}
+            />
+          </div>
+
+          {/* "All" option */}
+          <div className="max-h-56 overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => {
+                onChange("");
+                setOpen(false);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-left transition-colors"
+              style={{
+                backgroundColor: !hasValue
+                  ? "var(--brand-subtle)"
+                  : "transparent",
+                color: !hasValue ? "var(--brand)" : "var(--text-muted)",
+              }}
+              onMouseEnter={(e) => {
+                if (hasValue)
+                  e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+              }}
+              onMouseLeave={(e) => {
+                if (hasValue)
+                  e.currentTarget.style.backgroundColor = "transparent";
+              }}
+            >
+              {!hasValue && <Check size={11} className="shrink-0" />}
+              <span className={!hasValue ? "" : "pl-[19px]"}>{label}</span>
+            </button>
+
+            {filtered.length === 0 ? (
+              <div
+                className="px-3 py-3 text-[11px] text-center"
+                style={{ color: "var(--text-muted)" }}
+              >
+                No matches
+              </div>
+            ) : (
+              filtered.map((opt) => {
+                const isSelected = value === opt;
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => {
+                      onChange(opt);
+                      setOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-left transition-colors"
+                    style={{
+                      backgroundColor: isSelected
+                        ? "var(--brand-subtle)"
+                        : "transparent",
+                      color: isSelected
+                        ? "var(--brand)"
+                        : "var(--text-primary)",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected)
+                        e.currentTarget.style.backgroundColor =
+                          "var(--bg-secondary)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected)
+                        e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                  >
+                    {isSelected && <Check size={11} className="shrink-0" />}
+                    <span className={isSelected ? "" : "pl-[19px]"}>{opt}</span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Main Panel ────────────────────────────────────────────────────── */
 
 export function AutoFilterPanel({
   source,
@@ -43,7 +221,6 @@ export function AutoFilterPanel({
     Record<string, string[]>
   >({});
 
-  // Load distinct values for filterable columns
   useEffect(() => {
     if (!source || filterableColumns.length === 0) return;
     async function loadDistinct() {
@@ -72,8 +249,7 @@ export function AutoFilterPanel({
   const groupableColumns = (schema ?? []).filter(
     (c) => c.type === "string" || c.type === "id",
   );
-  const totalActive =
-    activeCount + (search ? 1 : 0) + (groupByCol ? 1 : 0);
+  const totalActive = activeCount + (search ? 1 : 0) + (groupByCol ? 1 : 0);
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -86,52 +262,38 @@ export function AutoFilterPanel({
         <input
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search all columns…"
-          className="pl-8 pr-3 py-2 text-xs border border-[var(--border)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] w-48 outline-none focus:ring-2 focus:ring-[var(--brand)]"
+          placeholder="Search all columns..."
+          className="pl-8 pr-3 py-2 text-[12px] border border-[var(--border)] rounded-[var(--radius-md)] bg-[var(--bg-primary)] text-[var(--text-primary)] w-48 outline-none focus:ring-1 focus:ring-[var(--brand)]"
         />
       </div>
 
-      {/* Dynamic filter dropdowns */}
-      {filterableColumns.map((col) => {
-        const values = distinctValues[col.name] ?? [];
-        return (
-          <select
-            key={col.name}
-            value={filters[col.name] ?? ""}
-            onChange={(e) => onFilterChange(col.name, e.target.value)}
-            className="px-3 py-2 text-xs border border-[var(--border)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] min-w-[120px] outline-none"
-          >
-            <option value="">All {col.name}</option>
-            {values.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        );
-      })}
+      {/* Dynamic searchable filter dropdowns */}
+      {filterableColumns.map((col) => (
+        <SearchableDropdown
+          key={col.name}
+          label={`All ${col.name}`}
+          value={filters[col.name] ?? ""}
+          options={distinctValues[col.name] ?? []}
+          onChange={(v) => onFilterChange(col.name, v)}
+        />
+      ))}
 
       {/* Group By dropdown */}
       {groupableColumns.length > 0 && onGroupByChange && (
-        <div className="flex items-center gap-1">
-          <Layers size={12} className="text-[var(--text-muted)]" />
-          <select
-            value={groupByCol ?? ""}
-            onChange={(e) => onGroupByChange(e.target.value || null)}
-            className={`px-3 py-2 text-xs border rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] min-w-[120px] outline-none ${
-              groupByCol
-                ? "border-purple-400 ring-1 ring-purple-300"
-                : "border-[var(--border)]"
-            }`}
-          >
-            <option value="">No grouping</option>
-            {groupableColumns.map((c) => (
-              <option key={c.name} value={c.name}>
-                Group by {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <SearchableDropdown
+          label="No grouping"
+          value={groupByCol ?? ""}
+          options={groupableColumns.map((c) => c.name)}
+          onChange={(v) => onGroupByChange(v || null)}
+          icon={
+            <Layers
+              size={12}
+              style={{
+                color: groupByCol ? "var(--brand)" : "var(--text-muted)",
+              }}
+            />
+          }
+        />
       )}
 
       {/* Clear all */}
@@ -146,7 +308,7 @@ export function AutoFilterPanel({
               onGroupByChange?.(null);
             }
           }}
-          className="inline-flex items-center gap-1 px-2.5 py-2 text-xs text-[var(--danger)] hover:text-[var(--danger)] border border-red-200 rounded-lg hover:bg-[var(--danger-subtle)]"
+          className="inline-flex items-center gap-1 px-2.5 py-2 text-[12px] text-[var(--danger)] border border-[var(--danger-subtle)] rounded-[var(--radius-md)] hover:bg-[var(--danger-subtle)] transition-colors"
         >
           <X size={12} />
           Clear ({totalActive})

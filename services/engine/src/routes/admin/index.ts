@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { timingSafeEqual } from "crypto";
 import groupsRouter from "./groups";
 import queriesRouter from "./queries";
 import filtersRouter from "./filters";
@@ -24,12 +25,15 @@ if (engineApiKey) {
     const provided =
       req.headers["x-api-key"] ||
       req.headers["authorization"]?.replace("Bearer ", "");
-    if (provided !== engineApiKey) {
-      return res
-        .status(401)
-        .json({
-          error: "Unauthorized — valid API key required for admin access",
-        });
+    const providedBuf = Buffer.from(String(provided || ""));
+    const expectedBuf = Buffer.from(engineApiKey);
+    const isValid =
+      providedBuf.length === expectedBuf.length &&
+      timingSafeEqual(providedBuf, expectedBuf);
+    if (!isValid) {
+      return res.status(401).json({
+        error: "Unauthorized — valid API key required for admin access",
+      });
     }
     next();
   });

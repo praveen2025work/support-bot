@@ -93,13 +93,18 @@ export function GridBoardShell() {
         );
         setQueries(list);
       })
-      .catch(() => setQueries([]))
+      .catch((err) => {
+        console.error("Failed to fetch queries:", err);
+        setQueries([]);
+      })
       .finally(() => setLoadingQueries(false));
   }, []);
 
   // Fetch filter configs (shared cached utility)
   useEffect(() => {
-    fetchFilterConfigs().then(setFilterConfigs);
+    fetchFilterConfigs()
+      .then(setFilterConfigs)
+      .catch((err) => console.error("Failed to fetch filter configs:", err));
   }, []);
 
   // ── Read URL params (Dashboard → GridBoard integration) ──
@@ -500,15 +505,15 @@ export function GridBoardShell() {
 
       <div
         className="h-full flex flex-col"
-        style={{ backgroundColor: "hsl(var(--background))" }}
+        style={{ backgroundColor: "var(--bg-secondary)" }}
       >
         {/* Filters (shown below top bar when a query has filters) */}
         {queryFilterKeys.length > 0 && (
           <div
             className="border-b px-6 py-2.5"
             style={{
-              backgroundColor: "hsl(var(--card))",
-              borderColor: "hsl(var(--border))",
+              backgroundColor: "var(--bg-primary)",
+              borderColor: "var(--border)",
             }}
           >
             <div className="flex flex-wrap items-end gap-3">
@@ -517,8 +522,8 @@ export function GridBoardShell() {
                 return (
                   <div key={key} className="min-w-[160px]">
                     <label
-                      className="block text-xs font-medium mb-1"
-                      style={{ color: "hsl(var(--muted-foreground))" }}
+                      className="block text-[11px] font-medium mb-1"
+                      style={{ color: "var(--text-muted)" }}
                     >
                       {config.label}
                     </label>
@@ -533,18 +538,25 @@ export function GridBoardShell() {
                   </div>
                 );
               })}
+              <button
+                onClick={handleLoad}
+                disabled={loading}
+                className="bg-[var(--brand)] text-[var(--brand-text)] rounded-[var(--radius-md)] px-4 py-2 text-[12px] font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+              >
+                {loading ? "Applying..." : "Apply Filters"}
+              </button>
             </div>
           </div>
         )}
 
         {/* Messages */}
         {error && (
-          <div className="mx-6 mt-3 px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <div className="mx-6 mt-3 px-4 py-2 bg-[var(--danger-subtle)] border border-[var(--danger)] rounded-[var(--radius-md)] text-[12px] text-[var(--danger)]">
             {error}
           </div>
         )}
         {saveMessage && (
-          <div className="mx-6 mt-3 px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+          <div className="mx-6 mt-3 px-4 py-2 bg-[var(--success-subtle)] border border-[var(--success)] rounded-[var(--radius-md)] text-[12px] text-[var(--success)]">
             {saveMessage}
           </div>
         )}

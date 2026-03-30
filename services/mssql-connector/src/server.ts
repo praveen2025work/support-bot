@@ -69,9 +69,6 @@ const server = app.listen(CONNECTOR_PORT, () => {
   logger.info(
     `MSSQL Connector service (${CONNECTOR_TYPE}) running at http://localhost:${CONNECTOR_PORT}`,
   );
-  console.log(
-    `MSSQL Connector service running at http://localhost:${CONNECTOR_PORT}`,
-  );
 });
 
 // ── Graceful shutdown ────────────────────────────────────────────────
