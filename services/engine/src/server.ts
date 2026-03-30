@@ -21,6 +21,7 @@ import { uploadRouter } from "./routes/upload";
 import { urlIngestRouter } from "./routes/url-ingest";
 import catalogRouter from "./routes/catalog";
 import watchRouter from "./routes/watch";
+import homeFeedRouter from "./routes/home-feed";
 import workflowsRouter from "./routes/workflows";
 import { logger } from "./lib/logger";
 import {
@@ -122,6 +123,7 @@ app.use("/api/upload", uploadRouter);
 app.use("/api/url-ingest", urlIngestRouter);
 app.use("/api/catalog", catalogRouter);
 app.use("/api/watch", watchRouter);
+app.use("/api/home-feed", homeFeedRouter);
 app.use("/api/workflows", workflowsRouter);
 
 // 404 handler
