@@ -60,8 +60,16 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const body = req.body;
-      const { name, description, source, url, filters, estimatedDuration } =
-        body;
+      const {
+        name,
+        description,
+        tags,
+        owner,
+        source,
+        url,
+        filters,
+        estimatedDuration,
+      } = body;
       const queryType = body.type || "api";
       if (!name) return res.status(400).json({ error: "name is required" });
       if (queryType !== "combined" && !source)
@@ -88,18 +96,18 @@ router.post(
           !body.combinedConfig.subQueries ||
           body.combinedConfig.subQueries.length < 2)
       ) {
-        return res
-          .status(400)
-          .json({
-            error:
-              "Combined queries require at least 2 sub-queries in combinedConfig",
-          });
+        return res.status(400).json({
+          error:
+            "Combined queries require at least 2 sub-queries in combinedConfig",
+        });
       }
 
       // Build the full query record with all optional fields
       const baseRecord: Record<string, unknown> = {
         name,
         description: description || "",
+        tags: tags || [],
+        owner: owner || "",
         estimatedDuration: estimatedDuration || 2000,
         url: url || "",
         source: source || "",
@@ -184,6 +192,10 @@ router.patch(
       for (const [k, v] of Object.entries(updates)) {
         query[k] = v;
       }
+      if (req.body.description !== undefined)
+        query.description = req.body.description;
+      if (req.body.tags !== undefined) query.tags = req.body.tags;
+      if (req.body.owner !== undefined) query.owner = req.body.owner;
       queries[idx] = query;
       db.queries = queries;
       await writeDb(db);
