@@ -78,7 +78,7 @@ export function NotificationCenter({ groupId }: NotificationCenterProps) {
 
   const handleViewData = useCallback((queryName: string) => {
     setOpen(false);
-    window.location.href = `/?q=${encodeURIComponent(queryName)}`;
+    window.location.href = `/?autoQuery=${encodeURIComponent(queryName)}`;
   }, []);
 
   return (

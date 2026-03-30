@@ -95,7 +95,7 @@ export default function CatalogDetailPanel({
       <div className="flex gap-2">
         <button
           onClick={() =>
-            router.push(`/?query=${encodeURIComponent(detail.name)}`)
+            router.push(`/?autoQuery=${encodeURIComponent(detail.name)}`)
           }
           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-[var(--accent)] text-white hover:opacity-90"
         >

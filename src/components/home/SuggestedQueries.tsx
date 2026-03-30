@@ -26,7 +26,9 @@ export function SuggestedQueries({ suggestions }: SuggestedQueriesProps) {
           <button
             key={suggestion.queryName}
             onClick={() =>
-              router.push(`/?query=${encodeURIComponent(suggestion.queryName)}`)
+              router.push(
+                `/?autoQuery=${encodeURIComponent(suggestion.queryName)}`,
+              )
             }
             className="text-left w-full px-3 py-2.5 rounded-[var(--radius-md)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-primary,var(--border))] transition-colors group"
           >

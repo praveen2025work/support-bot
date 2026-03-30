@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { WatchRuleList } from "@/components/watch/WatchRuleList";
 import { WatchRuleForm } from "@/components/watch/WatchRuleForm";
+import { WatchRuleDetailPanel } from "@/components/watch/WatchRuleDetailPanel";
 import type { WatchRule } from "@/types/watch";
 
 function WatchPageContent() {
@@ -11,23 +12,21 @@ function WatchPageContent() {
   const groupId = searchParams.get("groupId") ?? "default";
 
   const [showForm, setShowForm] = useState(false);
-  const [_editingRule, setEditingRule] = useState<WatchRule | null>(null);
+  const [selectedRule, setSelectedRule] = useState<WatchRule | null>(null);
   const [listKey, setListKey] = useState(0);
 
   function handleCreated() {
     setShowForm(false);
-    setEditingRule(null);
     setListKey((k) => k + 1);
   }
 
   function handleEdit(rule: WatchRule) {
-    setEditingRule(rule);
-    setShowForm(true);
+    setSelectedRule(rule);
+    setShowForm(false);
   }
 
   function handleCancel() {
     setShowForm(false);
-    setEditingRule(null);
   }
 
   return (
@@ -39,7 +38,10 @@ function WatchPageContent() {
         </h1>
         {!showForm && (
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              setShowForm(true);
+              setSelectedRule(null);
+            }}
             className="flex items-center gap-1.5 px-3 py-2 bg-[var(--accent)] text-white text-[13px] font-medium rounded-[var(--radius-md)] hover:opacity-90 transition-opacity"
           >
             <Plus className="w-4 h-4" />
@@ -48,7 +50,15 @@ function WatchPageContent() {
         )}
       </div>
 
-      {/* Form */}
+      {/* Detail panel for selected rule */}
+      {selectedRule && !showForm && (
+        <WatchRuleDetailPanel
+          rule={selectedRule}
+          onClose={() => setSelectedRule(null)}
+        />
+      )}
+
+      {/* Create form */}
       {showForm && (
         <WatchRuleForm
           groupId={groupId}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Bot, Minus, X } from "lucide-react";
 import { useChat } from "@/hooks/useChat";
 import { useUser } from "@/contexts/UserContext";
@@ -69,6 +69,7 @@ export function ChatWindow({
   onQueryResult,
   onShowInPanel,
   splitView,
+  initialMessage,
 }: {
   platform?: "web" | "widget";
   groupId?: string;
@@ -81,6 +82,7 @@ export function ChatWindow({
     title: string,
   ) => void;
   splitView?: boolean;
+  initialMessage?: string | null;
 }) {
   const {
     messages,
@@ -99,6 +101,15 @@ export function ChatWindow({
   const [compactAuto, setCompactAuto] = useState(true);
 
   const hasResults = messages.some((m) => m.role === "bot" && m.richContent);
+
+  // Auto-send initial message (e.g., from home feed suggestion click)
+  const autoSentRef = useRef(false);
+  useEffect(() => {
+    if (initialMessage && engineStatus === "ok" && !autoSentRef.current) {
+      autoSentRef.current = true;
+      sendMessage(`run ${initialMessage}`);
+    }
+  }, [initialMessage, engineStatus, sendMessage]);
 
   useEffect(() => {
     if (!onQueryResult) return;

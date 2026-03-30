@@ -32,6 +32,7 @@ interface ActiveResult {
 function ChatPage() {
   const searchParams = useSearchParams();
   const initialGroup = searchParams.get("group") || "default";
+  const autoQuery = searchParams.get("autoQuery") || null;
   const [groupId, setGroupId] = useState(initialGroup);
   const [groups, setGroups] = useState<GroupInfo[]>([]);
   const [sessionKey, setSessionKey] = useState(0);
@@ -272,6 +273,7 @@ function ChatPage() {
             onQueryResult={handleQueryResult}
             onShowInPanel={handleShowInPanel}
             splitView
+            initialMessage={autoQuery}
           />
         }
         dataPanel={

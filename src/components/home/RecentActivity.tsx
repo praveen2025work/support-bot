@@ -55,7 +55,7 @@ export function RecentActivity({ items }: RecentActivityProps) {
             </span>
             <button
               onClick={() =>
-                router.push(`/?query=${encodeURIComponent(item.queryName)}`)
+                router.push(`/?autoQuery=${encodeURIComponent(item.queryName)}`)
               }
               title="Resume"
               className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-sm,4px)] text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors flex-shrink-0"
