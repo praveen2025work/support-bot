@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   Table2,
   Compass,
+  BookOpen,
   Settings,
   Shield,
   Pin,
@@ -34,6 +35,12 @@ const NAV_ITEMS: NavItem[] = [
     label: "Chat",
     href: "/",
     title: "Chat",
+  },
+  {
+    icon: <BookOpen className="w-[18px] h-[18px]" />,
+    label: "Catalog",
+    href: "/catalog",
+    title: "Data Catalog",
   },
   {
     icon: <LayoutDashboard className="w-[18px] h-[18px]" />,
