@@ -15,7 +15,7 @@ export interface CatalogEntry {
   usageCountTotal: number;
   usageCount7d: number;
   trending: boolean;
-  connectorId?: string;
+  filters: string[];
 }
 
 export interface CatalogDetail extends CatalogEntry {

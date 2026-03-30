@@ -1,22 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
 import Fuse from "fuse.js";
-
-interface QueryColumn {
-  key: string;
-  label: string;
-  type?: string;
-}
-
-interface QueryDefinition {
-  name: string;
-  description?: string;
-  tags?: string[];
-  owner?: string;
-  type: string;
-  columns?: QueryColumn[];
-  connectorId?: string;
-}
+import { ApiClient } from "../api-connector/api-client";
+import { QueryService } from "../api-connector/query-service";
+import type { Query } from "../api-connector/types";
 
 interface CatalogEntry {
   name: string;
@@ -25,11 +12,11 @@ interface CatalogEntry {
   owner: string;
   type: string;
   columnCount: number;
-  columns: QueryColumn[];
+  columns: { key: string; label: string; type?: string }[];
   usageCountTotal: number;
   usageCount7d: number;
   trending: boolean;
-  connectorId?: string;
+  filters: string[];
 }
 
 interface CatalogDetail extends CatalogEntry {
@@ -52,33 +39,55 @@ export class CatalogService {
     this.dataDir = dataDir;
   }
 
-  listQueries(groupId: string): CatalogEntry[] {
-    const queries = this.loadQueries();
+  async listQueries(
+    groupId: string,
+    apiBaseUrl?: string,
+    sources?: string[],
+  ): Promise<CatalogEntry[]> {
+    const queries = await this.fetchQueries(apiBaseUrl, sources);
     const signals = this.loadSignals(groupId);
     return queries.map((q) => this.toCatalogEntry(q, signals));
   }
 
-  search(groupId: string, query: string): CatalogEntry[] {
-    const entries = this.listQueries(groupId);
+  async search(
+    groupId: string,
+    query: string,
+    apiBaseUrl?: string,
+    sources?: string[],
+  ): Promise<CatalogEntry[]> {
+    const entries = await this.listQueries(groupId, apiBaseUrl, sources);
     const searchableEntries = entries.map((e) => ({
       ...e,
       columnNames: e.columns.map((c) => c.label).join(" "),
+      filterNames: e.filters.join(" "),
     }));
 
     const fuse = new Fuse(searchableEntries, {
-      keys: ["name", "description", "tags", "columnNames", "owner"],
+      keys: [
+        "name",
+        "description",
+        "tags",
+        "columnNames",
+        "filterNames",
+        "owner",
+      ],
       threshold: 0.4,
       includeScore: true,
     });
 
     return fuse.search(query).map((r) => {
-      const { columnNames, ...entry } = r.item;
+      const { columnNames, filterNames, ...entry } = r.item;
       return entry;
     });
   }
 
-  getQueryDetail(groupId: string, queryName: string): CatalogDetail | null {
-    const queries = this.loadQueries();
+  async getQueryDetail(
+    groupId: string,
+    queryName: string,
+    apiBaseUrl?: string,
+    sources?: string[],
+  ): Promise<CatalogDetail | null> {
+    const queries = await this.fetchQueries(apiBaseUrl, sources);
     const q = queries.find((q) => q.name === queryName);
     if (!q) return null;
 
@@ -95,30 +104,50 @@ export class CatalogService {
     return { ...entry, relatedQueries: related };
   }
 
-  private toCatalogEntry(
-    q: QueryDefinition,
-    signals: SignalAggregates,
-  ): CatalogEntry {
+  private toCatalogEntry(q: Query, signals: SignalAggregates): CatalogEntry {
     const sig = signals[q.name] || { totalExecutions: 0, last7d: 0 };
+    const filterNames = (q.filters || []).map((f) =>
+      typeof f === "string" ? f : f.key,
+    );
+    const columnConfig = q.columnConfig;
+    const columns: { key: string; label: string; type?: string }[] = [];
+    if (columnConfig) {
+      for (const col of columnConfig.valueColumns || []) {
+        columns.push({ key: col, label: col, type: "number" });
+      }
+      for (const col of columnConfig.labelColumns || []) {
+        columns.push({ key: col, label: col, type: "string" });
+      }
+      for (const col of columnConfig.dateColumns || []) {
+        columns.push({ key: col, label: col, type: "date" });
+      }
+      for (const col of columnConfig.idColumns || []) {
+        columns.push({ key: col, label: col, type: "id" });
+      }
+    }
+
     return {
       name: q.name,
       description: q.description || "",
-      tags: q.tags || [],
-      owner: q.owner || "",
+      tags: q.source ? [q.source] : [],
+      owner: "",
       type: q.type,
-      columnCount: q.columns?.length || 0,
-      columns: q.columns || [],
+      columnCount: columns.length,
+      columns,
       usageCountTotal: sig.totalExecutions,
       usageCount7d: sig.last7d,
       trending: sig.last7d > sig.totalExecutions * 0.3,
-      connectorId: q.connectorId,
+      filters: filterNames,
     };
   }
 
-  private loadQueries(): QueryDefinition[] {
-    const filePath = path.join(this.dataDir, "queries.json");
-    if (!fs.existsSync(filePath)) return [];
-    return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  private async fetchQueries(
+    apiBaseUrl?: string,
+    sources?: string[],
+  ): Promise<Query[]> {
+    const apiClient = new ApiClient(apiBaseUrl);
+    const queryService = new QueryService(apiClient, sources);
+    return queryService.getQueries();
   }
 
   private loadSignals(groupId: string): SignalAggregates {

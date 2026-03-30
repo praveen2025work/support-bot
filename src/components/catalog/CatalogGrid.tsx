@@ -18,6 +18,7 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
   xlsx: <FileSpreadsheet className="w-4 h-4" />,
   url: <Globe className="w-4 h-4" />,
   document: <Columns3 className="w-4 h-4" />,
+  combined: <Columns3 className="w-4 h-4" />,
 };
 
 interface CatalogGridProps {
