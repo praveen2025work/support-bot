@@ -147,6 +147,22 @@ export const paths = {
       join(DATA_DIR, "anomaly", groupId, "baselines.json"),
     anomalyConfig: (groupId: string) =>
       join(DATA_DIR, "anomaly", groupId, "config.json"),
+
+    /** Watch rules engine */
+    watchRules: (groupId: string) => {
+      const safe = groupId.replace(/[^a-zA-Z0-9_\-]/g, "_");
+      return join(DATA_DIR, "watch", safe, "rules.json");
+    },
+    watchAlerts: (groupId: string) => {
+      const safe = groupId.replace(/[^a-zA-Z0-9_\-]/g, "_");
+      return join(DATA_DIR, "watch", safe, "alerts.jsonl");
+    },
+
+    /** Workflows */
+    workflows: (groupId: string) => {
+      const safe = groupId.replace(/[^a-zA-Z0-9_\-]/g, "_");
+      return join(DATA_DIR, "workflows", `${safe}.json`);
+    },
   },
 
   // ── Config (can be shared on NAS or kept per-instance for read-only) ─────
