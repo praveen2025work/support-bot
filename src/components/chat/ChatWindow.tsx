@@ -346,7 +346,7 @@ export function ChatWindow({
             <ChatWelcome
               groupId={groupId ?? "default"}
               userId={userName ?? "anonymous"}
-              onSendQuery={(q) => sendMessage(`run ${q}`)}
+              onSendQuery={(q) => sendMessage(q)}
             />
           ) : (
             <MessageList
