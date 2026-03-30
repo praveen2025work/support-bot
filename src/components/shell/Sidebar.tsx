@@ -14,6 +14,7 @@ import {
   Compass,
   BookOpen,
   Eye,
+  Home,
   Settings,
   Shield,
   Pin,
@@ -31,6 +32,12 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
+  {
+    icon: <Home className="w-[18px] h-[18px]" />,
+    label: "Home",
+    href: "/home",
+    title: "Home",
+  },
   {
     icon: <MessageSquare className="w-[18px] h-[18px]" />,
     label: "Chat",
