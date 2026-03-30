@@ -17,16 +17,18 @@ function WatchPageContent() {
 
   function handleCreated() {
     setShowForm(false);
+    setSelectedRule(null);
     setListKey((k) => k + 1);
   }
 
   function handleEdit(rule: WatchRule) {
     setSelectedRule(rule);
-    setShowForm(false);
+    setShowForm(true);
   }
 
   function handleCancel() {
     setShowForm(false);
+    setSelectedRule(null);
   }
 
   return (
@@ -50,18 +52,21 @@ function WatchPageContent() {
         )}
       </div>
 
-      {/* Detail panel for selected rule */}
+      {/* Detail panel for selected rule (when not editing) */}
       {selectedRule && !showForm && (
         <WatchRuleDetailPanel
           rule={selectedRule}
           onClose={() => setSelectedRule(null)}
+          onEdit={() => setShowForm(true)}
         />
       )}
 
-      {/* Create form */}
+      {/* Create / Edit form */}
       {showForm && (
         <WatchRuleForm
+          key={selectedRule?.id ?? "new"}
           groupId={groupId}
+          editingRule={selectedRule}
           onCreated={handleCreated}
           onCancel={handleCancel}
         />

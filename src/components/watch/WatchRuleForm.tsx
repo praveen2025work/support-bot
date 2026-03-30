@@ -1,9 +1,10 @@
 "use client";
 import { useState, type ChangeEvent, type FormEvent } from "react";
-import type { WatchRuleType, WatchChannel } from "@/types/watch";
+import type { WatchRule, WatchRuleType, WatchChannel } from "@/types/watch";
 
 interface WatchRuleFormProps {
   groupId: string;
+  editingRule?: WatchRule | null;
   onCreated: () => void;
   onCancel: () => void;
 }
@@ -44,6 +45,33 @@ const INITIAL_STATE: FormState = {
   trendDirection: "decline",
 };
 
+function stateFromRule(rule: WatchRule): FormState {
+  const c = rule.condition as Record<string, unknown>;
+  return {
+    name: rule.name,
+    queryName: rule.queryName,
+    type: rule.type,
+    cronExpression: rule.cronExpression,
+    channels: rule.channels,
+    recipients: rule.recipients?.join(", ") ?? "",
+    thresholdColumn: rule.type === "threshold" ? String(c.column ?? "") : "",
+    thresholdOperator:
+      rule.type === "threshold"
+        ? (String(c.operator ?? "gt") as FormState["thresholdOperator"])
+        : "gt",
+    thresholdValue: rule.type === "threshold" ? String(c.value ?? "") : "",
+    maxStaleMinutes:
+      rule.type === "freshness" ? String(c.maxStaleMinutes ?? "60") : "60",
+    zScoreThreshold:
+      rule.type === "anomaly" ? String(c.zScoreThreshold ?? "3") : "3",
+    trendColumn: rule.type === "trend" ? String(c.column ?? "") : "",
+    trendDirection:
+      rule.type === "trend"
+        ? (String(c.direction ?? "decline") as FormState["trendDirection"])
+        : "decline",
+  };
+}
+
 function buildCondition(state: FormState) {
   switch (state.type) {
     case "threshold":
@@ -70,10 +98,14 @@ function buildCondition(state: FormState) {
 
 export function WatchRuleForm({
   groupId,
+  editingRule,
   onCreated,
   onCancel,
 }: WatchRuleFormProps) {
-  const [form, setForm] = useState<FormState>(INITIAL_STATE);
+  const isEditing = Boolean(editingRule);
+  const [form, setForm] = useState<FormState>(
+    editingRule ? stateFromRule(editingRule) : INITIAL_STATE,
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,20 +145,30 @@ export function WatchRuleForm({
     };
 
     try {
-      const res = await fetch("/api/watch/rules", {
-        method: "POST",
+      const url = isEditing
+        ? `/api/watch/rules/${editingRule!.id}?groupId=${encodeURIComponent(groupId)}`
+        : "/api/watch/rules";
+      const method = isEditing ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
         throw new Error(
-          (json as { error?: string }).error ?? "Failed to create rule",
+          (json as { error?: string }).error ??
+            `Failed to ${isEditing ? "update" : "create"} rule`,
         );
       }
       onCreated();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to create rule");
+      setError(
+        err instanceof Error
+          ? err.message
+          : `Failed to ${isEditing ? "update" : "create"} rule`,
+      );
     } finally {
       setSubmitting(false);
     }
@@ -143,7 +185,7 @@ export function WatchRuleForm({
       className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-[var(--radius-md)] p-5 space-y-4"
     >
       <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">
-        New Watch Rule
+        {isEditing ? "Edit Watch Rule" : "New Watch Rule"}
       </h3>
 
       {/* Name + Query */}
@@ -366,7 +408,13 @@ export function WatchRuleForm({
           disabled={submitting}
           className="px-4 py-2 bg-[var(--accent)] text-white text-[13px] font-medium rounded-[var(--radius-md)] hover:opacity-90 disabled:opacity-50 transition-opacity"
         >
-          {submitting ? "Creating…" : "Create Rule"}
+          {submitting
+            ? isEditing
+              ? "Saving…"
+              : "Creating…"
+            : isEditing
+              ? "Save Changes"
+              : "Create Rule"}
         </button>
         <button
           type="button"

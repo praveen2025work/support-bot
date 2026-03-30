@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { X, Pencil } from "lucide-react";
 import type { WatchRule } from "@/types/watch";
 
 const TYPE_LABELS: Record<WatchRule["type"], string> = {
@@ -63,11 +63,13 @@ function ConditionSummary({ rule }: { rule: WatchRule }) {
 interface WatchRuleDetailPanelProps {
   rule: WatchRule;
   onClose: () => void;
+  onEdit?: () => void;
 }
 
 export function WatchRuleDetailPanel({
   rule,
   onClose,
+  onEdit,
 }: WatchRuleDetailPanelProps) {
   const labelClass =
     "text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]";
@@ -91,12 +93,23 @@ export function WatchRuleDetailPanel({
             {rule.enabled ? "Active" : "Paused"}
           </span>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1 rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-[var(--radius-sm)] text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Edit
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="p-1 rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Details grid */}
