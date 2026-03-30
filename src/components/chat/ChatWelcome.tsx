@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   Bell,
   CheckCircle,
+  ChevronRight,
   Database,
   FileSpreadsheet,
   Globe,
@@ -70,6 +71,8 @@ export function ChatWelcome({
   const [queries, setQueries] = useState<CatalogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [queryFilter, setQueryFilter] = useState("");
+  const [queriesOpen, setQueriesOpen] = useState(false);
+  const [recentOpen, setRecentOpen] = useState(false);
 
   useEffect(() => {
     async function fetchAll() {
@@ -222,99 +225,122 @@ export function ChatWelcome({
           </div>
         )}
 
-        {/* Available Queries */}
+        {/* Available Queries (collapsible, default collapsed) */}
         {!loading && queries.length > 0 && (
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <button
+              onClick={() => setQueriesOpen((v) => !v)}
+              className="flex items-center justify-between w-full mb-2 group"
+            >
               <div className="flex items-center gap-1.5">
+                <ChevronRight
+                  className={`w-3.5 h-3.5 text-[var(--text-muted)] transition-transform ${queriesOpen ? "rotate-90" : ""}`}
+                />
                 <Database className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-wider">
+                <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-wider group-hover:text-[var(--text-secondary)] transition-colors">
                   Available Queries
                 </span>
                 <span className="text-[11px] text-[var(--text-muted)]">
                   ({queries.length})
                 </span>
               </div>
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-muted)]" />
-                <input
-                  type="text"
-                  value={queryFilter}
-                  onChange={(e) => setQueryFilter(e.target.value)}
-                  placeholder="Filter..."
-                  className="pl-7 pr-3 py-1 w-40 text-[12px] rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[280px] overflow-auto pr-1">
-              {filteredQueries.map((q) => {
-                const Icon = TYPE_ICONS[q.type] ?? Database;
-                const colorClass =
-                  TYPE_COLORS[q.type] ?? "bg-gray-100 text-gray-700";
-                return (
-                  <button
-                    key={q.name}
-                    onClick={() => onSendQuery(`run ${q.name}`)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--bg-tertiary)] transition-colors text-left"
-                  >
-                    <Icon className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[12px] font-medium text-[var(--text-primary)] truncate">
-                          {q.name}
-                        </span>
-                        <span
-                          className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-medium ${colorClass}`}
-                        >
-                          {q.type}
-                        </span>
-                      </div>
-                      {q.description && (
-                        <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">
-                          {q.description}
-                        </p>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-              {filteredQueries.length === 0 && (
-                <div className="col-span-2 text-[12px] text-[var(--text-muted)] text-center py-3">
-                  No queries match &ldquo;{queryFilter}&rdquo;
+            </button>
+            {queriesOpen && (
+              <>
+                <div className="flex justify-end mb-2">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-muted)]" />
+                    <input
+                      type="text"
+                      value={queryFilter}
+                      onChange={(e) => setQueryFilter(e.target.value)}
+                      placeholder="Filter..."
+                      className="pl-7 pr-3 py-1 w-40 text-[12px] rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[280px] overflow-auto pr-1">
+                  {filteredQueries.map((q) => {
+                    const Icon = TYPE_ICONS[q.type] ?? Database;
+                    const colorClass =
+                      TYPE_COLORS[q.type] ?? "bg-gray-100 text-gray-700";
+                    return (
+                      <button
+                        key={q.name}
+                        onClick={() => onSendQuery(`run ${q.name}`)}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--bg-tertiary)] transition-colors text-left"
+                      >
+                        <Icon className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[12px] font-medium text-[var(--text-primary)] truncate">
+                              {q.name}
+                            </span>
+                            <span
+                              className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-medium ${colorClass}`}
+                            >
+                              {q.type}
+                            </span>
+                          </div>
+                          {q.description && (
+                            <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">
+                              {q.description}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                  {filteredQueries.length === 0 && (
+                    <div className="col-span-2 text-[12px] text-[var(--text-muted)] text-center py-3">
+                      No queries match &ldquo;{queryFilter}&rdquo;
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
 
-        {/* Recent activity */}
+        {/* Recent activity (collapsible, default collapsed) */}
         {!loading && recentActivity.length > 0 && (
           <div>
-            <div className="flex items-center gap-1.5 mb-2">
+            <button
+              onClick={() => setRecentOpen((v) => !v)}
+              className="flex items-center gap-1.5 mb-2 group"
+            >
+              <ChevronRight
+                className={`w-3.5 h-3.5 text-[var(--text-muted)] transition-transform ${recentOpen ? "rotate-90" : ""}`}
+              />
               <Clock className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-              <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-wider">
+              <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-wider group-hover:text-[var(--text-secondary)] transition-colors">
                 Recent
               </span>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              {recentActivity.map((item, i) => (
-                <button
-                  key={`${item.queryName}-${i}`}
-                  onClick={() => onSendQuery(`run ${item.queryName}`)}
-                  className="flex items-center gap-3 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors text-left"
-                >
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[13px] font-medium text-[var(--text-primary)]">
-                      {item.queryName}
-                    </span>
-                    <span className="text-[11px] text-[var(--text-muted)] ml-2">
-                      {item.userMessage}
-                    </span>
-                  </div>
-                  <RotateCw className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
-                </button>
-              ))}
-            </div>
+              <span className="text-[11px] text-[var(--text-muted)]">
+                ({recentActivity.length})
+              </span>
+            </button>
+            {recentOpen && (
+              <div className="flex flex-col gap-1.5">
+                {recentActivity.map((item, i) => (
+                  <button
+                    key={`${item.queryName}-${i}`}
+                    onClick={() => onSendQuery(`run ${item.queryName}`)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors text-left"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[13px] font-medium text-[var(--text-primary)]">
+                        {item.queryName}
+                      </span>
+                      <span className="text-[11px] text-[var(--text-muted)] ml-2">
+                        {item.userMessage}
+                      </span>
+                    </div>
+                    <RotateCw className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
