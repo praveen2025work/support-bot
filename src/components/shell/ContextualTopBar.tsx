@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
+import { NotificationCenter } from "@/components/watch/NotificationCenter";
 
 interface GroupInfo {
   id: string;
@@ -78,7 +79,10 @@ export function ContextualTopBar({
       )}
 
       <div className="flex-1" />
-      <div className="flex items-center gap-2">{children}</div>
+      <div className="flex items-center gap-2">
+        <NotificationCenter groupId={activeGroupId ?? "default"} />
+        {children}
+      </div>
     </header>
   );
 }

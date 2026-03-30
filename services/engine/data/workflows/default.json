@@ -1,0 +1,48 @@
+[
+  {
+    "id": "wf_seed_001",
+    "name": "Regional Sales Breakdown",
+    "steps": [
+      { "type": "query", "queryName": "sales_data" },
+      { "type": "filter", "column": "region", "value": "$param:region" },
+      { "type": "groupBy", "column": "product" },
+      { "type": "sort", "column": "total", "direction": "desc" }
+    ],
+    "params": [{ "name": "region", "type": "select" }],
+    "owner": "jdoe",
+    "visibility": "group",
+    "groupId": "default",
+    "createdAt": "2026-03-29T14:00:00Z",
+    "updatedAt": "2026-03-29T14:00:00Z"
+  },
+  {
+    "id": "wf_seed_002",
+    "name": "Daily Engineering Health Check",
+    "steps": [
+      { "type": "query", "queryName": "error_rate" },
+      { "type": "filter", "column": "severity", "value": "critical" },
+      { "type": "sort", "column": "count", "direction": "desc" }
+    ],
+    "params": [],
+    "owner": "admin",
+    "visibility": "group",
+    "groupId": "default",
+    "createdAt": "2026-03-29T15:00:00Z",
+    "updatedAt": "2026-03-29T15:00:00Z"
+  },
+  {
+    "id": "wf_seed_003",
+    "name": "Monthly Revenue vs Budget",
+    "steps": [
+      { "type": "query", "queryName": "monthly_revenue" },
+      { "type": "filter", "column": "month", "value": "$param:month" },
+      { "type": "query", "queryName": "budget_vs_actual" }
+    ],
+    "params": [{ "name": "month", "type": "text", "defaultValue": "2026-03" }],
+    "owner": "jdoe",
+    "visibility": "group",
+    "groupId": "default",
+    "createdAt": "2026-03-30T08:00:00Z",
+    "updatedAt": "2026-03-30T08:00:00Z"
+  }
+]

@@ -1,0 +1,101 @@
+[
+  {
+    "id": "wr_seed_001",
+    "name": "High Error Rate Alert",
+    "queryName": "error_rate",
+    "groupId": "default",
+    "type": "threshold",
+    "condition": {
+      "column": "error_rate",
+      "operator": "gt",
+      "value": 5
+    },
+    "cronExpression": "*/30 * * * *",
+    "channels": ["in_app", "email"],
+    "recipients": ["ops-team@company.com"],
+    "owner": "jdoe",
+    "enabled": true,
+    "cooldownMinutes": 60,
+    "createdAt": "2026-03-28T09:00:00Z",
+    "updatedAt": "2026-03-30T14:26:24.921Z",
+    "lastCheckedAt": "2026-03-30T14:26:24.921Z"
+  },
+  {
+    "id": "wr_seed_002",
+    "name": "Revenue Trend Reversal",
+    "queryName": "monthly_revenue",
+    "groupId": "default",
+    "type": "trend",
+    "condition": {
+      "column": "revenue",
+      "direction": "reversal",
+      "lookbackPoints": 7
+    },
+    "cronExpression": "0 */6 * * *",
+    "channels": ["in_app"],
+    "owner": "jdoe",
+    "enabled": true,
+    "cooldownMinutes": 360,
+    "createdAt": "2026-03-28T10:00:00Z",
+    "updatedAt": "2026-03-30T14:26:24.930Z",
+    "lastCheckedAt": "2026-03-30T14:26:24.930Z"
+  },
+  {
+    "id": "wr_seed_003",
+    "name": "Sales Data Freshness",
+    "queryName": "sales_data",
+    "groupId": "default",
+    "type": "freshness",
+    "condition": {
+      "maxStaleMinutes": 120
+    },
+    "cronExpression": "*/15 * * * *",
+    "channels": ["in_app", "email"],
+    "recipients": ["data-eng@company.com"],
+    "owner": "admin",
+    "enabled": true,
+    "cooldownMinutes": 60,
+    "createdAt": "2026-03-29T08:00:00Z",
+    "updatedAt": "2026-03-30T14:26:24.934Z",
+    "lastCheckedAt": "2026-03-30T14:26:24.934Z"
+  },
+  {
+    "id": "wr_seed_004",
+    "name": "Active Users Anomaly",
+    "queryName": "active_users",
+    "groupId": "default",
+    "type": "anomaly",
+    "condition": {
+      "columns": "all",
+      "zScoreThreshold": 3
+    },
+    "cronExpression": "0 * * * *",
+    "channels": ["in_app"],
+    "owner": "jdoe",
+    "enabled": true,
+    "cooldownMinutes": 120,
+    "createdAt": "2026-03-29T11:00:00Z",
+    "updatedAt": "2026-03-30T14:26:24.937Z",
+    "lastCheckedAt": "2026-03-30T14:26:24.937Z"
+  },
+  {
+    "id": "wr_seed_005",
+    "name": "Customer Churn Spike",
+    "queryName": "customer_churn",
+    "groupId": "default",
+    "type": "threshold",
+    "condition": {
+      "column": "churn_rate",
+      "operator": "gte",
+      "value": 10
+    },
+    "cronExpression": "0 9 * * *",
+    "channels": ["in_app", "email"],
+    "recipients": ["product-team@company.com"],
+    "owner": "admin",
+    "enabled": false,
+    "cooldownMinutes": 1440,
+    "createdAt": "2026-03-30T07:00:00Z",
+    "updatedAt": "2026-03-30T07:30:00Z"
+  }
+]

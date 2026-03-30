@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Bot, Minus, X } from "lucide-react";
 import { useChat } from "@/hooks/useChat";
 import { useUser } from "@/contexts/UserContext";
@@ -9,6 +9,7 @@ import { ChatInput } from "./ChatInput";
 import { SuggestionChips } from "./SuggestionChips";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { FileDropZone } from "./FileDropZone";
+import { ChatWelcome } from "./ChatWelcome";
 
 /** Compute a safe postMessage target origin instead of broadcasting to '*'. */
 function getPostMessageTargetOrigin(): string {
@@ -69,6 +70,7 @@ export function ChatWindow({
   onQueryResult,
   onShowInPanel,
   splitView,
+  initialMessage,
 }: {
   platform?: "web" | "widget";
   groupId?: string;
@@ -81,6 +83,7 @@ export function ChatWindow({
     title: string,
   ) => void;
   splitView?: boolean;
+  initialMessage?: string | null;
 }) {
   const {
     messages,
@@ -99,6 +102,15 @@ export function ChatWindow({
   const [compactAuto, setCompactAuto] = useState(true);
 
   const hasResults = messages.some((m) => m.role === "bot" && m.richContent);
+
+  // Auto-send initial message (e.g., from home feed suggestion click)
+  const autoSentRef = useRef(false);
+  useEffect(() => {
+    if (initialMessage && engineStatus === "ok" && !autoSentRef.current) {
+      autoSentRef.current = true;
+      sendMessage(`run ${initialMessage}`);
+    }
+  }, [initialMessage, engineStatus, sendMessage]);
 
   useEffect(() => {
     if (!onQueryResult) return;
@@ -330,19 +342,27 @@ export function ChatWindow({
             </div>
           ) : null}
 
-          <MessageList
-            messages={messages}
-            isLoading={isLoading}
-            loadingStatus={loadingStatus}
-            onAction={sendMessage}
-            onExecuteQuery={executeQuery}
-            onRetry={retryMessage}
-            onFeedback={submitFeedback}
-            onShowInPanel={onShowInPanel}
-            displayMode={displayMode}
-            compactAuto={compactAuto}
-            compactRichContent={splitView}
-          />
+          {messages.length === 0 && !isLoading ? (
+            <ChatWelcome
+              groupId={groupId ?? "default"}
+              userId={userName ?? "anonymous"}
+              onSendQuery={(q) => sendMessage(q)}
+            />
+          ) : (
+            <MessageList
+              messages={messages}
+              isLoading={isLoading}
+              loadingStatus={loadingStatus}
+              onAction={sendMessage}
+              onExecuteQuery={executeQuery}
+              onRetry={retryMessage}
+              onFeedback={submitFeedback}
+              onShowInPanel={onShowInPanel}
+              displayMode={displayMode}
+              compactAuto={compactAuto}
+              compactRichContent={splitView}
+            />
+          )}
 
           {suggestions.length > 0 && !isLoading && (
             <SuggestionChips suggestions={suggestions} onSelect={sendMessage} />

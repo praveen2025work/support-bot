@@ -1,4 +1,5 @@
 import express from "express";
+import path from "path";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { chatRouter } from "./routes/chat";
@@ -18,11 +19,16 @@ import { feedbackRouter } from "./routes/feedback";
 import { sessionRouter } from "./routes/session";
 import { uploadRouter } from "./routes/upload";
 import { urlIngestRouter } from "./routes/url-ingest";
+import catalogRouter from "./routes/catalog";
+import watchRouter from "./routes/watch";
+import homeFeedRouter from "./routes/home-feed";
+import workflowsRouter from "./routes/workflows";
 import { logger } from "./lib/logger";
 import {
   startScheduleExecutor,
   stopScheduleExecutor,
 } from "./core/scheduler/schedule-executor";
+import { WatchExecutor } from "./core/watch/watch-executor";
 import { tenantContextMiddleware } from "./middleware/tenant-context";
 
 const app = express();
@@ -115,6 +121,10 @@ app.use("/api/feedback", feedbackRouter);
 app.use("/api/session", sessionRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/url-ingest", urlIngestRouter);
+app.use("/api/catalog", catalogRouter);
+app.use("/api/watch", watchRouter);
+app.use("/api/home-feed", homeFeedRouter);
+app.use("/api/workflows", workflowsRouter);
 
 // 404 handler
 app.use((_req, res) => {
@@ -139,6 +149,10 @@ const server = app.listen(PORT, () => {
 
   // Start the schedule executor (checks every 60s for due schedules)
   startScheduleExecutor();
+
+  // Start the watch executor (checks every 60s for triggered watch rules)
+  const watchExecutor = new WatchExecutor(path.resolve(__dirname, "../data"));
+  watchExecutor.start();
 });
 
 // ---------------------------------------------------------------------------
