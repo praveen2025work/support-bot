@@ -98,7 +98,8 @@
     "typescript-eslint": "8.52.0"
   },
   "overrides": {
-    "electron-to-chromium": "1.5.328"
+    "electron-to-chromium": "1.5.328",
+    "caniuse-lite": "1.0.30001686"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
