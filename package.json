@@ -105,9 +105,6 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.57.0"
   },
-  "overrides": {
-    "@storybook/csf-plugin": "8.6.17"
-  },
   "lint-staged": {
     "*.{ts,tsx}": [
       "eslint --fix",
