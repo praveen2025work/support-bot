@@ -5,6 +5,10 @@ const config: Config = {
   testEnvironment: "node",
   roots: ["<rootDir>/src", "<rootDir>/tests"],
   moduleNameMapper: {
+    // Route engine-specific imports that surface in tests/* (which import
+    // services/engine source files) to the engine's own paths.
+    "^@/training/(.*)$": "<rootDir>/services/engine/src/training/$1",
+    "^@/lib/singleton$": "<rootDir>/services/engine/src/lib/singleton",
     "^@/(.*)$": "<rootDir>/src/$1",
   },
   transform: {

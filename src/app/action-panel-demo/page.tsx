@@ -3,6 +3,21 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 
+/** Compute a safe postMessage target origin instead of broadcasting to '*'.
+ * When the demo is loaded inside an iframe, the parent's origin can be derived
+ * from `document.referrer`. When the demo is opened directly (no parent),
+ * there is no postMessage target to talk to, so we bail. */
+function getParentTargetOrigin(): string | null {
+  if (typeof window === "undefined") return null;
+  if (window.parent === window) return null;
+  if (!document.referrer) return null;
+  try {
+    return new URL(document.referrer).origin;
+  } catch {
+    return null;
+  }
+}
+
 /** Context received from the chatbot dashboard via postMessage */
 interface ChatbotContext {
   cardId: string;
@@ -76,27 +91,42 @@ export default function ActionPanelDemo() {
 
   // Send action:complete back to parent
   const handleComplete = () => {
+    const target = getParentTargetOrigin();
+    if (!target) {
+      addLog("No parent — action:complete dropped");
+      return;
+    }
     window.parent.postMessage(
       {
         type: "action:complete",
         refreshCardIds: context ? [context.cardId] : [],
         result: { note: actionNote, timestamp: new Date().toISOString() },
       },
-      "*",
+      target,
     );
-    addLog("Sent action:complete to parent");
+    addLog(`Sent action:complete to ${target}`);
   };
 
   // Send action:close back to parent
   const handleClose = () => {
-    window.parent.postMessage({ type: "action:close" }, "*");
-    addLog("Sent action:close to parent");
+    const target = getParentTargetOrigin();
+    if (!target) {
+      addLog("No parent — action:close dropped");
+      return;
+    }
+    window.parent.postMessage({ type: "action:close" }, target);
+    addLog(`Sent action:close to ${target}`);
   };
 
   // Request panel resize
   const handleResize = (width: string) => {
-    window.parent.postMessage({ type: "action:resize", width }, "*");
-    addLog(`Sent action:resize width=${width}`);
+    const target = getParentTargetOrigin();
+    if (!target) {
+      addLog("No parent — action:resize dropped");
+      return;
+    }
+    window.parent.postMessage({ type: "action:resize", width }, target);
+    addLog(`Sent action:resize width=${width} to ${target}`);
   };
 
   return (

@@ -7,6 +7,7 @@ import { AsyncLogWriter } from "@/lib/async-log-writer";
 import { preferencesStore } from "@/data/user-preferences";
 import { getInteractionTracker } from "@/core/recommendations/interaction-tracker";
 import { paths } from "@/lib/env-config";
+import { logAudit } from "@/lib/audit-logger";
 import { broadcastEvent } from "./events";
 
 export const chatRouter = Router();
@@ -161,6 +162,34 @@ chatRouter.post("/", async (req: Request, res: Response) => {
       executionMs: response.executionMs,
       hasRichContent: !!response.richContent,
     });
+
+    // Audit log: capture query executions for admin review.
+    // Skip non-auditable intents (greeting, help, conversational) — they're
+    // already in the conversation log and would flood the audit stream.
+    if (response.intent === "query.execute" && response.queryName) {
+      logAudit({
+        action: "execute",
+        resource: "query",
+        resourceId: response.queryName,
+        groupId,
+        userId: body.userName as string | undefined,
+        ip:
+          (req.headers["x-forwarded-for"] as string | undefined)
+            ?.split(",")[0]
+            ?.trim() ?? req.ip,
+        details: {
+          sessionId: message.sessionId,
+          platform,
+          confidence: response.confidence,
+          executionMs: response.executionMs,
+          followUpChain: followUpChain ?? undefined,
+          // forceIntent will surface here when B-2 lands; for now it's undefined.
+          forceIntent: (body.forceIntent as string | undefined) ?? undefined,
+        },
+      }).catch(() => {
+        // logAudit already logs its own errors; never fail the chat request.
+      });
+    }
 
     // Track user-query interactions for ML recommendations
     const userName = body.userName as string | undefined;
