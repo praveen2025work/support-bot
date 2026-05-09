@@ -400,6 +400,40 @@ export class NlpService {
     return classificationResult;
   }
 
+  /**
+   * Diagnostic-only: returns per-scorer raw scores BEFORE ensemble
+   * combination. Used by the threshold/weight calibration experiment
+   * (B-2.0) to sweep ensemble parameters without re-running NLP per combo.
+   * Skips cache, context-aware boosting, fuzzy fallback, and the simple-
+   * intent question guard so the caller sees the raw signal each scorer
+   * produced.
+   */
+  async classifyWithBreakdown(text: string): Promise<{
+    text: string;
+    nlpClassifications: Array<{ intent: string; score: number }>;
+    tfidfScores: Array<{ intent: string; score: number }>;
+    patternMatches: Array<{ intent: string; confidence: number }>;
+  }> {
+    if (!this.nlp) throw new NlpNotInitializedError();
+    const typoResult = correctTypos(text);
+    const processedText = typoResult.wasCorrected ? typoResult.corrected : text;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result: any = await this.nlp.process("en", processedText);
+    const nlpClassifications: Array<{ intent: string; score: number }> = (
+      result.classifications || []
+    ).filter(
+      (c: { intent: string; score: number }) => c.intent && c.intent !== "None",
+    );
+    const tfidfScores = this.tfidfScorer.score(processedText);
+    const patternMatches = this.patternMatcher.matchAll(processedText);
+    return {
+      text: processedText,
+      nlpClassifications,
+      tfidfScores,
+      patternMatches,
+    };
+  }
+
   isInitialized(): boolean {
     return this.initialized;
   }

@@ -45,7 +45,17 @@ export const INTENTS = {
   ANALYSIS_REPORT: "analysis.report",
 } as const;
 
-export const NLP_CONFIDENCE_THRESHOLD = 0.65;
+// Lowered from 0.65 to 0.6 per B-2.0 calibration experiment (2026-05-09).
+// At 0.65 the ensemble refused too many correct queries (only 11/25 in the
+// test set classified confidently); at 0.6 we capture 16/25 with still
+// zero false-confident answers. Below this threshold, B-2 will surface
+// "Did you mean?" candidates instead of guessing. See
+// tests/nlp/threshold-calibration-results.md for the full sweep.
+export const NLP_CONFIDENCE_THRESHOLD = 0.6;
+// Lower bound of the disambiguation band: scores between this and
+// NLP_CONFIDENCE_THRESHOLD trigger "Did you mean?" candidates.
+// Below this, the system says "I don't understand" instead of guessing.
+export const NLP_DISAMBIG_FLOOR = 0.4;
 export const FUZZY_CONFIDENCE_THRESHOLD = 0.5;
 export const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
 export const API_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
