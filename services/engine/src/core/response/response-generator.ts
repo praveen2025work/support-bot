@@ -209,6 +209,15 @@ export class ResponseGenerator {
     }
   }
 
+  /**
+   * Expose the underlying query service so callers (e.g. the engine's
+   * disambiguation short-circuit and the chat route's forceIntent validator)
+   * can fetch the group-scoped query list without re-instantiating one.
+   */
+  getQueryService(): QueryService {
+    return this.queryService;
+  }
+
   async generate(
     classification: ClassificationResult,
     context: ConversationContext,

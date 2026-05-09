@@ -1,5 +1,13 @@
-import type { ConversationContext, FollowUpStep } from "../types";
+import { logger } from "@/lib/logger";
+import { NLP_CONFIDENCE_THRESHOLD, NLP_DISAMBIG_FLOOR } from "../constants";
+import type {
+  ConversationContext,
+  DisambiguationCandidate,
+  DisambiguationPayload,
+  FollowUpStep,
+} from "../types";
 import type { Recommendation } from "../recommendations/recommendation-engine";
+import type { Query } from "../api-connector/types";
 
 /**
  * Generates context-aware follow-up suggestions based on:
@@ -154,6 +162,130 @@ export function resetFollowUpChain(context: ConversationContext): void {
   context.followUpChain = [];
   context.lastAnalysisType = undefined;
   context.lastAnomalies = undefined;
+}
+
+// ── Disambiguation suggestion category ──────────────────────────────
+//
+// When the NLP ensemble produces a score in the disambiguation band
+// [NLP_DISAMBIG_FLOOR, NLP_CONFIDENCE_THRESHOLD), the engine surfaces top-3
+// candidate intents as clickable chips instead of guessing. This is the
+// new "disambiguation" suggestion category — sibling to chain/anomaly/
+// analysis/recommendation/handler used by `generateSmartSuggestions`.
+//
+// The chip primitive itself is the same `<SuggestionChips>` UI component
+// (per locked design — no new rich-content type). The richer payload
+// returned here lets the UI attach `forceIntent` to clicks and render a
+// chip-name + chip-desc stack with a headline above.
+
+/** Locked microcopy from the design doc. */
+const DISAMBIG_HEADLINE_DEFAULT =
+  "I'm not sure which one you meant — pick one to run.";
+const DISAMBIG_HEADLINE_LOW_CONFIDENCE =
+  "Best guesses — none of these felt very confident:";
+
+/**
+ * Threshold below which the headline softens to "best guesses" wording.
+ * Mid-band of the disambiguation range (locked at 0.5 per design — sits
+ * exactly between NLP_DISAMBIG_FLOOR=0.4 and NLP_CONFIDENCE_THRESHOLD=0.6).
+ */
+const LOW_CONFIDENCE_HEADLINE_CUTOFF = 0.5;
+
+interface BuildDisambiguationInput {
+  /** Top-3 candidates from `ClassificationResult.disambiguationCandidates`. */
+  candidates: DisambiguationCandidate[];
+  /** All queries available to the user's group — used to enrich candidate
+   * labels/descriptions and to filter out queries the user isn't permitted
+   * to run. The caller is responsible for passing a group-scoped list. */
+  availableQueries?: Query[];
+}
+
+/**
+ * Build the "Did you mean?" disambiguation payload from the NLP ensemble's
+ * top-3 candidates. Filters candidates whose underlying queryName isn't in
+ * the user's group, enriches them with descriptions, and picks the headline
+ * variant based on the top score.
+ *
+ * Returns `undefined` when there are no usable candidates (the response
+ * generator should fall through to the "I don't understand" path or skip
+ * the disambig surface entirely).
+ */
+export function buildDisambiguationPayload(
+  input: BuildDisambiguationInput,
+): DisambiguationPayload | undefined {
+  const { candidates, availableQueries } = input;
+  if (!candidates || candidates.length === 0) return undefined;
+
+  // Build a queryName → Query lookup for description/label enrichment and
+  // group permission filtering. Lookup keys are lowercased for case-insensitive
+  // match (matches the catalog/QueryService convention).
+  const queryByName = new Map<string, Query>();
+  if (availableQueries) {
+    for (const q of availableQueries) {
+      queryByName.set(q.name.toLowerCase(), q);
+    }
+  }
+
+  const enriched: DisambiguationCandidate[] = [];
+  for (const cand of candidates) {
+    // Skip out-of-band scores defensively (the NLP layer should already
+    // filter these, but the public function should be safe).
+    if (
+      cand.score < NLP_DISAMBIG_FLOOR ||
+      cand.score >= NLP_CONFIDENCE_THRESHOLD
+    ) {
+      continue;
+    }
+
+    if (cand.queryName) {
+      const lookup = queryByName.get(cand.queryName.toLowerCase());
+      // When availableQueries is provided and the candidate references a
+      // query not in the group, drop it — the chip would 400 on click.
+      if (availableQueries && !lookup) {
+        logger.warn(
+          { queryName: cand.queryName, intent: cand.intent },
+          "Disambiguation candidate query not in user's group — dropping",
+        );
+        continue;
+      }
+      enriched.push({
+        ...cand,
+        label: lookup?.name ?? cand.queryName,
+        description: lookup?.description ?? cand.description,
+      });
+    } else {
+      // Non-query intents (e.g. analysis.profile, knowledge.search) — keep
+      // them in the chip list with the intent label as the chip name.
+      enriched.push({
+        ...cand,
+        label: cand.label ?? humanizeIntent(cand.intent),
+        description: cand.description,
+      });
+    }
+  }
+
+  if (enriched.length === 0) return undefined;
+
+  const topScore = enriched[0]?.score ?? 0;
+  const headline =
+    topScore < LOW_CONFIDENCE_HEADLINE_CUTOFF
+      ? DISAMBIG_HEADLINE_LOW_CONFIDENCE
+      : DISAMBIG_HEADLINE_DEFAULT;
+
+  return {
+    headline,
+    candidates: enriched,
+  };
+}
+
+/** Strip the `<group>.` prefix and convert snake_case to Title Case. */
+function humanizeIntent(intent: string): string {
+  const last = intent.split(".").pop() ?? intent;
+  return last
+    .split("_")
+    .map((part) =>
+      part.length === 0 ? part : part[0].toUpperCase() + part.slice(1),
+    )
+    .join(" ");
 }
 
 // ── Internal helpers ─────────────────────────────────────────────────

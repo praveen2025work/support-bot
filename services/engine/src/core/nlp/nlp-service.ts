@@ -2,7 +2,7 @@ import { containerBootstrap } from "@nlpjs/core";
 import { Nlp } from "@nlpjs/nlp";
 import { LangEn } from "@nlpjs/lang-en";
 import { LRUCache } from "lru-cache";
-import { NLP_CONFIDENCE_THRESHOLD } from "../constants";
+import { NLP_CONFIDENCE_THRESHOLD, NLP_DISAMBIG_FLOOR } from "../constants";
 import { promises as fsPromises } from "fs";
 import { NlpNotInitializedError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
@@ -13,6 +13,7 @@ import { PatternMatcher } from "./pattern-matcher";
 import { TfIdfIntentScorer } from "./tfidf-intent-scorer";
 import type {
   ClassificationResult,
+  DisambiguationCandidate,
   ExtractedEntity,
   IntentOverlap,
 } from "../types";
@@ -382,6 +383,44 @@ export class NlpService {
       }
     }
 
+    // Disambiguation band: score landed between [NLP_DISAMBIG_FLOOR, NLP_CONFIDENCE_THRESHOLD).
+    // Surface top-3 candidates so the UI can render "Did you mean?" chips instead of guessing.
+    // Only applies when context-aware boosting hasn't already promoted finalIntent above the
+    // threshold (in that case we trust the context boost).
+    let disambiguationCandidates: DisambiguationCandidate[] | undefined;
+    if (
+      finalScore >= NLP_DISAMBIG_FLOOR &&
+      finalScore < NLP_CONFIDENCE_THRESHOLD &&
+      finalIntent !== "None"
+    ) {
+      try {
+        disambiguationCandidates = this.buildDisambiguationCandidates(
+          ensembleSorted,
+          entities,
+        );
+        if (disambiguationCandidates.length === 0) {
+          disambiguationCandidates = undefined;
+        } else {
+          logger.debug(
+            {
+              text: processedText,
+              candidates: disambiguationCandidates.map(
+                (c) => `${c.intent}:${c.score.toFixed(3)}`,
+              ),
+            },
+            "Disambiguation band — returning top-3 candidates",
+          );
+        }
+      } catch (err) {
+        // Never fail classification because we couldn't build candidates.
+        logger.warn(
+          { err },
+          "Failed to build disambiguation candidates — continuing without",
+        );
+        disambiguationCandidates = undefined;
+      }
+    }
+
     const classificationResult: ClassificationResult = {
       intent: finalIntent,
       confidence: finalScore,
@@ -395,9 +434,33 @@ export class NlpService {
         : undefined,
       source: sourceLabel,
       ...(typoResult.wasCorrected && { corrections: typoResult.corrections }),
+      ...(disambiguationCandidates && { disambiguationCandidates }),
     };
     this.classificationCache.set(cacheKey, classificationResult);
     return classificationResult;
+  }
+
+  /**
+   * Build the top-3 disambiguation candidates from the sorted ensemble scores.
+   * When an entry's intent is `query.execute` and a `query_name` entity was
+   * extracted, attach it as `queryName` so the UI can forceIntent that exact
+   * query. Top-3 is the locked design (per design doc).
+   */
+  private buildDisambiguationCandidates(
+    ensembleSorted: Array<[string, number]>,
+    entities: ExtractedEntity[],
+  ): DisambiguationCandidate[] {
+    const queryNameEntity = entities.find((e) => e.entity === "query_name");
+    const queryName = queryNameEntity?.value;
+    const top3 = ensembleSorted.slice(0, 3);
+    return top3.map(([intent, score]) => {
+      const candidate: DisambiguationCandidate = { intent, score };
+      // Only attach queryName when this candidate is itself an executable query intent.
+      if (intent === "query.execute" && queryName) {
+        candidate.queryName = queryName;
+      }
+      return candidate;
+    });
   }
 
   /**

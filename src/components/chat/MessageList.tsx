@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { MessageBubble } from "./MessageBubble";
-import type { Message } from "@/hooks/useChat";
+import type { DisambiguationCandidate, Message } from "@/hooks/useChat";
 
 function formatDateSeparator(date: Date): string {
   const today = new Date();
@@ -56,6 +56,7 @@ export function MessageList({
   onRetry,
   onFeedback,
   onShowInPanel,
+  onDisambiguationSelect,
   displayMode = "auto",
   compactAuto = true,
   compactRichContent,
@@ -76,6 +77,8 @@ export function MessageList({
     columns: string[],
     title: string,
   ) => void;
+  /** Click handler for "Did you mean?" disambiguation chips. */
+  onDisambiguationSelect?: (candidate: DisambiguationCandidate) => void;
   displayMode?: "auto" | "table" | "chart";
   compactAuto?: boolean;
   compactRichContent?: boolean;
@@ -155,6 +158,7 @@ export function MessageList({
               onRetry={onRetry}
               onFeedback={onFeedback}
               onShowInPanel={onShowInPanel}
+              onDisambiguationSelect={onDisambiguationSelect}
               displayMode={displayMode}
               compactAuto={compactAuto}
               compactRichContent={compactRichContent}

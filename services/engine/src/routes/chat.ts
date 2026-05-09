@@ -62,6 +62,59 @@ chatRouter.post("/", async (req: Request, res: Response) => {
       | undefined;
     const followUpMode = body.followUpMode as "local" | "requery" | undefined;
 
+    // forceIntent: chip click from a "Did you mean?" disambiguation message.
+    // The UI sends the chosen candidate's queryName here; we validate it
+    // against the user's group catalog before passing it to the engine
+    // (which uses it to bypass NLP). Foreign intents → 400 so a malicious
+    // / outdated client can't run queries it shouldn't.
+    const rawForceIntent = body.forceIntent;
+    let forceIntent: string | undefined;
+    if (rawForceIntent !== undefined && rawForceIntent !== null) {
+      if (typeof rawForceIntent !== "string" || rawForceIntent.length === 0) {
+        log.warn(
+          { rawForceIntent, sessionId: body.sessionId },
+          "Rejected forceIntent: not a non-empty string",
+        );
+        return res.status(400).json({ error: "Invalid forceIntent" });
+      }
+      try {
+        const queryRecord = await engine.findQueryByName(rawForceIntent);
+        if (!queryRecord) {
+          // Structured warn log here (not audit) — the audit-logger action
+          // enum does not currently include "reject"; extending it is out of
+          // scope for this PR. The warn-level log gives admins/SOC the same
+          // signal they need to spot probing or stale clients.
+          log.warn(
+            {
+              forceIntent: rawForceIntent,
+              groupId,
+              userId: body.userName,
+              sessionId: body.sessionId,
+              platform,
+              ip:
+                (req.headers["x-forwarded-for"] as string | undefined)
+                  ?.split(",")[0]
+                  ?.trim() ?? req.ip,
+            },
+            "Rejected forceIntent: query not in user's group",
+          );
+          return res
+            .status(400)
+            .json({ error: "forceIntent not permitted for this group" });
+        }
+        // Re-bind to the canonical name to prevent case mismatch downstream.
+        forceIntent = queryRecord.name;
+      } catch (validationErr) {
+        log.error(
+          { err: validationErr, forceIntent: rawForceIntent },
+          "forceIntent validation threw — failing request",
+        );
+        return res
+          .status(500)
+          .json({ error: "Could not validate forceIntent" });
+      }
+    }
+
     // Forward auth-related headers for Windows Auth / BAM pass-through
     const incomingHeaders: Record<string, string> = {};
     if (req.headers["authorization"]) {
@@ -84,12 +137,14 @@ chatRouter.post("/", async (req: Request, res: Response) => {
         { chain: followUpChain, initialText: message.text },
         "Processing followUpChain",
       );
-      // Process initial message (query execution) — no followUpMode restriction
+      // Process initial message (query execution) — no followUpMode restriction.
+      // forceIntent applies to the initial message only; follow-ups are local.
       response = await engine.processMessage(
         message,
         explicitFilters,
         hdrs,
         undefined,
+        forceIntent,
       );
       log.info(
         {
@@ -143,6 +198,7 @@ chatRouter.post("/", async (req: Request, res: Response) => {
         explicitFilters,
         hdrs,
         followUpMode,
+        forceIntent,
       );
     }
     const formatted = await adapter.formatResponse(response);
@@ -183,8 +239,9 @@ chatRouter.post("/", async (req: Request, res: Response) => {
           confidence: response.confidence,
           executionMs: response.executionMs,
           followUpChain: followUpChain ?? undefined,
-          // forceIntent will surface here when B-2 lands; for now it's undefined.
-          forceIntent: (body.forceIntent as string | undefined) ?? undefined,
+          // forceIntent path (chip click): surfaces the validated query name
+          // so audit shows "user picked X via disambig chip" vs free-text.
+          forceIntent,
         },
       }).catch(() => {
         // logAudit already logs its own errors; never fail the chat request.

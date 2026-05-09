@@ -92,6 +92,8 @@ export const paths = {
       join(DATA_DIR, "learning", groupId, "co-occurrence.json"),
     autoFaqs: (groupId: string) =>
       join(DATA_DIR, "learning", groupId, "auto-faqs.json"),
+    synonymsFile: (groupId: string) =>
+      join(DATA_DIR, "learning", groupId, "synonyms.json"),
 
     /** Audit trail */
     auditDir: join(DATA_DIR, "audit"),

@@ -90,6 +90,7 @@ export function ChatWindow({
     isLoading,
     loadingStatus,
     sendMessage,
+    sendForceIntent,
     executeQuery,
     retryMessage,
     clearMessages,
@@ -358,6 +359,7 @@ export function ChatWindow({
               onRetry={retryMessage}
               onFeedback={submitFeedback}
               onShowInPanel={onShowInPanel}
+              onDisambiguationSelect={sendForceIntent}
               displayMode={displayMode}
               compactAuto={compactAuto}
               compactRichContent={splitView}
