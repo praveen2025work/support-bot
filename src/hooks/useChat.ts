@@ -264,6 +264,13 @@ export function useChat(
         if (feedbackType === "rephrase" && lastUserTextRef.current) {
           payload.previousMessageText = lastUserTextRef.current;
         }
+        // disambig_click: the previous user utterance was the ambiguous
+        // text the bot showed chips for. Forward it so the learning
+        // service records (originalText → chosenIntent) as a positive
+        // corpus signal — that's the whole point of the feedback loop.
+        if (feedbackType === "disambig_click" && lastUserTextRef.current) {
+          payload.previousMessageText = lastUserTextRef.current;
+        }
       }
       // forceIntent: chip click from a "Did you mean?" disambiguation. The
       // engine validates this against the user's group catalog and bypasses
@@ -532,10 +539,14 @@ export function useChat(
       clearStatusTimers();
 
       try {
+        // disambig_click: this chip came from a "Did you mean?" surface,
+        // so the learning loop should record (lastUserText → queryName)
+        // as a positive corpus signal (handled by callChatApi based on
+        // feedbackType + previousMessageText).
         let result = await callChatApi(
           displayLabel,
           undefined,
-          "suggestion_click",
+          "disambig_click",
           queryName,
         );
 

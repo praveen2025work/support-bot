@@ -1,6 +1,17 @@
 import type { ExtractedEntity } from "../types";
 
-export type FeedbackType = "suggestion_click" | "rephrase" | "retry" | "normal";
+export type FeedbackType =
+  | "suggestion_click"
+  | "rephrase"
+  | "retry"
+  | "normal"
+  // User clicked a "Did you mean?" disambiguation chip. Distinct from
+  // suggestion_click because the *previous* user utterance was ambiguous
+  // (not wrong) — we record (previousMessageText → chosen intent) as a
+  // POSITIVE signal so the corpus learns the mapping. The current
+  // message text (which is the chip's display label / queryName) is not
+  // the corpus signal.
+  | "disambig_click";
 
 /** Surface where the interaction originated */
 export type InteractionSurface =

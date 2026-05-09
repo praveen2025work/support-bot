@@ -141,6 +141,47 @@ export class LearningService {
       aggregates[key].positive++;
       aggregates[key].lastSignalAt = now;
       await this.writeSignalAggregates(aggregates);
+    } else if (entry.feedbackType === "disambig_click") {
+      // The user clicked a "Did you mean?" chip. The corpus signal is the
+      // ORIGINAL ambiguous utterance (previousMessageText), not the chip
+      // label that became the current userMessage. Without a previous-
+      // message we can't learn — fall back to the suggestion_click path
+      // so the click still counts as a positive on whatever did surface.
+      const originalText = entry.previousMessageText;
+      if (!originalText) {
+        const key = normalized;
+        if (!aggregates[key]) {
+          aggregates[key] = {
+            intent: entry.intent,
+            positive: 0,
+            negative: 0,
+          };
+        }
+        aggregates[key].positive++;
+        aggregates[key].lastSignalAt = now;
+        await this.writeSignalAggregates(aggregates);
+        return;
+      }
+      const key = this.processor.normalizeUtterance(originalText);
+      if (!aggregates[key]) {
+        aggregates[key] = { intent: entry.intent, positive: 0, negative: 0 };
+      } else if (aggregates[key].intent !== entry.intent) {
+        // The aggregate's intent disagrees with the chosen one. The user
+        // is correcting it — reset the counter so we don't blend signals
+        // for two different intents under the same key.
+        aggregates[key] = { intent: entry.intent, positive: 0, negative: 0 };
+      }
+      aggregates[key].positive++;
+      aggregates[key].lastSignalAt = now;
+      await this.writeSignalAggregates(aggregates);
+      logger.info(
+        {
+          original: originalText,
+          chosenIntent: entry.intent,
+          positive: aggregates[key].positive,
+        },
+        "disambig_click correction recorded",
+      );
     } else if (
       entry.feedbackType === "rephrase" ||
       entry.feedbackType === "retry"
