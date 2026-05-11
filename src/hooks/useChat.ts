@@ -73,6 +73,33 @@ export interface Message {
   totalColumns?: number;
   estimatedSizeKB?: number;
   truncated?: boolean;
+  /**
+   * "Did you mean?" disambiguation payload. Present when the engine's NLP
+   * confidence landed in the disambig band [0.4, 0.6); the UI renders
+   * `candidates` as chips below the headline. Clicking a chip invokes
+   * `sendForceIntent(queryName)`, which bypasses NLP server-side.
+   */
+  disambiguation?: DisambiguationPayload;
+}
+
+/** Per-candidate metadata returned alongside the headline. */
+export interface DisambiguationCandidate {
+  intent: string;
+  /** Underlying query name to forceIntent on click (when applicable). */
+  queryName?: string;
+  /** Combined ensemble score (0..1). */
+  score: number;
+  /** Human-friendly label for the chip's primary text. */
+  label?: string;
+  /** Short description for chip secondary text. */
+  description?: string;
+}
+
+export interface DisambiguationPayload {
+  /** Locked microcopy from the design doc; rendered above the chips. */
+  headline: string;
+  /** Top-3 candidates from the NLP ensemble. */
+  candidates: DisambiguationCandidate[];
 }
 
 interface QueryMeta {
@@ -146,6 +173,7 @@ function buildBotMessage(
     totalColumns: data.totalColumns as number | undefined,
     estimatedSizeKB: data.estimatedSizeKB as number | undefined,
     truncated: data.truncated as boolean | undefined,
+    disambiguation: data.disambiguation as DisambiguationPayload | undefined,
     timestamp: new Date(),
   };
 }
@@ -219,6 +247,7 @@ export function useChat(
       text: string,
       explicitFilters?: Record<string, string>,
       feedbackType?: string,
+      forceIntent?: string,
     ): Promise<{ data?: Record<string, unknown>; error?: boolean }> => {
       const payload: Record<string, unknown> = {
         text,
@@ -235,6 +264,19 @@ export function useChat(
         if (feedbackType === "rephrase" && lastUserTextRef.current) {
           payload.previousMessageText = lastUserTextRef.current;
         }
+        // disambig_click: the previous user utterance was the ambiguous
+        // text the bot showed chips for. Forward it so the learning
+        // service records (originalText → chosenIntent) as a positive
+        // corpus signal — that's the whole point of the feedback loop.
+        if (feedbackType === "disambig_click" && lastUserTextRef.current) {
+          payload.previousMessageText = lastUserTextRef.current;
+        }
+      }
+      // forceIntent: chip click from a "Did you mean?" disambiguation. The
+      // engine validates this against the user's group catalog and bypasses
+      // NLP if accepted; foreign intents return 400.
+      if (forceIntent) {
+        payload.forceIntent = forceIntent;
       }
 
       const res = await fetch("/api/chat", {
@@ -461,6 +503,101 @@ export function useChat(
     [sendMessage],
   );
 
+  /**
+   * Click handler for "Did you mean?" chips. The chip carries the candidate's
+   * underlying queryName; we POST it to /api/chat as `forceIntent` so the
+   * engine bypasses NLP and runs the chosen query directly.
+   *
+   * The visible user message uses the candidate's display label so the chat
+   * transcript reads as if the user typed the chosen query — matching the
+   * design's "forceIntent is invisible to the user" requirement.
+   */
+  const sendForceIntent = useCallback(
+    async (candidate: DisambiguationCandidate) => {
+      if (isLoading) return;
+      const queryName = candidate.queryName;
+      if (!queryName) {
+        // Non-query intents (no queryName) — fall back to clicking the label
+        // as a normal suggestion. This keeps the click affordance even for
+        // intent chips that don't have a forceIntent target.
+        const label = candidate.label ?? candidate.intent;
+        await sendMessage(label, "suggestion_click");
+        return;
+      }
+
+      const displayLabel = candidate.label ?? queryName;
+      const userMessage: Message = {
+        id: generateId(),
+        role: "user",
+        text: displayLabel,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => appendMessage(prev, userMessage));
+
+      setIsLoading(true);
+      setLoadingStatus("Running query...");
+      clearStatusTimers();
+
+      try {
+        // disambig_click: this chip came from a "Did you mean?" surface,
+        // so the learning loop should record (lastUserText → queryName)
+        // as a positive corpus signal (handled by callChatApi based on
+        // feedbackType + previousMessageText).
+        let result = await callChatApi(
+          displayLabel,
+          undefined,
+          "disambig_click",
+          queryName,
+        );
+
+        // Auto-retry once on failure (transient network).
+        if (result.error) {
+          setLoadingStatus("Retrying...");
+          await new Promise((r) => setTimeout(r, 1000));
+          result = await callChatApi(
+            displayLabel,
+            undefined,
+            "retry",
+            queryName,
+          );
+        }
+
+        if (result.error || !result.data) {
+          const errorMessage: Message = {
+            id: generateId(),
+            role: "bot",
+            text: "Couldn't run that — try again.",
+            isError: true,
+            retryText: displayLabel,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => appendMessage(prev, errorMessage));
+        } else {
+          const botMessage = buildBotMessage(result.data, displayLabel);
+          setMessages((prev) => appendMessage(prev, botMessage));
+          lastBotConfidenceRef.current =
+            (result.data.confidence as number) ?? 1;
+          lastUserTextRef.current = displayLabel;
+        }
+      } catch {
+        const errorMessage: Message = {
+          id: generateId(),
+          role: "bot",
+          text: "Couldn't run that — try again.",
+          isError: true,
+          retryText: displayLabel,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => appendMessage(prev, errorMessage));
+      } finally {
+        clearStatusTimers();
+        setIsLoading(false);
+        setLoadingStatus("");
+      }
+    },
+    [isLoading, callChatApi, clearStatusTimers, sendMessage],
+  );
+
   const clearMessages = useCallback(() => {
     setMessages([]);
     sessionIdRef.current = `${platform}-${generateId()}`;
@@ -561,6 +698,7 @@ export function useChat(
     isLoading,
     loadingStatus,
     sendMessage,
+    sendForceIntent,
     executeQuery,
     retryMessage,
     clearMessages,

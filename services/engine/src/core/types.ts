@@ -19,6 +19,33 @@ export interface ClassificationResult {
   source: "nlp" | "fuzzy" | "fuzzy_synonym" | "ensemble" | "pattern";
   /** Typo corrections applied before classification, if any */
   corrections?: Array<{ from: string; to: string }>;
+  /**
+   * Top-3 ranked candidate intents when the ensemble top score lands in the
+   * disambiguation band (NLP_DISAMBIG_FLOOR ≤ score < NLP_CONFIDENCE_THRESHOLD).
+   * Each candidate carries the underlying queryName when one can be inferred
+   * (e.g. classified as `query.execute` with a single bound query_name entity).
+   * Populated only on the disambiguation path; undefined otherwise.
+   */
+  disambiguationCandidates?: DisambiguationCandidate[];
+}
+
+export interface DisambiguationCandidate {
+  /** Underlying intent label (e.g. "query.execute", "analysis.profile"). */
+  intent: string;
+  /**
+   * The query name to forceIntent when the candidate represents an
+   * executable query. May be omitted for non-query intents.
+   */
+  queryName?: string;
+  /** Combined ensemble score for this candidate. */
+  score: number;
+  /**
+   * Optional human-friendly label for the chip (e.g. "Run monthly_revenue").
+   * The UI may fall back to `queryName` or `intent` if absent.
+   */
+  label?: string;
+  /** Optional short description for the chip secondary line. */
+  description?: string;
 }
 
 export interface ExtractedEntity {
@@ -73,6 +100,21 @@ export interface BotResponse {
   truncated?: boolean;
   /** Cross-surface actions the UI can render (e.g. "pin to dashboard", "open in gridboard") */
   crossSurfaceActions?: CrossSurfaceAction[];
+  /**
+   * "Did you mean?" disambiguation payload. Populated when the NLP ensemble
+   * top score lands in the disambiguation band (`NLP_DISAMBIG_FLOOR ≤ score
+   * < NLP_CONFIDENCE_THRESHOLD`). The UI renders these as clickable chips
+   * with the headline above; clicking a chip POSTs back with `forceIntent`
+   * set to the candidate's `queryName` (or intent label if no queryName).
+   */
+  disambiguation?: DisambiguationPayload;
+}
+
+export interface DisambiguationPayload {
+  /** Headline microcopy shown above the chips. */
+  headline: string;
+  /** Top-3 candidates from the NLP ensemble. */
+  candidates: DisambiguationCandidate[];
 }
 
 /** Action that enables navigation or data sharing between surfaces. */

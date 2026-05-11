@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import type { Message } from "@/hooks/useChat";
+import type { DisambiguationCandidate, Message } from "@/hooks/useChat";
 import type { DrillDownConfig } from "@/types/dashboard";
 import {
   AlertTriangle,
@@ -9,12 +9,14 @@ import {
   RefreshCw,
   ClipboardCopy,
   Check,
+  HelpCircle,
 } from "lucide-react";
 import { AnomalyAlert } from "@/components/dashboard/AnomalyBadge";
 import { FeedbackBar } from "./FeedbackBar";
 import { SourceBadge } from "./SourceBadge";
 import { ConfidenceBadge } from "./ConfidenceBadge";
 import { RichContentRenderer } from "./RichContentRenderer";
+import { DisambiguationChips } from "./SuggestionChips";
 import type { LinkedSelection, DiffInfo } from "./richContentTypes";
 
 function renderMarkdownText(text: string, onAction?: (text: string) => void) {
@@ -60,6 +62,7 @@ export function MessageBubble({
   hideExecutionTime,
   dashboardMode,
   onShowInPanel,
+  onDisambiguationSelect,
   diffInfo,
 }: {
   message: Message;
@@ -71,6 +74,12 @@ export function MessageBubble({
     type: "positive" | "negative",
     correction?: string,
   ) => void;
+  /**
+   * Click handler for "Did you mean?" disambiguation chips. Receives the
+   * selected candidate; the parent calls `useChat.sendForceIntent` which
+   * POSTs the queryName as `forceIntent` (engine bypasses NLP).
+   */
+  onDisambiguationSelect?: (candidate: DisambiguationCandidate) => void;
   cardId?: string;
   linkedSelection?: LinkedSelection;
   onCellClick?: (column: string, value: unknown) => void;
@@ -170,12 +179,33 @@ export function MessageBubble({
             {msgCopied ? "Copied!" : "Copy"}
           </button>
         )}
-        {/* Conversational text — hidden in dashboard mode (card title already shows context) */}
+        {/* Conversational text — hidden in dashboard mode (card title already shows context).
+            For disambiguation messages, prefix with a question-circle icon
+            (per design Surface 1: `[icon: question circle] [headline]`). */}
         {!dashboardMode && (
-          <p className="whitespace-pre-wrap text-sm">
-            {renderMarkdownText(message.text, isUser ? undefined : onAction)}
-          </p>
+          <div className="flex items-start gap-2">
+            {!isUser && message.disambiguation && (
+              <HelpCircle
+                className="h-4 w-4 mt-0.5 flex-shrink-0 text-[var(--brand)]"
+                aria-hidden="true"
+              />
+            )}
+            <p className="whitespace-pre-wrap text-sm">
+              {renderMarkdownText(message.text, isUser ? undefined : onAction)}
+            </p>
+          </div>
         )}
+        {/* "Did you mean?" disambiguation chips — clicking one POSTs forceIntent
+            via useChat.sendForceIntent(). Hidden in dashboard mode. */}
+        {!isUser &&
+          !dashboardMode &&
+          message.disambiguation &&
+          message.disambiguation.candidates.length > 0 && (
+            <DisambiguationChips
+              candidates={message.disambiguation.candidates}
+              onSelect={(cand) => onDisambiguationSelect?.(cand)}
+            />
+          )}
         {message.richContent && message.richContent.data === null ? (
           <div className="mt-2 rounded-md border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-xs text-[var(--text-secondary)] italic">
             Results collapsed to save memory. Re-run the query to view again.

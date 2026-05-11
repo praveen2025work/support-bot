@@ -4,8 +4,15 @@ import { paths } from "./env-config";
 
 export interface AuditEntry {
   timestamp: string;
-  action: "create" | "update" | "delete" | "upload" | "refresh";
-  resource: string; // e.g., 'query', 'group', 'filter', 'template', 'user', 'settings', 'file', 'intent'
+  action:
+    | "create"
+    | "update"
+    | "delete"
+    | "upload"
+    | "refresh"
+    | "execute" // chat-side: user ran a query (incl. forceIntent)
+    | "publish";
+  resource: string; // e.g., 'query', 'group', 'filter', 'template', 'user', 'settings', 'file', 'intent', 'chat'
   resourceId?: string;
   groupId?: string;
   userId?: string; // who made the change

@@ -1,7 +1,7 @@
-import { z } from 'zod';
-import type { IPlatformAdapter } from '../adapter.interface';
-import type { ChatMessage, BotResponse } from '@/core/types';
-import { generateId } from '@/lib/generate-id';
+import { z } from "zod";
+import type { IPlatformAdapter } from "../adapter.interface";
+import type { ChatMessage, BotResponse } from "@/core/types";
+import { generateId } from "@/lib/generate-id";
 
 const WebMessageSchema = z.object({
   text: z.string().min(1).max(2000),
@@ -10,7 +10,7 @@ const WebMessageSchema = z.object({
 });
 
 export class WebAdapter implements IPlatformAdapter {
-  readonly platform = 'web';
+  readonly platform = "web";
 
   async parseIncoming(rawBody: unknown): Promise<ChatMessage | null> {
     const parsed = WebMessageSchema.safeParse(rawBody);
@@ -20,7 +20,7 @@ export class WebAdapter implements IPlatformAdapter {
       id: generateId(),
       text: parsed.data.text,
       sessionId: parsed.data.sessionId,
-      platform: 'web',
+      platform: "web",
       groupId: parsed.data.groupId,
       timestamp: new Date(),
     };
@@ -40,6 +40,10 @@ export class WebAdapter implements IPlatformAdapter {
       sourceName: response.sourceName,
       sourceType: response.sourceType,
       anomalies: response.anomalies,
+      // "Did you mean?" disambiguation chips. Populated by the engine when
+      // ensemble score lands in [NLP_DISAMBIG_FLOOR, NLP_CONFIDENCE_THRESHOLD).
+      // Without this passthrough the chips never reach the chat UI.
+      disambiguation: response.disambiguation,
     };
   }
 

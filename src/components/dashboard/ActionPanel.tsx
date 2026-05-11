@@ -173,9 +173,18 @@ export function ActionPanel({
     }
   }, [config]);
 
-  // Send context to iframe once it loads
+  // Send context to iframe once it loads.
+  // Target origin is derived from config.url (the iframe's own origin) so we
+  // never broadcast context to '*'.
   const sendContext = useCallback(() => {
     if (!config || !iframeRef.current?.contentWindow) return;
+    let targetOrigin: string;
+    try {
+      targetOrigin = new URL(config.url, window.location.href).origin;
+    } catch {
+      // Malformed config.url — drop the message rather than broadcast.
+      return;
+    }
     const message: OutboundMessage = {
       type: "chatbot:context",
       version: "1.0",
@@ -184,7 +193,7 @@ export function ActionPanel({
       source: "chatbot-dashboard",
     };
     try {
-      iframeRef.current.contentWindow.postMessage(message, "*");
+      iframeRef.current.contentWindow.postMessage(message, targetOrigin);
     } catch {
       // Cross-origin may block — that's ok, iframe can use URL params as fallback
     }

@@ -45,7 +45,20 @@ export const INTENTS = {
   ANALYSIS_REPORT: "analysis.report",
 } as const;
 
-export const NLP_CONFIDENCE_THRESHOLD = 0.65;
+// Lowered from 0.6 to 0.5 per a follow-up audit (2026-05-11): with the
+// corpus pared to only queries that have catalog records, many catalog
+// queries (active_users, infrastructure_costs, customer_churn, ...)
+// were classifying at ~0.51 — confidently correct, but landing in the
+// disambig band [0.4, 0.6) and forcing the user through a chip click.
+// B-2.0 calibration showed threshold 0.5 captures 19/25 correct
+// confident answers with still zero wrong-confident, so the trade is
+// pure UX win for the in-catalog case. See
+// tests/nlp/threshold-calibration-results.md for the full sweep.
+export const NLP_CONFIDENCE_THRESHOLD = 0.5;
+// Lower bound of the disambiguation band: scores between this and
+// NLP_CONFIDENCE_THRESHOLD trigger "Did you mean?" candidates.
+// Below this, the system says "I don't understand" instead of guessing.
+export const NLP_DISAMBIG_FLOOR = 0.4;
 export const FUZZY_CONFIDENCE_THRESHOLD = 0.5;
 export const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
 export const API_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes

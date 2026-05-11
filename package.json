@@ -40,8 +40,6 @@
     "db:up": "docker compose -f docker-compose.sample-db.yml up -d",
     "db:down": "docker compose -f docker-compose.sample-db.yml down",
     "db:logs": "docker compose -f docker-compose.sample-db.yml logs -f",
-    "train": "tsx src/training/scripts/train.ts",
-    "evaluate": "tsx src/training/scripts/evaluate.ts",
     "prepare": "husky"
   },
   "keywords": [],

@@ -334,6 +334,16 @@ function handleHiring(req, res) {
 server.get('/api/hr/hiring/pipeline', handleHiring);
 server.post('/api/hr/hiring/pipeline', handleHiring);
 
+// Body: /engineering/infrastructure-costs  (environment in body)
+function handleInfrastructureCosts(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[Engineering] ${req.method} /api/engineering/infrastructure-costs filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('infrastructure_costs'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 2100) });
+}
+server.get('/api/engineering/infrastructure-costs', handleInfrastructureCosts);
+server.post('/api/engineering/infrastructure-costs', handleInfrastructureCosts);
+
 // === Cross-source join data endpoints ===
 
 // Headcount by cost center (for budget vs headcount combined query)

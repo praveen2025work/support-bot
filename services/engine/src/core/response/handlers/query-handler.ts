@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import { QueryNotFoundError } from "@/lib/errors";
 import type {
   QueryService,
   QueryExecuteOptions,
@@ -933,6 +934,27 @@ export async function handleQueryExecute(
       }
     }
   } catch (error) {
+    // QueryNotFoundError: the corpus advertised a query name that isn't in
+    // this tenant's catalog. Common cause: corpus has aspirational query
+    // names (e.g., banking ones) that the mock-api or real tenant API
+    // hasn't been provisioned with. Distinguish from runtime failures
+    // (5xx, timeout, malformed JSON) so the user sees something actionable
+    // instead of the generic "try again later".
+    if (error instanceof QueryNotFoundError) {
+      logger.warn(
+        {
+          query: queryNameEntity.value,
+          sessionId: context.sessionId,
+          filters,
+        },
+        "Query in corpus but not in this group's catalog",
+      );
+      return errorResponse(
+        `I don't have "${queryNameEntity.value}" configured for this group yet. Try \`list queries\` to see what's available, or ask an admin to add it.`,
+        classification,
+        context,
+      );
+    }
     logger.error(
       { error, query: queryNameEntity.value, filters },
       "Query execution failed",
