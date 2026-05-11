@@ -636,6 +636,40 @@ describe("QueryService — query execution pipeline", () => {
       expect(response.richContent?.type).toBe("error");
       expect(response.text).toContain("Unable to execute");
     });
+
+    it("query in corpus but not in catalog → actionable error (not 'try again later')", async () => {
+      // The corpus may advertise queries the tenant's catalog doesn't yet
+      // have (banking queries on a non-banking install, aspirational
+      // entries, etc.). handleQueryExecute should return an actionable
+      // hint pointing to `list queries`, not the generic "try again later"
+      // which implies a transient outage.
+      fetchMock.mockResolvedValueOnce(
+        makeMockResponse({ jsonBody: makeQueryCatalog() }),
+      );
+
+      const client = new ApiClient("http://test-host/api", {
+        maxRetries: 0,
+        retryBaseDelayMs: 1,
+      });
+      resetSharedBreaker(client, "http://test-host/api/");
+      const service = new QueryService(client);
+
+      const classification = makeClassification("aml_alerts", []);
+      const context = makeContext();
+      const response = await handleQueryExecute(
+        classification,
+        context,
+        service,
+      );
+
+      expect(response.richContent?.type).toBe("error");
+      expect(response.text).toContain("aml_alerts");
+      expect(response.text).toContain("configured for this group");
+      expect(response.text).toContain("list queries");
+      // The old generic message must NOT appear — that misled pilot users
+      // into thinking the engine was down.
+      expect(response.text).not.toContain("Please try again later");
+    });
   });
 
   // -------------------------------------------------------------------------
