@@ -1,0 +1,244 @@
+================================================================================
+                          MITR AI - PRODUCT PITCH DECK
+              Enterprise AI-Powered Data Analytics & Chat Platform
+================================================================================
+
+
+--------------------------------------------------------------------------------
+SLIDE 1: TITLE
+--------------------------------------------------------------------------------
+
+MITR AI
+Your Data, One Conversation Away.
+
+Enterprise AI-powered analytics platform that lets anyone
+query databases, build dashboards, and explore data
+using plain English -- no SQL, no training, no waiting.
+
+[Screenshot: 01-chat-landing.png]
+
+
+--------------------------------------------------------------------------------
+SLIDE 2: THE PROBLEM
+--------------------------------------------------------------------------------
+
+The Data Access Gap
+
+- 80% of business users cannot write SQL or use BI tools
+- Data teams are bottlenecked answering ad-hoc report requests
+- Existing BI tools require weeks of training and setup
+- Critical decisions are delayed because data is locked behind technical barriers
+- Spreadsheet exports get stale the moment they're created
+
+Result: Slow decisions, frustrated teams, underused data.
+
+
+--------------------------------------------------------------------------------
+SLIDE 3: THE SOLUTION
+--------------------------------------------------------------------------------
+
+MITR AI -- Talk to Your Data
+
+A conversational AI layer that sits on top of your existing databases
+and turns natural language into live data, charts, and dashboards.
+
+How it works:
+1. USER ASKS  --> "Show me monthly revenue by region"
+2. AI UNDERSTANDS --> NLP engine classifies intent, extracts parameters
+3. DATA FETCHED --> Connects to your SQL Server, Oracle, CSV/XLSX, or REST APIs
+4. RESULTS DELIVERED --> Tables, charts, drill-downs -- all in one chat window
+
+No migration. No data movement. Connects to what you already have.
+
+[Screenshot: 03-chat-data-results.png or 02-chat-query-results.png]
+
+
+--------------------------------------------------------------------------------
+SLIDE 4: KEY FEATURES -- CONVERSATIONAL ANALYTICS
+--------------------------------------------------------------------------------
+
+AI Chat Interface
+
+- Ask questions in plain English
+- Context-aware follow-up conversations
+- Smart suggestions based on usage patterns and time of day
+- Dynamic filters (date ranges, departments, regions)
+- One-click actions: pin to dashboard, open in spreadsheet, export
+- Confidence scoring on every response
+- CSV/XLSX file upload for instant analysis
+
+[Screenshot: 14-smart-suggestions.png + 17-chat-filters.png]
+
+
+--------------------------------------------------------------------------------
+SLIDE 5: KEY FEATURES -- LIVE DASHBOARDS
+--------------------------------------------------------------------------------
+
+Interactive Dashboards
+
+- Pin any query result as a live dashboard card
+- KPI strip with real-time metrics at a glance
+- 6+ chart types: bar, line, pie, stacked, area, waterfall, treemap
+- Drill-down into any data point with one click
+- Auto-refresh for always-current data
+- Template gallery with pre-built layouts
+- Share dashboards with read-only links
+
+[Screenshot: 06-dashboard.png or 10-dashboard-cards-existing.png]
+
+
+--------------------------------------------------------------------------------
+SLIDE 6: KEY FEATURES -- DATA EXPLORATION
+--------------------------------------------------------------------------------
+
+Grid Board & Data Explorer
+
+Grid Board (Spreadsheet-like editor):
+- Inline cell editing with full change tracking
+- Multi-column sorting, filtering, row grouping
+- Pivot tables for cross-tabulation
+- Find & Replace across all cells
+- CSV/XLSX import and export
+
+Data Explorer:
+- Point-and-click analysis of any connected data source
+- Auto-generated insights: trends, outliers, correlations
+- 16 built-in ML features running directly in the browser
+
+[Screenshot: 11-gridboard-with-data.png + 07-data-explorer.png]
+
+
+--------------------------------------------------------------------------------
+SLIDE 7: KEY FEATURES -- ENTERPRISE READY
+--------------------------------------------------------------------------------
+
+Built for the Enterprise
+
+Multi-Tenant Architecture:
+- Separate groups with independent NLP models and data access
+- Role-based access control (Admin, Builder, Viewer)
+- Per-user data scoping and preferences
+
+Data Connectors:
+- Microsoft SQL Server
+- Oracle Database
+- CSV / XLSX files (with auto-detection)
+- REST APIs (Bearer, NTLM, BAM token auth)
+
+Security & Compliance:
+- AES-256-GCM encrypted audit logs
+- Full audit trail with user attribution
+- No data leaves your infrastructure
+
+[Screenshot: 08-admin-panel.png + 15-admin-connectors.png]
+
+
+--------------------------------------------------------------------------------
+SLIDE 8: KEY FEATURES -- SELF-LEARNING & MONITORING
+--------------------------------------------------------------------------------
+
+Gets Smarter Over Time
+
+Self-Learning Engine:
+- Learns from every user interaction
+- Auto-promotes high-confidence patterns
+- Collaborative filtering for personalized suggestions
+- Admin review queue for low-confidence classifications
+
+Anomaly Detection:
+- Automated monitoring with statistical and seasonal detection
+- Anomaly badges on dashboard cards
+- Configurable sensitivity thresholds
+- Proactive alerts when metrics deviate
+
+Embeddable Widget:
+- Drop a chat widget into any existing web app with one line of code
+- Full feature parity with the main interface
+
+[Screenshot: 13-embeddable-widget.png]
+
+
+--------------------------------------------------------------------------------
+SLIDE 9: ARCHITECTURE & DEPLOYMENT
+--------------------------------------------------------------------------------
+
+Flexible Deployment
+
+Architecture:
+  Next.js Frontend --> Express.js Engine --> Your Databases
+                                         --> Your REST APIs
+                                         --> Your CSV/XLSX Files
+
+Deployment Options:
+- On-premise (Windows Server, Linux)
+- Docker / Docker Compose
+- Cloud (any container platform)
+- Hybrid setups
+
+Tech Stack:
+- Frontend: Next.js, React, TypeScript
+- Backend: Express.js, Node.js
+- NLP: nlp.js with per-group corpus training
+- Charts: Recharts with 6+ visualization types
+- Auth: Role-based with multi-tenant isolation
+
+
+--------------------------------------------------------------------------------
+SLIDE 10: CALL TO ACTION
+--------------------------------------------------------------------------------
+
+Ready to Unlock Your Data?
+
+What you get:
+- Self-service analytics for every team member
+- Reduced load on data engineering teams
+- Faster decisions from real-time data access
+- Zero SQL training required
+- Deploys on your infrastructure -- your data stays yours
+
+Next Steps:
+1. Live demo with your data
+2. Pilot with one team (2-week setup)
+3. Enterprise rollout
+
+Contact: [Your contact info]
+
+
+================================================================================
+                          SCREENSHOTS INDEX
+================================================================================
+
+All screenshots are in the /presentation/screenshots/ folder:
+
+FRESH CAPTURES (from live app):
+  01-chat-landing.png          -- Chat home with quick actions & suggestions
+  02-chat-query-results.png    -- Query list showing 31 available queries
+  03-chat-data-results.png     -- Running a query with filter configuration
+  04-chat-revenue-data.png     -- Query execution with results
+  05-chat-pnl-data.png         -- PnL lineage query with rich filter form
+  06-dashboard.png             -- Live dashboard with KPI strip & data cards
+  07-data-explorer.png         -- Data source selection for exploration
+  08-admin-panel.png           -- Admin panel with groups & management tools
+  09-gridboard.png             -- Grid Board empty state
+
+EXISTING SCREENSHOTS (from docs, may show richer data):
+  10-dashboard-cards-existing.png  -- Dashboard with populated cards
+  11-gridboard-with-data.png       -- Grid Board with data loaded
+  12-chat-followup.png             -- Follow-up conversation chain
+  13-embeddable-widget.png         -- Embeddable chat widget
+  14-smart-suggestions.png         -- AI-powered query suggestions
+  15-admin-connectors.png          -- SQL connector management
+  16-features-overview.png         -- Features overview page
+  17-chat-filters.png              -- Dynamic filter interface
+
+RECOMMENDED SCREENSHOT USAGE PER SLIDE:
+  Slide 1 (Title)          --> 01-chat-landing.png
+  Slide 2 (Problem)        --> No screenshot needed (text-only)
+  Slide 3 (Solution)       --> 02-chat-query-results.png
+  Slide 4 (Chat)           --> 14-smart-suggestions.png, 17-chat-filters.png
+  Slide 5 (Dashboards)     --> 06-dashboard.png
+  Slide 6 (Grid/Explorer)  --> 11-gridboard-with-data.png, 07-data-explorer.png
+  Slide 7 (Enterprise)     --> 08-admin-panel.png, 15-admin-connectors.png
+  Slide 8 (Learning)       --> 13-embeddable-widget.png
+  Slide 9 (Architecture)   --> No screenshot needed (diagram slide)
+  Slide 10 (CTA)           --> 16-features-overview.png or 01-chat-landing.png

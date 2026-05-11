@@ -1,0 +1,29 @@
+{
+  "roles": [
+    {
+      "id": "finance",
+      "label": "Finance",
+      "description": "Access to financial queries and reports"
+    },
+    {
+      "id": "hr",
+      "label": "Human Resources",
+      "description": "Access to HR and employee data"
+    },
+    {
+      "id": "operations",
+      "label": "Operations",
+      "description": "Access to operational metrics and workflows"
+    },
+    {
+      "id": "executive",
+      "label": "Executive",
+      "description": "Access to executive-level dashboards and KPIs"
+    },
+    {
+      "id": "sales",
+      "label": "Sales",
+      "description": "Access to sales data and pipeline reports"
+    }
+  ]
+}
