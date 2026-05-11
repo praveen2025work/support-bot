@@ -725,7 +725,7 @@
     {
       "id": "q93",
       "name": "pnl_lineage",
-      "description": "PnL sign-off lineage tracker — traces feed availability, BOFC/FOBO completion, VP sign-off, and delay classification across named PnLs, master books, feeds, and regions",
+      "description": "PnL sign-off lineage tracker \u2014 traces feed availability, BOFC/FOBO completion, VP sign-off, and delay classification across named PnLs, master books, feeds, and regions",
       "estimatedDuration": 0,
       "url": "",
       "source": "finance",
@@ -814,6 +814,169 @@
           "DurationMin"
         ]
       }
+    },
+    {
+      "id": "q94",
+      "name": "hiring_pipeline",
+      "description": "Current hiring pipeline stages by role (applicants \u2192 offers)",
+      "estimatedDuration": 2200,
+      "url": "https://confluence.example.com/wiki/hr/hiring-pipeline",
+      "source": "hr",
+      "type": "api",
+      "endpoint": "/hr/hiring/pipeline",
+      "filters": [],
+      "chartConfig": {
+        "defaultType": "bar",
+        "labelKey": "role",
+        "valueKeys": ["applicants", "screened", "interviewed", "offers"],
+        "showLegend": true
+      },
+      "columnConfig": {
+        "labelColumns": ["role"],
+        "valueColumns": ["applicants", "screened", "interviewed", "offers"]
+      },
+      "drillDown": [],
+      "filePath": "",
+      "baseUrl": "",
+      "method": "",
+      "authType": "none",
+      "bamTokenUrl": ""
+    },
+    {
+      "id": "q95",
+      "name": "quarterly_revenue",
+      "description": "Quarterly revenue by region with growth percentages",
+      "estimatedDuration": 2000,
+      "url": "https://confluence.example.com/wiki/finance/quarterly-revenue",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/finance/quarterly-revenue",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "body"
+        }
+      ],
+      "chartConfig": {
+        "defaultType": "line",
+        "labelKey": "quarter",
+        "valueKeys": ["revenue"],
+        "showLegend": true
+      },
+      "columnConfig": {
+        "labelColumns": ["quarter", "region"],
+        "valueColumns": ["revenue", "growth"]
+      },
+      "drillDown": [],
+      "filePath": "",
+      "baseUrl": "",
+      "method": "",
+      "authType": "none",
+      "bamTokenUrl": ""
+    },
+    {
+      "id": "q96",
+      "name": "revenue_by_segment",
+      "description": "Revenue split by product segment and region",
+      "estimatedDuration": 1800,
+      "url": "https://confluence.example.com/wiki/finance/revenue-by-segment",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/finance/revenue/segments",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "body"
+        }
+      ],
+      "chartConfig": {
+        "defaultType": "bar",
+        "labelKey": "segment",
+        "valueKeys": ["revenue"],
+        "showLegend": true
+      },
+      "columnConfig": {
+        "labelColumns": ["segment", "region"],
+        "valueColumns": ["revenue", "pct_total"]
+      },
+      "drillDown": [],
+      "filePath": "",
+      "baseUrl": "",
+      "method": "",
+      "authType": "none",
+      "bamTokenUrl": ""
+    },
+    {
+      "id": "q97",
+      "name": "gross_margin",
+      "description": "Gross margin trend with cost breakdown",
+      "estimatedDuration": 1900,
+      "url": "https://confluence.example.com/wiki/finance/gross-margin",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/finance/gross-margin",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
+      ],
+      "chartConfig": {
+        "defaultType": "line",
+        "labelKey": "month",
+        "valueKeys": ["margin_pct"],
+        "showLegend": true
+      },
+      "columnConfig": {
+        "labelColumns": ["month"],
+        "valueColumns": ["revenue", "cogs", "gross_margin", "margin_pct"]
+      },
+      "drillDown": [],
+      "filePath": "",
+      "baseUrl": "",
+      "method": "",
+      "authType": "none",
+      "bamTokenUrl": ""
+    },
+    {
+      "id": "q98",
+      "name": "infrastructure_costs",
+      "description": "Cloud infrastructure costs by service and environment",
+      "estimatedDuration": 2100,
+      "url": "https://confluence.example.com/wiki/engineering/infrastructure-costs",
+      "source": "engineering",
+      "type": "api",
+      "endpoint": "/engineering/infrastructure-costs",
+      "filters": [
+        {
+          "key": "environment",
+          "binding": "body"
+        }
+      ],
+      "chartConfig": {
+        "defaultType": "bar",
+        "labelKey": "service",
+        "valueKeys": ["monthly_cost"],
+        "showLegend": true
+      },
+      "columnConfig": {
+        "labelColumns": ["service", "environment"],
+        "valueColumns": ["monthly_cost"]
+      },
+      "drillDown": [],
+      "filePath": "",
+      "baseUrl": "",
+      "method": "",
+      "authType": "none",
+      "bamTokenUrl": ""
     }
   ],
   "queryStats": [
