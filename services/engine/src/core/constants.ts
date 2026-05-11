@@ -45,13 +45,16 @@ export const INTENTS = {
   ANALYSIS_REPORT: "analysis.report",
 } as const;
 
-// Lowered from 0.65 to 0.6 per B-2.0 calibration experiment (2026-05-09).
-// At 0.65 the ensemble refused too many correct queries (only 11/25 in the
-// test set classified confidently); at 0.6 we capture 16/25 with still
-// zero false-confident answers. Below this threshold, B-2 will surface
-// "Did you mean?" candidates instead of guessing. See
+// Lowered from 0.6 to 0.5 per a follow-up audit (2026-05-11): with the
+// corpus pared to only queries that have catalog records, many catalog
+// queries (active_users, infrastructure_costs, customer_churn, ...)
+// were classifying at ~0.51 — confidently correct, but landing in the
+// disambig band [0.4, 0.6) and forcing the user through a chip click.
+// B-2.0 calibration showed threshold 0.5 captures 19/25 correct
+// confident answers with still zero wrong-confident, so the trade is
+// pure UX win for the in-catalog case. See
 // tests/nlp/threshold-calibration-results.md for the full sweep.
-export const NLP_CONFIDENCE_THRESHOLD = 0.6;
+export const NLP_CONFIDENCE_THRESHOLD = 0.5;
 // Lower bound of the disambiguation band: scores between this and
 // NLP_CONFIDENCE_THRESHOLD trigger "Did you mean?" candidates.
 // Below this, the system says "I don't understand" instead of guessing.
