@@ -559,6 +559,67 @@ async function testEdgeCases() {
   );
 }
 
+// ─── PII detection + masking ─────────────────────────────────────────────
+
+async function testPiiMasking() {
+  section("Security — PII detection + masking");
+  if (QUICK) {
+    record("pii", "skipped (--quick)", true);
+    return;
+  }
+  const sid = `validation-pii-${Date.now()}`;
+
+  // employee_metrics has `name` (person_name) and `salary` (salary)
+  // columns. Both should be flagged AND masked. Original values like
+  // "Alice Johnson" / "165000" must NOT appear in the response.
+  const res = await timed(() =>
+    postChat("run employee_metrics", sid, "hr_team", { explicitFilters: {} }),
+  );
+  const d = res.result?.data;
+  const data = d?.richContent?.data;
+  const piiSummary = data?.piiSummary;
+  const rows = data?.rows || [];
+  const firstName = rows[0]?.name;
+  const firstSalary = rows[0]?.salary;
+
+  record(
+    "pii",
+    "detection flagged name + salary",
+    !!piiSummary &&
+      piiSummary.byColumn?.name === "person_name" &&
+      piiSummary.byColumn?.salary === "salary",
+    `summary=${JSON.stringify(piiSummary).slice(0, 100)}`,
+    res.durationMs,
+  );
+
+  record(
+    "pii",
+    "name value is masked (not literal)",
+    typeof firstName === "string" &&
+      /\*/.test(firstName) &&
+      !/^Alice\s+Johnson$/i.test(firstName),
+    `firstName="${firstName}"`,
+  );
+
+  record(
+    "pii",
+    "salary value is bucketed (not literal)",
+    typeof firstSalary === "string" &&
+      /^~\$[\d,]+$/.test(firstSalary),
+    `firstSalary="${firstSalary}"`,
+  );
+
+  // Bot text appends the masking note so users see WHY values look
+  // different from the source spreadsheet.
+  const text = String(d?.text || "");
+  record(
+    "pii",
+    "bot text notes masking applied",
+    /PII column.*masked/i.test(text),
+    `text="${text.slice(0, 120)}"`,
+  );
+}
+
 // ─── Drill-down (the Tableau-killer feature) ─────────────────────────────
 
 async function testDrillDown() {
@@ -858,6 +919,7 @@ async function main() {
   await testExportUndo();
   await testAnalysis();
   await testDrillDown();
+  await testPiiMasking();
   await testEdgeCases();
   await testGroupIsolation();
   await testSynonymCrud();

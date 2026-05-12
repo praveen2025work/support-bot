@@ -36,6 +36,8 @@ import {
 } from "./followup-handler";
 import { getAnomalyDetector } from "../../anomaly/anomaly-detector";
 import { addToDictionary } from "../../nlp/typo-corrector";
+import { detectPii } from "../../pii/detector";
+import { applyPiiMasking } from "../../pii/masker";
 
 /**
  * Strip columns listed in columnConfig.ignoreColumns from CSV headers and rows
@@ -830,6 +832,49 @@ export async function handleQueryExecute(
 
       case "csv": {
         const csv = result.csvResult!;
+        // PII detection + masking runs ONCE per query result, before any
+        // follow-up handler reads the rows. Masking the rows in place
+        // means group-by / drill-down / export all inherit the masked
+        // values automatically. An ops escape hatch (PII_MASKING_DISABLED=
+        // true) is provided for break-glass investigations; that path
+        // should always be paired with an audit log entry — wired in
+        // a follow-up commit, currently relies on existing chat audit.
+        let piiSummary:
+          | {
+              byColumn: Record<string, string>;
+              count: number;
+              signals: Record<string, "header" | "value" | "both">;
+            }
+          | undefined;
+        if (
+          process.env.PII_MASKING_DISABLED !== "true" &&
+          csv.rows.length > 0
+        ) {
+          const detection = detectPii({
+            headers: csv.headers,
+            rows: csv.rows,
+          });
+          if (detection.count > 0) {
+            const masked = applyPiiMasking(
+              { headers: csv.headers, rows: csv.rows },
+              detection.byColumn,
+            );
+            csv.rows = masked.rows;
+            piiSummary = {
+              byColumn: detection.byColumn,
+              count: detection.count,
+              signals: detection.signals,
+            };
+            logger.info(
+              {
+                queryName: queryNameEntity.value,
+                piiColumns: Object.keys(detection.byColumn),
+              },
+              "PII masking applied",
+            );
+          }
+        }
+
         if (csv.groupByResult) {
           const gb = csv.groupByResult;
           return {
@@ -906,10 +951,19 @@ export async function handleQueryExecute(
             anomalies,
           };
         }
+        // PII suffix: when masking ran, append a one-line note to the
+        // bot text so it's visible in the chat transcript. The UI can
+        // also key off richContent.data.piiSummary to render a more
+        // prominent badge (future commit).
+        const piiNote = piiSummary
+          ? ` _(${piiSummary.count} PII column${piiSummary.count === 1 ? "" : "s"} masked: ${Object.keys(piiSummary.byColumn).join(", ")})_`
+          : "";
         return {
-          text: totalRowCount
-            ? `Here is the data from "${queryNameEntity.value}" (showing first ${displayedRows} of ${totalRowCount} rows):`
-            : `Here is the data from "${queryNameEntity.value}" (${csv.rowCount} rows):`,
+          text:
+            (totalRowCount
+              ? `Here is the data from "${queryNameEntity.value}" (showing first ${displayedRows} of ${totalRowCount} rows):`
+              : `Here is the data from "${queryNameEntity.value}" (${csv.rowCount} rows):`) +
+            piiNote,
           richContent: {
             type: "csv_table",
             data: {
@@ -917,6 +971,7 @@ export async function handleQueryExecute(
               ...(chartConfig && { chartConfig }),
               ...(columnConfig && { columnConfig }),
               ...(columnMetadata && { columnMetadata }),
+              ...(piiSummary && { piiSummary }),
             },
           },
           sessionId: context.sessionId,
