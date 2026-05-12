@@ -530,12 +530,28 @@ async function handleDecisionTree(
   };
 }
 
+// Time-series methods (exponential smoothing, trend regression) need
+// enough data points to fit a meaningful model. Below this threshold
+// the alpha-tuning loop happily reports a tiny MSE on 3 points but
+// the projection is statistically meaningless and frequently
+// misleading. Refuse cleanly instead.
+const MIN_ROWS_FOR_FORECAST = 10;
+
 async function handleForecast(
   csvData: { headers: string[]; rows: Record<string, string | number>[] },
   userText: string,
   context: ConversationContext,
   classification: ClassificationResult,
 ): Promise<BotResponse> {
+  if (csvData.rows.length < MIN_ROWS_FOR_FORECAST) {
+    return {
+      text: `**Forecast unavailable**: only ${csvData.rows.length} rows in scope. Forecasting needs at least ${MIN_ROWS_FOR_FORECAST} time-series points to produce a meaningful projection — fewer than that and any fit is statistically unreliable. Try broadening your filters or running a query that returns more history.`,
+      suggestions: ["Show trend", "Summarize", "Top 5"],
+      sessionId: context.sessionId,
+      intent: classification.intent,
+      confidence: classification.confidence,
+    };
+  }
   const ml = await loadML();
   // Extract periods from text: "forecast next 5", "predict 10 ahead"
   const periodsMatch = userText.match(

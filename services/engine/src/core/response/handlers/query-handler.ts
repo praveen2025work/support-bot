@@ -870,6 +870,42 @@ export async function handleQueryExecute(
           csv as unknown as Record<string, unknown>,
           columnConfig as ColumnConfig | undefined,
         );
+        // Empty result: rather than rendering "(0 rows)" with a blank
+        // table — which feels like a system error to a non-technical
+        // user — surface a clear "no matches" message + actionable
+        // next step. The richContent stays so downstream UI still
+        // gets the schema (column headers) for the empty state.
+        const effectiveRowCount = totalRowCount ?? csv.rowCount;
+        if (effectiveRowCount === 0) {
+          const filterDesc =
+            explicitFilters && Object.keys(explicitFilters).length > 0
+              ? ` matching ${Object.entries(explicitFilters)
+                  .map(([k, v]) => `${k}=${v}`)
+                  .join(", ")}`
+              : "";
+          return {
+            text: `No rows returned from "${queryNameEntity.value}"${filterDesc}. Try broadening your filters or running \`list queries\` to see what else is available.`,
+            richContent: {
+              type: "csv_table",
+              data: {
+                ...displayCsv,
+                ...(chartConfig && { chartConfig }),
+                ...(columnConfig && { columnConfig }),
+                ...(columnMetadata && { columnMetadata }),
+              },
+            },
+            suggestions: ["List queries", `Run ${queryNameEntity.value}`],
+            sessionId: context.sessionId,
+            intent: classification.intent,
+            confidence: classification.confidence,
+            executionMs: execMs,
+            referenceUrl,
+            queryName: queryNameEntity.value,
+            sourceName,
+            sourceType: "csv",
+            anomalies,
+          };
+        }
         return {
           text: totalRowCount
             ? `Here is the data from "${queryNameEntity.value}" (showing first ${displayedRows} of ${totalRowCount} rows):`

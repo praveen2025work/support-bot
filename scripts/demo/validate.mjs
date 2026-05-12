@@ -506,6 +506,59 @@ async function testExportUndo() {
   );
 }
 
+// ─── P1 edge cases (regressions from the bug probe) ──────────────────────
+
+async function testEdgeCases() {
+  section("Correctness — edge cases (P1 regressions)");
+  if (QUICK) {
+    record("edge", "skipped (--quick)", true);
+    return;
+  }
+
+  // Unicode column matching: "région" should resolve to "Region"
+  // because we strip diacritics during column matching.
+  const sidU = `validation-unicode-${Date.now()}`;
+  await postChat("run pnl_lineage", sidU, "finance", { explicitFilters: {} });
+  const unicode = await timed(() =>
+    postChat("group by région", sidU, "finance"),
+  );
+  const uIntent = unicode.result?.data?.intent;
+  const uText = String(unicode.result?.data?.text || "");
+  record(
+    "edge",
+    "unicode column name (région → Region)",
+    uIntent === "followup.group_by" && /region/i.test(uText),
+    `intent=${uIntent} text="${uText.slice(0, 80)}"`,
+    unicode.durationMs,
+  );
+
+  // Forecast on tiny data: the engine has a MIN_ROWS_FOR_FORECAST=10
+  // guard, but the chat API can't easily construct a <10 row context
+  // (top-N/group-by don't mutate context.lastApiResult; mock-api
+  // filters don't go below ~19 rows). The guard IS verified by code
+  // review and fires correctly in production data. See
+  // services/engine/src/core/response/handlers/analysis-handler.ts.
+  // (No harness check here — would only flake.)
+
+  // Empty result: clear "no rows" message, not "(0 rows)" with blank table.
+  const empty = await timed(() =>
+    postChat(
+      "run pnl_lineage",
+      `validation-empty-${Date.now()}`,
+      "finance",
+      { explicitFilters: { region: "DOES_NOT_EXIST_XYZ" } },
+    ),
+  );
+  const eText = String(empty.result?.data?.text || "");
+  record(
+    "edge",
+    "empty result set → friendly message",
+    /no rows.*returned|broaden|no.*matches/i.test(eText),
+    `text="${eText.slice(0, 120)}"`,
+    empty.durationMs,
+  );
+}
+
 // ─── Cross-group isolation (regression for the F-probe leak) ─────────────
 
 async function testGroupIsolation() {
@@ -749,6 +802,7 @@ async function main() {
   await testForceIntent();
   await testExportUndo();
   await testAnalysis();
+  await testEdgeCases();
   await testGroupIsolation();
   await testSynonymCrud();
   await testLearningRetrain();

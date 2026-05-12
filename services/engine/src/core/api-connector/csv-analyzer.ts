@@ -256,21 +256,46 @@ const COLUMN_SYNONYMS: Record<string, RegExp> = {
 const DERIVED_COLUMN_PREFIX =
   /^(avg|average|mean|max|maximum|min|minimum|sum|total|count|median|mode|stdev|stddev|variance|p\d+|percentile|delta|diff|change|pct|ratio)[_\s-]/i;
 
+/**
+ * Lowercase + strip diacritics + strip underscore/space so unicode
+ * variants of the same conceptual word collapse to the same key.
+ * "Région" and "Region" both normalize to "region"; "Book_Status"
+ * and "BookStatus" both normalize to "bookstatus".
+ */
+function normalizeForMatch(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[_\s]/g, "");
+}
+
 export function findMatchingHeader(
   term: string,
   headers: string[],
 ): string | null {
-  const lowerTerm = term.toLowerCase().replace(/[_\s]/g, "");
+  const lowerTerm = normalizeForMatch(term);
 
-  // 1. Exact match (case-insensitive). Highest priority: user typed the
-  //    column name as-is, full stop.
+  // 1. Exact match (case-insensitive + diacritic-folded). Highest
+  //    priority: user typed the column name as-is, full stop.
+  //    Folding means "Région" matches "Region".
+  const foldedTerm = term
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
   for (const h of headers) {
-    if (h.toLowerCase() === term.toLowerCase()) return h;
+    if (
+      h
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .toLowerCase() === foldedTerm
+    )
+      return h;
   }
 
   // 2. Exact match ignoring underscores/spaces (e.g., "bookstatus" matches "Book_Status")
   for (const h of headers) {
-    if (h.toLowerCase().replace(/[_\s]/g, "") === lowerTerm) return h;
+    if (normalizeForMatch(h) === lowerTerm) return h;
   }
 
   // 3. Semantic synonym — natural-language word ("location", "when",
@@ -298,16 +323,19 @@ export function findMatchingHeader(
   // 4. Whole-word boundary match — header contains the term as a distinct word
   //    e.g., "status" matches "Book Status" or "Book_Status" but NOT "StatusCode"
   for (const h of headers) {
-    const hLower = h.toLowerCase();
+    const hFolded = h
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase();
     // Split by underscore, space, or camelCase boundaries
-    const hWords = hLower.replace(/([a-z])([A-Z])/g, "$1 $2").split(/[_\s]+/);
-    if (hWords.includes(term.toLowerCase())) return h;
+    const hWords = hFolded.replace(/([a-z])([A-Z])/g, "$1 $2").split(/[_\s]+/);
+    if (hWords.includes(foldedTerm)) return h;
   }
 
   // 5. Term ends with header word or header word ends with term (suffix match)
   //    e.g., "region" matches "Region" but avoids "RegionalCode"
   for (const h of headers) {
-    const hNorm = h.toLowerCase().replace(/[_\s]/g, "");
+    const hNorm = normalizeForMatch(h);
     if (hNorm === lowerTerm) return h;
     // Only allow suffix/prefix match for longer terms (>=4 chars) to avoid false positives
     if (lowerTerm.length >= 4 && hNorm.endsWith(lowerTerm)) return h;
@@ -318,7 +346,7 @@ export function findMatchingHeader(
   // 6. Partial substring (last resort) — but require term to be substantial (>=4 chars)
   if (lowerTerm.length >= 4) {
     for (const h of headers) {
-      const hNorm = h.toLowerCase().replace(/[_\s]/g, "");
+      const hNorm = normalizeForMatch(h);
       if (hNorm.includes(lowerTerm)) return h;
     }
   }
