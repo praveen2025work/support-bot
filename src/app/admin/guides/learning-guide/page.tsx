@@ -299,6 +299,35 @@ Query Results
             deployments should keep it at <Code>0.4</Code> or raise it to{" "}
             <Code>0.5</Code> to capture more training data.
           </InfoBox>
+
+          <InfoBox variant="info" title="Closed-loop retraining (since v1)">
+            Approving a review item appends the utterance to{" "}
+            <Code>data/learning/&lt;group&gt;/auto-learned.jsonl</Code> with{" "}
+            <Code>source=admin_review</Code>. On the next{" "}
+            <Code>POST /api/admin/learning/retrain</Code> call, the engine cache
+            for that group is invalidated; the next chat request re-initializes
+            the NLP and{" "}
+            <strong>
+              merges every auto-learned entry into the live corpus before
+              training
+            </strong>
+            . You&apos;ll see a log line:{" "}
+            <Code>Applied auto-learned utterances to NLP corpus</Code> with{" "}
+            <Code>learnedCount=N</Code>. Before this loop closure, approved
+            entries were saved but never reached the model — the engine
+            re-trained only from the static <Code>corpus.json</Code>. The fix
+            lives in <Code>services/engine/src/core/nlp/nlp-service.ts</Code>{" "}
+            <Code>applyAutoLearned()</Code>.
+          </InfoBox>
+
+          <InfoBox variant="tip" title="Per-group synonyms — a faster lever">
+            Approving review items teaches the bot at the INTENT level. For pure
+            vocabulary work (&quot;our team says client, our data says
+            customer&quot;), the <Code>/admin/synonyms</Code> page is faster:
+            add the canonical and its variants, save, and the per-group synonym
+            expander picks it up on the next message — no retrain needed. See{" "}
+            <Code>Config Guide §18</Code> for details.
+          </InfoBox>
         </Section>
 
         {/* ── Anomaly Detection ── */}

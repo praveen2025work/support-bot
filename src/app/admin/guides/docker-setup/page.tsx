@@ -550,6 +550,41 @@ docker compose -f <your-compose-file> up --build -d`}</CmdBlock>
                     req: "Connectors",
                     desc: "Encryption key for SQL connector credentials",
                   },
+                  {
+                    var: "PII_MASKING_DISABLED",
+                    req: "No",
+                    desc: "Set 'true' to bypass the PII pipeline globally — break-glass investigations only. Still audited.",
+                  },
+                  {
+                    var: "QUERY_RESULT_CACHE_TTL_MS",
+                    req: "No",
+                    desc: "Per-query result cache TTL in ms (default 60_000). Lower = fresher data, more upstream load.",
+                  },
+                  {
+                    var: "QUERY_RESULT_CACHE_MAX_ENTRIES",
+                    req: "No",
+                    desc: "LRU capacity for the per-query cache (default 500).",
+                  },
+                  {
+                    var: "RATE_LIMIT_CHAT",
+                    req: "No",
+                    desc: "Per-IP /api/chat requests/min (default 1500). Hitting it returns RATE_LIMITED envelope.",
+                  },
+                  {
+                    var: "RATE_LIMIT_ADMIN",
+                    req: "No",
+                    desc: "Per-IP /api/admin requests/min (default 200).",
+                  },
+                  {
+                    var: "MAX_CONCURRENT_REQUESTS",
+                    req: "No",
+                    desc: "Concurrent NLP classifications cap (default 50). Backpressure under burst.",
+                  },
+                  {
+                    var: "SESSION_TTL_MS",
+                    req: "No",
+                    desc: "Stale session eviction window (default 30 min). Sessions are scoped per groupId — no cross-group bleed.",
+                  },
                 ].map((row) => (
                   <tr
                     key={row.var}
@@ -584,11 +619,67 @@ docker compose -f <your-compose-file> up --build -d`}</CmdBlock>
 docker compose -f <compose-file> up --build -d`}</CmdBlock>
           </div>
 
-          <InfoBox variant="tip" title="Data persistence">
-            Learning data, anomaly baselines, and conversation logs are stored
-            inside the engine container at <Code>/app/data/</Code>. To persist
-            across rebuilds, add a volume mount:{" "}
-            <Code>volumes: - ./engine-data:/app/data</Code>
+          <InfoBox
+            variant="tip"
+            title="Data persistence — what's inside /app/data"
+          >
+            The engine writes a handful of stateful sub-directories under{" "}
+            <Code>/app/data/</Code>. Persist the whole tree with one volume
+            mount: <Code>volumes: - ./engine-data:/app/data</Code>.
+            <ul className="list-disc pl-5 mt-2 space-y-0.5 text-xs">
+              <li>
+                <Code>learning/&lt;group&gt;/</Code> — interactions, review
+                queue, auto-learned utterances, signal aggregates, synonyms.
+                Retraining merges these back into the NLP corpus on next init.
+              </li>
+              <li>
+                <Code>schema/&lt;group&gt;/</Code> — last-known column set per
+                query. Drift detector compares each result to the stored
+                baseline.
+              </li>
+              <li>
+                <Code>views/</Code> — shareable snapshots (one JSON per short
+                id). Public-by-link in v1.
+              </li>
+              <li>
+                <Code>audit/audit.jsonl</Code> — every mutation, PII clear view,
+                schema-drift event, snapshot creation. Critical for compliance /
+                forensics.
+              </li>
+              <li>
+                <Code>logs/conversations.jsonl</Code>, <Code>sessions/</Code>,{" "}
+                <Code>anomaly/&lt;group&gt;/</Code> — runtime state.
+              </li>
+              <li>
+                <Code>preferences/</Code>, <Code>dashboards/</Code> — user-level
+                customisation.
+              </li>
+            </ul>
+            For a fresh, clean engine on every restart (e.g. ephemeral staging),
+            skip the volume; the engine creates files as needed.
+          </InfoBox>
+
+          <InfoBox variant="info" title="Post-deploy smoke check">
+            Once the stack is up, run the validation harness against the running
+            URLs to confirm 100+ feature surfaces are healthy:
+            <CmdBlock label="From the host (npm)">{`NEXT_URL=http://localhost:3001 \\
+ENGINE_URL=http://localhost:4001 \\
+MOCK_URL=http://localhost:8080 \\
+npm run validate:demo`}</CmdBlock>
+            Pass criteria: green report at <Code>docs/DEMO-VALIDATION.md</Code>{" "}
+            with <Code>0 failures</Code>. Use <Code>--quick</Code> for a faster
+            gate that skips slow chat chains, or <Code>--no-write</Code> in
+            CSRF-locked environments.
+          </InfoBox>
+
+          <InfoBox variant="info" title="Log correlation">
+            Every request gets an <Code>x-request-id</Code> UUID — generated by
+            the tenant-context middleware if the caller doesn&apos;t supply one,
+            returned as a response header, AND embedded in every error envelope
+            as <Code>requestId</Code>. Forward this header from your load
+            balancer / API gateway so a single ID traces one request across
+            logs, audit entries, and UI errors. Production logging tools
+            (Splunk, Datadog, Loki) should index on it.
           </InfoBox>
         </Section>
 

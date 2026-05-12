@@ -488,6 +488,24 @@ export default function UserGuidePage() {
                   <td className="px-3 py-2 font-mono">&quot;summarize&quot;</td>
                 </tr>
                 <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">Drill into a group</td>
+                  <td className="px-3 py-2 font-mono">
+                    &quot;drill into NAM&quot;, &quot;show rows for EMEA&quot;
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">Share a result</td>
+                  <td className="px-3 py-2">
+                    Hover the bot message → click <Cmd>↗ Share</Cmd>
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">Refresh cached</td>
+                  <td className="px-3 py-2 font-mono">
+                    &quot;refresh monthly_revenue&quot;
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100">
                   <td className="px-3 py-2 font-medium">Undo</td>
                   <td className="px-3 py-2 font-mono">
                     &quot;undo&quot; or &quot;go back&quot;
@@ -496,6 +514,72 @@ export default function UserGuidePage() {
               </tbody>
             </table>
           </div>
+
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Natural-Language Phrasing
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            You don&apos;t need to memorise the exact column name or the exact
+            verb. The chat understands many natural variants of the same
+            operation. All of these route to the same group-by handler:
+          </p>
+          <div className="bg-gray-50 rounded-lg p-3 mb-3 font-mono text-xs text-gray-600 space-y-1">
+            <div>&quot;group by region&quot;</div>
+            <div>&quot;break it down by region&quot;</div>
+            <div>&quot;split by region&quot;</div>
+            <div>&quot;segment by region&quot;</div>
+            <div>&quot;categorize by region&quot;</div>
+            <div>&quot;bucket by region&quot;</div>
+            <div>
+              &quot;show me by region&quot; / &quot;view by region&quot;
+            </div>
+            <div>&quot;for each region&quot;</div>
+            <div>&quot;per region&quot;</div>
+          </div>
+          <p className="text-sm text-gray-600 mb-2">
+            Column names are also flexible. Saying &quot;by location&quot;
+            against a table whose column is called <Cmd>Region</Cmd> works via
+            the synonym layer ({" "}
+            <span className="font-medium">location → region, geo, country</span>
+            ,{" "}
+            <span className="font-medium">when → date, timestamp, period</span>,{" "}
+            <span className="font-medium">amount → revenue, total, value</span>
+            ). Diacritics fold too: &quot;group by région&quot; matches
+            &quot;Region&quot;. Group admins can teach the bot more synonyms via
+            the <Cmd>Synonyms</Cmd> admin page.
+          </p>
+
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Drill Down into a Group
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            After a group-by, click the small <Cmd>↓ drill</Cmd> button next to
+            any group value — or type the natural variant — to see the
+            underlying detail rows. This is the Tableau-style click-through
+            business users expect.
+          </p>
+          <div className="bg-gray-50 rounded-lg p-3 mb-3 font-mono text-xs text-gray-600 space-y-1">
+            <div>You: &quot;run pnl_lineage&quot; &rarr; [93 rows]</div>
+            <div>You: &quot;group by region&quot; &rarr; [3 groups]</div>
+            <div>
+              You: &quot;drill into NAM&quot; &rarr; [37 NAM detail rows]
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mb-2">
+            Variants the chat accepts: <Cmd>drill into NAM</Cmd>,{" "}
+            <Cmd>show rows for NAM</Cmd>, <Cmd>details for NAM</Cmd>,{" "}
+            <Cmd>expand NAM</Cmd>. If you type a group value that doesn&apos;t
+            exist, the bot lists the available values and offers them as quick
+            chips.
+          </p>
+
+          <Tip>
+            Cached results show a small &quot;cached Ns ago&quot; suffix. Same
+            query + same filters within 60 seconds returns the cached copy
+            instantly. Type <Cmd>refresh &lt;query&gt;</Cmd> (or{" "}
+            <Cmd>fresh</Cmd>, <Cmd>live</Cmd>) to force a re-fetch from the
+            source.
+          </Tip>
 
           <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
             Smart Suggestions
@@ -677,6 +761,57 @@ export default function UserGuidePage() {
               results directly
             </div>
           </div>
+
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Share a Result via Link
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            Hover any bot message that has a table or chart, then click the
+            small <Cmd>↗ Share</Cmd> button. A snapshot is captured and the
+            share URL is copied to your clipboard. Paste it anywhere — Slack,
+            email, ticket — and the recipient sees the exact same result
+            instantly at <Cmd>/share/&lt;id&gt;</Cmd>.
+          </p>
+          <div className="space-y-1 text-xs text-gray-600 mb-3">
+            <div>
+              <span className="font-medium">Frozen snapshot</span> — recipient
+              sees the result as it was at share time; the data may have changed
+              since
+            </div>
+            <div>
+              <span className="font-medium">No login required</span> — the link
+              is unguessable but unauthenticated; treat it like a paste-link
+            </div>
+            <div>
+              <span className="font-medium">PII stays masked</span> in the
+              snapshot — the masking pipeline runs before snapshot, so links
+              can&apos;t leak cleartext PII
+            </div>
+            <div>
+              <span className="font-medium">Audited</span> — every share is
+              logged under <Cmd>resource=view-snapshot</Cmd> in the audit trail
+            </div>
+          </div>
+
+          <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
+            Sensitive Data &amp; Masking
+          </h3>
+          <p className="text-sm text-gray-600 mb-2">
+            Queries that return personally-identifiable columns (name, email,
+            phone, SSN, credit card, address, date of birth, salary, IP) ship
+            with values masked by default. You&apos;ll see a note in the bot
+            text:
+          </p>
+          <div className="bg-gray-50 rounded-lg p-2 font-mono text-xs text-gray-600 mb-3">
+            _(2 PII columns masked: name, salary)_
+          </div>
+          <p className="text-sm text-gray-600 mb-2">
+            Users with the <Cmd>admin</Cmd> role can see clear values. When that
+            happens the bot text changes to{" "}
+            <Cmd>(2 PII columns shown UNMASKED — audited: name, salary)</Cmd>{" "}
+            and an audit-trail entry with <Cmd>resource=pii-clear</Cmd> is
+            written.
+          </p>
 
           <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
             Multi-Query Comparison
@@ -1404,6 +1539,11 @@ export default function UserGuidePage() {
               training utterances
             </div>
             <div className="p-2 bg-gray-50 rounded">
+              <span className="font-medium">Synonyms</span> — Per-group
+              vocabulary (canonical → variants) that feeds the NLP synonym
+              expander. Non-engineers can teach the bot here.
+            </div>
+            <div className="p-2 bg-gray-50 rounded">
               <span className="font-medium">Templates</span> — Response
               templates
             </div>
@@ -1411,7 +1551,42 @@ export default function UserGuidePage() {
               <span className="font-medium">Files</span> — CSV, XLSX, and
               document files
             </div>
+            <div className="p-2 bg-gray-50 rounded">
+              <span className="font-medium">Learning</span> — Review queue of
+              low-confidence interactions; approve a correct intent and click{" "}
+              <Cmd>Retrain</Cmd> to merge into the live NLP model.
+            </div>
+            <div className="p-2 bg-gray-50 rounded">
+              <span className="font-medium">Analytics</span> — Query execution
+              stats + the <Cmd>NLP misses</Cmd> panel showing where users are
+              getting stuck (top missed phrases, retry rate, confidence
+              histogram).
+            </div>
+            <div className="p-2 bg-gray-50 rounded">
+              <span className="font-medium">Audit Trail</span> — Every mutation,
+              every PII clear-text view, every share, every schema-drift event.
+              Filter by <Cmd>resource=pii-clear</Cmd> for PII forensics or{" "}
+              <Cmd>resource=schema-drift</Cmd> for drift events.
+            </div>
+            <div className="p-2 bg-gray-50 rounded">
+              <span className="font-medium">Schema Drift</span> —{" "}
+              <Cmd>/api/admin/schema/drift</Cmd> lists queries where the source
+              data&apos;s column set has shifted since the last successful run.
+              Admin acknowledges intentional changes.
+            </div>
           </div>
+
+          <Tip>
+            See the{" "}
+            <Link
+              href="/admin/guides/config-guide"
+              className="text-blue-600 hover:underline"
+            >
+              Config Guide
+            </Link>{" "}
+            for the full setup details on Synonyms (§18), PII Detection &amp;
+            Masking (§19), and Schema Drift (§20).
+          </Tip>
 
           <h3 className="text-sm font-semibold text-gray-800 mt-6 mb-2">
             SQL Connectors (MSSQL & Oracle)

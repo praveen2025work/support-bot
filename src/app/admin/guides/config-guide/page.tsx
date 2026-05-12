@@ -2292,6 +2292,341 @@ npm run dev:csv    # Start Engine + CSV connector + UI together`}</pre>
             </table>
           </div>
         </Section>
+
+        {/* ─────────────────────────────────────────────────────────── */}
+        {/* 18. Synonyms                                                  */}
+        {/* ─────────────────────────────────────────────────────────── */}
+        <Section title="18. Per-Group Synonyms">
+          <p className="text-sm text-gray-600 mb-3">
+            The NLP fuzzy matcher expands user queries with per-group synonyms
+            before scoring. This lets each business team teach the bot its own
+            vocabulary without an engineering ticket — e.g. finance says
+            &quot;client&quot; for what the data calls &quot;customer&quot;, ops
+            says &quot;ticket&quot; for what HR calls &quot;case&quot;.
+          </p>
+
+          <div className="text-xs font-medium text-gray-700 mb-1">
+            Where it lives
+          </div>
+          <ul className="list-disc pl-5 text-xs text-gray-600 mb-3 space-y-0.5">
+            <li>
+              UI: <code className="font-mono">/admin/synonyms</code> — group
+              selector, table of entries, live &quot;Preview synonym
+              expansion&quot; input
+            </li>
+            <li>
+              API:{" "}
+              <code className="font-mono">
+                GET|POST|DELETE /api/admin/groups/&lt;group&gt;/synonyms
+              </code>{" "}
+              (requires <code>intents.manage</code> permission)
+            </li>
+            <li>
+              Storage:{" "}
+              <code className="font-mono">
+                data/learning/&lt;group&gt;/synonyms.json
+              </code>
+            </li>
+          </ul>
+
+          <div className="text-xs font-medium text-gray-700 mb-1">
+            Entry shape
+          </div>
+          <pre className="bg-gray-900 text-gray-100 text-xs p-3 rounded mb-3 overflow-x-auto">
+            {`{
+  "canonical": "customer",
+  "synonyms": ["client", "account", "buyer"],
+  "updatedAt": "2026-05-12T03:42:11.293Z",
+  "updatedBy": "praveen"
+}`}
+          </pre>
+
+          <div className="text-xs font-medium text-gray-700 mb-1">
+            Cache &amp; reload
+          </div>
+          <p className="text-xs text-gray-600 mb-2">
+            Mutations clear the in-memory per-group synonym cache via{" "}
+            <code>clearGroupSynonymsCache(groupId)</code> so the next NLP call
+            picks up the change. No engine restart needed.
+          </p>
+          <p className="text-xs text-gray-600 mb-2">
+            Every mutation is audited under <code>resource=synonym</code> with
+            the canonical term and synonym count.
+          </p>
+        </Section>
+
+        {/* ─────────────────────────────────────────────────────────── */}
+        {/* 19. PII Detection & Masking                                  */}
+        {/* ─────────────────────────────────────────────────────────── */}
+        <Section title="19. PII Detection & Masking">
+          <p className="text-sm text-gray-600 mb-3">
+            Every CSV query result passes through a two-stage PII pipeline
+            before it reaches the chat / share / export surfaces. The default
+            posture is mask; admin role unlocks clear values with an audit
+            trail.
+          </p>
+
+          <div className="text-xs font-medium text-gray-700 mb-1">
+            Detection (9 kinds)
+          </div>
+          <div className="overflow-x-auto mb-3">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Kind
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Detection signal
+                  </th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600">
+                    Masked form
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">email</td>
+                  <td className="px-3 py-2">
+                    column name OR ≥60% value-regex hits
+                  </td>
+                  <td className="px-3 py-2 font-mono">j***@e***.com</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">phone</td>
+                  <td className="px-3 py-2">column name OR E.164-ish regex</td>
+                  <td className="px-3 py-2 font-mono">***-***-1234</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">ssn</td>
+                  <td className="px-3 py-2">
+                    column name OR{" "}
+                    <code>
+                      \d{3}-\d{2}-\d{4}
+                    </code>
+                  </td>
+                  <td className="px-3 py-2 font-mono">***-**-1234</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">credit_card</td>
+                  <td className="px-3 py-2">
+                    column name OR 13-19 digit string
+                  </td>
+                  <td className="px-3 py-2 font-mono">**** **** **** 1234</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">person_name</td>
+                  <td className="px-3 py-2">
+                    column name (no value-side regex)
+                  </td>
+                  <td className="px-3 py-2 font-mono">A**** J*****</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">address</td>
+                  <td className="px-3 py-2">column name</td>
+                  <td className="px-3 py-2 font-mono">********…</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">dob</td>
+                  <td className="px-3 py-2">column name</td>
+                  <td className="px-3 py-2 font-mono">1985-**-**</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">salary</td>
+                  <td className="px-3 py-2">column name</td>
+                  <td className="px-3 py-2 font-mono">
+                    ~$160,000 (bucketed to 10k)
+                  </td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-medium">ip_address</td>
+                  <td className="px-3 py-2">column name OR IPv4 regex</td>
+                  <td className="px-3 py-2 font-mono">192.168.*.*</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="text-xs font-medium text-gray-700 mb-1">
+            Role-based unmask
+          </div>
+          <p className="text-xs text-gray-600 mb-2">
+            Permission <code>pii.view</code> (admin role) bypasses masking. Each
+            clear-text view writes an audit entry:{" "}
+            <code>action=read resource=pii-clear</code> with{" "}
+            <code>details.columns</code>, <code>details.kinds</code>, and{" "}
+            <code>details.bypassReason</code>. Compliance teams answer &quot;who
+            saw clear PII when&quot; by filtering the audit log on{" "}
+            <code>resource=pii-clear</code>.
+          </p>
+          <p className="text-xs text-gray-600 mb-2">
+            Bot text changes to reflect the mode:
+          </p>
+          <ul className="list-disc pl-5 text-xs text-gray-600 mb-3 space-y-0.5">
+            <li>
+              Masked:{" "}
+              <code className="font-mono">
+                (2 PII columns masked: name, salary)
+              </code>
+            </li>
+            <li>
+              Clear:{" "}
+              <code className="font-mono">
+                (2 PII columns shown UNMASKED — audited: name, salary)
+              </code>
+            </li>
+          </ul>
+
+          <div className="text-xs font-medium text-gray-700 mb-1">
+            Ops escape hatch
+          </div>
+          <p className="text-xs text-gray-600 mb-2">
+            <code>PII_MASKING_DISABLED=true</code> in the engine env bypasses
+            masking for ALL callers regardless of role. Reserved for break-glass
+            investigations; still audited.
+          </p>
+        </Section>
+
+        {/* ─────────────────────────────────────────────────────────── */}
+        {/* 20. Schema Drift                                             */}
+        {/* ─────────────────────────────────────────────────────────── */}
+        <Section title="20. Schema Drift Detection">
+          <p className="text-sm text-gray-600 mb-3">
+            Surfaces silently-shifting source-data schemas to admins BEFORE
+            queries break for end users. After every successful CSV query, the
+            engine compares the returned column set to the last known one and
+            flags any change.
+          </p>
+
+          <div className="text-xs font-medium text-gray-700 mb-1">
+            What drift looks like
+          </div>
+          <p className="text-xs text-gray-600 mb-2">
+            When a query result&apos;s columns differ from the registered
+            baseline, the bot text gains a yellow ⚠ suffix:
+          </p>
+          <div className="bg-gray-50 rounded p-2 mb-3 font-mono text-xs text-gray-700">
+            ⚠ Schema drift: 1 column removed (region); 2 new columns
+            (region_code, country_code)
+          </div>
+          <p className="text-xs text-gray-600 mb-2">
+            The same payload is on <code>richContent.data.schemaDrift</code> for
+            UI badges.
+          </p>
+
+          <div className="text-xs font-medium text-gray-700 mb-1">Storage</div>
+          <ul className="list-disc pl-5 text-xs text-gray-600 mb-3 space-y-0.5">
+            <li>
+              One JSON per (group, query):{" "}
+              <code className="font-mono">
+                data/schema/&lt;group&gt;/&lt;safeQuery&gt;.json
+              </code>
+            </li>
+            <li>
+              Fields: <code>columns[]</code>, <code>observedAt</code>, optional{" "}
+              <code>driftFlaggedAt</code> + <code>lastDrift</code>
+            </li>
+            <li>
+              Every drift event audits as{" "}
+              <code>action=update resource=schema-drift</code>
+            </li>
+          </ul>
+
+          <div className="text-xs font-medium text-gray-700 mb-1">
+            Admin workflow
+          </div>
+          <ol className="list-decimal pl-5 text-xs text-gray-600 mb-3 space-y-0.5">
+            <li>
+              <code className="font-mono">
+                GET /api/admin/schema/drift?groupId=&lt;g&gt;
+              </code>{" "}
+              lists every flagged query with its diff snapshot.
+            </li>
+            <li>
+              Admin reviews — if the rename is intentional, accept the new
+              schema as the new baseline by calling{" "}
+              <code className="font-mono">
+                POST /api/admin/schema/acknowledge
+              </code>{" "}
+              with <code>{`{ groupId, queryName }`}</code>.
+            </li>
+            <li>
+              If the rename was a mistake, fix the source and re-run the query —
+              the registry auto-clears the flag once the columns match the
+              baseline again.
+            </li>
+          </ol>
+          <p className="text-xs text-gray-600 mb-2">
+            Both endpoints require <code>learning.manage</code> permission.
+            Acknowledge writes an audit entry under{" "}
+            <code>resource=schema-drift-ack</code>.
+          </p>
+        </Section>
+
+        {/* ─────────────────────────────────────────────────────────── */}
+        {/* 21. Per-Query Cache + Error Envelope                          */}
+        {/* ─────────────────────────────────────────────────────────── */}
+        <Section title="21. Per-Query Cache & Error Envelope">
+          <div className="text-xs font-medium text-gray-700 mb-1">
+            Per-query result cache
+          </div>
+          <p className="text-xs text-gray-600 mb-2">
+            Identical CSV queries within 60 seconds return from an LRU cache
+            (500 entries). Key:{" "}
+            <code>{`${"${groupId}:${queryName}:${filtersHash}"}`}</code>. Cache
+            state attaches to <code>richContent.data.cacheStatus</code> as{" "}
+            <code>{`{status, cachedAt, ageMs}`}</code> and the bot text suffix
+            renders as{" "}
+            <code className="font-mono">
+              (cached Ns ago — say &quot;refresh X&quot; to bypass)
+            </code>{" "}
+            on hits. Cache-bust phrases: <code>refresh X</code>,{" "}
+            <code>fresh X</code>, <code>X live</code>,{" "}
+            <code>force refresh</code>, <code>no cache</code>.
+          </p>
+          <p className="text-xs text-gray-600 mb-2">
+            Tunable env vars: <code>QUERY_RESULT_CACHE_TTL_MS</code> (default
+            60_000) and <code>QUERY_RESULT_CACHE_MAX_ENTRIES</code> (default
+            500).
+          </p>
+          <p className="text-xs text-gray-600 mb-2">
+            Get/set deep-clone via <code>structuredClone</code> at the cache
+            boundary so downstream mutations (PII masker mutates{" "}
+            <code>csv.rows</code> in place) don&apos;t leak across callers.
+            Without this, a viewer&apos;s masked rows would poison the cache for
+            the next admin caller.
+          </p>
+
+          <div className="text-xs font-medium text-gray-700 mt-4 mb-1">
+            Structured error envelope
+          </div>
+          <p className="text-xs text-gray-600 mb-2">
+            Every engine 4xx/5xx returns the same shape:
+          </p>
+          <pre className="bg-gray-900 text-gray-100 text-xs p-3 rounded mb-3 overflow-x-auto">
+            {`{
+  "error": "Invalid message format",
+  "code": "INVALID_MESSAGE",
+  "requestId": "7771c24d-9af8-4ceb-b2a2-35d2ea8ef677",
+  "retryable": false
+}`}
+          </pre>
+          <p className="text-xs text-gray-600 mb-2">
+            <code>requestId</code> is the same value as the{" "}
+            <code>x-request-id</code> response header (set by the tenant-context
+            middleware). Support teams correlate one ID across engine logs,
+            audit entries, and UI error toasts.
+          </p>
+          <p className="text-xs text-gray-600 mb-2">
+            Codes: <code>INVALID_MESSAGE</code>,{" "}
+            <code>INVALID_FORCE_INTENT</code>, <code>ENGINE_NOT_READY</code>,{" "}
+            <code>DATA_SOURCE_UNAVAILABLE</code>, <code>QUERY_NOT_FOUND</code>,{" "}
+            <code>RATE_LIMITED</code>, <code>AUTHENTICATION_REQUIRED</code>,{" "}
+            <code>INSUFFICIENT_PERMISSIONS</code>, <code>NOT_FOUND</code>,{" "}
+            <code>INTERNAL_ERROR</code>. <code>retryable</code> defaults to{" "}
+            <code>true</code> for transient codes.
+          </p>
+        </Section>
       </div>
     </div>
   );
