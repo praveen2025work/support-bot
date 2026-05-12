@@ -19,6 +19,8 @@ import {
   PERIOD_OVER_PERIOD_PATTERN,
   AGG_COMPUTED_PATTERN,
   FILTER_FOLLOWUP_PATTERN,
+  EXPORT_PATTERN,
+  UNDO_PATTERN,
 } from "./response/constants";
 import type { Query } from "./api-connector/types";
 import type {
@@ -165,7 +167,9 @@ export class ChatbotEngine {
           COMPUTED_COLUMN_PATTERN.test(processedText) ||
           PERIOD_OVER_PERIOD_PATTERN.test(processedText) ||
           AGG_COMPUTED_PATTERN.test(processedText) ||
-          FILTER_FOLLOWUP_PATTERN.test(processedText));
+          FILTER_FOLLOWUP_PATTERN.test(processedText) ||
+          EXPORT_PATTERN.test(processedText) ||
+          UNDO_PATTERN.test(processedText));
 
       // Disambiguation band: NLP top score landed in [NLP_DISAMBIG_FLOOR,
       // NLP_CONFIDENCE_THRESHOLD). Short-circuit before the response generator
