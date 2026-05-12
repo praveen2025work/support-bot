@@ -13,7 +13,11 @@ import { getGroupConfigs } from "./config/group-config";
 import {
   startHealthMonitor,
   stopHealthMonitor,
+  getAllHealth,
 } from "./core/sources/health-monitor";
+import { metricsRouter } from "./routes/metrics";
+import { registerGauge } from "./lib/metrics";
+import { getEngineCount } from "./lib/singleton";
 import { chatRouter } from "./routes/chat";
 import { adminRouter } from "./routes/admin/index";
 import { viewsRouter } from "./routes/views";
@@ -43,6 +47,7 @@ import {
 } from "./core/scheduler/schedule-executor";
 import { WatchExecutor } from "./core/watch/watch-executor";
 import { tenantContextMiddleware } from "./middleware/tenant-context";
+import { securityHeaders } from "./lib/security-headers";
 
 const app = express();
 const PORT = parseInt(process.env.ENGINE_PORT || "4001", 10);
@@ -54,6 +59,10 @@ app.use(
     credentials: true,
   }),
 );
+// Security headers (X-Content-Type-Options, X-Frame-Options,
+// Referrer-Policy, Permissions-Policy). CSP is opt-in via ENGINE_CSP
+// env — see lib/security-headers.ts for rationale.
+app.use(securityHeaders);
 app.use(express.json({ limit: "10mb" }));
 app.use(tenantContextMiddleware);
 
@@ -151,6 +160,20 @@ app.use("/api/watch", watchRouter);
 app.use("/api/home-feed", homeFeedRouter);
 app.use("/api/workflows", workflowsRouter);
 app.use("/api/views", viewsRouter);
+// /api/metrics — Prometheus scrape (public, no admin auth)
+app.use("/api", metricsRouter);
+
+// Register gauge providers — pulled on every scrape, no buffering.
+// Engines map and source health map are cheap to read.
+registerGauge("engines_initialized", () => getEngineCount());
+registerGauge(
+  "sources_ok",
+  () => getAllHealth().filter((s) => s.status === "ok").length,
+);
+registerGauge(
+  "sources_unreachable",
+  () => getAllHealth().filter((s) => s.status === "unreachable").length,
+);
 
 // 404 + global error handler — both return the structured envelope
 // from lib/error-envelope.ts ({error, code, requestId, retryable}).

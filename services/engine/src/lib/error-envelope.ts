@@ -36,6 +36,7 @@ export const ErrorCodes = {
   AUTHENTICATION_REQUIRED: "AUTHENTICATION_REQUIRED",
   INSUFFICIENT_PERMISSIONS: "INSUFFICIENT_PERMISSIONS",
   NOT_FOUND: "NOT_FOUND",
+  REQUEST_TOO_LARGE: "REQUEST_TOO_LARGE",
   INTERNAL_ERROR: "INTERNAL_ERROR",
 } as const;
 
@@ -95,9 +96,41 @@ export function sendError(
  * throw in a route handler. Logs the stack server-side; returns a
  * generic INTERNAL_ERROR envelope so we don't leak implementation
  * details to the client.
+ *
+ * Also handles body-parser's PayloadTooLargeError (Express forwards
+ * it into the error chain when the request body exceeds the limit
+ * set on `express.json()`). We map it to a REQUEST_TOO_LARGE
+ * envelope so clients get a structured 413 instead of HTML.
  */
 export function errorHandler() {
-  return (err: Error, req: Request, res: Response, _next: unknown) => {
+  return (
+    err: Error & {
+      type?: string;
+      status?: number;
+      limit?: number;
+      length?: number;
+    },
+    req: Request,
+    res: Response,
+    _next: unknown,
+  ) => {
+    if (err && (err.type === "entity.too.large" || err.status === 413)) {
+      logger.warn(
+        { path: req.path, length: err.length, limit: err.limit },
+        "Request body exceeded limit",
+      );
+      if (res.headersSent) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (_next as any)(err);
+      }
+      return sendError(
+        res,
+        413,
+        ErrorCodes.REQUEST_TOO_LARGE,
+        `Request body exceeds the ${err.limit ?? "configured"}-byte limit`,
+        { details: { receivedBytes: err.length, limit: err.limit } },
+      );
+    }
     logger.error(
       { err: { message: err.message, stack: err.stack }, path: req.path },
       "Unhandled error in request",

@@ -630,6 +630,112 @@ async function testConcurrentRetrain() {
   );
 }
 
+// ─── Robustness: Prometheus metrics + security headers + 413 ─────────────
+
+async function testMetricsEndpoint() {
+  section("Observability — Prometheus /metrics endpoint");
+
+  const t = await timed(async () => {
+    const r = await fetch(`${ENGINE_URL}/api/metrics`);
+    return {
+      ok: r.ok,
+      status: r.status,
+      contentType: r.headers.get("content-type"),
+      body: await r.text(),
+    };
+  });
+  record(
+    "metrics",
+    "/api/metrics returns text/plain Prometheus format",
+    t.result?.ok && /text\/plain/.test(t.result?.contentType || ""),
+    `status=${t.result?.status} content-type=${t.result?.contentType}`,
+    t.durationMs,
+  );
+  // Generate one chat request first so chat_requests_total has data
+  await postChat("hello", `metrics-warm-${Date.now()}`, "default");
+  const after = await timed(async () => {
+    const r = await fetch(`${ENGINE_URL}/api/metrics`);
+    return { body: await r.text() };
+  });
+  record(
+    "metrics",
+    "chat_requests_total counter is emitted",
+    /^chat_requests_total\{/m.test(after.result?.body || ""),
+    `body excerpt=${(after.result?.body || "").split("\n").filter((l) => l.startsWith("chat_requests_total")).slice(0, 2).join(" | ")}`,
+    after.durationMs,
+  );
+  record(
+    "metrics",
+    "process gauges present",
+    /process_resident_memory_bytes \d+/.test(after.result?.body || "") &&
+      /process_uptime_seconds /.test(after.result?.body || ""),
+    "checked process_resident_memory_bytes + process_uptime_seconds",
+  );
+}
+
+async function testSecurityHeaders() {
+  section("Security — defensive headers");
+  const t = await timed(async () => {
+    const r = await fetch(`${ENGINE_URL}/api/health`);
+    const headers = {};
+    r.headers.forEach((v, k) => {
+      headers[k.toLowerCase()] = v;
+    });
+    return { headers };
+  });
+  const h = t.result?.headers || {};
+  record(
+    "security-headers",
+    "X-Content-Type-Options: nosniff",
+    h["x-content-type-options"] === "nosniff",
+    `value=${h["x-content-type-options"]}`,
+    t.durationMs,
+  );
+  record(
+    "security-headers",
+    "X-Frame-Options set (SAMEORIGIN)",
+    h["x-frame-options"] === "SAMEORIGIN" || h["x-frame-options"] === "DENY",
+    `value=${h["x-frame-options"]}`,
+  );
+  record(
+    "security-headers",
+    "Referrer-Policy + Permissions-Policy set",
+    !!h["referrer-policy"] && !!h["permissions-policy"],
+    `referrer=${h["referrer-policy"]} permissions=${h["permissions-policy"]}`,
+  );
+}
+
+async function testRequestTooLarge() {
+  section("Robustness — REQUEST_TOO_LARGE envelope");
+  if (QUICK) {
+    record("body-limit", "skipped (--quick)", true);
+    return;
+  }
+  // Generate an 11MB JSON payload — exceeds the engine's 10mb limit.
+  const padding = "x".repeat(11 * 1024 * 1024);
+  const t = await timed(async () => {
+    const r = await fetch(`${ENGINE_URL}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: padding,
+        sessionId: "harness-413",
+        groupId: "default",
+      }),
+    });
+    return { status: r.status, body: await r.json().catch(() => null) };
+  });
+  record(
+    "body-limit",
+    "11MB body returns 413 REQUEST_TOO_LARGE envelope",
+    t.result?.status === 413 &&
+      t.result?.body?.code === "REQUEST_TOO_LARGE" &&
+      typeof t.result?.body?.details?.limit === "number",
+    `status=${t.result?.status} code=${t.result?.body?.code} limit=${t.result?.body?.details?.limit}`,
+    t.durationMs,
+  );
+}
+
 // ─── Robustness: data-source health monitor ──────────────────────────────
 
 async function testSourceHealth() {
@@ -1525,6 +1631,9 @@ async function main() {
   await testSchemaDrift();
   await testErrorEnvelope();
   await testQueryCache();
+  await testMetricsEndpoint();
+  await testSecurityHeaders();
+  await testRequestTooLarge();
   await testSourceHealth();
   await testReadinessProbe();
   await testConcurrentRetrain();

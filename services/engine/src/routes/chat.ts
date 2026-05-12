@@ -10,6 +10,7 @@ import { paths } from "@/lib/env-config";
 import { logAudit } from "@/lib/audit-logger";
 import { sendError, ErrorCodes } from "@/lib/error-envelope";
 import { ApiConnectionError, CircuitOpenError } from "@/lib/errors";
+import { incCounter, observeHistogram } from "@/lib/metrics";
 
 /**
  * Wall-clock budget for a single /api/chat request. Default 30s; can
@@ -350,6 +351,22 @@ chatRouter.post("/", async (req: Request, res: Response) => {
       "Chat request completed",
     );
 
+    // Prometheus instrumentation — keep label cardinality bounded:
+    // intent is from a fixed-set INTENTS enum; group is bounded by
+    // configured groups; status is success|error. Don't add high-
+    // cardinality fields here (queryName, sessionId) — they'd blow
+    // up the scrape size.
+    incCounter("chat_requests_total", {
+      intent: String(response.intent || "unknown"),
+      status: "success",
+      group: groupId,
+    });
+    if (typeof elapsed === "number") {
+      observeHistogram("chat_request_duration_seconds", elapsed / 1000, {
+        group: groupId,
+      });
+    }
+
     broadcastEvent("chat_message", {
       timestamp: new Date().toISOString(),
       intent: response.intent,
@@ -383,6 +400,11 @@ chatRouter.post("/", async (req: Request, res: Response) => {
         error instanceof ChatRequestTimeoutError
           ? `The request exceeded the ${CHAT_REQUEST_TIMEOUT_MS}ms budget. The data source may be slow.`
           : "The data source is currently unreachable.";
+      incCounter("chat_requests_total", {
+        intent: "unknown",
+        status: "source_unavailable",
+        group: ctx?.groupId || "default",
+      });
       return sendError(
         res,
         503,
@@ -391,6 +413,11 @@ chatRouter.post("/", async (req: Request, res: Response) => {
         { retryable: true },
       );
     }
+    incCounter("chat_requests_total", {
+      intent: "unknown",
+      status: "error",
+      group: ctx?.groupId || "default",
+    });
     return sendError(
       res,
       500,
