@@ -17,6 +17,8 @@
     "lint:fix:all": "npm run lint:fix && cd services/engine && npm run lint:fix",
     "test": "jest",
     "test:watch": "jest --watch",
+    "validate:demo": "node scripts/demo/validate.mjs",
+    "validate:demo:quick": "node scripts/demo/validate.mjs --quick",
     "dev:mock": "dotenv -e .env.mock -- concurrently --restart-tries 3 --restart-after 2000 -n mock,engine,ui -c yellow,blue,green \"npm run svc:mock-api\" \"cd services/engine && npm run dev\" \"npx next dev -p 3001\"",
     "dev:mock:3svc": "dotenv -e .env.mock -- concurrently --restart-tries 3 --restart-after 2000 -n mock,engine,ui -c yellow,blue,green \"npm run svc:mock-api\" \"cd services/engine && npm run dev\" \"npx next dev -p 3001\"",
     "dev": "dotenv -e .env.dev -- concurrently --restart-tries 3 --restart-after 2000 -n engine,ui -c blue,green \"cd services/engine && npm run dev\" \"npx next dev -p 3001\"",

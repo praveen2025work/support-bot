@@ -140,10 +140,44 @@ export class ChatbotEngine {
         hasQueryContext,
       );
 
+      // A "looks like follow-up" message is one that structurally matches
+      // a known data-operation regex (group_by, sort, summary, top_n,
+      // filter, analysis, etc.) AND the session has a live query result
+      // to operate on. When both are true we ALWAYS prefer follow-up
+      // routing over either the disambig short-circuit or the below-floor
+      // bail-out, because the regex parser is strict — if it can't pin a
+      // column / value, we fall through naturally.
+      //
+      // Without this, drift in NLP confidence from the learning loop can
+      // push a perfectly clear follow-up like "for each feedname" into
+      // the [0.4, 0.5) disambig band and surface chips for unrelated
+      // queries (e.g. "query.execute:0.46"). That's worse UX than just
+      // running the follow-up.
+      const looksLikeFollowUp =
+        hasQueryContext &&
+        (GROUP_BY_PATTERN.test(processedText) ||
+          SORT_PATTERN.test(processedText) ||
+          AGGREGATION_PATTERN.test(processedText) ||
+          TOP_BOTTOM_PATTERN.test(processedText) ||
+          SUMMARY_PATTERN.test(processedText) ||
+          VALUE_COMPARE_PATTERN.test(processedText) ||
+          ANALYSIS_PATTERN.test(processedText) ||
+          COMPUTED_COLUMN_PATTERN.test(processedText) ||
+          PERIOD_OVER_PERIOD_PATTERN.test(processedText) ||
+          AGG_COMPUTED_PATTERN.test(processedText) ||
+          FILTER_FOLLOWUP_PATTERN.test(processedText));
+
       // Disambiguation band: NLP top score landed in [NLP_DISAMBIG_FLOOR,
       // NLP_CONFIDENCE_THRESHOLD). Short-circuit before the response generator
       // and return chips instead of guessing the wrong query.
-      if (classification.disambiguationCandidates?.length) {
+      // Exception: when the message looks like a follow-up on a live
+      // result, prefer follow-up routing — the chips would be for unrelated
+      // top-level queries (e.g. "query.execute:0.46") that the user
+      // definitely doesn't want.
+      if (
+        classification.disambiguationCandidates?.length &&
+        !looksLikeFollowUp
+      ) {
         const disambigResponse = await this.buildDisambiguationResponse(
           message,
           classification,
@@ -161,31 +195,7 @@ export class ChatbotEngine {
 
       // Below-floor: top score < NLP_DISAMBIG_FLOOR — no candidates worth
       // surfacing. Render the locked "I don't understand" microcopy.
-      //
-      // Exception: when the user has an active query context AND the message
-      // looks like a follow-up operation ("split by region", "for each X",
-      // "rank by Y", etc.), short-circuiting hides a perfectly recoverable
-      // request. The follow-up regex gates in the response generator already
-      // act as a strict guard — if they don't match, we'll fall through to
-      // the floor-style message downstream. So skip the floor when the
-      // message is a likely follow-up on a live result set.
-      const hasFollowUpContext = !!(
-        context.lastQueryName && context.lastApiResult
-      );
-      const looksLikeFollowUp =
-        hasFollowUpContext &&
-        (GROUP_BY_PATTERN.test(processedText) ||
-          SORT_PATTERN.test(processedText) ||
-          AGGREGATION_PATTERN.test(processedText) ||
-          TOP_BOTTOM_PATTERN.test(processedText) ||
-          SUMMARY_PATTERN.test(processedText) ||
-          VALUE_COMPARE_PATTERN.test(processedText) ||
-          ANALYSIS_PATTERN.test(processedText) ||
-          COMPUTED_COLUMN_PATTERN.test(processedText) ||
-          PERIOD_OVER_PERIOD_PATTERN.test(processedText) ||
-          AGG_COMPUTED_PATTERN.test(processedText) ||
-          FILTER_FOLLOWUP_PATTERN.test(processedText));
-
+      // Same exception as the disambig path above.
       if (
         classification.intent !== "None" &&
         classification.confidence < NLP_DISAMBIG_FLOOR &&
