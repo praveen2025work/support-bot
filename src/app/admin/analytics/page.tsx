@@ -24,6 +24,29 @@ interface AggregatedStat {
   p95Ms: number;
 }
 
+interface MissedUtterance {
+  normalizedText: string;
+  count: number;
+  samples: string[];
+  lastSeen: string;
+  topDetectedIntent: string;
+  avgConfidence: number;
+}
+
+interface NlpMissesPayload {
+  groupId: string;
+  totalInteractions: number;
+  missCount: number;
+  missRate: number;
+  intentDistribution: { intent: string; count: number; pct: number }[];
+  confidenceDistribution: { bucket: string; count: number }[];
+  topMissedUtterances: MissedUtterance[];
+  retryRate: number;
+  thresholds: { disambigFloor: number; retryWindowMs: number };
+}
+
+const NLP_GROUPS = ["default", "finance", "engineering", "analytics"];
+
 export default function AnalyticsPage() {
   const [stats, setStats] = useState<QueryStat[]>([]);
   const [aggregated, setAggregated] = useState<AggregatedStat[]>([]);
@@ -31,6 +54,9 @@ export default function AnalyticsPage() {
   const [filterQuery, setFilterQuery] = useState("");
   const [timeRange, setTimeRange] = useState("all");
   const { events: liveEvents, connected: sseConnected } = useSSE("/api/events");
+  const [nlpGroup, setNlpGroup] = useState("default");
+  const [nlpMisses, setNlpMisses] = useState<NlpMissesPayload | null>(null);
+  const [nlpLoading, setNlpLoading] = useState(false);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -63,6 +89,33 @@ export default function AnalyticsPage() {
     const interval = setInterval(fetchStats, 10000);
     return () => clearInterval(interval);
   }, [fetchStats]);
+
+  const fetchNlpMisses = useCallback(async () => {
+    setNlpLoading(true);
+    try {
+      const params = new URLSearchParams({ groupId: nlpGroup });
+      if (timeRange !== "all") {
+        const since = new Date();
+        if (timeRange === "1h") since.setHours(since.getHours() - 1);
+        else if (timeRange === "24h") since.setDate(since.getDate() - 1);
+        else if (timeRange === "7d") since.setDate(since.getDate() - 7);
+        params.set("since", since.toISOString());
+      }
+      const res = await fetch(
+        `/api/admin/analytics/nlp-misses?${params.toString()}`,
+      );
+      if (res.ok) setNlpMisses(await res.json());
+      else setNlpMisses(null);
+    } catch {
+      setNlpMisses(null);
+    } finally {
+      setNlpLoading(false);
+    }
+  }, [nlpGroup, timeRange]);
+
+  useEffect(() => {
+    void fetchNlpMisses();
+  }, [fetchNlpMisses]);
 
   const totalExecs = aggregated.reduce((s, a) => s + a.totalExecutions, 0);
   const totalFails = aggregated.reduce((s, a) => s + a.failureCount, 0);
@@ -403,6 +456,196 @@ export default function AnalyticsPage() {
             </table>
           )}
         </div>
+      </div>
+
+      {/* NLP misses — what the bot couldn't answer */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mt-6">
+        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700">
+              NLP misses — what users typed that the bot couldn&apos;t answer
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Aggregated from interactions.jsonl. Confidence below{" "}
+              {nlpMisses
+                ? `${(nlpMisses.thresholds.disambigFloor * 100).toFixed(0)}%`
+                : "the disambiguation floor"}{" "}
+              counts as a miss.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={nlpGroup}
+              onChange={(e) => setNlpGroup(e.target.value)}
+              className="text-sm border border-gray-300 rounded-lg px-3 py-1.5"
+            >
+              {NLP_GROUPS.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={fetchNlpMisses}
+              className="text-sm text-blue-600 hover:underline"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {nlpLoading ? (
+          <div className="p-6 text-sm text-gray-500">
+            Loading NLP analytics...
+          </div>
+        ) : !nlpMisses ? (
+          <div className="p-6 text-sm text-gray-500">
+            No interactions logged yet for this group.
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-4 gap-4 p-4 border-b border-gray-100">
+              <div>
+                <div className="text-xs text-gray-500 uppercase tracking-wide">
+                  Interactions
+                </div>
+                <div className="text-xl font-bold text-gray-900 mt-1">
+                  {nlpMisses.totalInteractions}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500 uppercase tracking-wide">
+                  Misses
+                </div>
+                <div
+                  className={`text-xl font-bold mt-1 ${nlpMisses.missCount > 0 ? "text-amber-600" : "text-green-600"}`}
+                >
+                  {nlpMisses.missCount}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500 uppercase tracking-wide">
+                  Miss Rate
+                </div>
+                <div
+                  className={`text-xl font-bold mt-1 ${nlpMisses.missRate > 0.1 ? "text-red-600" : "text-gray-900"}`}
+                >
+                  {(nlpMisses.missRate * 100).toFixed(1)}%
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500 uppercase tracking-wide">
+                  Retry Rate
+                </div>
+                <div className="text-xl font-bold text-gray-900 mt-1">
+                  {(nlpMisses.retryRate * 100).toFixed(1)}%
+                </div>
+              </div>
+            </div>
+
+            {nlpMisses.topMissedUtterances.length > 0 && (
+              <div className="px-4 py-3 border-b border-gray-100">
+                <div className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
+                  Top missed phrases
+                </div>
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-left text-gray-500 border-b border-gray-100">
+                      <th className="px-2 py-1">Phrase (normalized)</th>
+                      <th className="px-2 py-1 text-right">Count</th>
+                      <th className="px-2 py-1">Detected as</th>
+                      <th className="px-2 py-1 text-right">Avg conf</th>
+                      <th className="px-2 py-1">Last seen</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {nlpMisses.topMissedUtterances.map((m) => (
+                      <tr
+                        key={m.normalizedText}
+                        className="border-b border-gray-50 hover:bg-gray-50/50"
+                      >
+                        <td className="px-2 py-1 font-mono text-gray-800">
+                          {m.normalizedText}
+                        </td>
+                        <td className="px-2 py-1 text-right font-medium">
+                          {m.count}
+                        </td>
+                        <td className="px-2 py-1 font-mono text-gray-600">
+                          {m.topDetectedIntent}
+                        </td>
+                        <td className="px-2 py-1 text-right text-gray-600">
+                          {(m.avgConfidence * 100).toFixed(0)}%
+                        </td>
+                        <td className="px-2 py-1 text-gray-500">
+                          {new Date(m.lastSeen).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4 p-4">
+              <div>
+                <div className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
+                  Confidence distribution
+                </div>
+                <div className="space-y-1">
+                  {nlpMisses.confidenceDistribution.map((b) => {
+                    const max = Math.max(
+                      1,
+                      ...nlpMisses.confidenceDistribution.map((x) => x.count),
+                    );
+                    const pct = (b.count / max) * 100;
+                    return (
+                      <div
+                        key={b.bucket}
+                        className="flex items-center gap-2 text-xs"
+                      >
+                        <div className="w-16 text-gray-500 font-mono">
+                          {b.bucket}
+                        </div>
+                        <div className="flex-1 bg-gray-100 rounded h-3 overflow-hidden">
+                          <div
+                            className="bg-blue-500 h-full"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <div className="w-10 text-right text-gray-700 font-medium">
+                          {b.count}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
+                  Intent distribution (top 8)
+                </div>
+                <div className="space-y-1">
+                  {nlpMisses.intentDistribution.slice(0, 8).map((d) => (
+                    <div
+                      key={d.intent}
+                      className="flex items-center gap-2 text-xs"
+                    >
+                      <div className="flex-1 font-mono text-gray-700 truncate">
+                        {d.intent}
+                      </div>
+                      <div className="text-gray-500">
+                        {(d.pct * 100).toFixed(0)}%
+                      </div>
+                      <div className="w-10 text-right font-medium text-gray-800">
+                        {d.count}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
