@@ -45,13 +45,24 @@ data/audit/
 # noisy diffs and accidental commits of dev session contents.
 services/engine/data/learning/**/*.jsonl
 services/engine/data/learning/**/signal-aggregates.json
+services/engine/data/learning/**/synonyms.json
 services/engine/data/sessions/
 services/engine/data/logs/
 services/engine/data/audit/audit.jsonl
+# Rotated audit / interaction / conversation files produced by the
+# rotating-jsonl helper at the 10MB threshold (audit.<ts>.jsonl,
+# interactions.<ts>.jsonl, conversations.<ts>.jsonl, etc).
+services/engine/data/**/*.[0-9]*.jsonl
 services/engine/data/preferences/*.json
 services/engine/data/anomaly/**/history.jsonl
 services/engine/data/anomaly/**/snapshots.jsonl
+services/engine/data/anomaly/**/baselines.json
+services/engine/data/anomaly/**/seasonal-baselines.json
 services/engine/data/watch/**/alerts.jsonl
+# Schema-drift baselines — regenerated on first query against each (group, query)
+services/engine/data/schema/
+# Shareable view snapshots — runtime user-generated state
+services/engine/data/views/
 
 # tool artifacts (per-user, not project)
 .playwright-mcp/
