@@ -73,11 +73,11 @@ async function getHtml(url) {
   return { ok: res.ok, status: res.status, contentType: res.headers.get("content-type") };
 }
 
-async function postChat(text, sessionId, groupId, extra) {
+async function postChat(text, sessionId, groupId, extra, headers) {
   const body = { text, sessionId, groupId, ...(extra || {}) };
   const res = await fetch(`${NEXT_URL}/api/chat`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(headers || {}) },
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => null);
@@ -687,6 +687,45 @@ async function testPiiMasking() {
     "bot text notes masking applied",
     /PII column.*masked/i.test(text),
     `text="${text.slice(0, 120)}"`,
+  );
+
+  // Admin role → unmasked + audited. The bot text changes to "shown
+  // UNMASKED — audited" and rows carry CLEAR values. Verifies the
+  // role-based unmask path end-to-end.
+  const adminSid = `validation-pii-admin-${Date.now()}`;
+  const adminRes = await timed(() =>
+    postChat(
+      "run employee_metrics",
+      adminSid,
+      "hr_team",
+      { explicitFilters: {} },
+      { "x-user-role": "admin" },
+    ),
+  );
+  const adminD = adminRes.result?.data;
+  const adminData = adminD?.richContent?.data;
+  const adminFirst = adminData?.rows?.[0];
+  const adminText = String(adminD?.text || "");
+  record(
+    "pii",
+    "admin role → unmasked clear values",
+    typeof adminFirst?.name === "string" &&
+      !/\*/.test(adminFirst.name) &&
+      typeof adminFirst?.salary === "number",
+    `name=${JSON.stringify(adminFirst?.name)} salary=${JSON.stringify(adminFirst?.salary)}`,
+    adminRes.durationMs,
+  );
+  record(
+    "pii",
+    "admin role → bot text says 'shown UNMASKED — audited'",
+    /UNMASKED.*audited/i.test(adminText),
+    `text="${adminText.slice(-120)}"`,
+  );
+  record(
+    "pii",
+    "admin role → piiSummary.unmasked=true",
+    adminData?.piiSummary?.unmasked === true,
+    `unmasked=${adminData?.piiSummary?.unmasked}`,
   );
 }
 

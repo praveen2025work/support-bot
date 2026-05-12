@@ -38,6 +38,8 @@ import { getAnomalyDetector } from "../../anomaly/anomaly-detector";
 import { addToDictionary } from "../../nlp/typo-corrector";
 import { detectPii } from "../../pii/detector";
 import { applyPiiMasking } from "../../pii/masker";
+import { checkPermission, isValidRole, type Role } from "../../../lib/rbac";
+import { logAudit } from "../../../lib/audit-logger";
 
 /**
  * Strip columns listed in columnConfig.ignoreColumns from CSV headers and rows
@@ -832,45 +834,93 @@ export async function handleQueryExecute(
 
       case "csv": {
         const csv = result.csvResult!;
-        // PII detection + masking runs ONCE per query result, before any
-        // follow-up handler reads the rows. Masking the rows in place
-        // means group-by / drill-down / export all inherit the masked
-        // values automatically. An ops escape hatch (PII_MASKING_DISABLED=
-        // true) is provided for break-glass investigations; that path
-        // should always be paired with an audit log entry — wired in
-        // a follow-up commit, currently relies on existing chat audit.
+        // PII detection runs unconditionally; masking is gated on the
+        // caller's role. Resolution order for "can this caller see
+        // clear PII?":
+        //   1. env PII_MASKING_DISABLED=true (ops escape hatch — every
+        //      caller gets clear; logs warn so it's not silent).
+        //   2. caller role passes the `pii.view` permission check
+        //      (currently: role >= admin). Clear values returned AND
+        //      an audit-log entry records (queryName, columns, kinds,
+        //      userId, sessionId) for compliance forensics.
+        //   3. otherwise — mask.
+        //
+        // Detection always runs so we know what we'd be exposing; the
+        // detection summary is attached either way.
         let piiSummary:
           | {
               byColumn: Record<string, string>;
               count: number;
               signals: Record<string, "header" | "value" | "both">;
+              unmasked?: boolean;
             }
           | undefined;
-        if (
-          process.env.PII_MASKING_DISABLED !== "true" &&
-          csv.rows.length > 0
-        ) {
+        if (csv.rows.length > 0) {
           const detection = detectPii({
             headers: csv.headers,
             rows: csv.rows,
           });
           if (detection.count > 0) {
-            const masked = applyPiiMasking(
-              { headers: csv.headers, rows: csv.rows },
-              detection.byColumn,
-            );
-            csv.rows = masked.rows;
+            const opsBypass = process.env.PII_MASKING_DISABLED === "true";
+            const roleHeader = incomingHeaders?.["x-user-role"];
+            const role: Role =
+              roleHeader && isValidRole(roleHeader)
+                ? (roleHeader as Role)
+                : "viewer";
+            const roleCanView = checkPermission(role, "pii.view");
+            const showClear = opsBypass || roleCanView;
+
+            if (!showClear) {
+              const masked = applyPiiMasking(
+                { headers: csv.headers, rows: csv.rows },
+                detection.byColumn,
+              );
+              csv.rows = masked.rows;
+            } else {
+              // Audited clear-text view. Compliance-grade: column list +
+              // kinds + caller + query give forensics what they need.
+              // logAudit is fire-and-forget — never fail the request on
+              // a logging error.
+              logAudit({
+                action: "read",
+                resource: "pii-clear",
+                resourceId: queryNameEntity.value,
+                groupId,
+                userId: context.sessionId,
+                details: {
+                  columns: Object.keys(detection.byColumn),
+                  kinds: detection.byColumn,
+                  bypassReason: opsBypass ? "env" : `role:${role}`,
+                },
+              }).catch(() => {
+                /* audit best-effort */
+              });
+              logger.warn(
+                {
+                  queryName: queryNameEntity.value,
+                  piiColumns: Object.keys(detection.byColumn),
+                  role,
+                  bypassReason: opsBypass ? "env" : `role:${role}`,
+                },
+                "PII clear-text view granted",
+              );
+            }
+
             piiSummary = {
               byColumn: detection.byColumn,
               count: detection.count,
               signals: detection.signals,
+              ...(showClear && { unmasked: true }),
             };
             logger.info(
               {
                 queryName: queryNameEntity.value,
                 piiColumns: Object.keys(detection.byColumn),
+                masked: !showClear,
               },
-              "PII masking applied",
+              showClear
+                ? "PII detected (unmasked path)"
+                : "PII masking applied",
             );
           }
         }
@@ -951,12 +1001,17 @@ export async function handleQueryExecute(
             anomalies,
           };
         }
-        // PII suffix: when masking ran, append a one-line note to the
-        // bot text so it's visible in the chat transcript. The UI can
-        // also key off richContent.data.piiSummary to render a more
-        // prominent badge (future commit).
+        // PII suffix: tells the user what the bot did with PII columns
+        // in their result — masked (default) or clear (audited admin
+        // view). The UI can also key off richContent.data.piiSummary
+        // to render a more prominent badge.
+        const piiCols = piiSummary
+          ? Object.keys(piiSummary.byColumn).join(", ")
+          : "";
         const piiNote = piiSummary
-          ? ` _(${piiSummary.count} PII column${piiSummary.count === 1 ? "" : "s"} masked: ${Object.keys(piiSummary.byColumn).join(", ")})_`
+          ? piiSummary.unmasked
+            ? ` _(${piiSummary.count} PII column${piiSummary.count === 1 ? "" : "s"} shown UNMASKED — audited: ${piiCols})_`
+            : ` _(${piiSummary.count} PII column${piiSummary.count === 1 ? "" : "s"} masked: ${piiCols})_`
           : "";
         return {
           text:

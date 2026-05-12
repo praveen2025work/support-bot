@@ -123,6 +123,12 @@ chatRouter.post("/", async (req: Request, res: Response) => {
     if (req.headers["cookie"]) {
       incomingHeaders["cookie"] = req.headers["cookie"] as string;
     }
+    // Role header — drives PII clear-text view permission downstream.
+    // Default to "viewer" when missing so masking is the safe default;
+    // privileged callers (admin) explicitly opt in via the header.
+    if (req.headers["x-user-role"]) {
+      incomingHeaders["x-user-role"] = req.headers["x-user-role"] as string;
+    }
 
     // Follow-up chain: process initial query + all follow-ups server-side,
     // returning only the final result (avoids sequential round-trips)
