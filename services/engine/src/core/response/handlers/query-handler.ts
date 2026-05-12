@@ -42,6 +42,13 @@ import { checkPermission, isValidRole, type Role } from "../../../lib/rbac";
 import { logAudit } from "../../../lib/audit-logger";
 import { loadSchema, saveSchema } from "../../schema/registry";
 import { detectDrift, formatDriftMessage } from "../../schema/drift-detector";
+import {
+  buildQueryCacheKey,
+  getCachedResult,
+  setCachedResult,
+  buildCacheStatus,
+  isCacheBust,
+} from "../../cache/query-cache";
 
 /**
  * Strip columns listed in columnConfig.ignoreColumns from CSV headers and rows
@@ -529,13 +536,48 @@ export async function handleQueryExecute(
     classification,
   );
 
+  // ── Query-level result cache ────────────────────────────────────────
+  // Key on (group, query, filters). We only cache when there are NO
+  // text-driven options (group_by phrase, sort phrase, aggregation
+  // phrase) attached — those mutate the result and the in-context
+  // follow-up handlers do that work locally anyway. Users can bust
+  // explicitly with "refresh X" / "fresh X" / "X live".
+  const cacheBust = isCacheBust(userText);
+  const eligibleForCache = !options && !cacheBust;
+  const cacheKey = eligibleForCache
+    ? buildQueryCacheKey(
+        groupId ?? "default",
+        queryNameEntity.value,
+        hasFilters ? filters : undefined,
+      )
+    : null;
+  let cacheStatus: ReturnType<typeof buildCacheStatus> | undefined;
+  let cacheHit = false;
+
   try {
-    const result = await queryService.executeQuery(
-      queryNameEntity.value,
-      hasFilters ? filters : undefined,
-      options,
-      incomingHeaders,
-    );
+    let result;
+    if (cacheKey) {
+      const cached = getCachedResult(cacheKey);
+      if (cached) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        result = cached.payload as any;
+        cacheStatus = buildCacheStatus("cached", cached.cachedAt);
+        cacheHit = true;
+        logger.debug({ cacheKey, ageMs: cacheStatus.ageMs }, "Query cache hit");
+      }
+    }
+    if (!result) {
+      result = await queryService.executeQuery(
+        queryNameEntity.value,
+        hasFilters ? filters : undefined,
+        options,
+        incomingHeaders,
+      );
+      if (cacheKey) {
+        setCachedResult(cacheKey, result);
+        cacheStatus = buildCacheStatus("fresh", new Date().toISOString());
+      }
+    }
 
     const execMs = result.durationMs;
 
@@ -839,7 +881,9 @@ export async function handleQueryExecute(
 
         // Schema drift detection runs FIRST (before any column-mutating
         // step like PII masking or ignored-column stripping) so the
-        // comparison is against the raw source schema. We:
+        // comparison is against the raw source schema. Skip entirely
+        // on cache hit — the cached result is bit-identical to what
+        // we stored, so re-diffing would be a no-op anyway. We:
         //   1. Load last-known schema for (groupId, queryName)
         //   2. Diff against current csv.headers
         //   3. Persist the current schema as the new baseline UNLESS
@@ -857,72 +901,77 @@ export async function handleQueryExecute(
               message: string;
             }
           | undefined;
-        try {
-          const groupForSchema = groupId || "default";
-          const prior = await loadSchema(groupForSchema, queryNameEntity.value);
-          const drift = detectDrift(prior?.columns ?? null, csv.headers);
-          if (drift && drift.hasChange) {
-            schemaDriftSummary = {
-              added: drift.added,
-              removed: drift.removed,
-              ...(drift.reorderedFrom && {
-                reorderedFrom: drift.reorderedFrom,
-              }),
-              message: formatDriftMessage(drift),
-            };
-            // Persist with the drift flag set so the admin endpoint can
-            // surface it without rediffing.
-            await saveSchema({
-              groupId: groupForSchema,
-              queryName: queryNameEntity.value,
-              columns: [...csv.headers],
-              observedAt: new Date().toISOString(),
-              driftFlaggedAt: new Date().toISOString(),
-              lastDrift: {
+        if (!cacheHit) {
+          try {
+            const groupForSchema = groupId || "default";
+            const prior = await loadSchema(
+              groupForSchema,
+              queryNameEntity.value,
+            );
+            const drift = detectDrift(prior?.columns ?? null, csv.headers);
+            if (drift && drift.hasChange) {
+              schemaDriftSummary = {
                 added: drift.added,
                 removed: drift.removed,
                 ...(drift.reorderedFrom && {
                   reorderedFrom: drift.reorderedFrom,
                 }),
-              },
-            });
-            await logAudit({
-              action: "update",
-              resource: "schema-drift",
-              resourceId: queryNameEntity.value,
-              groupId: groupForSchema,
-              details: {
-                added: drift.added,
-                removed: drift.removed,
-                reorderedFrom: drift.reorderedFrom,
-              },
-            }).catch(() => {
-              /* best-effort */
-            });
-            logger.warn(
-              {
+                message: formatDriftMessage(drift),
+              };
+              // Persist with the drift flag set so the admin endpoint can
+              // surface it without rediffing.
+              await saveSchema({
+                groupId: groupForSchema,
                 queryName: queryNameEntity.value,
-                drift: schemaDriftSummary.message,
-              },
-              "Schema drift detected",
+                columns: [...csv.headers],
+                observedAt: new Date().toISOString(),
+                driftFlaggedAt: new Date().toISOString(),
+                lastDrift: {
+                  added: drift.added,
+                  removed: drift.removed,
+                  ...(drift.reorderedFrom && {
+                    reorderedFrom: drift.reorderedFrom,
+                  }),
+                },
+              });
+              await logAudit({
+                action: "update",
+                resource: "schema-drift",
+                resourceId: queryNameEntity.value,
+                groupId: groupForSchema,
+                details: {
+                  added: drift.added,
+                  removed: drift.removed,
+                  reorderedFrom: drift.reorderedFrom,
+                },
+              }).catch(() => {
+                /* best-effort */
+              });
+              logger.warn(
+                {
+                  queryName: queryNameEntity.value,
+                  drift: schemaDriftSummary.message,
+                },
+                "Schema drift detected",
+              );
+            } else if (!prior) {
+              // First time we've seen this query — establish a baseline
+              // silently. No drift surfaced.
+              await saveSchema({
+                groupId: groupForSchema,
+                queryName: queryNameEntity.value,
+                columns: [...csv.headers],
+                observedAt: new Date().toISOString(),
+              });
+            }
+          } catch (err) {
+            // Schema drift is best-effort observability — never fail
+            // the query because the registry had a hiccup.
+            logger.warn(
+              { err, queryName: queryNameEntity.value },
+              "Schema drift detector threw — continuing without drift report",
             );
-          } else if (!prior) {
-            // First time we've seen this query — establish a baseline
-            // silently. No drift surfaced.
-            await saveSchema({
-              groupId: groupForSchema,
-              queryName: queryNameEntity.value,
-              columns: [...csv.headers],
-              observedAt: new Date().toISOString(),
-            });
           }
-        } catch (err) {
-          // Schema drift is best-effort observability — never fail
-          // the query because the registry had a hiccup.
-          logger.warn(
-            { err, queryName: queryNameEntity.value },
-            "Schema drift detector threw — continuing without drift report",
-          );
         }
 
         // PII detection runs unconditionally; masking is gated on the
@@ -1070,7 +1119,11 @@ export async function handleQueryExecute(
                   .join(", ")}`
               : "";
           return {
-            text: `No rows returned from "${queryNameEntity.value}"${filterDesc}. Try broadening your filters or running \`list queries\` to see what else is available.`,
+            text:
+              `No rows returned from "${queryNameEntity.value}"${filterDesc}. Try broadening your filters or running \`list queries\` to see what else is available.` +
+              (cacheStatus?.status === "cached"
+                ? ` _(cached ${Math.round(cacheStatus.ageMs / 1000)}s ago)_`
+                : ""),
             richContent: {
               type: "csv_table",
               data: {
@@ -1078,6 +1131,7 @@ export async function handleQueryExecute(
                 ...(chartConfig && { chartConfig }),
                 ...(columnConfig && { columnConfig }),
                 ...(columnMetadata && { columnMetadata }),
+                ...(cacheStatus && { cacheStatus }),
               },
             },
             suggestions: ["List queries", `Run ${queryNameEntity.value}`],
@@ -1110,13 +1164,20 @@ export async function handleQueryExecute(
         const driftNote = schemaDriftSummary
           ? ` _⚠ Schema drift: ${schemaDriftSummary.message}_`
           : "";
+        // Cache suffix — only when the answer came from cache. Fresh
+        // hits stay silent so the chat doesn't get noisy.
+        const cacheNote =
+          cacheStatus?.status === "cached"
+            ? ` _(cached ${Math.round(cacheStatus.ageMs / 1000)}s ago — say "refresh ${queryNameEntity.value}" to bypass)_`
+            : "";
         return {
           text:
             (totalRowCount
               ? `Here is the data from "${queryNameEntity.value}" (showing first ${displayedRows} of ${totalRowCount} rows):`
               : `Here is the data from "${queryNameEntity.value}" (${csv.rowCount} rows):`) +
             piiNote +
-            driftNote,
+            driftNote +
+            cacheNote,
           richContent: {
             type: "csv_table",
             data: {
@@ -1126,6 +1187,7 @@ export async function handleQueryExecute(
               ...(columnMetadata && { columnMetadata }),
               ...(piiSummary && { piiSummary }),
               ...(schemaDriftSummary && { schemaDrift: schemaDriftSummary }),
+              ...(cacheStatus && { cacheStatus }),
             },
           },
           sessionId: context.sessionId,

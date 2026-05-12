@@ -559,6 +559,121 @@ async function testEdgeCases() {
   );
 }
 
+// ─── Robustness: error envelope + query cache ────────────────────────────
+
+async function testErrorEnvelope() {
+  section("Robustness — structured error envelope");
+
+  // Invalid message — no text field
+  const bad = await timed(async () => {
+    const r = await fetch(`${NEXT_URL}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: "harness-err", groupId: "default" }),
+    });
+    return { ok: r.ok, status: r.status, body: await r.json().catch(() => null) };
+  });
+  const env = bad.result?.body;
+  record(
+    "error-envelope",
+    "invalid message returns {error, code, requestId}",
+    bad.result?.status === 400 &&
+      typeof env?.error === "string" &&
+      env?.code === "INVALID_MESSAGE" &&
+      typeof env?.requestId === "string",
+    `status=${bad.result?.status} code=${env?.code} requestId=${env?.requestId?.slice(0, 8)}`,
+    bad.durationMs,
+  );
+
+  // Engine-direct 404 — verifies the global notFoundHandler envelope.
+  const nf = await timed(async () => {
+    const r = await fetch(`${ENGINE_URL}/api/does_not_exist`);
+    return { ok: r.ok, status: r.status, body: await r.json().catch(() => null) };
+  });
+  record(
+    "error-envelope",
+    "404 fallback returns code=NOT_FOUND",
+    nf.result?.status === 404 && nf.result?.body?.code === "NOT_FOUND",
+    `status=${nf.result?.status} body=${JSON.stringify(nf.result?.body)?.slice(0, 80)}`,
+    nf.durationMs,
+  );
+}
+
+async function testQueryCache() {
+  section("Robustness — per-query result cache");
+  if (QUICK) {
+    record("query-cache", "skipped (--quick)", true);
+    return;
+  }
+  const sid = `validation-cache-${Date.now()}`;
+
+  // Pick a fresh filter combo so previous harness runs don't pollute.
+  const filters = { region: `_CACHE_TEST_${Date.now() % 1000}` };
+
+  const fresh = await timed(() =>
+    postChat("run pnl_lineage", `${sid}-1`, "finance", {
+      explicitFilters: filters,
+    }),
+  );
+  const freshStatus = fresh.result?.data?.richContent?.data?.cacheStatus;
+  record(
+    "query-cache",
+    "first run → cacheStatus.status=fresh",
+    freshStatus?.status === "fresh",
+    `status=${freshStatus?.status}`,
+    fresh.durationMs,
+  );
+
+  const cached = await timed(() =>
+    postChat("run pnl_lineage", `${sid}-2`, "finance", {
+      explicitFilters: filters,
+    }),
+  );
+  const cachedStatus = cached.result?.data?.richContent?.data?.cacheStatus;
+  record(
+    "query-cache",
+    "identical request → cacheStatus.status=cached",
+    cachedStatus?.status === "cached" && typeof cachedStatus?.ageMs === "number",
+    `status=${cachedStatus?.status} ageMs=${cachedStatus?.ageMs}`,
+    cached.durationMs,
+  );
+
+  // "refresh X" — bust the cache. Eligible-for-cache is gated on
+  // !cacheBust, so this path skips the cache lookup AND the store, so
+  // cacheStatus is undefined (or "fresh" if the regex doesn't fire).
+  const refreshed = await timed(() =>
+    postChat("refresh pnl_lineage", `${sid}-3`, "finance", {
+      explicitFilters: filters,
+    }),
+  );
+  const refreshStatus =
+    refreshed.result?.data?.richContent?.data?.cacheStatus;
+  record(
+    "query-cache",
+    "'refresh X' bypasses the cache",
+    refreshStatus == null || refreshStatus.status === "fresh",
+    `status=${refreshStatus?.status}`,
+    refreshed.durationMs,
+  );
+
+  // Different filters → fresh
+  const otherFilters = { region: `_CACHE_TEST_OTHER_${Date.now() % 1000}` };
+  const otherFilter = await timed(() =>
+    postChat("run pnl_lineage", `${sid}-4`, "finance", {
+      explicitFilters: otherFilters,
+    }),
+  );
+  const otherStatus =
+    otherFilter.result?.data?.richContent?.data?.cacheStatus;
+  record(
+    "query-cache",
+    "different filters → fresh entry",
+    otherStatus?.status === "fresh",
+    `status=${otherStatus?.status}`,
+    otherFilter.durationMs,
+  );
+}
+
 // ─── Schema drift detection ──────────────────────────────────────────────
 
 async function testSchemaDrift() {
@@ -622,9 +737,15 @@ async function testSchemaDrift() {
   }
 
   // 3. Re-run the query — drift detector should flag the removal.
+  //    Use "refresh" prefix so the query-level cache (added later) is
+  //    bypassed and the engine actually re-loads the result from the
+  //    source. Without this, the cache hit on the previous identical
+  //    request would short-circuit drift detection.
   const sidDrift = `validation-drift-flag-${Date.now()}`;
   const flagged = await timed(() =>
-    postChat("run employee_metrics", sidDrift, groupId, { explicitFilters: {} }),
+    postChat("refresh employee_metrics", sidDrift, groupId, {
+      explicitFilters: {},
+    }),
   );
   const drift = flagged.result?.data?.richContent?.data?.schemaDrift;
   const flaggedText = String(flagged.result?.data?.text || "");
@@ -1151,6 +1272,8 @@ async function main() {
   await testDrillDown();
   await testPiiMasking();
   await testSchemaDrift();
+  await testErrorEnvelope();
+  await testQueryCache();
   await testSnapshots();
   await testEdgeCases();
   await testGroupIsolation();

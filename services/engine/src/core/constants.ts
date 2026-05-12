@@ -64,6 +64,13 @@ export const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
 export const API_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 export const MAX_SESSIONS = 10_000;
 
+// Per-query result cache. Short TTL by default so repeated identical
+// requests inside a single session feel snappy without serving badly
+// stale data. UI shows a "cached" badge with the age so users can
+// decide whether to refresh manually.
+export const QUERY_RESULT_CACHE_TTL_MS = 60 * 1000; // 60 seconds
+export const QUERY_RESULT_CACHE_MAX_ENTRIES = 500;
+
 // Learning pipeline constants
 export const LEARNING_CONFIDENCE_THRESHOLD = 0.4;
 export const AUTO_LEARN_PROCESS_INTERVAL = 50;

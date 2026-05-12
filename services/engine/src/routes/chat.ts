@@ -8,6 +8,7 @@ import { preferencesStore } from "@/data/user-preferences";
 import { getInteractionTracker } from "@/core/recommendations/interaction-tracker";
 import { paths } from "@/lib/env-config";
 import { logAudit } from "@/lib/audit-logger";
+import { sendError, ErrorCodes } from "@/lib/error-envelope";
 import { broadcastEvent } from "./events";
 
 export const chatRouter = Router();
@@ -41,7 +42,12 @@ chatRouter.post("/", async (req: Request, res: Response) => {
     const message = await adapter.parseIncoming(body);
 
     if (!message) {
-      return res.status(400).json({ error: "Invalid message format" });
+      return sendError(
+        res,
+        400,
+        ErrorCodes.INVALID_MESSAGE,
+        "Invalid message format",
+      );
     }
 
     // Pass feedback signals and userId through to the learning/recommendation services
@@ -75,7 +81,12 @@ chatRouter.post("/", async (req: Request, res: Response) => {
           { rawForceIntent, sessionId: body.sessionId },
           "Rejected forceIntent: not a non-empty string",
         );
-        return res.status(400).json({ error: "Invalid forceIntent" });
+        return sendError(
+          res,
+          400,
+          ErrorCodes.INVALID_FORCE_INTENT,
+          "Invalid forceIntent",
+        );
       }
       try {
         const queryRecord = await engine.findQueryByName(rawForceIntent);
@@ -98,9 +109,12 @@ chatRouter.post("/", async (req: Request, res: Response) => {
             },
             "Rejected forceIntent: query not in user's group",
           );
-          return res
-            .status(400)
-            .json({ error: "forceIntent not permitted for this group" });
+          return sendError(
+            res,
+            400,
+            ErrorCodes.INVALID_FORCE_INTENT,
+            "forceIntent not permitted for this group",
+          );
         }
         // Re-bind to the canonical name to prevent case mismatch downstream.
         forceIntent = queryRecord.name;
@@ -109,9 +123,12 @@ chatRouter.post("/", async (req: Request, res: Response) => {
           { err: validationErr, forceIntent: rawForceIntent },
           "forceIntent validation threw — failing request",
         );
-        return res
-          .status(500)
-          .json({ error: "Could not validate forceIntent" });
+        return sendError(
+          res,
+          500,
+          ErrorCodes.INTERNAL_ERROR,
+          "Could not validate forceIntent",
+        );
       }
     }
 
@@ -306,6 +323,11 @@ chatRouter.post("/", async (req: Request, res: Response) => {
         ? { message: error.message, stack: error.stack }
         : error;
     log.error({ error: err }, "Chat API error");
-    return res.status(500).json({ error: "Internal server error" });
+    return sendError(
+      res,
+      500,
+      ErrorCodes.INTERNAL_ERROR,
+      "Internal server error",
+    );
   }
 });

@@ -2,6 +2,12 @@ import express from "express";
 import path from "path";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import {
+  errorHandler,
+  notFoundHandler,
+  sendError,
+  ErrorCodes,
+} from "./lib/error-envelope";
 import { chatRouter } from "./routes/chat";
 import { adminRouter } from "./routes/admin/index";
 import { viewsRouter } from "./routes/views";
@@ -51,17 +57,29 @@ app.use(tenantContextMiddleware);
 const chatLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_CHAT || "1500", 10),
-  message: { error: "Too many requests, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (_req, res) =>
+    sendError(
+      res,
+      429,
+      ErrorCodes.RATE_LIMITED,
+      "Too many requests, please try again later",
+    ),
 });
 
 const adminLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_ADMIN || "200", 10),
-  message: { error: "Too many admin requests, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (_req, res) =>
+    sendError(
+      res,
+      429,
+      ErrorCodes.RATE_LIMITED,
+      "Too many admin requests, please try again later",
+    ),
 });
 
 // Concurrency limiter — prevents CPU saturation from too many simultaneous
@@ -128,23 +146,10 @@ app.use("/api/home-feed", homeFeedRouter);
 app.use("/api/workflows", workflowsRouter);
 app.use("/api/views", viewsRouter);
 
-// 404 handler
-app.use((_req, res) => {
-  res.status(404).json({ error: "Not found" });
-});
-
-// Error handler
-app.use(
-  (
-    err: Error,
-    _req: express.Request,
-    res: express.Response,
-    _next: express.NextFunction,
-  ) => {
-    logger.error({ error: err.message, stack: err.stack }, "Unhandled error");
-    res.status(500).json({ error: "Internal server error" });
-  },
-);
+// 404 + global error handler — both return the structured envelope
+// from lib/error-envelope.ts ({error, code, requestId, retryable}).
+app.use(notFoundHandler());
+app.use(errorHandler());
 
 const server = app.listen(PORT, () => {
   logger.info(`Engine server running at http://localhost:${PORT}`);
