@@ -506,6 +506,58 @@ async function testExportUndo() {
   );
 }
 
+// ─── Cross-group isolation (regression for the F-probe leak) ─────────────
+
+async function testGroupIsolation() {
+  section("Security — cross-group session isolation");
+  if (QUICK) {
+    record("security", "skipped (--quick)", true);
+    return;
+  }
+  const sid = `validation-isolation-${Date.now()}`;
+
+  // 1) Load a real result in the finance group.
+  const load = await timed(() =>
+    postChat("run pnl_lineage", sid, "finance", { explicitFilters: {} }),
+  );
+  const rows = load.result?.data?.richContent?.data?.rows?.length;
+  record(
+    "security",
+    "load pnl_lineage in finance",
+    !!load.result?.ok && rows > 0,
+    `rows=${rows}`,
+    load.durationMs,
+  );
+
+  // 2) SAME sessionId, switch groupId to "default". If session was scoped
+  //    only by sessionId (the pre-fix bug), the default group would inherit
+  //    the finance result and "summarize" would happily summarize 93 rows
+  //    of finance data — a real cross-tenant leak.
+  const bleed = await timed(() => postChat("summarize", sid, "default"));
+  const intent = bleed.result?.data?.intent;
+  const text = String(bleed.result?.data?.text || "");
+  const looksLikeBleed =
+    intent === "followup.summary" && /pnl_lineage/i.test(text);
+  record(
+    "security",
+    "cross-group state is NOT inherited",
+    !looksLikeBleed,
+    `intent=${intent} text="${text.slice(0, 80)}"`,
+    bleed.durationMs,
+  );
+
+  // 3) Sanity: original group still has its context.
+  const sanity = await timed(() => postChat("summarize", sid, "finance"));
+  record(
+    "security",
+    "original group still has its context",
+    sanity.result?.data?.intent === "followup.summary" &&
+      /pnl_lineage/i.test(String(sanity.result?.data?.text || "")),
+    `intent=${sanity.result?.data?.intent}`,
+    sanity.durationMs,
+  );
+}
+
 // ─── Engine-direct write paths (CSRF-bypass via engine API) ───────────────
 //
 // The Next.js layer enforces CSRF on POST/DELETE; the engine accepts
@@ -697,6 +749,7 @@ async function main() {
   await testForceIntent();
   await testExportUndo();
   await testAnalysis();
+  await testGroupIsolation();
   await testSynonymCrud();
   await testLearningRetrain();
 

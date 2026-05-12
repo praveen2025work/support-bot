@@ -13,6 +13,15 @@ import type { ConversationContext } from "../types";
  * instances behind a load balancer to share session state via a
  * NAS/NFS mount (configured through DATA_DIR).
  *
+ * Session isolation by group:
+ *  - Within a user file, sessions are keyed by `${groupId}:${sessionId}`
+ *    so the same sessionId in two different groups stays isolated.
+ *    Without this scoping, a UI dropdown switching from "finance" to
+ *    "default" with the same sessionId would inherit the finance
+ *    group's lastApiResult / lastQueryName — a cross-group data leak.
+ *  - `context.sessionId` returned to the client is the unscoped form,
+ *    so the wire-format does not change.
+ *
  * Write safety:
  *  - Atomic writes (write to .tmp, then rename)
  *  - Per-user file locking via `withFileLock` (mkdir-based, NFS-safe)
@@ -22,6 +31,13 @@ import type { ConversationContext } from "../types";
  *  - Empty user files are deleted after cleanup
  *  - Browser-close cleanup via `closeSession()`
  */
+
+/** Compose the per-group scoped key used in the cache and the on-disk
+ * sessions map. Falls back to "default" when groupId is missing so old
+ * call sites continue to share a single namespace. */
+function scopedKey(sessionId: string, groupId?: string): string {
+  return `${groupId || "default"}:${sessionId}`;
+}
 
 const SESSIONS_DIR = paths.data.sessionsDir;
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // run cleanup every 5 min
@@ -66,9 +82,11 @@ export class SessionManager {
   async getContext(
     sessionId: string,
     userId?: string,
+    groupId?: string,
   ): Promise<ConversationContext> {
+    const key = scopedKey(sessionId, groupId);
     // Return cached context if accessed within last 30 seconds (covers chain processing)
-    const cached = this.contextCache.get(sessionId);
+    const cached = this.contextCache.get(key);
     if (cached && Date.now() - cached.ts < 30_000) {
       cached.ts = Date.now();
       return cached.context;
@@ -78,62 +96,73 @@ export class SessionManager {
     const uid = userId || this.extractUserId(sessionId);
     const file = await this.readUserFile(uid);
 
-    const stored = file.sessions[sessionId];
+    const stored = file.sessions[key];
     if (stored) {
       // Touch last-accessed time (extends TTL)
       stored.lastAccessedAt = Date.now();
       await this.writeUserFile(file);
-      this.contextCache.set(sessionId, {
+      this.contextCache.set(key, {
         context: stored.context,
         ts: Date.now(),
       });
       return stored.context;
     }
 
-    // New session
+    // New session — context.sessionId stays the unscoped value so the
+    // client-visible session identifier doesn't change.
     const context: ConversationContext = {
       sessionId,
       history: [],
     };
-    file.sessions[sessionId] = {
+    file.sessions[key] = {
       context,
       lastAccessedAt: Date.now(),
     };
     await this.writeUserFile(file);
-    this.contextCache.set(sessionId, { context, ts: Date.now() });
+    this.contextCache.set(key, { context, ts: Date.now() });
     return context;
   }
 
   async saveContext(
     context: ConversationContext,
     userId?: string,
+    groupId?: string,
   ): Promise<void> {
     await this.ensureDir();
     const uid = userId || this.extractUserId(context.sessionId);
+    const key = scopedKey(context.sessionId, groupId);
     await withFileLock(paths.data.sessionFile(uid), async () => {
       const file = await this.readUserFile(uid);
-      file.sessions[context.sessionId] = {
+      file.sessions[key] = {
         context,
         lastAccessedAt: Date.now(),
       };
       await this.writeUserFileUnsafe(file);
     });
+    // Keep the in-memory cache coherent with what's on disk.
+    this.contextCache.set(key, { context, ts: Date.now() });
   }
 
   /** Remove a specific session (called on browser close). */
-  async closeSession(sessionId: string, userId?: string): Promise<void> {
+  async closeSession(
+    sessionId: string,
+    userId?: string,
+    groupId?: string,
+  ): Promise<void> {
     await this.ensureDir();
     const uid = userId || this.extractUserId(sessionId);
+    const key = scopedKey(sessionId, groupId);
     await withFileLock(paths.data.sessionFile(uid), async () => {
       const file = await this.readUserFile(uid);
-      delete file.sessions[sessionId];
+      delete file.sessions[key];
       if (Object.keys(file.sessions).length === 0) {
         await this.deleteUserFile(uid);
       } else {
         await this.writeUserFileUnsafe(file);
       }
     });
-    logger.debug({ sessionId, userId: uid }, "Session closed");
+    this.contextCache.delete(key);
+    logger.debug({ sessionId, groupId, userId: uid }, "Session closed");
   }
 
   /** Returns approximate count of all sessions across all user files. */

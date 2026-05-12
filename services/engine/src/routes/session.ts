@@ -23,9 +23,9 @@ sessionRouter.post("/close", async (req: Request, res: Response) => {
 
     const engine = await getEngine(groupId || "default");
     // Access the session manager through the engine's public method
-    await engine.closeSession(sessionId, userId);
+    await engine.closeSession(sessionId, userId, groupId || "default");
 
-    logger.debug({ sessionId, userId }, "Session closed via beacon");
+    logger.debug({ sessionId, userId, groupId }, "Session closed via beacon");
     return res.status(200).json({ ok: true });
   } catch (error) {
     // Never fail loudly — beacons are fire-and-forget

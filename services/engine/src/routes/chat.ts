@@ -157,7 +157,11 @@ chatRouter.post("/", async (req: Request, res: Response) => {
 
       // Apply per-card valueColumns override to context before follow-ups
       if (cardValueColumns?.length) {
-        const ctx = await engine.getContext(message.sessionId, message.userId);
+        const ctx = await engine.getContext(
+          message.sessionId,
+          message.userId,
+          message.groupId,
+        );
         const existing = (ctx.lastColumnConfig || {}) as Record<
           string,
           unknown

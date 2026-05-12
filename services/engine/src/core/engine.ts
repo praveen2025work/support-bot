@@ -80,6 +80,7 @@ export class ChatbotEngine {
     const context = await this.sessionManager.getContext(
       message.sessionId,
       message.userId,
+      message.groupId,
     );
 
     logger.debug(
@@ -192,7 +193,11 @@ export class ChatbotEngine {
             text: disambigResponse.text,
             timestamp: new Date(),
           });
-          await this.sessionManager.saveContext(context, message.userId);
+          await this.sessionManager.saveContext(
+            context,
+            message.userId,
+            message.groupId,
+          );
           return disambigResponse;
         }
       }
@@ -214,7 +219,11 @@ export class ChatbotEngine {
           text: belowFloor.text,
           timestamp: new Date(),
         });
-        await this.sessionManager.saveContext(context, message.userId);
+        await this.sessionManager.saveContext(
+          context,
+          message.userId,
+          message.groupId,
+        );
         return belowFloor;
       }
     }
@@ -278,7 +287,11 @@ export class ChatbotEngine {
       timestamp: new Date(),
     });
 
-    await this.sessionManager.saveContext(context, message.userId);
+    await this.sessionManager.saveContext(
+      context,
+      message.userId,
+      message.groupId,
+    );
 
     // Log interaction for learning (fire-and-forget)
     if (this.learningService) {
@@ -298,8 +311,8 @@ export class ChatbotEngine {
   }
 
   /** Get the conversation context for a session (used by chat route for card-level overrides). */
-  async getContext(sessionId: string, userId?: string) {
-    return this.sessionManager.getContext(sessionId, userId);
+  async getContext(sessionId: string, userId?: string, groupId?: string) {
+    return this.sessionManager.getContext(sessionId, userId, groupId);
   }
 
   /** Returns intent overlap warnings detected during NLP training. */
@@ -309,8 +322,12 @@ export class ChatbotEngine {
   }
 
   /** Remove a session from the store (called on browser close). */
-  async closeSession(sessionId: string, userId?: string): Promise<void> {
-    await this.sessionManager.closeSession(sessionId, userId);
+  async closeSession(
+    sessionId: string,
+    userId?: string,
+    groupId?: string,
+  ): Promise<void> {
+    await this.sessionManager.closeSession(sessionId, userId, groupId);
   }
 
   /** Clear the API client's query cache so the next request fetches fresh data. */
