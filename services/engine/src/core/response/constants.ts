@@ -74,9 +74,26 @@ export const FOLLOWUP_NOISE = new Set([
 export const FILTER_FOLLOWUP_PATTERN =
   /\b(?:filter|show|with|only|just|where|for|in)\b.*\b(region|team|environment|severity|time_period|period|quarter|date_range|priority)\b/i;
 
-// Data operation follow-up patterns
-export const GROUP_BY_PATTERN = /\bgroup(?:ed)?\s+by\b/i;
-export const SORT_PATTERN = /\b(?:sort|order)(?:ed)?\s+by\b/i;
+// Data operation follow-up patterns.
+//
+// These gates are deliberately loose — they fire on any phrase that looks
+// like a group-by/sort request. The parser in csv-analyzer.ts is strict:
+// if the trigger fires but no matching column is found in the user's last
+// result, we fall through to the next handler instead of mis-answering.
+//
+// Variants we accept for group-by:
+//   "group by X", "grouped by X"
+//   "break down by X", "breakdown by X", "break it down by X"
+//   "broken by X", "broken down by X", "broken out by X"
+//   "split by X"
+//   "segment by X", "segmented by X"
+//   "categorize by X", "categorized by X"
+//   "bucket by X", "bucketed by X"
+//   "for each X"
+//   "per X"          ← only when X looks like a word (parser checks column)
+export const GROUP_BY_PATTERN =
+  /\b(?:group(?:ed)?\s+by|break(?:\s+(?:it|this))?\s+down\s+by|breakdown\s+by|broken\s+(?:down\s+|out\s+)?by|split\s+by|segment(?:ed)?\s+by|categori[sz]e(?:d)?\s+by|bucket(?:ed)?\s+by|(?:show|view|see|display)(?:\s+me)?\s+by|for\s+each|per)\b\s+[A-Za-z]/i;
+export const SORT_PATTERN = /\b(?:sort|order|rank|arrange)(?:ed)?\s+by\b/i;
 export const SUMMARY_PATTERN =
   /\b(summ\s*arize|summary|stats|statistics|describe|overview|summ\s*ary)\b/i;
 export const TOP_BOTTOM_PATTERN = /\b(top|bottom)\s+(\d+)\b/i;

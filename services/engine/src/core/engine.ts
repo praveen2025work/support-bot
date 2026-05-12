@@ -7,6 +7,19 @@ import { buildDisambiguationPayload } from "./response/smart-suggestions";
 import type { LearningService } from "./learning/learning-service";
 import { logger } from "@/lib/logger";
 import { NLP_DISAMBIG_FLOOR } from "./constants";
+import {
+  GROUP_BY_PATTERN,
+  SORT_PATTERN,
+  AGGREGATION_PATTERN,
+  TOP_BOTTOM_PATTERN,
+  SUMMARY_PATTERN,
+  VALUE_COMPARE_PATTERN,
+  ANALYSIS_PATTERN,
+  COMPUTED_COLUMN_PATTERN,
+  PERIOD_OVER_PERIOD_PATTERN,
+  AGG_COMPUTED_PATTERN,
+  FILTER_FOLLOWUP_PATTERN,
+} from "./response/constants";
 import type { Query } from "./api-connector/types";
 import type {
   BotResponse,
@@ -148,9 +161,35 @@ export class ChatbotEngine {
 
       // Below-floor: top score < NLP_DISAMBIG_FLOOR — no candidates worth
       // surfacing. Render the locked "I don't understand" microcopy.
+      //
+      // Exception: when the user has an active query context AND the message
+      // looks like a follow-up operation ("split by region", "for each X",
+      // "rank by Y", etc.), short-circuiting hides a perfectly recoverable
+      // request. The follow-up regex gates in the response generator already
+      // act as a strict guard — if they don't match, we'll fall through to
+      // the floor-style message downstream. So skip the floor when the
+      // message is a likely follow-up on a live result set.
+      const hasFollowUpContext = !!(
+        context.lastQueryName && context.lastApiResult
+      );
+      const looksLikeFollowUp =
+        hasFollowUpContext &&
+        (GROUP_BY_PATTERN.test(processedText) ||
+          SORT_PATTERN.test(processedText) ||
+          AGGREGATION_PATTERN.test(processedText) ||
+          TOP_BOTTOM_PATTERN.test(processedText) ||
+          SUMMARY_PATTERN.test(processedText) ||
+          VALUE_COMPARE_PATTERN.test(processedText) ||
+          ANALYSIS_PATTERN.test(processedText) ||
+          COMPUTED_COLUMN_PATTERN.test(processedText) ||
+          PERIOD_OVER_PERIOD_PATTERN.test(processedText) ||
+          AGG_COMPUTED_PATTERN.test(processedText) ||
+          FILTER_FOLLOWUP_PATTERN.test(processedText));
+
       if (
         classification.intent !== "None" &&
-        classification.confidence < NLP_DISAMBIG_FLOOR
+        classification.confidence < NLP_DISAMBIG_FLOOR &&
+        !looksLikeFollowUp
       ) {
         const belowFloor = this.buildBelowFloorResponse(
           message,

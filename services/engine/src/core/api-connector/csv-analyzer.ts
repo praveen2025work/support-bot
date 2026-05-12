@@ -197,13 +197,73 @@ export function parseAggregationFromText(
   return { operation, column, limit };
 }
 
+/**
+ * Natural-language synonyms for common column concepts. Maps a user term
+ * (left) to a regex that matches likely header tokens (right). Used as a
+ * fallback in findMatchingHeader so users can say "group by location"
+ * even when the actual column is "Region", "Geo", or "Country".
+ *
+ * Kept intentionally short and generic — per-group customization lives
+ * in the synonyms admin route (see services/engine/src/routes/admin/synonyms.ts).
+ */
+const COLUMN_SYNONYMS: Record<string, RegExp> = {
+  // Geography
+  location: /\b(region|location|geo|country|city|territory|area|site)\b/i,
+  place: /\b(region|location|geo|country|city|territory|area|site)\b/i,
+  where: /\b(region|location|geo|country|city|territory|area|site)\b/i,
+  geography: /\b(region|location|geo|country|city|territory|area)\b/i,
+  region: /\b(region|location|geo|country|city|territory|area)\b/i,
+  // Time
+  time: /\b(date|time|created|timestamp|when|period|month|quarter|year|day|hour)\b/i,
+  when: /\b(date|time|created|timestamp|period|month|quarter|year|day)\b/i,
+  date: /\b(date|created|timestamp|day|day_of)\b/i,
+  // Money / metric
+  amount:
+    /\b(amount|total|sum|value|revenue|cost|price|spend|payment|salary)\b/i,
+  money: /\b(amount|total|revenue|cost|price|payment|salary)\b/i,
+  value: /\b(value|amount|total|sum|revenue)\b/i,
+  cost: /\b(cost|expense|spend|price)\b/i,
+  revenue: /\b(revenue|income|earnings|sales|amount)\b/i,
+  // People
+  who: /\b(user|employee|name|owner|assignee|created_by|author|person)\b/i,
+  person: /\b(user|employee|name|owner|assignee|created_by|author)\b/i,
+  user: /\b(user|employee|name|owner|assignee|created_by|author)\b/i,
+  employee: /\b(user|employee|name|owner|assignee)\b/i,
+  // Categorical
+  type: /\b(type|category|kind|class|classification|product)\b/i,
+  category: /\b(category|type|kind|class|classification|product)\b/i,
+  kind: /\b(kind|type|category|class)\b/i,
+  // Org
+  team: /\b(team|department|dept|group|division|business_?unit|bu|squad|org)\b/i,
+  department: /\b(department|dept|team|group|division|business_?unit|bu)\b/i,
+  division: /\b(division|department|business_?unit|group|team)\b/i,
+  org: /\b(org|organization|department|team|division|business_?unit)\b/i,
+  // Workflow
+  state: /\b(status|state|stage|phase|stage_?id|step)\b/i,
+  status: /\b(status|state|stage|phase|step)\b/i,
+  stage: /\b(stage|step|status|state|phase)\b/i,
+  // Identity
+  id: /\b(id|key|code|number|ref|reference)\b/i,
+  name: /\b(name|label|title|description)\b/i,
+};
+
+/**
+ * Headers that look like derived/aggregate columns: Avg_X, Max_X, Min_X,
+ * Sum_X, Count_X, Total_X, Median_X, P95_X, Delta_X, etc. These are
+ * usually NOT what a user means when they say a natural-language word
+ * like "location" or "time" — they want the underlying dimension.
+ */
+const DERIVED_COLUMN_PREFIX =
+  /^(avg|average|mean|max|maximum|min|minimum|sum|total|count|median|mode|stdev|stddev|variance|p\d+|percentile|delta|diff|change|pct|ratio)[_\s-]/i;
+
 export function findMatchingHeader(
   term: string,
   headers: string[],
 ): string | null {
   const lowerTerm = term.toLowerCase().replace(/[_\s]/g, "");
 
-  // 1. Exact match (case-insensitive)
+  // 1. Exact match (case-insensitive). Highest priority: user typed the
+  //    column name as-is, full stop.
   for (const h of headers) {
     if (h.toLowerCase() === term.toLowerCase()) return h;
   }
@@ -213,7 +273,29 @@ export function findMatchingHeader(
     if (h.toLowerCase().replace(/[_\s]/g, "") === lowerTerm) return h;
   }
 
-  // 3. Whole-word boundary match — header contains the term as a distinct word
+  // 3. Semantic synonym — natural-language word ("location", "when",
+  //    "amount") maps to a regex over likely header tokens. Tried BEFORE
+  //    the loose substring passes so "group by location" prefers a clean
+  //    dimension column (Region) over a derived column whose name happens
+  //    to contain "Location" (Avg_DelTimePCLocationTime).
+  //
+  //    Among synonym matches, prefer non-derived columns; only fall back
+  //    to a derived match if no primary column matches the synonym.
+  const synonymPattern = COLUMN_SYNONYMS[term.toLowerCase()];
+  if (synonymPattern) {
+    let derivedFallback: string | null = null;
+    for (const h of headers) {
+      if (!synonymPattern.test(h)) continue;
+      if (DERIVED_COLUMN_PREFIX.test(h)) {
+        derivedFallback ??= h;
+        continue;
+      }
+      return h;
+    }
+    if (derivedFallback) return derivedFallback;
+  }
+
+  // 4. Whole-word boundary match — header contains the term as a distinct word
   //    e.g., "status" matches "Book Status" or "Book_Status" but NOT "StatusCode"
   for (const h of headers) {
     const hLower = h.toLowerCase();
@@ -222,7 +304,7 @@ export function findMatchingHeader(
     if (hWords.includes(term.toLowerCase())) return h;
   }
 
-  // 4. Term ends with header word or header word ends with term (suffix match)
+  // 5. Term ends with header word or header word ends with term (suffix match)
   //    e.g., "region" matches "Region" but avoids "RegionalCode"
   for (const h of headers) {
     const hNorm = h.toLowerCase().replace(/[_\s]/g, "");
@@ -233,7 +315,7 @@ export function findMatchingHeader(
       return h;
   }
 
-  // 5. Partial match (last resort) — but require term to be substantial (>=4 chars)
+  // 6. Partial substring (last resort) — but require term to be substantial (>=4 chars)
   if (lowerTerm.length >= 4) {
     for (const h of headers) {
       const hNorm = h.toLowerCase().replace(/[_\s]/g, "");
@@ -890,7 +972,12 @@ export function computeSummary(data: CsvData): SummaryResult {
 // ── Text Parsers for Follow-Up Commands ─────────────────────────────
 
 /**
- * Parse "group by <column>" from text.
+ * Parse "group by <column>" (and natural variants) from text.
+ *
+ * Accepts the same trigger set as the GROUP_BY_PATTERN gate in
+ * services/engine/src/core/response/constants.ts. The trigger
+ * captures everything up to a tail clause ("for X", "asc", "desc",
+ * etc.) or end of string as the candidate column phrase.
  */
 export function parseGroupByFromText(
   text: string,
@@ -898,7 +985,7 @@ export function parseGroupByFromText(
 ): string | null {
   // Try multi-word match first: "group by book status" → try "book status", then "book"
   const match = text.match(
-    /\bgroup(?:ed)?\s+by\s+(.+?)(?:\s+(?:asc|desc|ascending|descending|for|where|with|in)\b|$)/i,
+    /\b(?:group(?:ed)?\s+by|break(?:\s+(?:it|this))?\s+down\s+by|breakdown\s+by|broken\s+(?:down\s+|out\s+)?by|split\s+by|segment(?:ed)?\s+by|categori[sz]e(?:d)?\s+by|bucket(?:ed)?\s+by|(?:show|view|see|display)(?:\s+me)?\s+by|for\s+each|per)\s+(.+?)(?:\s+(?:asc|desc|ascending|descending|for|where|with|in)\b|$)/i,
   );
   if (!match) return null;
 
@@ -931,7 +1018,8 @@ export function parseGroupByFromText(
 }
 
 /**
- * Parse "sort by <column> [asc|desc]" from text.
+ * Parse "sort by <column> [asc|desc]" (and natural variants: "order by",
+ * "rank by", "arrange by") from text.
  */
 export function parseSortFromText(
   text: string,
@@ -939,7 +1027,7 @@ export function parseSortFromText(
 ): SortRequest | null {
   // Support multi-word columns: "sort by book status desc"
   const match = text.match(
-    /\b(?:sort|order)(?:ed)?\s+by\s+(.+?)(?:\s+(asc|desc|ascending|descending)\s*$|\s*$)/i,
+    /\b(?:sort|order|rank|arrange)(?:ed)?\s+by\s+(.+?)(?:\s+(asc|desc|ascending|descending)\s*$|\s*$)/i,
   );
   if (!match) return null;
 
