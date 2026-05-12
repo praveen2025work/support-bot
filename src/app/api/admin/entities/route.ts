@@ -1,25 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { readFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
-
-const CORPUS_PATH = join(process.cwd(), 'src/training/corpus.json');
-
-function readCorpus() {
-  const raw = readFileSync(CORPUS_PATH, 'utf-8');
-  return JSON.parse(raw);
-}
-
-function writeCorpus(corpus: unknown) {
-  writeFileSync(CORPUS_PATH, JSON.stringify(corpus, null, 2) + '\n', 'utf-8');
-}
+import { NextRequest, NextResponse } from "next/server";
+import { proxyToEngine } from "@/lib/engine-proxy";
+import { logger } from "@/lib/logger";
 
 // GET — list all entities
 export async function GET() {
   try {
-    const corpus = readCorpus();
-    return NextResponse.json({ entities: corpus.entities || {} });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    const engineRes = await proxyToEngine("/api/admin/entities");
+    const data = await engineRes.json();
+    return NextResponse.json(data, { status: engineRes.status });
+  } catch (error) {
+    logger.error({ error }, "Admin GET entities — engine unreachable");
+    return NextResponse.json(
+      { error: "Engine service unreachable" },
+      { status: 502 },
+    );
   }
 }
 
@@ -27,22 +21,18 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { entityType, optionKey, synonyms } = body;
-
-    if (!entityType || !optionKey || !Array.isArray(synonyms)) {
-      return NextResponse.json({ error: 'entityType, optionKey, and synonyms[] are required' }, { status: 400 });
-    }
-
-    const corpus = readCorpus();
-    if (!corpus.entities) corpus.entities = {};
-    if (!corpus.entities[entityType]) corpus.entities[entityType] = { options: {} };
-
-    corpus.entities[entityType].options[optionKey] = synonyms;
-    writeCorpus(corpus);
-
-    return NextResponse.json({ success: true, entityType, optionKey });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    const engineRes = await proxyToEngine("/api/admin/entities", {
+      method: "POST",
+      body,
+    });
+    const data = await engineRes.json();
+    return NextResponse.json(data, { status: engineRes.status });
+  } catch (error) {
+    logger.error({ error }, "Admin POST entities — engine unreachable");
+    return NextResponse.json(
+      { error: "Engine service unreachable" },
+      { status: 502 },
+    );
   }
 }
 
@@ -50,21 +40,27 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const entityType = searchParams.get('entityType');
-    const optionKey = searchParams.get('optionKey');
+    const entityType = searchParams.get("entityType");
+    const optionKey = searchParams.get("optionKey");
 
     if (!entityType || !optionKey) {
-      return NextResponse.json({ error: 'entityType and optionKey query params are required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "entityType and optionKey query params are required" },
+        { status: 400 },
+      );
     }
 
-    const corpus = readCorpus();
-    if (corpus.entities?.[entityType]?.options) {
-      delete corpus.entities[entityType].options[optionKey];
-    }
-    writeCorpus(corpus);
-
-    return NextResponse.json({ success: true, deleted: `${entityType}.${optionKey}` });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    const engineRes = await proxyToEngine(
+      `/api/admin/entities?entityType=${encodeURIComponent(entityType)}&optionKey=${encodeURIComponent(optionKey)}`,
+      { method: "DELETE" },
+    );
+    const data = await engineRes.json();
+    return NextResponse.json(data, { status: engineRes.status });
+  } catch (error) {
+    logger.error({ error }, "Admin DELETE entity — engine unreachable");
+    return NextResponse.json(
+      { error: "Engine service unreachable" },
+      { status: 502 },
+    );
   }
 }

@@ -13,6 +13,8 @@ import { auditRouter } from "./audit";
 import { schedulesRouter } from "./schedules";
 import { anomalyRouter } from "./anomaly";
 import fileSourcesRouter from "./file-sources";
+import synonymsRouter from "./synonyms";
+import dataRolesRouter from "./data-roles";
 import { Role, isValidRole } from "@/lib/rbac";
 import { requirePermission } from "@/middleware/rbac";
 
@@ -67,6 +69,8 @@ router.use("/audit", auditRouter);
 router.use("/schedules", schedulesRouter);
 router.use("/anomaly", anomalyRouter);
 router.use("/file-sources", fileSourcesRouter);
+router.use("/groups/:groupId/synonyms", synonymsRouter);
+router.use("/data-roles", dataRolesRouter);
 
 export const adminRouter = router;
 export default router;
