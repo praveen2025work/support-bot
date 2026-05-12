@@ -40,6 +40,8 @@ import { detectPii } from "../../pii/detector";
 import { applyPiiMasking } from "../../pii/masker";
 import { checkPermission, isValidRole, type Role } from "../../../lib/rbac";
 import { logAudit } from "../../../lib/audit-logger";
+import { loadSchema, saveSchema } from "../../schema/registry";
+import { detectDrift, formatDriftMessage } from "../../schema/drift-detector";
 
 /**
  * Strip columns listed in columnConfig.ignoreColumns from CSV headers and rows
@@ -834,6 +836,95 @@ export async function handleQueryExecute(
 
       case "csv": {
         const csv = result.csvResult!;
+
+        // Schema drift detection runs FIRST (before any column-mutating
+        // step like PII masking or ignored-column stripping) so the
+        // comparison is against the raw source schema. We:
+        //   1. Load last-known schema for (groupId, queryName)
+        //   2. Diff against current csv.headers
+        //   3. Persist the current schema as the new baseline UNLESS
+        //      drift was found — in that case we keep the old baseline
+        //      around with a driftFlaggedAt timestamp until an admin
+        //      acknowledges (POST /api/admin/schema/acknowledge).
+        // The diff result gets attached to richContent.data.schemaDrift
+        // and noted in the bot text suffix so end users see it without
+        // having to go to the admin panel.
+        let schemaDriftSummary:
+          | {
+              added: string[];
+              removed: string[];
+              reorderedFrom?: string[];
+              message: string;
+            }
+          | undefined;
+        try {
+          const groupForSchema = groupId || "default";
+          const prior = await loadSchema(groupForSchema, queryNameEntity.value);
+          const drift = detectDrift(prior?.columns ?? null, csv.headers);
+          if (drift && drift.hasChange) {
+            schemaDriftSummary = {
+              added: drift.added,
+              removed: drift.removed,
+              ...(drift.reorderedFrom && {
+                reorderedFrom: drift.reorderedFrom,
+              }),
+              message: formatDriftMessage(drift),
+            };
+            // Persist with the drift flag set so the admin endpoint can
+            // surface it without rediffing.
+            await saveSchema({
+              groupId: groupForSchema,
+              queryName: queryNameEntity.value,
+              columns: [...csv.headers],
+              observedAt: new Date().toISOString(),
+              driftFlaggedAt: new Date().toISOString(),
+              lastDrift: {
+                added: drift.added,
+                removed: drift.removed,
+                ...(drift.reorderedFrom && {
+                  reorderedFrom: drift.reorderedFrom,
+                }),
+              },
+            });
+            await logAudit({
+              action: "update",
+              resource: "schema-drift",
+              resourceId: queryNameEntity.value,
+              groupId: groupForSchema,
+              details: {
+                added: drift.added,
+                removed: drift.removed,
+                reorderedFrom: drift.reorderedFrom,
+              },
+            }).catch(() => {
+              /* best-effort */
+            });
+            logger.warn(
+              {
+                queryName: queryNameEntity.value,
+                drift: schemaDriftSummary.message,
+              },
+              "Schema drift detected",
+            );
+          } else if (!prior) {
+            // First time we've seen this query — establish a baseline
+            // silently. No drift surfaced.
+            await saveSchema({
+              groupId: groupForSchema,
+              queryName: queryNameEntity.value,
+              columns: [...csv.headers],
+              observedAt: new Date().toISOString(),
+            });
+          }
+        } catch (err) {
+          // Schema drift is best-effort observability — never fail
+          // the query because the registry had a hiccup.
+          logger.warn(
+            { err, queryName: queryNameEntity.value },
+            "Schema drift detector threw — continuing without drift report",
+          );
+        }
+
         // PII detection runs unconditionally; masking is gated on the
         // caller's role. Resolution order for "can this caller see
         // clear PII?":
@@ -1013,12 +1104,19 @@ export async function handleQueryExecute(
             ? ` _(${piiSummary.count} PII column${piiSummary.count === 1 ? "" : "s"} shown UNMASKED — audited: ${piiCols})_`
             : ` _(${piiSummary.count} PII column${piiSummary.count === 1 ? "" : "s"} masked: ${piiCols})_`
           : "";
+        // Schema drift suffix — surfaces silently-shifting source data
+        // to the end user. They might re-run on stale chart definitions
+        // otherwise.
+        const driftNote = schemaDriftSummary
+          ? ` _⚠ Schema drift: ${schemaDriftSummary.message}_`
+          : "";
         return {
           text:
             (totalRowCount
               ? `Here is the data from "${queryNameEntity.value}" (showing first ${displayedRows} of ${totalRowCount} rows):`
               : `Here is the data from "${queryNameEntity.value}" (${csv.rowCount} rows):`) +
-            piiNote,
+            piiNote +
+            driftNote,
           richContent: {
             type: "csv_table",
             data: {
@@ -1027,6 +1125,7 @@ export async function handleQueryExecute(
               ...(columnConfig && { columnConfig }),
               ...(columnMetadata && { columnMetadata }),
               ...(piiSummary && { piiSummary }),
+              ...(schemaDriftSummary && { schemaDrift: schemaDriftSummary }),
             },
           },
           sessionId: context.sessionId,

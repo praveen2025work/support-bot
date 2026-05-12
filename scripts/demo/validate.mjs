@@ -559,6 +559,127 @@ async function testEdgeCases() {
   );
 }
 
+// ─── Schema drift detection ──────────────────────────────────────────────
+
+async function testSchemaDrift() {
+  section("Observability — schema drift detection");
+  if (QUICK) {
+    record("drift", "skipped (--quick)", true);
+    return;
+  }
+  if (NO_WRITE) {
+    record("drift", "skipped (--no-write)", true);
+    return;
+  }
+
+  const groupId = "hr_team";
+  const queryName = "employee_metrics";
+
+  // Reset any prior baseline so we start clean.
+  await fetch(`${ENGINE_URL}/api/admin/schema/acknowledge`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-user-role": "admin" },
+    body: JSON.stringify({ groupId, queryName }),
+  }).catch(() => {});
+
+  // 1. Baseline run — no drift expected (first time we see this schema OR
+  //    matches the previously-acknowledged baseline).
+  const sidBase = `validation-drift-base-${Date.now()}`;
+  const baseline = await timed(() =>
+    postChat("run employee_metrics", sidBase, groupId, { explicitFilters: {} }),
+  );
+  const baseDrift = baseline.result?.data?.richContent?.data?.schemaDrift;
+  record(
+    "drift",
+    "baseline run — no drift",
+    !baseDrift,
+    `drift=${JSON.stringify(baseDrift)}`,
+    baseline.durationMs,
+  );
+
+  // 2. Inject a phantom column into the stored baseline via the
+  //    file-system (no public mutation endpoint for this — tests-only
+  //    affordance acceptable since the harness runs in dev). The next
+  //    query should report it as `removed`.
+  const { writeFile: writeFileFs, readFile: readFileFs } = await import(
+    "node:fs/promises"
+  );
+  const path = `services/engine/data/schema/${groupId}/${queryName}.json`;
+  let originalJson;
+  try {
+    originalJson = await readFileFs(path, "utf-8");
+    const parsed = JSON.parse(originalJson);
+    parsed.columns = [...parsed.columns, "FAKE_DROPPED_COL_FOR_TEST"];
+    await writeFileFs(path, JSON.stringify(parsed, null, 2), "utf-8");
+  } catch (e) {
+    record(
+      "drift",
+      "(setup) inject phantom column",
+      false,
+      `${e instanceof Error ? e.message : String(e)}`,
+    );
+    return;
+  }
+
+  // 3. Re-run the query — drift detector should flag the removal.
+  const sidDrift = `validation-drift-flag-${Date.now()}`;
+  const flagged = await timed(() =>
+    postChat("run employee_metrics", sidDrift, groupId, { explicitFilters: {} }),
+  );
+  const drift = flagged.result?.data?.richContent?.data?.schemaDrift;
+  const flaggedText = String(flagged.result?.data?.text || "");
+  record(
+    "drift",
+    "phantom column → schemaDrift.removed reports it",
+    Array.isArray(drift?.removed) &&
+      drift.removed.includes("FAKE_DROPPED_COL_FOR_TEST"),
+    `removed=${JSON.stringify(drift?.removed)}`,
+    flagged.durationMs,
+  );
+  record(
+    "drift",
+    "bot text includes ⚠ Schema drift suffix",
+    /Schema drift.*removed/i.test(flaggedText),
+    `text="${flaggedText.slice(-160)}"`,
+  );
+
+  // 4. Admin list endpoint surfaces the flagged query (engine-direct
+  //    so we don't need CSRF for the side-effecting acknowledge).
+  const list = await timed(async () => {
+    const r = await fetch(
+      `${ENGINE_URL}/api/admin/schema/drift?groupId=${groupId}`,
+      { headers: { "x-user-role": "admin" } },
+    );
+    return { ok: r.ok, status: r.status, body: await r.json().catch(() => null) };
+  });
+  record(
+    "drift",
+    "GET /api/admin/schema/drift surfaces the entry",
+    list.result?.ok &&
+      Array.isArray(list.result?.body?.flagged) &&
+      list.result.body.flagged.some((f) => f.queryName === queryName),
+    `count=${list.result?.body?.count}`,
+    list.durationMs,
+  );
+
+  // 5. Acknowledge → drift flag clears.
+  const ack = await timed(async () => {
+    const r = await fetch(`${ENGINE_URL}/api/admin/schema/acknowledge`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-user-role": "admin" },
+      body: JSON.stringify({ groupId, queryName }),
+    });
+    return { ok: r.ok, status: r.status, body: await r.json().catch(() => null) };
+  });
+  record(
+    "drift",
+    "POST /api/admin/schema/acknowledge clears the flag",
+    ack.result?.ok && ack.result?.body?.success === true,
+    `status=${ack.result?.status}`,
+    ack.durationMs,
+  );
+}
+
 // ─── Snapshot / shareable view ───────────────────────────────────────────
 
 async function testSnapshots() {
@@ -1029,6 +1150,7 @@ async function main() {
   await testAnalysis();
   await testDrillDown();
   await testPiiMasking();
+  await testSchemaDrift();
   await testSnapshots();
   await testEdgeCases();
   await testGroupIsolation();

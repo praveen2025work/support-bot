@@ -99,6 +99,15 @@ export const paths = {
     viewsDir: join(DATA_DIR, "views"),
     viewFile: (id: string) => join(DATA_DIR, "views", `${id}.json`),
 
+    /** Schema registry — last-known column set per (group, query). Used
+     *  by the drift detector to surface "the source data changed
+     *  underneath this query" warnings to admins. */
+    schemaDir: (groupId: string) => join(DATA_DIR, "schema", groupId),
+    schemaFile: (groupId: string, queryName: string) => {
+      const safe = queryName.replace(/[^a-zA-Z0-9_\-]/g, "_");
+      return join(DATA_DIR, "schema", groupId, `${safe}.json`);
+    },
+
     /** Audit trail */
     auditDir: join(DATA_DIR, "audit"),
     auditFile: join(DATA_DIR, "audit", "audit.jsonl"),
