@@ -15,6 +15,7 @@ import { logger } from "@/lib/logger";
 import { logAudit } from "@/lib/audit-logger";
 import { requirePermission } from "@/middleware/rbac";
 import { acknowledgeDrift, listFlaggedSchemas } from "@/core/schema/registry";
+import { invalidateGroupQuery } from "@/core/cache/query-cache";
 
 const router = Router();
 
@@ -59,14 +60,25 @@ router.post(
       if (!ok) {
         return res.status(404).json({ error: "No schema record found" });
       }
+      // Drop any cached results for this (group, query) — they may
+      // still carry the schemaDrift payload, and the admin just said
+      // "the new shape is fine." Next chat call will refetch and
+      // attach no drift since the registry now matches.
+      const evicted = invalidateGroupQuery(groupId, queryName);
       await logAudit({
         action: "update",
         resource: "schema-drift-ack",
         resourceId: queryName,
         groupId,
+        details: { cacheEvicted: evicted },
         ip: req.ip,
       });
-      return res.json({ success: true, groupId, queryName });
+      return res.json({
+        success: true,
+        groupId,
+        queryName,
+        cacheEvicted: evicted,
+      });
     } catch (err) {
       logger.error({ err }, "schema route: POST /acknowledge failed");
       return res.status(500).json({ error: "Failed to acknowledge drift" });

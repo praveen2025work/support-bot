@@ -1022,6 +1022,34 @@ async function testSchemaDrift() {
     `status=${ack.result?.status}`,
     ack.durationMs,
   );
+
+  // 6. Acknowledge also invalidates the query cache for that
+  //    (group, query). Verifies the new invalidateGroupQuery wiring:
+  //    after ack, the next chat call to the same query should NOT
+  //    carry schemaDrift even though the previous response did.
+  record(
+    "drift",
+    "acknowledge response includes cacheEvicted counter",
+    ack.result?.body?.cacheEvicted !== undefined,
+    `cacheEvicted=${ack.result?.body?.cacheEvicted}`,
+  );
+
+  const postAck = await timed(() =>
+    postChat(
+      "run employee_metrics",
+      `validation-postack-${Date.now()}`,
+      groupId,
+      { explicitFilters: {} },
+    ),
+  );
+  const postAckDrift = postAck.result?.data?.richContent?.data?.schemaDrift;
+  record(
+    "drift",
+    "post-ack chat call surfaces no drift (cache evicted)",
+    !postAckDrift,
+    `drift=${JSON.stringify(postAckDrift)}`,
+    postAck.durationMs,
+  );
 }
 
 // ─── Snapshot / shareable view ───────────────────────────────────────────

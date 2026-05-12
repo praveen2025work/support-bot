@@ -23,9 +23,65 @@ import { logger } from "@/lib/logger";
 const engines = new Map<string, ChatbotEngine>();
 const initLocks = new Map<string, Promise<ChatbotEngine>>();
 
+// Per-engine last-access timestamp (epoch ms). Drives idle eviction
+// below so a long-running deployment with many groups doesn't carry
+// every group's NLP service in RAM forever (each is ~50-200 MB).
+//
+// Tunable via env:
+//   ENGINE_IDLE_TTL_MS    — evict an engine after this many ms idle
+//   ENGINE_SWEEP_INTERVAL_MS — how often to check
+// Disable entirely by setting ENGINE_IDLE_TTL_MS=0.
+const lastAccessedAt = new Map<string, number>();
+const ENGINE_IDLE_TTL_MS = parseInt(
+  process.env.ENGINE_IDLE_TTL_MS || `${30 * 60 * 1000}`, // 30 min
+  10,
+);
+const ENGINE_SWEEP_INTERVAL_MS = parseInt(
+  process.env.ENGINE_SWEEP_INTERVAL_MS || `${5 * 60 * 1000}`, // 5 min
+  10,
+);
+
+let sweepTimer: ReturnType<typeof setInterval> | null = null;
+
+function touch(groupId: string): void {
+  lastAccessedAt.set(groupId, Date.now());
+}
+
+async function sweepIdleEngines(): Promise<void> {
+  if (ENGINE_IDLE_TTL_MS <= 0) return;
+  const now = Date.now();
+  const stale: string[] = [];
+  for (const [groupId, ts] of lastAccessedAt) {
+    if (now - ts > ENGINE_IDLE_TTL_MS) stale.push(groupId);
+  }
+  for (const groupId of stale) {
+    try {
+      await invalidateEngine(groupId);
+      lastAccessedAt.delete(groupId);
+      logger.info(
+        { groupId, idleMs: now - (lastAccessedAt.get(groupId) ?? 0) },
+        "Engine idle-evicted",
+      );
+    } catch (err) {
+      logger.warn({ err, groupId }, "Engine idle eviction failed");
+    }
+  }
+}
+
+function ensureSweep(): void {
+  if (sweepTimer || ENGINE_IDLE_TTL_MS <= 0) return;
+  sweepTimer = setInterval(() => {
+    void sweepIdleEngines().catch(() => {});
+  }, ENGINE_SWEEP_INTERVAL_MS);
+  sweepTimer.unref?.();
+}
+
 export async function getEngine(
   groupId: string = "default",
 ): Promise<ChatbotEngine> {
+  ensureSweep();
+  touch(groupId);
+
   // Fast path: engine already initialized
   const existing = engines.get(groupId);
   if (existing?.isInitialized()) return existing;
@@ -118,6 +174,7 @@ export async function invalidateEngine(groupId: string): Promise<void> {
     }
     engines.delete(groupId);
     initLocks.delete(groupId);
+    lastAccessedAt.delete(groupId);
   })().finally(() => {
     pendingInvalidation.delete(groupId);
   });

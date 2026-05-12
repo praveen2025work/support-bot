@@ -112,6 +112,29 @@ interface QueryMeta {
 /** Regex that matches "run <queryName>" with optional trailing whitespace */
 const RUN_QUERY_PATTERN = /^run\s+(\S+)\s*$/i;
 
+/**
+ * Build the visible error text shown in a failed-message bubble.
+ * When the engine returns a structured envelope, surface the
+ * machine-readable code + requestId so users can copy the reference
+ * to a support ticket. The envelope.error message is preferred over
+ * generic "something went wrong" since it's often more specific
+ * (e.g. "The request exceeded the 30000ms budget").
+ */
+function buildErrorMessageText(envelope?: {
+  error?: string;
+  code?: string;
+  requestId?: string;
+  retryable?: boolean;
+}): string {
+  if (!envelope) return "Sorry, something went wrong. Please try again.";
+  const base = envelope.error || "Sorry, something went wrong.";
+  const refSuffix = envelope.requestId
+    ? `\n\n_Reference: ${envelope.requestId}_`
+    : "";
+  const codeHint = envelope.code ? ` (${envelope.code})` : "";
+  return `${base}${codeHint}${refSuffix}`;
+}
+
 // ── Memory management constants ────────────────────────────────
 // Prevent unbounded message accumulation in chat sessions.
 const MAX_MESSAGES = 100;
@@ -285,7 +308,29 @@ export function useChat(
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) return { error: true };
+      if (!res.ok) {
+        // Engine returns a structured envelope on 4xx/5xx —
+        // { error, code, requestId, retryable }. Surface the
+        // requestId + code to the caller so the error toast can
+        // show "Reference: abc12345" for support escalation.
+        let envelope:
+          | {
+              error?: string;
+              code?: string;
+              requestId?: string;
+              retryable?: boolean;
+            }
+          | undefined;
+        try {
+          envelope = await res.json();
+        } catch {
+          /* non-JSON body */
+        }
+        return {
+          error: true,
+          errorEnvelope: envelope,
+        };
+      }
       const data = await res.json();
       return { data };
     },
@@ -376,7 +421,7 @@ export function useChat(
           const errorMessage: Message = {
             id: generateId(),
             role: "bot",
-            text: "Sorry, something went wrong. Please try again.",
+            text: buildErrorMessageText(result.errorEnvelope),
             isError: true,
             retryText: text.trim(),
             timestamp: new Date(),
@@ -394,7 +439,7 @@ export function useChat(
         const errorMessage: Message = {
           id: generateId(),
           role: "bot",
-          text: "Sorry, something went wrong. Please try again.",
+          text: buildErrorMessageText(),
           isError: true,
           retryText: text.trim(),
           timestamp: new Date(),
@@ -466,7 +511,7 @@ export function useChat(
           const errorMessage: Message = {
             id: generateId(),
             role: "bot",
-            text: "Sorry, something went wrong. Please try again.",
+            text: buildErrorMessageText(result.errorEnvelope),
             isError: true,
             retryText: text.trim(),
             timestamp: new Date(),
@@ -480,7 +525,7 @@ export function useChat(
         const errorMessage: Message = {
           id: generateId(),
           role: "bot",
-          text: "Sorry, something went wrong. Please try again.",
+          text: buildErrorMessageText(),
           isError: true,
           retryText: text.trim(),
           timestamp: new Date(),

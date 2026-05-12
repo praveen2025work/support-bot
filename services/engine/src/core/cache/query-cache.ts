@@ -123,12 +123,31 @@ export function invalidateCachedResult(key: string): void {
 }
 
 /** Drop every cached result for a given group — used after corpus retrain
- *  or schema-drift acknowledge to avoid serving entries computed on a
- *  now-stale baseline. */
+ *  to avoid serving entries computed on a now-stale baseline. */
 export function invalidateGroup(groupId: string): number {
   let removed = 0;
   for (const k of cache.keys()) {
     if (k.startsWith(`${groupId}:`)) {
+      cache.delete(k);
+      removed += 1;
+    }
+  }
+  return removed;
+}
+
+/** Drop every cached result for a given (group, query) pair regardless
+ *  of filter. Used after schema-drift acknowledge so the next chat
+ *  request doesn't serve a stale entry that still carries the
+ *  schemaDrift payload (admin reviewed it, drift is no longer news).
+ */
+export function invalidateGroupQuery(
+  groupId: string,
+  queryName: string,
+): number {
+  const prefix = `${groupId}:${queryName}:`;
+  let removed = 0;
+  for (const k of cache.keys()) {
+    if (k.startsWith(prefix)) {
       cache.delete(k);
       removed += 1;
     }
