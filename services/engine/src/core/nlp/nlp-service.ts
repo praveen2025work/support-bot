@@ -50,14 +50,18 @@ export class NlpService {
     ttl: 2 * 60 * 1000,
   });
 
+  private groupId: string;
+
   constructor(
     fuzzyMatcher: FuzzyMatcher,
     corpusFile?: string | null,
     sources?: string[],
+    groupId?: string,
   ) {
     this.fuzzyMatcher = fuzzyMatcher;
     this.corpusFile = corpusFile ?? null;
     this.sources = sources ?? [];
+    this.groupId = groupId ?? "default";
   }
 
   async initialize(): Promise<void> {
@@ -86,6 +90,21 @@ export class NlpService {
     // Dynamically sync query names from the API so newly-added queries are
     // recognized as `query_name` entities without needing manual corpus edits.
     await this.syncQueryEntities(corpusData);
+
+    // Merge approved learning-loop utterances. Each line in
+    // services/engine/data/learning/<group>/auto-learned.jsonl is an
+    // AutoLearnedItem written when an admin resolves a review-queue item
+    // (or when signal aggregation auto-promotes a phrase). Without this
+    // pass, /api/admin/learning/retrain only invalidates the engine cache
+    // — the next initialization re-reads only the static corpus and the
+    // approved learnings never take effect.
+    const learnedCount = await this.applyAutoLearned();
+    if (learnedCount > 0) {
+      logger.info(
+        { groupId: this.groupId, learnedCount },
+        "Applied auto-learned utterances to NLP corpus",
+      );
+    }
 
     await this.nlp.train();
 
@@ -504,6 +523,67 @@ export class NlpService {
   /** Returns cached overlap warnings from the last training run. */
   getOverlaps(): IntentOverlap[] {
     return this.cachedOverlaps;
+  }
+
+  /**
+   * Merge approved learning-loop utterances into the live NLP corpus.
+   *
+   * Reads `services/engine/data/learning/<groupId>/auto-learned.jsonl`,
+   * groups entries by their assigned intent, and calls `nlp.addCorpus`
+   * with a synthetic corpus chunk so the trainer picks them up alongside
+   * the static corpus.json + group corpus. Idempotent — duplicate
+   * utterances are de-duped by the trainer.
+   *
+   * Returns the number of utterances actually merged (0 if no file or
+   * nothing to learn).
+   */
+  private async applyAutoLearned(): Promise<number> {
+    if (!this.nlp) return 0;
+    const path = paths.data.autoLearned(this.groupId);
+    let raw: string;
+    try {
+      raw = await fsPromises.readFile(path, "utf-8");
+    } catch {
+      // Missing file is normal — no approved learnings yet.
+      return 0;
+    }
+    const byIntent = new Map<string, Set<string>>();
+    let total = 0;
+    for (const line of raw.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      try {
+        const item = JSON.parse(trimmed) as {
+          intent?: unknown;
+          utterance?: unknown;
+        };
+        if (typeof item.intent !== "string" || !item.intent) continue;
+        if (typeof item.utterance !== "string" || !item.utterance.trim())
+          continue;
+        let set = byIntent.get(item.intent);
+        if (!set) {
+          set = new Set<string>();
+          byIntent.set(item.intent, set);
+        }
+        if (!set.has(item.utterance)) {
+          set.add(item.utterance);
+          total += 1;
+        }
+      } catch {
+        // Skip malformed lines silently — they're recorded but don't poison training.
+      }
+    }
+    if (total === 0) return 0;
+    await this.nlp.addCorpus({
+      locale: "en",
+      name: `auto-learned-${this.groupId}`,
+      data: Array.from(byIntent.entries()).map(([intent, utterances]) => ({
+        intent,
+        utterances: Array.from(utterances),
+        answers: [],
+      })),
+    });
+    return total;
   }
 
   /**

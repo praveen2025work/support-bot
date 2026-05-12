@@ -60,6 +60,7 @@ async function createAndInitEngine(groupId: string): Promise<ChatbotEngine> {
     fuzzyMatcher,
     groupConfig.corpus,
     groupConfig.sources,
+    groupId,
   );
   const apiClient = new ApiClient(groupConfig.apiBaseUrl ?? undefined);
   const queryService = new QueryService(apiClient, groupConfig.sources);
