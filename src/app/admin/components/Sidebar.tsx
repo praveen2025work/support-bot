@@ -26,6 +26,7 @@ import {
   Monitor,
   Container,
   BrainCircuit,
+  Languages,
   type LucideIcon,
 } from "lucide-react";
 
@@ -56,6 +57,12 @@ const NAV_SECTIONS: NavSection[] = [
         label: "Intents",
         icon: Target,
         match: (p: string) => p.startsWith("/admin/intents"),
+      },
+      {
+        href: "/admin/synonyms",
+        label: "Synonyms",
+        icon: Languages,
+        match: (p: string) => p.startsWith("/admin/synonyms"),
       },
       {
         href: "/admin/templates",
