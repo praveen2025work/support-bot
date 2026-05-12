@@ -1,4 +1,5 @@
 import { promises as fsp } from "fs";
+import { appendRotatingJsonl } from "../../lib/rotating-jsonl";
 import { logger } from "@/lib/logger";
 import { generateId } from "@/lib/generate-id";
 import { SignalProcessor } from "./signal-processor";
@@ -394,7 +395,11 @@ export class LearningService {
 
   private async appendJsonl<T>(filePath: string, data: T): Promise<void> {
     try {
-      await fsp.appendFile(filePath, JSON.stringify(data) + "\n", "utf-8");
+      // Use the rotating writer so interactions.jsonl /
+      // auto-learned.jsonl / review-queue.jsonl rotate at 10MB rather
+      // than accumulating forever. Audit files have their own writer;
+      // engine runtime data goes here.
+      await appendRotatingJsonl(filePath, JSON.stringify(data));
     } catch (error) {
       logger.error({ error, filePath }, "Failed to append JSONL");
     }

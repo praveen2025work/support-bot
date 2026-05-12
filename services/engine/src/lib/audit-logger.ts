@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import { logger } from "./logger";
 import { paths } from "./env-config";
+import { appendRotatingJsonl } from "./rotating-jsonl";
 
 export interface AuditEntry {
   timestamp: string;
@@ -36,7 +37,11 @@ export async function logAudit(
       ...entry,
       timestamp: new Date().toISOString(),
     };
-    await fs.appendFile(AUDIT_FILE, JSON.stringify(fullEntry) + "\n");
+    // Append via the rotating writer so audit.jsonl can never grow
+    // past ~10MB without rotating to audit.<timestamp>.jsonl. Audit
+    // entries are small (~200 bytes each) so 10MB ≈ 50k entries —
+    // plenty for a single retention window, but bounded.
+    await appendRotatingJsonl(AUDIT_FILE, JSON.stringify(fullEntry));
     logger.info({ audit: fullEntry }, "Audit log entry");
   } catch (err) {
     logger.error({ err }, "Failed to write audit log");

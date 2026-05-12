@@ -8,6 +8,12 @@ import {
   sendError,
   ErrorCodes,
 } from "./lib/error-envelope";
+import { config } from "./lib/config";
+import { getGroupConfigs } from "./config/group-config";
+import {
+  startHealthMonitor,
+  stopHealthMonitor,
+} from "./core/sources/health-monitor";
 import { chatRouter } from "./routes/chat";
 import { adminRouter } from "./routes/admin/index";
 import { viewsRouter } from "./routes/views";
@@ -160,6 +166,29 @@ const server = app.listen(PORT, () => {
   // Start the watch executor (checks every 60s for triggered watch rules)
   const watchExecutor = new WatchExecutor(path.resolve(__dirname, "../data"));
   watchExecutor.start();
+
+  // Start the data-source health monitor with every unique baseUrl
+  // we know about: the global default + any per-group overrides.
+  // The monitor probes each at ~30s intervals and exposes status at
+  // /api/admin/sources/health.
+  try {
+    const groupConfigs = getGroupConfigs();
+    const baseUrls = new Set<string>();
+    if (config.apiBaseUrl) baseUrls.add(config.apiBaseUrl);
+    for (const g of Object.values(groupConfigs)) {
+      if (g.apiBaseUrl) baseUrls.add(g.apiBaseUrl);
+    }
+    startHealthMonitor(Array.from(baseUrls));
+    logger.info(
+      { sources: Array.from(baseUrls) },
+      "Source health monitor started",
+    );
+  } catch (err) {
+    logger.warn(
+      { err },
+      "Could not start source health monitor (continuing without it)",
+    );
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -168,6 +197,7 @@ const server = app.listen(PORT, () => {
 async function shutdown(signal: string) {
   logger.info({ signal }, "Shutting down gracefully...");
   stopScheduleExecutor();
+  stopHealthMonitor();
   // Stop accepting new connections and close existing ones
   server.close(() => {
     logger.info("HTTP server closed");

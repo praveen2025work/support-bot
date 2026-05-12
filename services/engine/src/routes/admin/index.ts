@@ -17,6 +17,7 @@ import synonymsRouter from "./synonyms";
 import dataRolesRouter from "./data-roles";
 import analyticsRouter from "./analytics";
 import schemaRouter from "./schema";
+import sourcesRouter from "./sources";
 import { Role, isValidRole } from "@/lib/rbac";
 import { requirePermission } from "@/middleware/rbac";
 
@@ -75,6 +76,7 @@ router.use("/groups/:groupId/synonyms", synonymsRouter);
 router.use("/data-roles", dataRolesRouter);
 router.use("/analytics", analyticsRouter);
 router.use("/schema", schemaRouter);
+router.use("/sources", sourcesRouter);
 
 export const adminRouter = router;
 export default router;

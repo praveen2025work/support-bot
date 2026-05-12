@@ -1,6 +1,7 @@
-import { promises as fs } from 'fs';
-import { dirname } from 'path';
-import { logger } from './logger';
+import { promises as fs } from "fs";
+import { dirname } from "path";
+import { logger } from "./logger";
+import { appendRotatingJsonlBatch } from "./rotating-jsonl";
 
 /**
  * High-performance async log writer with buffering, batching, and backpressure.
@@ -27,7 +28,7 @@ export class AsyncLogWriter {
       flushIntervalMs?: number;
       maxBatchSize?: number;
       maxBufferSize?: number;
-    } = {}
+    } = {},
   ) {
     const flushIntervalMs = options.flushIntervalMs ?? 500;
     this.flushTimer = setInterval(() => this.flush(), flushIntervalMs);
@@ -37,9 +38,9 @@ export class AsyncLogWriter {
     const onExit = () => {
       this.flushSync();
     };
-    process.on('beforeExit', onExit);
-    process.on('SIGTERM', onExit);
-    process.on('SIGINT', onExit);
+    process.on("beforeExit", onExit);
+    process.on("SIGTERM", onExit);
+    process.on("SIGINT", onExit);
   }
 
   private get maxBatchSize(): number {
@@ -75,9 +76,16 @@ export class AsyncLogWriter {
         await fs.mkdir(dirname(this.filePath), { recursive: true });
         this.dirEnsured = true;
       }
-      await fs.appendFile(this.filePath, batch.join('\n') + '\n', 'utf-8');
+      // appendRotatingJsonlBatch checks size and rotates before write
+      // so conversations.jsonl can never grow past ~10MB unchecked.
+      // Batches of 50 entries × ~500 bytes = ~25KB per flush; rotation
+      // check is microseconds vs. the I/O itself.
+      await appendRotatingJsonlBatch(this.filePath, batch);
     } catch (err) {
-      logger.error({ err, filePath: this.filePath, droppedLines: batch.length }, 'AsyncLogWriter flush failed');
+      logger.error(
+        { err, filePath: this.filePath, droppedLines: batch.length },
+        "AsyncLogWriter flush failed",
+      );
       // Don't re-add to buffer — accept data loss over memory pressure
     } finally {
       this.flushing = false;
@@ -89,11 +97,13 @@ export class AsyncLogWriter {
     if (this.buffer.length === 0) return;
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { writeFileSync, mkdirSync, existsSync } = require('fs');
+      const { writeFileSync, mkdirSync, existsSync } = require("fs");
       if (!existsSync(dirname(this.filePath))) {
         mkdirSync(dirname(this.filePath), { recursive: true });
       }
-      writeFileSync(this.filePath, this.buffer.join('\n') + '\n', { flag: 'a' });
+      writeFileSync(this.filePath, this.buffer.join("\n") + "\n", {
+        flag: "a",
+      });
       this.buffer.length = 0;
     } catch {
       // Best effort — process is exiting

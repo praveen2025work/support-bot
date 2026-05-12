@@ -9,6 +9,45 @@ import { getInteractionTracker } from "@/core/recommendations/interaction-tracke
 import { paths } from "@/lib/env-config";
 import { logAudit } from "@/lib/audit-logger";
 import { sendError, ErrorCodes } from "@/lib/error-envelope";
+import { ApiConnectionError, CircuitOpenError } from "@/lib/errors";
+
+/**
+ * Wall-clock budget for a single /api/chat request. Default 30s; can
+ * be overridden per-deployment via env. Hitting this throws a
+ * ChatRequestTimeoutError which the outer catch maps to a
+ * DATA_SOURCE_UNAVAILABLE envelope (retryable=true).
+ *
+ * Note: this is the OUTER timeout — the engine and ApiClient have
+ * their own inner timeouts (NLP cold-start, upstream HTTP, etc.).
+ * The outer budget covers compound stalls those inner timeouts
+ * don't catch on their own (e.g. very slow follow-up chains).
+ */
+const CHAT_REQUEST_TIMEOUT_MS = parseInt(
+  process.env.CHAT_REQUEST_TIMEOUT_MS || "30000",
+  10,
+);
+
+class ChatRequestTimeoutError extends Error {
+  constructor(public elapsedMs: number) {
+    super(`Chat request exceeded ${elapsedMs}ms budget`);
+    this.name = "ChatRequestTimeoutError";
+  }
+}
+
+function withChatTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new ChatRequestTimeoutError(CHAT_REQUEST_TIMEOUT_MS)),
+      CHAT_REQUEST_TIMEOUT_MS,
+    );
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+    // Suppress unused-label warning in JS engine introspection
+    void label;
+  });
+}
 import { broadcastEvent } from "./events";
 
 export const chatRouter = Router();
@@ -162,12 +201,15 @@ chatRouter.post("/", async (req: Request, res: Response) => {
       );
       // Process initial message (query execution) — no followUpMode restriction.
       // forceIntent applies to the initial message only; follow-ups are local.
-      response = await engine.processMessage(
-        message,
-        explicitFilters,
-        hdrs,
-        undefined,
-        forceIntent,
+      response = await withChatTimeout(
+        engine.processMessage(
+          message,
+          explicitFilters,
+          hdrs,
+          undefined,
+          forceIntent,
+        ),
+        "initial-message",
       );
       log.info(
         {
@@ -202,11 +244,9 @@ chatRouter.post("/", async (req: Request, res: Response) => {
           userName: body.userName,
         });
         if (followUpMsg) {
-          response = await engine.processMessage(
-            followUpMsg,
-            undefined,
-            hdrs,
-            "local",
+          response = await withChatTimeout(
+            engine.processMessage(followUpMsg, undefined, hdrs, "local"),
+            `followup:${followUpText}`,
           );
           log.info(
             {
@@ -220,12 +260,15 @@ chatRouter.post("/", async (req: Request, res: Response) => {
         }
       }
     } else {
-      response = await engine.processMessage(
-        message,
-        explicitFilters,
-        hdrs,
-        followUpMode,
-        forceIntent,
+      response = await withChatTimeout(
+        engine.processMessage(
+          message,
+          explicitFilters,
+          hdrs,
+          followUpMode,
+          forceIntent,
+        ),
+        "single-message",
       );
     }
     const formatted = await adapter.formatResponse(response);
@@ -323,6 +366,31 @@ chatRouter.post("/", async (req: Request, res: Response) => {
         ? { message: error.message, stack: error.stack }
         : error;
     log.error({ error: err }, "Chat API error");
+    // Map upstream-data-source failures to DATA_SOURCE_UNAVAILABLE
+    // (retryable=true) so clients can distinguish "the bot is broken"
+    // from "your data source is down — try again in a minute".
+    //   ApiConnectionError = network/timeout failure after retries.
+    //   CircuitOpenError   = circuit breaker tripped (too many recent fails).
+    //   ChatRequestTimeoutError = wall-clock budget exceeded — almost
+    //     always means a slow upstream; same operator action (try again,
+    //     check sources/health) so we collapse to the same code.
+    if (
+      error instanceof ApiConnectionError ||
+      error instanceof CircuitOpenError ||
+      error instanceof ChatRequestTimeoutError
+    ) {
+      const reason =
+        error instanceof ChatRequestTimeoutError
+          ? `The request exceeded the ${CHAT_REQUEST_TIMEOUT_MS}ms budget. The data source may be slow.`
+          : "The data source is currently unreachable.";
+      return sendError(
+        res,
+        503,
+        ErrorCodes.DATA_SOURCE_UNAVAILABLE,
+        `${reason} Try again in a moment, or check /api/admin/sources/health to see the current state.`,
+        { retryable: true },
+      );
+    }
     return sendError(
       res,
       500,
