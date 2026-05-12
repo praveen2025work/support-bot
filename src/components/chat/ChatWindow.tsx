@@ -96,6 +96,7 @@ export function ChatWindow({
     clearMessages,
     submitFeedback,
     uploadFile,
+    shareMessage,
   } = useChat(platform, groupId, userName);
   const { userInfo } = useUser();
   const engineStatus = useEngineStatus();
@@ -360,6 +361,7 @@ export function ChatWindow({
               onFeedback={submitFeedback}
               onShowInPanel={onShowInPanel}
               onDisambiguationSelect={sendForceIntent}
+              onShareMessage={shareMessage}
               displayMode={displayMode}
               compactAuto={compactAuto}
               compactRichContent={splitView}

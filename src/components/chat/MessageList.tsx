@@ -57,6 +57,7 @@ export function MessageList({
   onFeedback,
   onShowInPanel,
   onDisambiguationSelect,
+  onShareMessage,
   displayMode = "auto",
   compactAuto = true,
   compactRichContent,
@@ -79,6 +80,10 @@ export function MessageList({
   ) => void;
   /** Click handler for "Did you mean?" disambiguation chips. */
   onDisambiguationSelect?: (candidate: DisambiguationCandidate) => void;
+  /** Called when user clicks the Share button on a bot message.
+   *  Returns the resulting URL (null on failure). MessageBubble owns
+   *  the clipboard-copy + toast UX. */
+  onShareMessage?: (messageId: string) => Promise<string | null>;
   displayMode?: "auto" | "table" | "chart";
   compactAuto?: boolean;
   compactRichContent?: boolean;
@@ -159,6 +164,7 @@ export function MessageList({
               onFeedback={onFeedback}
               onShowInPanel={onShowInPanel}
               onDisambiguationSelect={onDisambiguationSelect}
+              onShareMessage={onShareMessage}
               displayMode={displayMode}
               compactAuto={compactAuto}
               compactRichContent={compactRichContent}

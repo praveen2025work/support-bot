@@ -95,6 +95,10 @@ export const paths = {
     synonymsFile: (groupId: string) =>
       join(DATA_DIR, "learning", groupId, "synonyms.json"),
 
+    /** Shareable view snapshots — one JSON per snapshot, keyed by short id */
+    viewsDir: join(DATA_DIR, "views"),
+    viewFile: (id: string) => join(DATA_DIR, "views", `${id}.json`),
+
     /** Audit trail */
     auditDir: join(DATA_DIR, "audit"),
     auditFile: join(DATA_DIR, "audit", "audit.jsonl"),

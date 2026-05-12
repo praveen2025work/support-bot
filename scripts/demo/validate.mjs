@@ -559,6 +559,76 @@ async function testEdgeCases() {
   );
 }
 
+// ─── Snapshot / shareable view ───────────────────────────────────────────
+
+async function testSnapshots() {
+  section("Sharing — view snapshots (round-trip)");
+  if (QUICK) {
+    record("share", "skipped (--quick)", true);
+    return;
+  }
+
+  // Create
+  const payload = {
+    sessionId: `validation-share-${Date.now()}`,
+    groupId: "finance",
+    queryName: "pnl_lineage",
+    userId: "validation-bot",
+    message: {
+      text: "Snapshot under test",
+      richContent: {
+        type: "csv_table",
+        data: { headers: ["region", "amount"], rows: [{ region: "NAM", amount: 1 }] },
+      },
+      intent: "query.execute",
+      confidence: 1,
+    },
+  };
+  const create = await timed(async () => {
+    const res = await fetch(`${NEXT_URL}/api/views/snapshot`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return { ok: res.ok, status: res.status, body: await res.json().catch(() => null) };
+  });
+  const id = create.result?.body?.id;
+  record(
+    "share",
+    "POST /api/views/snapshot returns id",
+    !!create.result?.ok && typeof id === "string" && id.length >= 6,
+    `status=${create.result?.status} id=${id}`,
+    create.durationMs,
+  );
+  if (!id) return;
+
+  // Retrieve
+  const fetch1 = await timed(() => getJson(`${NEXT_URL}/api/views/${id}`));
+  const snap = fetch1.result?.body;
+  record(
+    "share",
+    "GET /api/views/:id returns the same snapshot",
+    !!fetch1.result?.ok &&
+      snap?.id === id &&
+      snap?.text === payload.message.text &&
+      snap?.richContent?.data?.rows?.[0]?.region === "NAM",
+    `id=${snap?.id} text="${(snap?.text || "").slice(0, 40)}"`,
+    fetch1.durationMs,
+  );
+
+  // Reject invalid id (path-traversal defense)
+  const bad = await timed(() =>
+    getJson(`${NEXT_URL}/api/views/${encodeURIComponent("../../etc/passwd")}`),
+  );
+  record(
+    "share",
+    "invalid id rejected (path-traversal guard)",
+    bad.result?.status === 400 || bad.result?.status === 404,
+    `status=${bad.result?.status}`,
+    bad.durationMs,
+  );
+}
+
 // ─── PII detection + masking ─────────────────────────────────────────────
 
 async function testPiiMasking() {
@@ -920,6 +990,7 @@ async function main() {
   await testAnalysis();
   await testDrillDown();
   await testPiiMasking();
+  await testSnapshots();
   await testEdgeCases();
   await testGroupIsolation();
   await testSynonymCrud();

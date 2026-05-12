@@ -603,6 +603,55 @@ export function useChat(
     sessionIdRef.current = `${platform}-${generateId()}`;
   }, [platform]);
 
+  /**
+   * Snapshot a bot message to a shareable URL.
+   *
+   * POSTs the message text + rich content to /api/views/snapshot, which
+   * persists the snapshot on the engine and returns a short id. Caller
+   * gets back the absolute share URL ready to copy/paste. Resolves to
+   * null on failure (caller renders an error toast).
+   */
+  const shareMessage = useCallback(
+    async (messageId: string): Promise<string | null> => {
+      const message = messages.find(
+        (m) => m.id === messageId && m.role === "bot",
+      );
+      if (!message) return null;
+
+      try {
+        const res = await fetch("/api/views/snapshot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: sessionIdRef.current,
+            groupId: groupId || "default",
+            userId: userName,
+            queryName: message.queryName,
+            // For v1 we don't ship the full followUpChain (it lives in
+            // engine session context, not in the message). The
+            // snapshot still carries enough — text + rich content —
+            // to reproduce the on-screen rendering exactly.
+            message: {
+              text: message.text,
+              richContent: message.richContent,
+              intent: message.intent,
+              confidence: message.confidence,
+            },
+          }),
+        });
+        if (!res.ok) return null;
+        const data = (await res.json()) as { id?: string; url?: string };
+        if (!data.id) return null;
+        const origin =
+          typeof window !== "undefined" ? window.location.origin : "";
+        return `${origin}/share/${data.id}`;
+      } catch {
+        return null;
+      }
+    },
+    [messages, groupId, userName],
+  );
+
   const uploadFile = useCallback(
     async (file: File) => {
       // Show user message indicating upload
@@ -704,5 +753,6 @@ export function useChat(
     clearMessages,
     submitFeedback,
     uploadFile,
+    shareMessage,
   };
 }

@@ -4,6 +4,7 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { chatRouter } from "./routes/chat";
 import { adminRouter } from "./routes/admin/index";
+import { viewsRouter } from "./routes/views";
 import { queriesRouter } from "./routes/queries";
 import { statsRouter } from "./routes/stats";
 import { healthRouter } from "./routes/health";
@@ -125,6 +126,7 @@ app.use("/api/catalog", catalogRouter);
 app.use("/api/watch", watchRouter);
 app.use("/api/home-feed", homeFeedRouter);
 app.use("/api/workflows", workflowsRouter);
+app.use("/api/views", viewsRouter);
 
 // 404 handler
 app.use((_req, res) => {

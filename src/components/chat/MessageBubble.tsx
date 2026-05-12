@@ -10,6 +10,7 @@ import {
   ClipboardCopy,
   Check,
   HelpCircle,
+  Share2,
 } from "lucide-react";
 import { AnomalyAlert } from "@/components/dashboard/AnomalyBadge";
 import { FeedbackBar } from "./FeedbackBar";
@@ -63,6 +64,7 @@ export function MessageBubble({
   dashboardMode,
   onShowInPanel,
   onDisambiguationSelect,
+  onShareMessage,
   diffInfo,
 }: {
   message: Message;
@@ -80,6 +82,9 @@ export function MessageBubble({
    * POSTs the queryName as `forceIntent` (engine bypasses NLP).
    */
   onDisambiguationSelect?: (candidate: DisambiguationCandidate) => void;
+  /** Share-this-message handler. Resolves to the share URL (null on failure).
+   *  Owner: useChat.shareMessage; called from the per-message Share button. */
+  onShareMessage?: (messageId: string) => Promise<string | null>;
   cardId?: string;
   linkedSelection?: LinkedSelection;
   onCellClick?: (column: string, value: unknown) => void;
@@ -117,8 +122,30 @@ export function MessageBubble({
 }) {
   const isUser = message.role === "user";
   const [msgCopied, setMsgCopied] = useState(false);
+  const [shareState, setShareState] = useState<
+    "idle" | "sharing" | "copied" | "error"
+  >("idle");
 
   const hasRichContent = !isUser && message.richContent;
+
+  const handleShare = useCallback(async () => {
+    if (!onShareMessage) return;
+    setShareState("sharing");
+    try {
+      const url = await onShareMessage(message.id);
+      if (!url) {
+        setShareState("error");
+        setTimeout(() => setShareState("idle"), 2000);
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setShareState("copied");
+      setTimeout(() => setShareState("idle"), 2500);
+    } catch {
+      setShareState("error");
+      setTimeout(() => setShareState("idle"), 2000);
+    }
+  }, [onShareMessage, message.id]);
 
   const handleMessageCopy = useCallback(() => {
     let text = "";
@@ -164,20 +191,45 @@ export function MessageBubble({
               }`
         }`}
       >
-        {/* Copy button — visible on hover (hidden in dashboard mode) */}
+        {/* Copy + Share buttons — visible on hover (hidden in dashboard mode).
+            Share only renders when there's a rich content payload worth
+            snapshotting AND the parent supplied the handler. */}
         {!isUser && !dashboardMode && (
-          <button
-            onClick={handleMessageCopy}
-            className="absolute top-2 right-2 opacity-0 group-hover/msg:opacity-100 transition-opacity inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-secondary)] bg-[var(--bg-primary)] border border-[var(--border)] rounded-md hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] shadow-sm z-10"
-            title="Copy to clipboard"
-          >
-            {msgCopied ? (
-              <Check size={12} className="text-[var(--success)]" />
-            ) : (
-              <ClipboardCopy size={12} />
+          <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity z-10">
+            {hasRichContent && onShareMessage && (
+              <button
+                onClick={handleShare}
+                disabled={shareState === "sharing"}
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-secondary)] bg-[var(--bg-primary)] border border-[var(--border)] rounded-md hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] shadow-sm disabled:opacity-50"
+                title="Snapshot this result and copy a shareable link"
+              >
+                {shareState === "copied" ? (
+                  <Check size={12} className="text-[var(--success)]" />
+                ) : (
+                  <Share2 size={12} />
+                )}
+                {shareState === "copied"
+                  ? "Link copied!"
+                  : shareState === "sharing"
+                    ? "Sharing…"
+                    : shareState === "error"
+                      ? "Failed"
+                      : "Share"}
+              </button>
             )}
-            {msgCopied ? "Copied!" : "Copy"}
-          </button>
+            <button
+              onClick={handleMessageCopy}
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-secondary)] bg-[var(--bg-primary)] border border-[var(--border)] rounded-md hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] shadow-sm"
+              title="Copy to clipboard"
+            >
+              {msgCopied ? (
+                <Check size={12} className="text-[var(--success)]" />
+              ) : (
+                <ClipboardCopy size={12} />
+              )}
+              {msgCopied ? "Copied!" : "Copy"}
+            </button>
+          </div>
         )}
         {/* Conversational text — hidden in dashboard mode (card title already shows context).
             For disambiguation messages, prefix with a question-circle icon
