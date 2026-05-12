@@ -404,42 +404,68 @@ export function RichContentRenderer({
                 </th>
               );
             }}
-            renderRow={(g, i) => (
-              <tr
-                key={i}
-                className={
-                  i % 2 === 0
-                    ? "bg-[var(--bg-primary)]"
-                    : "bg-[var(--brand-subtle)]/30"
-                }
-              >
-                {isMultiCol && g.groupValues ? (
-                  groupCols.map((col) => (
-                    <td
-                      key={col}
-                      className="px-2 py-1 border-b border-[var(--border)] font-semibold text-[var(--brand)]"
-                    >
-                      {String(g.groupValues![col] ?? "")}
+            renderRow={(g, i) => {
+              // Drill-down chip: only enabled in the single-column
+              // group-by case. Multi-column drill ("NAM AND Q3") is
+              // supported by the backend but the chat-side phrasing
+              // is ambiguous, so we keep the demo honest by not
+              // offering the chip there.
+              const drillValue =
+                !isMultiCol && g.groupValue != null
+                  ? String(g.groupValue)
+                  : null;
+              return (
+                <tr
+                  key={i}
+                  className={
+                    i % 2 === 0
+                      ? "bg-[var(--bg-primary)]"
+                      : "bg-[var(--brand-subtle)]/30"
+                  }
+                >
+                  {isMultiCol && g.groupValues ? (
+                    groupCols.map((col) => (
+                      <td
+                        key={col}
+                        className="px-2 py-1 border-b border-[var(--border)] font-semibold text-[var(--brand)]"
+                      >
+                        {String(g.groupValues![col] ?? "")}
+                      </td>
+                    ))
+                  ) : (
+                    <td className="px-2 py-1 border-b border-[var(--border)] font-semibold text-[var(--brand)]">
+                      <span className="inline-flex items-center gap-1.5">
+                        {String(g.groupValue)}
+                        {drillValue && onAction ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAction(`drill into ${drillValue}`);
+                            }}
+                            className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--brand)] text-[var(--brand)] hover:bg-[var(--brand-subtle)] transition-colors"
+                            title={`Drill into ${drillValue} — see the underlying rows`}
+                          >
+                            ↓ drill
+                          </button>
+                        ) : null}
+                      </span>
                     </td>
-                  ))
-                ) : (
-                  <td className="px-2 py-1 border-b border-[var(--border)] font-semibold text-[var(--brand)]">
-                    {String(g.groupValue)}
+                  )}
+                  {aggCols.map((c) => (
+                    <td
+                      key={c}
+                      className="px-2 py-1 border-b border-[var(--border)]"
+                    >
+                      {g.aggregations[c]?.toLocaleString() ?? 0}
+                    </td>
+                  ))}
+                  <td className="px-2 py-1 border-b border-[var(--border)]">
+                    {g.count}
                   </td>
-                )}
-                {aggCols.map((c) => (
-                  <td
-                    key={c}
-                    className="px-2 py-1 border-b border-[var(--border)]"
-                  >
-                    {g.aggregations[c]?.toLocaleString() ?? 0}
-                  </td>
-                ))}
-                <td className="px-2 py-1 border-b border-[var(--border)]">
-                  {g.count}
-                </td>
-              </tr>
-            )}
+                </tr>
+              );
+            }}
           />
           {chartRows.length > 1 && (
             <div className="mt-2">

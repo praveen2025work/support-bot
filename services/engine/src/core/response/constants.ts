@@ -135,6 +135,21 @@ export const EXPORT_PATTERN =
 export const UNDO_PATTERN =
   /\b(?:undo|go\s+back|revert|undo\s+last|rollback|previous\s+(?:result|state))\b/i;
 
+// Drill-down pattern — fires when a user wants to see the underlying
+// detail rows of a grouped result. Variants:
+//   "drill into NAM" / "drill down to NAM" / "drill down NAM"
+//   "show rows for NAM" / "show me rows for NAM" / "show the rows for NAM"
+//   "details for NAM" / "see details for NAM"
+//   "expand NAM" / "open NAM"
+//   "rows for NAM" / "underlying rows for NAM"
+//
+// The gate is loose; the handler is strict — if `lastGroupColumn` is
+// missing or the value doesn't match any row in the original data, the
+// handler falls through and the next handler / disambiguation chips
+// take over.
+export const DRILL_DOWN_PATTERN =
+  /\b(?:drill\s+(?:down\s+(?:to|into)?|into|to)|(?:show|see)\s+(?:me\s+)?(?:the\s+)?(?:underlying\s+)?(?:rows|details)\s+(?:for|of)|details\s+for|rows\s+for|underlying\s+rows\s+for|expand|open)\s+/i;
+
 // Confirmation pattern: "yes", "yeah", "correct", "do it", "go ahead", "confirm"
 export const CONFIRM_PATTERN =
   /^\s*(?:yes|yeah|yep|yup|y|correct|right|sure|ok|okay|do\s+it|go\s+ahead|confirm|absolutely|definitely|please|affirmative)\s*[.!]?\s*$/i;

@@ -559,6 +559,61 @@ async function testEdgeCases() {
   );
 }
 
+// ─── Drill-down (the Tableau-killer feature) ─────────────────────────────
+
+async function testDrillDown() {
+  section("Chat — drill-down on grouped results");
+  if (QUICK) {
+    record("chat-drill", "skipped (--quick)", true);
+    return;
+  }
+  const sid = `validation-drill-${Date.now()}`;
+
+  // Set up: load + group by region (3 groups: NAM 37, EMEA 37, APAC 19)
+  await postChat("run pnl_lineage", sid, "finance", { explicitFilters: {} });
+  await postChat("group by region", sid, "finance");
+
+  const cases = [
+    { name: '"drill into NAM"', text: "drill into NAM", expectedRows: 37 },
+    {
+      name: '"show rows for EMEA"',
+      text: "show rows for EMEA",
+      expectedRows: 37,
+    },
+    { name: '"details for APAC"', text: "details for APAC", expectedRows: 19 },
+    { name: '"expand NAM"', text: "expand NAM", expectedRows: 37 },
+  ];
+
+  for (const c of cases) {
+    const t = await timed(() => postChat(c.text, sid, "finance"));
+    const d = t.result?.data;
+    const rows = d?.richContent?.data?.rows?.length;
+    const ok = d?.intent === "followup.drill_down" && rows === c.expectedRows;
+    record(
+      "chat-drill",
+      c.name,
+      ok,
+      `intent=${d?.intent} rows=${rows} expected=${c.expectedRows}`,
+      t.durationMs,
+    );
+  }
+
+  // Unknown drill value → friendly "available values" message
+  const unknown = await timed(() =>
+    postChat("drill into XYZ_NONEXISTENT", sid, "finance"),
+  );
+  const ud = unknown.result?.data;
+  record(
+    "chat-drill",
+    "unknown drill value → friendly fallback",
+    ud?.intent === "followup.drill_down" &&
+      /no rows in.*where.*is/i.test(String(ud?.text || "")) &&
+      /available values/i.test(String(ud?.text || "")),
+    `intent=${ud?.intent} text="${String(ud?.text || "").slice(0, 100)}"`,
+    unknown.durationMs,
+  );
+}
+
 // ─── Cross-group isolation (regression for the F-probe leak) ─────────────
 
 async function testGroupIsolation() {
@@ -802,6 +857,7 @@ async function main() {
   await testForceIntent();
   await testExportUndo();
   await testAnalysis();
+  await testDrillDown();
   await testEdgeCases();
   await testGroupIsolation();
   await testSynonymCrud();

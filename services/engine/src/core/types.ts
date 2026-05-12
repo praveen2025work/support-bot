@@ -218,6 +218,14 @@ export interface ConversationContext {
   lastColumnMetadata?: unknown[];
   /** Ordered chain of follow-up operations applied to the current query result */
   followUpChain?: FollowUpStep[];
+  /**
+   * Column used in the most recent successful group-by follow-up. Lets a
+   * subsequent "drill into <value>" / "show rows for <value>" message
+   * filter the original (pre-group-by) result by groupCol = value
+   * without the user having to repeat the column name. Cleared when a
+   * fresh query is loaded.
+   */
+  lastGroupColumn?: string;
   /** Last analysis type run on the data (for contextual follow-up suggestions) */
   lastAnalysisType?: string;
   /** Anomalies detected in the last query result */

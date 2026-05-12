@@ -299,7 +299,11 @@ function getChainSuggestions(
   const ops = new Set(chain.map((s) => s.operation));
   const suggestions: string[] = [];
 
-  // After group_by → suggest sort or aggregation
+  // After group_by → suggest drill-down first (most asked-for follow-up
+  // in user-research notes), then sort and top-N.
+  if (ops.has("group_by") && !ops.has("drill_down")) {
+    suggestions.push("Drill into the top group");
+  }
   if (ops.has("group_by") && !ops.has("sort")) {
     suggestions.push("Sort by count desc");
   }

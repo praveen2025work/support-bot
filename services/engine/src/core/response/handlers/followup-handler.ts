@@ -35,6 +35,7 @@ import {
   DATE_PERIOD_PATTERN,
   PERIOD_OVER_PERIOD_PATTERN,
   AGG_COMPUTED_PATTERN,
+  DRILL_DOWN_PATTERN,
   STOP_WORDS,
 } from "../constants";
 import {
@@ -199,24 +200,139 @@ export function handleGroupByFollowUp(
     };
   }
 
+  // Remember the group column so a follow-up like "drill into NAM" or
+  // "show rows for NAM" can filter the original (pre-group) data by
+  // <groupCol> = NAM without the user repeating the column name.
+  context.lastGroupColumn = result.groupColumn;
+
   logger.info(
     { query: context.lastQueryName, groupCol, groups: result.groups.length },
     "Group-by follow-up",
   );
 
+  // Surface a "drill into <top group>" suggestion so the chip is right
+  // there next to the grouped result. This is the entry point for the
+  // Tableau-style drill experience.
+  const topGroup = result.groups[0];
+  const topValue =
+    topGroup?.groupValue != null ? String(topGroup.groupValue) : null;
+  const drillSuggestion = topValue ? `drill into ${topValue}` : null;
+
   return {
     text: `Here is "${context.lastQueryName}" grouped by **${result.groupColumn}** (${result.groups.length} groups, ${dataToGroup.rows.length} total rows):`,
     richContent: { type: "csv_group_by", data: result },
     suggestions: [
+      ...(drillSuggestion ? [drillSuggestion] : []),
       ...csvData.headers
         .filter((h) => h !== groupCol)
         .slice(0, 2)
         .map((h) => `group by ${h}`),
       "summarize",
       `sort by ${result.aggregatedColumns[0]?.column ?? "count"} desc`,
-    ],
+    ].slice(0, 4),
     sessionId: context.sessionId,
     intent: "followup.group_by",
+    confidence: 1,
+  };
+}
+
+/**
+ * Drill-down: after a group-by, surface the underlying detail rows for
+ * one specific group value.
+ *
+ * Example: user runs `pnl_lineage`, then `group by region` (3 groups:
+ * NAM 37, EMEA 37, APAC 19). The user clicks "Drill into NAM" — or
+ * types any of the natural variants matched by DRILL_DOWN_PATTERN — and
+ * we filter the original 93-row result down to the 37 NAM rows and
+ * render them as a csv_table.
+ *
+ * Strict-parser principles:
+ *   - Requires `context.lastGroupColumn` (set by handleGroupByFollowUp).
+ *     Without it we don't know what column to filter by; return null
+ *     and let the next handler take over.
+ *   - Requires that the captured value matches at least one row.
+ *     Otherwise we return a friendly "no rows for that group" message
+ *     with the available values surfaced — better than mis-filtering.
+ *
+ * This is the Tableau-style drill-through that business users expect.
+ */
+export function handleDrillDownFollowUp(
+  classification: ClassificationResult,
+  context: ConversationContext,
+): BotResponse | null {
+  if (!context.lastApiResult || !context.lastQueryName) return null;
+  if (!context.lastGroupColumn) return null;
+
+  const userText = getLastUserText(context);
+  // Match the trigger phrase, then capture the value (which may contain
+  // spaces / hyphens / digits — strip surrounding quotes).
+  const match = userText.match(
+    /\b(?:drill\s+(?:down\s+(?:to|into)?|into|to)|(?:show|see)\s+(?:me\s+)?(?:the\s+)?(?:underlying\s+)?(?:rows|details)\s+(?:for|of)|details\s+for|rows\s+for|underlying\s+rows\s+for|expand|open)\s+(.+?)\s*$/i,
+  );
+  if (!match) return null;
+
+  const rawValue = match[1].trim().replace(/^["']|["']$/g, "");
+  if (!rawValue) return null;
+
+  const csvData = extractCsvDataFromContext(context);
+  if (!csvData || csvData.rows.length === 0) return null;
+
+  const groupCol = context.lastGroupColumn;
+  // Verify the group column still exists in the data (defensive against
+  // schema drift between the group-by and the drill).
+  if (!csvData.headers.includes(groupCol)) return null;
+
+  const target = rawValue.toLowerCase();
+  const filtered = csvData.rows.filter(
+    (r) => String(r[groupCol] ?? "").toLowerCase() === target,
+  );
+
+  if (filtered.length === 0) {
+    // Show available values from the original data so the user can correct
+    // a typo without re-running group-by.
+    const uniqueValues = Array.from(
+      new Set(
+        csvData.rows.map((r) => String(r[groupCol] ?? "")).filter(Boolean),
+      ),
+    ).slice(0, 6);
+    return {
+      text: `No rows in "${context.lastQueryName}" where **${groupCol}** is "${rawValue}". Available values: ${uniqueValues.map((v) => `\`${v}\``).join(", ")}`,
+      suggestions: uniqueValues.slice(0, 4).map((v) => `drill into ${v}`),
+      sessionId: context.sessionId,
+      intent: "followup.drill_down",
+      confidence: 1,
+    };
+  }
+
+  logger.info(
+    {
+      query: context.lastQueryName,
+      groupCol,
+      value: rawValue,
+      matched: filtered.length,
+    },
+    "Drill-down follow-up",
+  );
+
+  return {
+    text: `Drill-down: ${filtered.length} rows from "${context.lastQueryName}" where **${groupCol}** = **${rawValue}**:`,
+    richContent: {
+      type: "csv_table",
+      data: {
+        headers: csvData.headers,
+        rows: filtered,
+        rowCount: filtered.length,
+        ...chartMetaFrom(context),
+      },
+    },
+    suggestions: [
+      "summarize",
+      "show trend",
+      "find outliers",
+      `back to group by ${groupCol}`,
+    ],
+    sessionId: context.sessionId,
+    intent: "followup.drill_down",
     confidence: 1,
   };
 }
@@ -1605,6 +1721,12 @@ export function handleDataOperation(
   // Existing handlers
   const groupByResult = handleGroupByFollowUp(classification, context);
   if (groupByResult) return groupByResult;
+  // Drill-down runs AFTER group-by so a fresh "group by X" doesn't get
+  // intercepted as a drill, but BEFORE the generic data-lookup so
+  // "rows for NAM" goes to the precise drill path when a group column
+  // is in context.
+  const drillResult = handleDrillDownFollowUp(classification, context);
+  if (drillResult) return drillResult;
   const sortResult = handleSortFollowUp(classification, context);
   if (sortResult) return sortResult;
   const summaryResult = handleSummaryFollowUp(classification, context);

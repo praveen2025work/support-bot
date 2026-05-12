@@ -12,6 +12,7 @@ import {
   COMPUTED_COLUMN_PATTERN,
   PERIOD_OVER_PERIOD_PATTERN,
   AGG_COMPUTED_PATTERN,
+  DRILL_DOWN_PATTERN,
 } from "./constants";
 import { responseTemplates as baseTemplates } from "./templates";
 import type { QueryService } from "../api-connector/query-service";
@@ -169,7 +170,8 @@ function isLikelyFollowUp(userText: string): boolean {
     ANALYSIS_PATTERN.test(userText) ||
     COMPUTED_COLUMN_PATTERN.test(userText) ||
     PERIOD_OVER_PERIOD_PATTERN.test(userText) ||
-    AGG_COMPUTED_PATTERN.test(userText)
+    AGG_COMPUTED_PATTERN.test(userText) ||
+    DRILL_DOWN_PATTERN.test(userText)
   ) {
     return true;
   }
@@ -329,6 +331,7 @@ export class ResponseGenerator {
       [INTENTS.FOLLOWUP_TOP_N]: "top_n",
       [INTENTS.FOLLOWUP_AGGREGATION]: "aggregation",
       [INTENTS.FOLLOWUP_DATA_LOOKUP]: "data_lookup",
+      "followup.drill_down": "drill_down",
     };
     return map[intent];
   }
