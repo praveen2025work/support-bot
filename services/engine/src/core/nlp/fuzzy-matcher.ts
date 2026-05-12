@@ -1,6 +1,9 @@
-import Fuse from 'fuse.js';
-import { FUZZY_CONFIDENCE_THRESHOLD } from '../constants';
-import { expandWithSynonyms, generateSynonymVariants } from './synonym-expander';
+import Fuse from "fuse.js";
+import { FUZZY_CONFIDENCE_THRESHOLD } from "../constants";
+import {
+  expandWithSynonyms,
+  generateSynonymVariants,
+} from "./synonym-expander";
 
 interface FaqEntry {
   question: string;
@@ -12,7 +15,7 @@ export interface FuzzyMatchResult {
   intent: string;
   score: number;
   answer: string;
-  source: 'fuzzy' | 'fuzzy_synonym';
+  source: "fuzzy" | "fuzzy_synonym";
 }
 
 export class FuzzyMatcher {
@@ -21,9 +24,11 @@ export class FuzzyMatcher {
   private faqData: FaqEntry[] = [];
   private initialized = false;
   private faqFile: string | null;
+  private groupId: string | undefined;
 
-  constructor(faqFile?: string | null) {
+  constructor(faqFile?: string | null, groupId?: string) {
     this.faqFile = faqFile ?? null;
+    this.groupId = groupId;
   }
 
   async init(): Promise<void> {
@@ -34,7 +39,7 @@ export class FuzzyMatcher {
       const mod = await import(`@/training/groups/${this.faqFile}`);
       data = mod.default as FaqEntry[];
     } else {
-      const mod = await import('@/training/faq.json');
+      const mod = await import("@/training/faq.json");
       data = mod.default as FaqEntry[];
     }
 
@@ -42,7 +47,7 @@ export class FuzzyMatcher {
 
     // Primary index — direct matching
     this.fuse = new Fuse(data, {
-      keys: ['question'],
+      keys: ["question"],
       threshold: 0.4,
       includeScore: true,
       minMatchCharLength: 3,
@@ -62,7 +67,7 @@ export class FuzzyMatcher {
     }
 
     this.fuseSynonym = new Fuse(expandedData, {
-      keys: ['question'],
+      keys: ["question"],
       threshold: 0.35, // Tighter threshold since synonyms bridge the gap
       includeScore: true,
       minMatchCharLength: 3,
@@ -81,20 +86,23 @@ export class FuzzyMatcher {
     // 1. Direct fuzzy match
     const directResult = this.searchFuse(this.fuse, text);
     if (directResult && directResult.score >= FUZZY_CONFIDENCE_THRESHOLD) {
-      return { ...directResult, source: 'fuzzy' };
+      return { ...directResult, source: "fuzzy" };
     }
 
     // 2. Synonym-expanded match — expand the query and search the expanded index
-    const expandedTerms = expandWithSynonyms(text);
-    const expandedQuery = expandedTerms.join(' ');
+    const expandedTerms = expandWithSynonyms(text, this.groupId);
+    const expandedQuery = expandedTerms.join(" ");
     const synResult = this.searchFuse(this.fuseSynonym, expandedQuery);
     if (synResult && synResult.score >= FUZZY_CONFIDENCE_THRESHOLD) {
-      return { ...synResult, source: 'fuzzy_synonym' };
+      return { ...synResult, source: "fuzzy_synonym" };
     }
 
     // 3. If direct had a result but below threshold, return it anyway if close
-    if (directResult && directResult.score >= FUZZY_CONFIDENCE_THRESHOLD * 0.8) {
-      return { ...directResult, source: 'fuzzy' };
+    if (
+      directResult &&
+      directResult.score >= FUZZY_CONFIDENCE_THRESHOLD * 0.8
+    ) {
+      return { ...directResult, source: "fuzzy" };
     }
 
     return null;
@@ -110,7 +118,7 @@ export class FuzzyMatcher {
 
     // Rebuild indexes
     this.fuse = new Fuse(this.faqData, {
-      keys: ['question'],
+      keys: ["question"],
       threshold: 0.4,
       includeScore: true,
       minMatchCharLength: 3,
@@ -120,11 +128,15 @@ export class FuzzyMatcher {
     for (const e of this.faqData) {
       const variants = generateSynonymVariants(e.question, 3);
       for (const variant of variants) {
-        expandedData.push({ question: variant, intent: e.intent, answer: e.answer });
+        expandedData.push({
+          question: variant,
+          intent: e.intent,
+          answer: e.answer,
+        });
       }
     }
     this.fuseSynonym = new Fuse(expandedData, {
-      keys: ['question'],
+      keys: ["question"],
       threshold: 0.35,
       includeScore: true,
       minMatchCharLength: 3,
@@ -133,8 +145,8 @@ export class FuzzyMatcher {
 
   private searchFuse(
     fuse: Fuse<FaqEntry>,
-    text: string
-  ): Omit<FuzzyMatchResult, 'source'> | null {
+    text: string,
+  ): Omit<FuzzyMatchResult, "source"> | null {
     const results = fuse.search(text);
     if (results.length === 0 || results[0].score === undefined) return null;
 

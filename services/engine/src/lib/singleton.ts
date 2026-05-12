@@ -1,13 +1,13 @@
-import { ChatbotEngine } from '@/core/engine';
-import { NlpService } from '@/core/nlp/nlp-service';
-import { FuzzyMatcher } from '@/core/nlp/fuzzy-matcher';
-import { ApiClient } from '@/core/api-connector/api-client';
-import { QueryService } from '@/core/api-connector/query-service';
-import { ResponseGenerator } from '@/core/response/response-generator';
-import { SessionManager } from '@/core/session/session-manager';
-import { LearningService } from '@/core/learning/learning-service';
-import { getGroupConfig } from '@/config/group-config';
-import { logger } from '@/lib/logger';
+import { ChatbotEngine } from "@/core/engine";
+import { NlpService } from "@/core/nlp/nlp-service";
+import { FuzzyMatcher } from "@/core/nlp/fuzzy-matcher";
+import { ApiClient } from "@/core/api-connector/api-client";
+import { QueryService } from "@/core/api-connector/query-service";
+import { ResponseGenerator } from "@/core/response/response-generator";
+import { SessionManager } from "@/core/session/session-manager";
+import { LearningService } from "@/core/learning/learning-service";
+import { getGroupConfig } from "@/config/group-config";
+import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
 // Engine cache with initialization lock
@@ -23,7 +23,9 @@ import { logger } from '@/lib/logger';
 const engines = new Map<string, ChatbotEngine>();
 const initLocks = new Map<string, Promise<ChatbotEngine>>();
 
-export async function getEngine(groupId: string = 'default'): Promise<ChatbotEngine> {
+export async function getEngine(
+  groupId: string = "default",
+): Promise<ChatbotEngine> {
   // Fast path: engine already initialized
   const existing = engines.get(groupId);
   if (existing?.isInitialized()) return existing;
@@ -53,21 +55,35 @@ async function createAndInitEngine(groupId: string): Promise<ChatbotEngine> {
   const start = Date.now();
   const groupConfig = getGroupConfig(groupId);
 
-  const fuzzyMatcher = new FuzzyMatcher(groupConfig.faq);
-  const nlpService = new NlpService(fuzzyMatcher, groupConfig.corpus, groupConfig.sources);
+  const fuzzyMatcher = new FuzzyMatcher(groupConfig.faq, groupId);
+  const nlpService = new NlpService(
+    fuzzyMatcher,
+    groupConfig.corpus,
+    groupConfig.sources,
+  );
   const apiClient = new ApiClient(groupConfig.apiBaseUrl ?? undefined);
   const queryService = new QueryService(apiClient, groupConfig.sources);
-  const responseGenerator = new ResponseGenerator(queryService, groupConfig.templates, groupId);
+  const responseGenerator = new ResponseGenerator(
+    queryService,
+    groupConfig.templates,
+    groupId,
+  );
   const sessionManager = new SessionManager();
   const learningService = new LearningService(groupId);
 
-  const engine = new ChatbotEngine(nlpService, responseGenerator, sessionManager, learningService, groupId);
+  const engine = new ChatbotEngine(
+    nlpService,
+    responseGenerator,
+    sessionManager,
+    learningService,
+    groupId,
+  );
 
   // Initialize (trains NLP model) — this is the expensive CPU operation
   await engine.initialize();
 
   engines.set(groupId, engine);
-  logger.info({ groupId, initMs: Date.now() - start }, 'Engine initialized');
+  logger.info({ groupId, initMs: Date.now() - start }, "Engine initialized");
   return engine;
 }
 
@@ -110,5 +126,7 @@ export function clearQueryCaches(): void {
 export function invalidateQueryData(): void {
   clearQueryCaches();
   invalidateAllEngines();
-  logger.info('All engines invalidated — NLP will retrain with updated query names');
+  logger.info(
+    "All engines invalidated — NLP will retrain with updated query names",
+  );
 }
