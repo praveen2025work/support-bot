@@ -180,6 +180,12 @@ const NAV_SECTIONS: NavSection[] = [
     label: "Guides",
     items: [
       {
+        href: "/admin/api-docs",
+        label: "API Reference",
+        icon: BookOpen,
+        match: (p: string) => p.startsWith("/admin/api-docs"),
+      },
+      {
         href: "/admin/guides/user-guide",
         label: "User Guide",
         icon: BookOpen,

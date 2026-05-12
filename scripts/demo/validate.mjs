@@ -632,6 +632,35 @@ async function testConcurrentRetrain() {
 
 // ─── Robustness: Prometheus metrics + security headers + 413 ─────────────
 
+async function testOpenApiSpec() {
+  section("Observability — OpenAPI 3.0 spec");
+  const t = await timed(() => getJson(`${NEXT_URL}/api/openapi.json`));
+  const body = t.result?.body;
+  record(
+    "openapi",
+    "/api/openapi.json returns valid 3.x spec",
+    t.result?.ok &&
+      typeof body?.openapi === "string" &&
+      body.openapi.startsWith("3.") &&
+      typeof body?.info?.title === "string",
+    `openapi=${body?.openapi} title=${body?.info?.title}`,
+    t.durationMs,
+  );
+  record(
+    "openapi",
+    "spec covers admin endpoints (>=15 paths)",
+    body?.paths && Object.keys(body.paths).length >= 15,
+    `paths=${body?.paths ? Object.keys(body.paths).length : 0}`,
+  );
+  record(
+    "openapi",
+    "spec documents /api/chat with ErrorEnvelope responses",
+    !!body?.paths?.["/api/chat"]?.post?.responses?.["503"] &&
+      !!body?.components?.schemas?.ErrorEnvelope,
+    "checked /api/chat 503 + ErrorEnvelope schema",
+  );
+}
+
 async function testMetricsEndpoint() {
   section("Observability — Prometheus /metrics endpoint");
 
@@ -1631,6 +1660,7 @@ async function main() {
   await testSchemaDrift();
   await testErrorEnvelope();
   await testQueryCache();
+  await testOpenApiSpec();
   await testMetricsEndpoint();
   await testSecurityHeaders();
   await testRequestTooLarge();

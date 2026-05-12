@@ -16,6 +16,7 @@ import {
   getAllHealth,
 } from "./core/sources/health-monitor";
 import { metricsRouter } from "./routes/metrics";
+import { openapiRouter } from "./routes/openapi";
 import { registerGauge } from "./lib/metrics";
 import { getEngineCount } from "./lib/singleton";
 import { chatRouter } from "./routes/chat";
@@ -162,6 +163,8 @@ app.use("/api/workflows", workflowsRouter);
 app.use("/api/views", viewsRouter);
 // /api/metrics — Prometheus scrape (public, no admin auth)
 app.use("/api", metricsRouter);
+// /api/openapi.json — hand-maintained OpenAPI 3.0 spec (public)
+app.use("/api", openapiRouter);
 
 // Register gauge providers — pulled on every scrape, no buffering.
 // Engines map and source health map are cheap to read.
