@@ -45,10 +45,12 @@ import { detectDrift, formatDriftMessage } from "../../schema/drift-detector";
 import {
   buildQueryCacheKey,
   getCachedResult,
+  getStaleCachedResult,
   setCachedResult,
   buildCacheStatus,
   isCacheBust,
 } from "../../cache/query-cache";
+import { ApiConnectionError, CircuitOpenError } from "../../../lib/errors";
 
 /**
  * Strip columns listed in columnConfig.ignoreColumns from CSV headers and rows
@@ -553,6 +555,11 @@ export async function handleQueryExecute(
     : null;
   let cacheStatus: ReturnType<typeof buildCacheStatus> | undefined;
   let cacheHit = false;
+  // True only when the cache hit came from the stale-while-error path
+  // (upstream failed AND we had an old entry to serve). Drives a
+  // different bot-text banner so the user sees the warning instead
+  // of the friendly "cached Ns ago" note.
+  let servedStale = false;
 
   try {
     let result;
@@ -567,15 +574,59 @@ export async function handleQueryExecute(
       }
     }
     if (!result) {
-      result = await queryService.executeQuery(
-        queryNameEntity.value,
-        hasFilters ? filters : undefined,
-        options,
-        incomingHeaders,
-      );
-      if (cacheKey) {
-        setCachedResult(cacheKey, result);
-        cacheStatus = buildCacheStatus("fresh", new Date().toISOString());
+      try {
+        result = await queryService.executeQuery(
+          queryNameEntity.value,
+          hasFilters ? filters : undefined,
+          options,
+          incomingHeaders,
+        );
+        if (cacheKey) {
+          setCachedResult(cacheKey, result);
+          cacheStatus = buildCacheStatus("fresh", new Date().toISOString());
+        }
+      } catch (upstreamErr) {
+        // Stale-while-error fallback: if the source is unreachable
+        // but we have a previous successful result for THIS exact
+        // (group, query, filters) tuple, serve it with a "stale"
+        // banner instead of letting the error bubble. Better UX in
+        // transient outages — the user sees yesterday's number with
+        // a warning, not a 503. The cache uses allowStale:true so
+        // TTL-expired entries remain accessible via peek() until
+        // LRU evicts them.
+        //
+        // Only ApiConnectionError / CircuitOpenError trigger this
+        // path. Other errors (validation, programming bugs) still
+        // bubble normally so they're not silently masked.
+        const isUpstreamFail =
+          upstreamErr instanceof ApiConnectionError ||
+          upstreamErr instanceof CircuitOpenError;
+        if (cacheKey && isUpstreamFail) {
+          const stale = getStaleCachedResult(cacheKey);
+          if (stale) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            result = stale.payload as any;
+            cacheStatus = buildCacheStatus("cached", stale.cachedAt);
+            cacheHit = true;
+            servedStale = true;
+            logger.warn(
+              {
+                queryName: queryNameEntity.value,
+                cacheKey,
+                ageMs: cacheStatus.ageMs,
+                upstreamErr:
+                  upstreamErr instanceof Error
+                    ? upstreamErr.message
+                    : String(upstreamErr),
+              },
+              "Serving stale cache — upstream data source unavailable",
+            );
+          } else {
+            throw upstreamErr;
+          }
+        } else {
+          throw upstreamErr;
+        }
       }
     }
 
@@ -1164,10 +1215,13 @@ export async function handleQueryExecute(
         const driftNote = schemaDriftSummary
           ? ` _⚠ Schema drift: ${schemaDriftSummary.message}_`
           : "";
-        // Cache suffix — only when the answer came from cache. Fresh
-        // hits stay silent so the chat doesn't get noisy.
-        const cacheNote =
-          cacheStatus?.status === "cached"
+        // Cache suffix:
+        //   - servedStale=true  → loud warning, source unreachable
+        //   - status=cached     → friendly "cached Ns ago" note
+        //   - status=fresh      → silent (no chat-noise on every hit)
+        const cacheNote = servedStale
+          ? ` _⚠ Showing data from ${Math.round((cacheStatus?.ageMs ?? 0) / 1000)}s ago — the live data source is currently unreachable._`
+          : cacheStatus?.status === "cached"
             ? ` _(cached ${Math.round(cacheStatus.ageMs / 1000)}s ago — say "refresh ${queryNameEntity.value}" to bypass)_`
             : "";
         return {
@@ -1187,7 +1241,11 @@ export async function handleQueryExecute(
               ...(columnMetadata && { columnMetadata }),
               ...(piiSummary && { piiSummary }),
               ...(schemaDriftSummary && { schemaDrift: schemaDriftSummary }),
-              ...(cacheStatus && { cacheStatus }),
+              ...(cacheStatus && {
+                cacheStatus: servedStale
+                  ? { ...cacheStatus, staleFallback: true }
+                  : cacheStatus,
+              }),
             },
           },
           sessionId: context.sessionId,

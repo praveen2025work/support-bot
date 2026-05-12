@@ -244,7 +244,11 @@ export class LearningService {
         source: "admin_review",
       };
       await this.appendJsonl(this.autoLearnedPath, learned);
-      invalidateEngine(this.groupId);
+      // Fire-and-forget — the resolve API responds immediately; the
+      // actual NLP re-train happens lazily on the next chat request.
+      // The async invalidate coalesces concurrent calls so we can
+      // safely not await here.
+      void invalidateEngine(this.groupId);
       logger.info(
         { utterance: item.userMessage, intent: correctIntent },
         "Admin-resolved and added to corpus",
@@ -381,7 +385,10 @@ export class LearningService {
     await this.writeSignalAggregates(aggregates);
 
     if (promoted > 0) {
-      invalidateEngine(this.groupId);
+      // Fire-and-forget invalidation; the next chat request triggers
+      // the re-train. Async coalescing in invalidateEngine handles
+      // any racing signal-processor callers.
+      void invalidateEngine(this.groupId);
       logger.info(
         { promoted, groupId: this.groupId },
         "Auto-learned utterances promoted to corpus",

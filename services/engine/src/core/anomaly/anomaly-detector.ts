@@ -565,8 +565,23 @@ function evaluateBusinessRule(value: number, rule: BusinessRule): boolean {
   }
 }
 
-// Singleton per group
-const instances = new Map<string, AnomalyDetector>();
+// Singleton per group, bounded so a many-group deployment can't
+// accumulate AnomalyDetector instances indefinitely. Each instance
+// holds in-memory baselines + seasonal data structures; 1000 groups
+// is far more than we'd realistically expect (current configs ship
+// with 5) but the cap matches the synonym cache for consistency.
+// LRU eviction means a long-idle group rebuilds its detector on the
+// next access — recomputation cost is dominated by file I/O, which
+// is the same whether we cache or not.
+import { LRUCache } from "lru-cache";
+
+const ANOMALY_DETECTOR_CACHE_MAX = parseInt(
+  process.env.ANOMALY_DETECTOR_CACHE_MAX || "1000",
+  10,
+);
+const instances = new LRUCache<string, AnomalyDetector>({
+  max: ANOMALY_DETECTOR_CACHE_MAX,
+});
 
 export function getAnomalyDetector(groupId: string): AnomalyDetector {
   let detector = instances.get(groupId);

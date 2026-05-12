@@ -39,6 +39,12 @@ export interface CachedQueryResult {
 const cache = new LRUCache<string, CachedQueryResult>({
   max: QUERY_RESULT_CACHE_MAX_ENTRIES,
   ttl: QUERY_RESULT_CACHE_TTL_MS,
+  // Keep TTL-expired entries in the cache until LRU eviction kicks
+  // them out. `get()` still won't return them (so live requests get
+  // a miss → fresh fetch), but `peek()` from getStaleCachedResult()
+  // CAN return them during an upstream outage as a graceful
+  // fallback. This is the "stale-while-error" pattern.
+  allowStale: true,
 });
 
 function hashFilters(filters: Record<string, string> | undefined): string {
@@ -77,6 +83,27 @@ export function buildQueryCacheKey(
  */
 export function getCachedResult(key: string): CachedQueryResult | null {
   const hit = cache.get(key);
+  if (!hit) return null;
+  return {
+    cachedAt: hit.cachedAt,
+    payload: structuredClone(hit.payload),
+  };
+}
+
+/**
+ * TTL-bypass lookup. Used as a fallback when the upstream data
+ * source is unreachable — we'd rather serve a 5-minute-old answer
+ * with a clear "stale" banner than 503 the user when their morning
+ * dashboard refresh hits during a 30s DB blip.
+ *
+ * LRUCache's `get()` returns undefined for expired entries by
+ * default. `peek({allowStale: true})` returns the raw value
+ * regardless of TTL but does NOT update recency. That's what we want
+ * here — staleness should not extend the entry's lifetime; we just
+ * want to read it before LRU eviction takes it.
+ */
+export function getStaleCachedResult(key: string): CachedQueryResult | null {
+  const hit = cache.peek(key);
   if (!hit) return null;
   return {
     cachedAt: hit.cachedAt,

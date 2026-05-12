@@ -559,6 +559,77 @@ async function testEdgeCases() {
   );
 }
 
+// ─── Robustness: readiness probe + concurrent retrain ────────────────────
+
+async function testReadinessProbe() {
+  section("Robustness — readiness probe with source health");
+  const r = await timed(() =>
+    getJson(`${ENGINE_URL}/api/health/ready`),
+  );
+  const body = r.result?.body;
+  record(
+    "readiness",
+    "/api/health/ready returns shape with sources block",
+    r.result?.ok &&
+      typeof body?.status === "string" &&
+      typeof body?.checks === "object" &&
+      typeof body?.sources?.total === "number",
+    `status=${body?.status} checks=${JSON.stringify(body?.checks)} sources.total=${body?.sources?.total}`,
+    r.durationMs,
+  );
+  record(
+    "readiness",
+    "ready when at least one source ok",
+    body?.checks?.sources === true && body?.status === "ready",
+    `sources.ok=${body?.sources?.ok}`,
+  );
+}
+
+async function testConcurrentRetrain() {
+  section("Robustness — concurrent retrain guard");
+  if (QUICK || NO_WRITE) {
+    record("retrain", "skipped (--quick / --no-write)", true);
+    return;
+  }
+
+  // Fire 3 retrain requests in parallel against the same group. The
+  // new async invalidateEngine coalesces them so all three should
+  // succeed (200, success:true) without race or error.
+  const fire = () =>
+    fetch(`${ENGINE_URL}/api/admin/learning/retrain`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-user-role": "admin",
+      },
+      body: JSON.stringify({ groupId: "finance" }),
+    }).then((r) => r.json().then((b) => ({ status: r.status, body: b })));
+
+  const start = Date.now();
+  const results = await Promise.all([fire(), fire(), fire()]);
+  const allOk = results.every((r) => r.status === 200 && r.body?.success);
+  record(
+    "retrain",
+    "3 concurrent retrains all succeed without error",
+    allOk,
+    `statuses=${results.map((r) => r.status).join(",")}`,
+    Date.now() - start,
+  );
+
+  // After concurrent retrains, a chat request to the same group still
+  // works — guard didn't strand the engine in a broken state.
+  const ping = await timed(() =>
+    postChat("hello", `validation-retrain-${Date.now()}`, "finance"),
+  );
+  record(
+    "retrain",
+    "chat works after concurrent retrains",
+    ping.result?.ok && ping.result?.data?.intent === "greeting",
+    `intent=${ping.result?.data?.intent}`,
+    ping.durationMs,
+  );
+}
+
 // ─── Robustness: data-source health monitor ──────────────────────────────
 
 async function testSourceHealth() {
@@ -1427,6 +1498,8 @@ async function main() {
   await testErrorEnvelope();
   await testQueryCache();
   await testSourceHealth();
+  await testReadinessProbe();
+  await testConcurrentRetrain();
   await testRotatingJsonl();
   await testSnapshots();
   await testEdgeCases();

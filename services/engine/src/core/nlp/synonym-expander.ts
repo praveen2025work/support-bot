@@ -8,6 +8,7 @@
  */
 
 import { existsSync, readFileSync } from "fs";
+import { LRUCache } from "lru-cache";
 import { logger } from "@/lib/logger";
 import { paths } from "@/lib/env-config";
 
@@ -97,7 +98,19 @@ for (const group of SYNONYM_GROUPS) {
 
 // Per-group synonym maps loaded from disk. Cached to avoid re-reading on every
 // expandWithSynonyms call. Admin route invalidates via clearGroupSynonymsCache.
-const groupSynonymCache = new Map<string, Map<string, Set<string>>>();
+//
+// Bounded to avoid unbounded growth in deployments with many groups
+// (e.g. one group per customer / per team). When the cap is hit, the
+// LRU evicts the oldest-accessed group; the next call for that group
+// just re-reads the file. The cap is generous (1000) so any
+// realistic operator workload fits.
+const GROUP_SYNONYM_CACHE_MAX = parseInt(
+  process.env.GROUP_SYNONYM_CACHE_MAX || "1000",
+  10,
+);
+const groupSynonymCache = new LRUCache<string, Map<string, Set<string>>>({
+  max: GROUP_SYNONYM_CACHE_MAX,
+});
 
 /**
  * Schema for per-group synonyms file.

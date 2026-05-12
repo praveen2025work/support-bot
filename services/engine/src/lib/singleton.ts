@@ -88,14 +88,48 @@ async function createAndInitEngine(groupId: string): Promise<ChatbotEngine> {
   return engine;
 }
 
-export function invalidateEngine(groupId: string): void {
-  engines.delete(groupId);
-  initLocks.delete(groupId);
+/**
+ * Per-group "invalidation in progress" tracker.
+ *
+ * Without this, two near-simultaneous retrain clicks could both
+ * call invalidateEngine while a chat request was in-flight, leaving
+ * a window where two NLP inits race for the same group. Both would
+ * complete correctly, but burn 2× CPU and produce log noise. The
+ * tracker serialises invalidations per group: the second concurrent
+ * caller awaits the first, then no-ops.
+ */
+const pendingInvalidation = new Map<string, Promise<void>>();
+
+export async function invalidateEngine(groupId: string): Promise<void> {
+  const existing = pendingInvalidation.get(groupId);
+  if (existing) {
+    // Another caller is already invalidating this group. Coalesce.
+    return existing;
+  }
+
+  const work = (async () => {
+    // If an init is in flight, let it finish before we drop the
+    // engine — otherwise we'd strand the lock entry with a promise
+    // that resolves into a now-orphaned engine. Tolerate init
+    // failure (the engine is going away anyway).
+    const pendingInit = initLocks.get(groupId);
+    if (pendingInit) {
+      await pendingInit.catch(() => {});
+    }
+    engines.delete(groupId);
+    initLocks.delete(groupId);
+  })().finally(() => {
+    pendingInvalidation.delete(groupId);
+  });
+
+  pendingInvalidation.set(groupId, work);
+  return work;
 }
 
-export function invalidateAllEngines(): void {
-  engines.clear();
-  initLocks.clear();
+export async function invalidateAllEngines(): Promise<void> {
+  await Promise.all(
+    Array.from(engines.keys()).map((groupId) => invalidateEngine(groupId)),
+  );
 }
 
 /** Returns the number of initialized engines (for health/metrics). */
