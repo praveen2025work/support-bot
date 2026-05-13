@@ -1,6 +1,10 @@
-import type { Config } from "jest";
-
-const config: Config = {
+/**
+ * Jest configuration — kept in plain JS so CI doesn't need ts-node
+ * just to load the config file.
+ *
+ * @type {import('jest').Config}
+ */
+const config = {
   preset: "ts-jest",
   testEnvironment: "node",
   roots: ["<rootDir>/src", "<rootDir>/tests"],
@@ -29,4 +33,4 @@ const config: Config = {
   setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
 };
 
-export default config;
+module.exports = config;
