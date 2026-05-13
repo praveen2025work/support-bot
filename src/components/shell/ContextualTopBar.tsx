@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import { NotificationCenter } from "@/components/watch/NotificationCenter";
+import { UserBadge } from "./UserBadge";
 
 interface GroupInfo {
   id: string;
@@ -10,6 +11,7 @@ interface GroupInfo {
 
 interface ContextualTopBarProps {
   title: string;
+  subtitle?: string;
   groups?: GroupInfo[];
   activeGroupId?: string;
   onGroupChange?: (id: string) => void;
@@ -18,6 +20,7 @@ interface ContextualTopBarProps {
 
 export function ContextualTopBar({
   title,
+  subtitle,
   groups,
   activeGroupId,
   onGroupChange,
@@ -42,10 +45,17 @@ export function ContextualTopBar({
   const activeGroup = groups?.find((g) => g.id === activeGroupId);
 
   return (
-    <header className="h-[var(--topbar-height)] bg-[var(--bg-primary)] border-b border-[var(--border-subtle)] px-4 flex items-center gap-3 flex-shrink-0">
-      <span className="text-[14px] font-semibold text-[var(--text-primary)]">
-        {title}
-      </span>
+    <header className="sticky top-0 z-30 h-[var(--topbar-height)] bg-[var(--bg-primary)]/85 backdrop-blur-md border-b border-[var(--border)] px-5 flex items-center gap-3 flex-shrink-0">
+      <div className="flex items-center gap-1">
+        <span className="font-display text-[15px] font-semibold text-[var(--text-primary)] leading-tight tracking-tight">
+          {title}
+        </span>
+        {subtitle && (
+          <span className="text-[12px] text-[var(--text-muted)] ml-2 leading-tight">
+            {subtitle}
+          </span>
+        )}
+      </div>
 
       {groups && groups.length > 1 && (
         <>
@@ -53,13 +63,14 @@ export function ContextualTopBar({
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setGroupOpen((o) => !o)}
-              className="flex items-center gap-1.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-[var(--radius-md)] px-2.5 py-[3px] text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+              className="flex items-center gap-1.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-full px-3 py-1 text-[11.5px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:border-[var(--border-strong)] transition-colors"
             >
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand)]" />
               {activeGroup?.name ?? activeGroupId}
               <ChevronDown className="w-3 h-3 text-[var(--text-muted)]" />
             </button>
             {groupOpen && (
-              <div className="absolute top-full mt-1 left-0 min-w-[140px] bg-[var(--bg-primary)] border border-[var(--border)] rounded-[var(--radius-md)] shadow-[var(--shadow-lg)] z-50 py-1">
+              <div className="absolute top-full mt-1 left-0 min-w-[160px] bg-[var(--bg-elevated)] border border-[var(--border)] rounded-[var(--radius-md)] shadow-[var(--shadow-lg)] z-50 py-1">
                 {groups.map((g) => (
                   <button
                     key={g.id}
@@ -80,8 +91,11 @@ export function ContextualTopBar({
 
       <div className="flex-1" />
       <div className="flex items-center gap-2">
-        <NotificationCenter groupId={activeGroupId ?? "default"} />
         {children}
+        <div className="ml-1 pl-2 border-l border-[var(--border)] flex items-center gap-1.5">
+          <NotificationCenter groupId={activeGroupId ?? "default"} />
+          <UserBadge />
+        </div>
       </div>
     </header>
   );
