@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const ENGINE_URL = process.env.ENGINE_URL || "http://localhost:3001";
+const ENGINE_URL = process.env.ENGINE_URL || "http://localhost:4001";
 
 // SSE stream — opt out of static rendering so the build doesn't hang
 // trying to prerender an infinite event stream.
