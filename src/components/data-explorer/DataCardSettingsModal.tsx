@@ -6,7 +6,14 @@ import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import type { DataCard, SchemaResponse } from "./types";
 
 const OPERATIONS = ["avg", "sum", "count", "min", "max"] as const;
-const COLORS = ["#2563EB", "#7C3AED", "#059669", "#D97706", "#DC2626", "#0891B2"];
+const COLORS = [
+  "#2563EB",
+  "#7C3AED",
+  "#059669",
+  "#D97706",
+  "#DC2626",
+  "#0891B2",
+];
 const CHART_TYPES = [
   { value: "", label: "Auto-detect" },
   { value: "bar", label: "Bar" },
@@ -37,7 +44,9 @@ export function DataCardSettingsModal({
 }: DataCardSettingsModalProps) {
   // ── Shared state ──
   const [label, setLabel] = useState(card.label);
-  const [groupBy, setGroupBy] = useState(card.groupBy ?? card.chartConfig?.groupBy ?? "");
+  const [groupBy, setGroupBy] = useState(
+    card.groupBy ?? card.chartConfig?.groupBy ?? "",
+  );
 
   // ── KPI state ──
   const [kpiColumn, setKpiColumn] = useState(card.kpiConfig?.column ?? "");
@@ -54,26 +63,47 @@ export function DataCardSettingsModal({
 
   // ── Chart state ──
   const [chartType, setChartType] = useState(card.chartConfig?.chartType ?? "");
-  const [labelColumn, setLabelColumn] = useState(card.chartConfig?.labelColumn ?? "");
-  const [valueColumns, setValueColumns] = useState<string[]>(card.chartConfig?.valueColumns ?? []);
+  const [labelColumn, setLabelColumn] = useState(
+    card.chartConfig?.labelColumn ?? "",
+  );
+  const [valueColumns, setValueColumns] = useState<string[]>(
+    card.chartConfig?.valueColumns ?? [],
+  );
 
   // ── Table state ──
-  const [tablePageSize, setTablePageSize] = useState(card.tableConfig?.pageSize ?? 25);
-  const [tableColumns, setTableColumns] = useState<string[]>(card.tableConfig?.columns ?? []);
-  const [defaultSortCol, setDefaultSortCol] = useState(card.tableConfig?.defaultSort?.column ?? "");
+  const [tablePageSize, setTablePageSize] = useState(
+    card.tableConfig?.pageSize ?? 25,
+  );
+  const [tableColumns, setTableColumns] = useState<string[]>(
+    card.tableConfig?.columns ?? [],
+  );
+  const [defaultSortCol, setDefaultSortCol] = useState(
+    card.tableConfig?.defaultSort?.column ?? "",
+  );
   const [defaultSortDir, setDefaultSortDir] = useState<"asc" | "desc">(
     card.tableConfig?.defaultSort?.direction ?? "asc",
   );
 
   // ── Summary state ──
-  const [summaryColumns, setSummaryColumns] = useState<string[]>(card.summaryConfig?.columns ?? []);
-  const [showMinMax, setShowMinMax] = useState(card.summaryConfig?.showMinMax ?? true);
+  const [summaryColumns, setSummaryColumns] = useState<string[]>(
+    card.summaryConfig?.columns ?? [],
+  );
+  const [showMinMax, setShowMinMax] = useState(
+    card.summaryConfig?.showMinMax ?? true,
+  );
 
   // ── Lineage state ──
-  const [lineagePnl, setLineagePnl] = useState(card.lineageConfig?.selectedPnl ?? "");
-  const [lineageCompact, setLineageCompact] = useState(card.lineageConfig?.compact ?? true);
+  const [lineagePnl, setLineagePnl] = useState(
+    card.lineageConfig?.selectedPnl ?? "",
+  );
+  const [lineageCompact, setLineageCompact] = useState(
+    card.lineageConfig?.compact ?? true,
+  );
 
-  // Reset state when card prop changes
+  // Reset state when card prop changes. The modal exposes per-card
+  // editable copies; we resync on prop change so reopening with a
+  // different card doesn't show stale form values.
+  /* eslint-disable react-hooks/set-state-in-effect -- intentional prop-resync; the modal opens with stale state otherwise */
   useEffect(() => {
     setLabel(card.label);
     setGroupBy(card.groupBy ?? card.chartConfig?.groupBy ?? "");
@@ -94,6 +124,7 @@ export function DataCardSettingsModal({
     setLineagePnl(card.lineageConfig?.selectedPnl ?? "");
     setLineageCompact(card.lineageConfig?.compact ?? true);
   }, [card]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useBodyScrollLock(isOpen);
 
@@ -102,13 +133,13 @@ export function DataCardSettingsModal({
   const numericCols =
     schema?.schema.filter(
       (c) =>
-        c.type === "integer" ||
-        c.type === "decimal" ||
-        c.type === "number",
+        c.type === "integer" || c.type === "decimal" || c.type === "number",
     ) ?? [];
 
   const allCols = schema?.schema ?? [];
-  const stringCols = allCols.filter((c) => c.type === "string" || c.type === "id");
+  const stringCols = allCols.filter(
+    (c) => c.type === "string" || c.type === "id",
+  );
 
   const handleSave = () => {
     const partial: Partial<DataCard> = { label };
@@ -194,8 +225,7 @@ export function DataCardSettingsModal({
     "w-full text-sm px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--brand)] outline-none";
   const selectCls =
     "w-full text-sm px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]";
-  const sectionCls =
-    "border border-[var(--border)] rounded-lg p-4 space-y-3";
+  const sectionCls = "border border-[var(--border)] rounded-lg p-4 space-y-3";
   const checkboxCls =
     "w-4 h-4 text-[var(--brand)] border-[var(--border)] rounded focus:ring-[var(--brand)]";
 
@@ -211,7 +241,9 @@ export function DataCardSettingsModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] shrink-0">
           <h3 className="text-base font-semibold text-[var(--text-primary)]">
             Card Settings
-            <span className="text-[var(--text-muted)] font-normal ml-2">— {card.type}</span>
+            <span className="text-[var(--text-muted)] font-normal ml-2">
+              — {card.type}
+            </span>
           </h3>
           <button
             onClick={onClose}
@@ -243,7 +275,9 @@ export function DataCardSettingsModal({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Column</label>
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">
+                    Column
+                  </label>
                   <select
                     value={kpiColumn}
                     onChange={(e) => setKpiColumn(e.target.value)}
@@ -251,25 +285,33 @@ export function DataCardSettingsModal({
                   >
                     <option value="">Select column</option>
                     {numericCols.map((c) => (
-                      <option key={c.name} value={c.name}>{c.name}</option>
+                      <option key={c.name} value={c.name}>
+                        {c.name}
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-[var(--text-secondary)] mb-1">Operation</label>
+                  <label className="block text-xs text-[var(--text-secondary)] mb-1">
+                    Operation
+                  </label>
                   <select
                     value={kpiOp}
                     onChange={(e) => setKpiOp(e.target.value as typeof kpiOp)}
                     className={selectCls}
                   >
                     {OPERATIONS.map((o) => (
-                      <option key={o} value={o}>{o.toUpperCase()}</option>
+                      <option key={o} value={o}>
+                        {o.toUpperCase()}
+                      </option>
                     ))}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block text-xs text-[var(--text-secondary)] mb-1">Color</label>
+                <label className="block text-xs text-[var(--text-secondary)] mb-1">
+                  Color
+                </label>
                 <div className="flex gap-2">
                   {COLORS.map((c) => (
                     <button
@@ -287,10 +329,14 @@ export function DataCardSettingsModal({
               </div>
               {/* Thresholds */}
               <div>
-                <label className="block text-xs text-[var(--text-secondary)] mb-1">Thresholds</label>
+                <label className="block text-xs text-[var(--text-secondary)] mb-1">
+                  Thresholds
+                </label>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] text-amber-500 mb-0.5">Warning (&ge;)</label>
+                    <label className="block text-[10px] text-amber-500 mb-0.5">
+                      Warning (&ge;)
+                    </label>
                     <input
                       type="number"
                       value={kpiWarning}
@@ -300,7 +346,9 @@ export function DataCardSettingsModal({
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-red-500 mb-0.5">Danger (&ge;)</label>
+                    <label className="block text-[10px] text-red-500 mb-0.5">
+                      Danger (&ge;)
+                    </label>
                     <input
                       type="number"
                       value={kpiDanger}
@@ -321,19 +369,25 @@ export function DataCardSettingsModal({
                 Chart Configuration
               </div>
               <div>
-                <label className="block text-xs text-[var(--text-secondary)] mb-1">Chart Type</label>
+                <label className="block text-xs text-[var(--text-secondary)] mb-1">
+                  Chart Type
+                </label>
                 <select
                   value={chartType}
                   onChange={(e) => setChartType(e.target.value)}
                   className={selectCls}
                 >
                   {CHART_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-[var(--text-secondary)] mb-1">Group By Column</label>
+                <label className="block text-xs text-[var(--text-secondary)] mb-1">
+                  Group By Column
+                </label>
                 <select
                   value={groupBy}
                   onChange={(e) => setGroupBy(e.target.value)}
@@ -341,12 +395,16 @@ export function DataCardSettingsModal({
                 >
                   <option value="">None</option>
                   {allCols.map((c) => (
-                    <option key={c.name} value={c.name}>{c.name}</option>
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-[var(--text-secondary)] mb-1">Label Column (X-axis)</label>
+                <label className="block text-xs text-[var(--text-secondary)] mb-1">
+                  Label Column (X-axis)
+                </label>
                 <select
                   value={labelColumn}
                   onChange={(e) => setLabelColumn(e.target.value)}
@@ -354,7 +412,9 @@ export function DataCardSettingsModal({
                 >
                   <option value="">Auto-detect</option>
                   {allCols.map((c) => (
-                    <option key={c.name} value={c.name}>{c.name}</option>
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -362,15 +422,22 @@ export function DataCardSettingsModal({
                 <label className="block text-xs text-[var(--text-secondary)] mb-1">
                   Value Columns (Y-axis)
                   {valueColumns.length > 0 && (
-                    <span className="ml-1 text-[var(--brand)]">({valueColumns.length} selected)</span>
+                    <span className="ml-1 text-[var(--brand)]">
+                      ({valueColumns.length} selected)
+                    </span>
                   )}
                 </label>
                 <div className="max-h-32 overflow-y-auto border border-[var(--border)] rounded-lg p-2 space-y-1">
                   {numericCols.length === 0 && (
-                    <div className="text-xs text-[var(--text-muted)] italic">No numeric columns</div>
+                    <div className="text-xs text-[var(--text-muted)] italic">
+                      No numeric columns
+                    </div>
                   )}
                   {numericCols.map((c) => (
-                    <label key={c.name} className="flex items-center gap-2 text-xs text-[var(--text-secondary)] cursor-pointer hover:bg-[var(--bg-secondary)] px-1 py-0.5 rounded">
+                    <label
+                      key={c.name}
+                      className="flex items-center gap-2 text-xs text-[var(--text-secondary)] cursor-pointer hover:bg-[var(--bg-secondary)] px-1 py-0.5 rounded"
+                    >
                       <input
                         type="checkbox"
                         checked={valueColumns.includes(c.name)}
@@ -382,7 +449,9 @@ export function DataCardSettingsModal({
                   ))}
                 </div>
                 {valueColumns.length === 0 && (
-                  <div className="text-[10px] text-[var(--text-muted)] mt-1">Leave empty for auto-detection</div>
+                  <div className="text-[10px] text-[var(--text-muted)] mt-1">
+                    Leave empty for auto-detection
+                  </div>
                 )}
               </div>
             </div>
@@ -395,7 +464,9 @@ export function DataCardSettingsModal({
                 Table Configuration
               </div>
               <div>
-                <label className="block text-xs text-[var(--text-secondary)] mb-1">Rows per page</label>
+                <label className="block text-xs text-[var(--text-secondary)] mb-1">
+                  Rows per page
+                </label>
                 <select
                   value={tablePageSize}
                   onChange={(e) => setTablePageSize(Number(e.target.value))}
@@ -409,7 +480,9 @@ export function DataCardSettingsModal({
               </div>
               {/* Default Sort */}
               <div>
-                <label className="block text-xs text-[var(--text-secondary)] mb-1">Default Sort</label>
+                <label className="block text-xs text-[var(--text-secondary)] mb-1">
+                  Default Sort
+                </label>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="col-span-2">
                     <select
@@ -419,13 +492,17 @@ export function DataCardSettingsModal({
                     >
                       <option value="">No default sort</option>
                       {allCols.map((c) => (
-                        <option key={c.name} value={c.name}>{c.name}</option>
+                        <option key={c.name} value={c.name}>
+                          {c.name}
+                        </option>
                       ))}
                     </select>
                   </div>
                   <select
                     value={defaultSortDir}
-                    onChange={(e) => setDefaultSortDir(e.target.value as "asc" | "desc")}
+                    onChange={(e) =>
+                      setDefaultSortDir(e.target.value as "asc" | "desc")
+                    }
                     className={selectCls}
                     disabled={!defaultSortCol}
                   >
@@ -439,19 +516,31 @@ export function DataCardSettingsModal({
                 <label className="block text-xs text-[var(--text-secondary)] mb-1">
                   Visible Columns
                   {tableColumns.length > 0 && (
-                    <span className="ml-1 text-[var(--brand)]">({tableColumns.length} selected)</span>
+                    <span className="ml-1 text-[var(--brand)]">
+                      ({tableColumns.length} selected)
+                    </span>
                   )}
                 </label>
                 <div className="max-h-40 overflow-y-auto border border-[var(--border)] rounded-lg p-2 space-y-1">
                   {allCols.map((c) => (
-                    <label key={c.name} className="flex items-center gap-2 text-xs text-[var(--text-secondary)] cursor-pointer hover:bg-[var(--bg-secondary)] px-1 py-0.5 rounded">
+                    <label
+                      key={c.name}
+                      className="flex items-center gap-2 text-xs text-[var(--text-secondary)] cursor-pointer hover:bg-[var(--bg-secondary)] px-1 py-0.5 rounded"
+                    >
                       <input
                         type="checkbox"
-                        checked={tableColumns.length === 0 || tableColumns.includes(c.name)}
+                        checked={
+                          tableColumns.length === 0 ||
+                          tableColumns.includes(c.name)
+                        }
                         onChange={() => {
                           if (tableColumns.length === 0) {
                             // First click: select all except this one
-                            setTableColumns(allCols.filter((col) => col.name !== c.name).map((col) => col.name));
+                            setTableColumns(
+                              allCols
+                                .filter((col) => col.name !== c.name)
+                                .map((col) => col.name),
+                            );
                           } else {
                             toggleTableColumn(c.name);
                           }
@@ -459,12 +548,16 @@ export function DataCardSettingsModal({
                         className={checkboxCls}
                       />
                       <span>{c.name}</span>
-                      <span className="text-[10px] text-[var(--text-muted)] ml-auto">{c.type}</span>
+                      <span className="text-[10px] text-[var(--text-muted)] ml-auto">
+                        {c.type}
+                      </span>
                     </label>
                   ))}
                 </div>
                 {tableColumns.length === 0 && (
-                  <div className="text-[10px] text-[var(--text-muted)] mt-1">All columns shown (uncheck to hide)</div>
+                  <div className="text-[10px] text-[var(--text-muted)] mt-1">
+                    All columns shown (uncheck to hide)
+                  </div>
                 )}
               </div>
             </div>
@@ -489,21 +582,35 @@ export function DataCardSettingsModal({
                 <label className="block text-xs text-[var(--text-secondary)] mb-1">
                   Numeric Columns to Display
                   {summaryColumns.length > 0 && (
-                    <span className="ml-1 text-[var(--brand)]">({summaryColumns.length} selected)</span>
+                    <span className="ml-1 text-[var(--brand)]">
+                      ({summaryColumns.length} selected)
+                    </span>
                   )}
                 </label>
                 <div className="max-h-40 overflow-y-auto border border-[var(--border)] rounded-lg p-2 space-y-1">
                   {numericCols.length === 0 && (
-                    <div className="text-xs text-[var(--text-muted)] italic">No numeric columns</div>
+                    <div className="text-xs text-[var(--text-muted)] italic">
+                      No numeric columns
+                    </div>
                   )}
                   {numericCols.map((c) => (
-                    <label key={c.name} className="flex items-center gap-2 text-xs text-[var(--text-secondary)] cursor-pointer hover:bg-[var(--bg-secondary)] px-1 py-0.5 rounded">
+                    <label
+                      key={c.name}
+                      className="flex items-center gap-2 text-xs text-[var(--text-secondary)] cursor-pointer hover:bg-[var(--bg-secondary)] px-1 py-0.5 rounded"
+                    >
                       <input
                         type="checkbox"
-                        checked={summaryColumns.length === 0 || summaryColumns.includes(c.name)}
+                        checked={
+                          summaryColumns.length === 0 ||
+                          summaryColumns.includes(c.name)
+                        }
                         onChange={() => {
                           if (summaryColumns.length === 0) {
-                            setSummaryColumns(numericCols.filter((col) => col.name !== c.name).map((col) => col.name));
+                            setSummaryColumns(
+                              numericCols
+                                .filter((col) => col.name !== c.name)
+                                .map((col) => col.name),
+                            );
                           } else {
                             toggleSummaryColumn(c.name);
                           }
@@ -515,7 +622,9 @@ export function DataCardSettingsModal({
                   ))}
                 </div>
                 {summaryColumns.length === 0 && (
-                  <div className="text-[10px] text-[var(--text-muted)] mt-1">All numeric columns shown (uncheck to hide)</div>
+                  <div className="text-[10px] text-[var(--text-muted)] mt-1">
+                    All numeric columns shown (uncheck to hide)
+                  </div>
                 )}
               </div>
             </div>
@@ -528,7 +637,9 @@ export function DataCardSettingsModal({
                 Lineage Configuration
               </div>
               <div>
-                <label className="block text-xs text-[var(--text-secondary)] mb-1">Default Named P&L</label>
+                <label className="block text-xs text-[var(--text-secondary)] mb-1">
+                  Default Named P&L
+                </label>
                 <select
                   value={lineagePnl}
                   onChange={(e) => setLineagePnl(e.target.value)}
@@ -536,14 +647,26 @@ export function DataCardSettingsModal({
                 >
                   <option value="">Auto (first available)</option>
                   {stringCols
-                    .filter((c) => c.name.toLowerCase().includes("pnl") || c.name.toLowerCase().includes("named"))
+                    .filter(
+                      (c) =>
+                        c.name.toLowerCase().includes("pnl") ||
+                        c.name.toLowerCase().includes("named"),
+                    )
                     .map((c) => (
-                      <option key={c.name} value={c.name}>{c.name}</option>
+                      <option key={c.name} value={c.name}>
+                        {c.name}
+                      </option>
                     ))}
                   {stringCols
-                    .filter((c) => !c.name.toLowerCase().includes("pnl") && !c.name.toLowerCase().includes("named"))
+                    .filter(
+                      (c) =>
+                        !c.name.toLowerCase().includes("pnl") &&
+                        !c.name.toLowerCase().includes("named"),
+                    )
                     .map((c) => (
-                      <option key={c.name} value={c.name}>{c.name}</option>
+                      <option key={c.name} value={c.name}>
+                        {c.name}
+                      </option>
                     ))}
                 </select>
               </div>

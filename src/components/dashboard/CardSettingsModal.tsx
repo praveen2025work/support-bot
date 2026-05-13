@@ -39,10 +39,10 @@ export function CardSettingsModal({
   );
   const [compactAuto, setCompactAuto] = useState(card.compactAuto ?? true);
   const [autoRun, setAutoRun] = useState(card.autoRun);
-  const [eventLink, setEventLink] = useState<EventLinkConfig>(card.eventLink ?? { mode: "auto" });
-  const [stompEnabled, setStompEnabled] = useState(
-    card.stompEnabled ?? false,
+  const [eventLink, setEventLink] = useState<EventLinkConfig>(
+    card.eventLink ?? { mode: "auto" },
   );
+  const [stompEnabled, setStompEnabled] = useState(card.stompEnabled ?? false);
   const [refreshIntervalSec, setRefreshIntervalSec] = useState(
     card.refreshIntervalSec ?? 0,
   );
@@ -54,7 +54,10 @@ export function CardSettingsModal({
   const [editText, setEditText] = useState("");
   const [newStep, setNewStep] = useState("");
 
-  // Reset local state when card changes
+  // Reset local state when card changes. The modal exposes per-card
+  // editable copies of card props; we resync when the prop changes so
+  // reopening with a different card doesn't show stale form values.
+  /* eslint-disable react-hooks/set-state-in-effect -- intentional prop-resync; the modal opens with stale state otherwise */
   useEffect(() => {
     setLabel(card.label);
     setDisplayMode(card.displayMode ?? "auto");
@@ -68,6 +71,7 @@ export function CardSettingsModal({
     setEditingIdx(null);
     setNewStep("");
   }, [card]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useBodyScrollLock(isOpen);
 
@@ -133,9 +137,7 @@ export function CardSettingsModal({
     if (editingIdx === null) return;
     const trimmed = editText.trim();
     if (trimmed) {
-      setChain((prev) =>
-        prev.map((s, i) => (i === editingIdx ? trimmed : s)),
-      );
+      setChain((prev) => prev.map((s, i) => (i === editingIdx ? trimmed : s)));
     }
     setEditingIdx(null);
     setEditText("");
@@ -157,8 +159,7 @@ export function CardSettingsModal({
     "w-full text-sm px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--brand)] focus:border-[var(--brand)] outline-none";
   const selectCls =
     "w-full text-sm px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)]";
-  const sectionCls =
-    "border border-[var(--border)] rounded-lg p-4 space-y-3";
+  const sectionCls = "border border-[var(--border)] rounded-lg p-4 space-y-3";
   const sectionTitle =
     "text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3";
 
@@ -175,7 +176,9 @@ export function CardSettingsModal({
           <h3 className="text-base font-semibold text-[var(--text-primary)] flex items-center gap-2">
             <Settings size={18} />
             Card Settings
-            <span className="text-[var(--text-muted)] font-normal">— {card.label}</span>
+            <span className="text-[var(--text-muted)] font-normal">
+              — {card.label}
+            </span>
           </h3>
           <button
             onClick={onClose}
@@ -212,9 +215,7 @@ export function CardSettingsModal({
                 <select
                   value={displayMode}
                   onChange={(e) =>
-                    setDisplayMode(
-                      e.target.value as "auto" | "table" | "chart",
-                    )
+                    setDisplayMode(e.target.value as "auto" | "table" | "chart")
                   }
                   className={selectCls}
                 >
@@ -385,14 +386,18 @@ export function CardSettingsModal({
             {/* Context: query + filters */}
             <div className="bg-[var(--bg-secondary)] rounded-lg px-3 py-2 text-xs space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-[var(--text-muted)] shrink-0">Query:</span>
+                <span className="text-[var(--text-muted)] shrink-0">
+                  Query:
+                </span>
                 <span className="font-mono text-[var(--text-secondary)]">
                   {queryName}
                 </span>
               </div>
               {filterEntries.length > 0 && (
                 <div className="flex items-start gap-2">
-                  <span className="text-[var(--text-muted)] shrink-0">Filters:</span>
+                  <span className="text-[var(--text-muted)] shrink-0">
+                    Filters:
+                  </span>
                   <div className="flex flex-wrap gap-1">
                     {filterEntries.map(([k, v]) => (
                       <span
@@ -406,7 +411,9 @@ export function CardSettingsModal({
                 </div>
               )}
               {filterEntries.length === 0 && (
-                <div className="text-[var(--text-muted)]">No default filters</div>
+                <div className="text-[var(--text-muted)]">
+                  No default filters
+                </div>
               )}
             </div>
 
