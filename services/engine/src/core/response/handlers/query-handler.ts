@@ -47,6 +47,10 @@ import {
   renderInsightPrefix,
 } from "../../insights/auto-insights";
 import {
+  loadPreviousSnapshot,
+  buildChangeNarratives,
+} from "../../insights/change-narrative";
+import {
   buildQueryCacheKey,
   getCachedResult,
   getStaleCachedResult,
@@ -1237,7 +1241,7 @@ export async function handleQueryExecute(
         //     own branches above; this is the plain-table case)
         //   - skip when servedStale (the user already sees a loud
         //     warning — don't crowd it)
-        const autoInsights =
+        let autoInsights =
           !cacheHit && !servedStale
             ? buildAutoInsights(
                 {
@@ -1247,6 +1251,32 @@ export async function handleQueryExecute(
                 anomalies,
               )
             : [];
+        // Change narratives — "FYI X is up 8% vs. the last run". Loaded
+        // from the prior snapshot file the anomaly detector already
+        // maintains. Columns already covered by an anomaly alert are
+        // excluded so we don't double-count. Capped at 2 narratives;
+        // total auto-insights still ≤ 3 (3-item cap inside the builder).
+        if (!cacheHit && !servedStale) {
+          try {
+            const previous = await loadPreviousSnapshot(
+              groupId || "default",
+              queryNameEntity.value,
+            );
+            const exclude = new Set<string>(
+              (anomalies || []).map((a) => a.columnName),
+            );
+            const narratives = buildChangeNarratives(
+              csv.rows as Record<string, unknown>[],
+              previous,
+              exclude,
+            );
+            if (narratives.length > 0) {
+              autoInsights = [...autoInsights, ...narratives].slice(0, 3);
+            }
+          } catch {
+            /* change-narrative is best-effort, never fail the query */
+          }
+        }
         const insightPrefix = renderInsightPrefix(autoInsights);
 
         return {

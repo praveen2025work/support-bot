@@ -1578,6 +1578,24 @@ async function testAutoInsights() {
     expectPrefix ? hasPrefix : true,
     `expectPrefix=${expectPrefix} hasPrefix=${hasPrefix}`,
   );
+
+  // Change-narrative wiring contract — the autoInsights array tolerates
+  // the narrative kind without breaking. We don't assert a specific
+  // narrative because deltas depend on snapshot history (covered in
+  // unit tests).
+  const kindsValid =
+    !Array.isArray(ai) ||
+    ai.every((i) =>
+      ["anomaly", "top_value", "low_value", "spread", "concentration"].includes(
+        i.kind,
+      ),
+    );
+  record(
+    "auto-insights",
+    "all insight kinds are within the supported vocabulary",
+    kindsValid,
+    `count=${Array.isArray(ai) ? ai.length : 0}`,
+  );
 }
 
 async function testGlossaryCrud() {
