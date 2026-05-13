@@ -16,6 +16,10 @@ import {
 } from "@/core/api-connector/csv-analyzer";
 import { getAnomalyDetector } from "@/core/anomaly/anomaly-detector";
 import { buildAutoInsights } from "@/core/insights/auto-insights";
+import { findDuplicates } from "@/core/ml/duplicates";
+import { analyzeMissing } from "@/core/ml/missing-analysis";
+import { loadSchema } from "@/core/schema/registry";
+import { detectDrift } from "@/core/schema/drift-detector";
 import { logger } from "@/lib/logger";
 
 export const dataApiRouter = Router();
@@ -408,6 +412,115 @@ dataApiRouter.post("/anomalies", async (req: Request, res: Response) => {
     return res.json({ anomalies: [] });
   }
 });
+
+/* ─── GET /api/data/quality/:queryName ────────────────────────────
+ *
+ * Unified data quality snapshot used by the Data Explorer "Quality"
+ * card. Pulls together signals from four existing modules so the UI
+ * makes one request, not four:
+ *
+ *   - findDuplicates       → exact-row duplicate count
+ *   - analyzeMissing       → per-column null %, sorted
+ *   - loadSchema/detectDrift → has the column set changed since the last
+ *                              baseline? (yes/no + counts)
+ *   - getAnomalyDetector   → current anomaly count
+ *
+ * All four are best-effort: a transient failure on one signal doesn't
+ * break the whole response.
+ */
+dataApiRouter.get(
+  "/quality/:queryName",
+  async (req: Request, res: Response) => {
+    try {
+      const queryName = req.params.queryName;
+      const groupId =
+        typeof req.query.groupId === "string" ? req.query.groupId : "default";
+      if (!queryName) {
+        return res.status(400).json({ error: "queryName is required" });
+      }
+
+      const rawData = await getCsvData(queryName, groupId);
+
+      // 1. Duplicates (exact-match only; the near-dup pass would be
+      //    expensive for a card that refreshes on filter changes).
+      let duplicateCount = 0;
+      try {
+        const dup = findDuplicates(rawData, 0); // 0 = exact only
+        duplicateCount = dup.totalDuplicates;
+      } catch {
+        /* best-effort */
+      }
+
+      // 2. Missing values — return top-5 worst columns + overall %.
+      let missingPercent = 0;
+      let topMissingColumns: Array<{ column: string; nullPercent: number }> =
+        [];
+      try {
+        const missing = analyzeMissing(rawData);
+        missingPercent = missing.missingPercent;
+        topMissingColumns = missing.columns
+          .filter((c) => c.nullPercent > 0)
+          .sort((a, b) => b.nullPercent - a.nullPercent)
+          .slice(0, 5)
+          .map((c) => ({ column: c.column, nullPercent: c.nullPercent }));
+      } catch {
+        /* best-effort */
+      }
+
+      // 3. Schema drift — only flagged when there's a stored baseline
+      //    AND it differs from the current header set. No prior =
+      //    "first observation"; we don't flag drift on a clean slate.
+      let driftSummary: {
+        hasChange: boolean;
+        added: string[];
+        removed: string[];
+      } | null = null;
+      try {
+        const prior = await loadSchema(groupId, queryName);
+        if (prior) {
+          const drift = detectDrift(prior.columns, rawData.headers);
+          if (drift) {
+            driftSummary = {
+              hasChange: drift.hasChange,
+              added: drift.added,
+              removed: drift.removed,
+            };
+          }
+        }
+      } catch {
+        /* best-effort */
+      }
+
+      // 4. Anomaly count (current snapshot, unfiltered).
+      let anomalyCount = 0;
+      try {
+        const detector = getAnomalyDetector(groupId);
+        const anomalies = await detector.checkAnomalies(
+          queryName,
+          rawData.rows,
+        );
+        anomalyCount = anomalies.length;
+      } catch {
+        /* best-effort */
+      }
+
+      return res.json({
+        queryName,
+        groupId,
+        rowCount: rawData.rows.length,
+        columnCount: rawData.headers.length,
+        duplicateCount,
+        missingPercent: Number(missingPercent.toFixed(2)),
+        topMissingColumns,
+        schemaDrift: driftSummary,
+        anomalyCount,
+      });
+    } catch (error) {
+      logger.error({ error }, "Data quality check error");
+      return res.status(500).json({ error: "Quality check failed" });
+    }
+  },
+);
 
 /* ─── POST /api/data/cache/clear ───────────────────────────────── */
 dataApiRouter.post("/cache/clear", (_req: Request, res: Response) => {

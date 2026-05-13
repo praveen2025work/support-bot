@@ -10,9 +10,99 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import type { DataCard, DataQueryResponse } from "./types";
+import type { DataCard, DataQueryResponse, DataQuality } from "./types";
 import { ExplorerDataTable } from "./ExplorerDataTable";
 import { ExplorerKpis } from "./ExplorerKpis";
+// Chart + lineage components are large but the data-explorer page is
+// already client-side ("use client"), so a static import is fine and
+// satisfies the no-require-imports lint rule. Earlier code used
+// `require()` inside render to dodge a circular import that no longer
+// exists.
+import { DataChart } from "@/components/chat/DataChart";
+import { LineageFlowDiagram } from "@/components/dashboard/LineageFlowDiagram";
+
+/**
+ * Pick a "date-ish" column from the rows by sampling values. We don't
+ * trust schema labels alone — some sources mark `string` for columns
+ * that are clearly ISO dates. Order of preference:
+ *   1. Columns with a name containing "date" / "month" / "week" / "day".
+ *   2. Otherwise the first column whose values parse as Date.
+ */
+function pickDateColumn(
+  rows: Record<string, string | number>[],
+  headers: string[],
+): string | null {
+  if (rows.length === 0) return null;
+  const nameRanked = headers
+    .filter((h) => /date|day|week|month|year|time/i.test(h))
+    .concat(headers.filter((h) => !/date|day|week|month|year|time/i.test(h)));
+  for (const h of nameRanked) {
+    const sample = rows.slice(0, 5).map((r) => r[h]);
+    const allDates = sample.every((v) => {
+      if (v === null || v === undefined || v === "") return false;
+      const d = new Date(String(v));
+      return !isNaN(d.getTime());
+    });
+    if (allDates) return h;
+  }
+  return null;
+}
+
+/**
+ * Compute a simple trend signal for a KPI: split rows into first-half
+ * / second-half by date, compare aggregated values. Returns null when
+ * the dataset can't support a meaningful split (no date column, < 8
+ * rows, divide-by-zero on baseline).
+ */
+function computeKpiTrend(
+  rows: Record<string, string | number>[],
+  headers: string[],
+  valueColumn: string,
+  operation: "avg" | "sum" | "count" | "min" | "max",
+): { direction: "up" | "down" | "flat"; percentChange: number } | null {
+  if (rows.length < 8) return null;
+  const dateCol = pickDateColumn(rows, headers);
+  if (!dateCol) return null;
+
+  // Sort rows by date ascending; bail if too few parseable dates.
+  const dated = rows
+    .map((r) => {
+      const d = new Date(String(r[dateCol]));
+      return { r, t: d.getTime() };
+    })
+    .filter((x) => Number.isFinite(x.t))
+    .sort((a, b) => a.t - b.t);
+  if (dated.length < 8) return null;
+
+  const mid = Math.floor(dated.length / 2);
+  const aggregate = (subset: typeof dated): number => {
+    const vals = subset
+      .map(({ r }) => {
+        const v = r[valueColumn];
+        return typeof v === "number" ? v : parseFloat(String(v));
+      })
+      .filter((v) => Number.isFinite(v));
+    if (vals.length === 0) return 0;
+    switch (operation) {
+      case "sum":
+        return vals.reduce((a, b) => a + b, 0);
+      case "avg":
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+      case "min":
+        return Math.min(...vals);
+      case "max":
+        return Math.max(...vals);
+      case "count":
+        return vals.length;
+    }
+  };
+  const first = aggregate(dated.slice(0, mid));
+  const second = aggregate(dated.slice(mid));
+  if (Math.abs(first) < 0.0001) return null;
+  const pct = ((second - first) / Math.abs(first)) * 100;
+  const direction = Math.abs(pct) < 1 ? "flat" : pct > 0 ? "up" : "down";
+  return { direction, percentChange: pct };
+}
 
 const SMALL_DATASET_THRESHOLD = 1000;
 
@@ -86,11 +176,41 @@ export function DataCardRenderer({
   const [tableSortDir, setTableSortDir] = useState<"asc" | "desc">(
     card.tableConfig?.defaultSort?.direction ?? "desc",
   );
+  // Quality card has its own data path — single GET, no filters applied
+  // (the quality snapshot is over the full dataset, not the filtered view).
+  const [quality, setQuality] = useState<DataQuality | null>(null);
+  const [qualityLoading, setQualityLoading] = useState(false);
 
   const effectiveSource = card.source ?? source;
 
+  useEffect(() => {
+    if (card.type !== "quality" || !effectiveSource) return;
+    let cancelled = false;
+    setQualityLoading(true);
+    fetch(
+      `/api/data/quality/${encodeURIComponent(effectiveSource)}?groupId=${encodeURIComponent(groupId)}`,
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled) return;
+        setQuality(d as DataQuality | null);
+      })
+      .catch(() => {
+        if (!cancelled) setQuality(null);
+      })
+      .finally(() => {
+        if (!cancelled) setQualityLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [card.type, effectiveSource, groupId]);
+
   const fetchData = useCallback(async () => {
     if (!effectiveSource) return;
+    // Quality card has its own data path; the generic query fetch
+    // would just return rows that this card doesn't render.
+    if (card.type === "quality") return;
 
     const mergedFilters = { ...globalFilters, ...(card.filters ?? {}) };
     const activeFilters = Object.fromEntries(
@@ -396,6 +516,16 @@ export function DataCardRenderer({
             : "text-emerald-500"
         : "";
 
+      // Trend badge — first-half vs second-half %-change. Only renders
+      // when the dataset has a date column AND at least 8 rows. "Flat"
+      // (< 1% change) is treated as no signal worth showing.
+      const trend = computeKpiTrend(
+        allRows,
+        data?.headers ?? [],
+        kpi.column,
+        kpi.operation,
+      );
+
       body = (
         <div className="flex-1 flex flex-col items-center justify-center p-4">
           <div
@@ -415,6 +545,151 @@ export function DataCardRenderer({
           <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mt-1">
             {kpi.operation} of {kpi.column}
           </div>
+          {trend && trend.direction !== "flat" && (
+            <div
+              className="text-[10px] font-semibold mt-1 px-1.5 py-0.5 rounded"
+              style={{
+                color:
+                  trend.direction === "up" ? "var(--success)" : "var(--danger)",
+                backgroundColor:
+                  trend.direction === "up"
+                    ? "color-mix(in srgb, var(--success) 12%, transparent)"
+                    : "color-mix(in srgb, var(--danger) 12%, transparent)",
+              }}
+              title={`${trend.direction === "up" ? "Up" : "Down"} ${Math.abs(
+                trend.percentChange,
+              ).toFixed(1)}% comparing first vs second half of the dataset`}
+            >
+              {trend.direction === "up" ? "↑" : "↓"}{" "}
+              {Math.abs(trend.percentChange).toFixed(1)}%
+            </div>
+          )}
+        </div>
+      );
+      break;
+    }
+
+    case "quality": {
+      if (!quality && !qualityLoading) {
+        body = (
+          <div className="flex-1 flex items-center justify-center text-[var(--text-muted)] text-xs">
+            No quality data
+          </div>
+        );
+        break;
+      }
+      if (qualityLoading) {
+        body = (
+          <div className="flex-1 flex items-center justify-center text-[var(--text-muted)] text-xs animate-pulse">
+            Checking…
+          </div>
+        );
+        break;
+      }
+      if (!quality) {
+        body = null;
+        break;
+      }
+
+      // Severity rules: nulls > 5% or anomalies > 0 or drift flagged
+      // → warning. > 20% nulls or > 3 anomalies → danger.
+      const tileColor = (
+        kind: "duplicates" | "missing" | "drift" | "anomalies",
+      ): string => {
+        switch (kind) {
+          case "duplicates":
+            return quality.duplicateCount > 0
+              ? "var(--warning)"
+              : "var(--success)";
+          case "missing":
+            return quality.missingPercent > 20
+              ? "var(--danger)"
+              : quality.missingPercent > 5
+                ? "var(--warning)"
+                : "var(--success)";
+          case "drift":
+            return quality.schemaDrift?.hasChange
+              ? "var(--warning)"
+              : "var(--success)";
+          case "anomalies":
+            return quality.anomalyCount > 3
+              ? "var(--danger)"
+              : quality.anomalyCount > 0
+                ? "var(--warning)"
+                : "var(--success)";
+        }
+      };
+
+      const tile = (
+        label: string,
+        value: string,
+        sub: string,
+        color: string,
+      ) => (
+        <div
+          className="flex-1 min-w-0 px-2.5 py-2 rounded-lg border"
+          style={{
+            borderColor: "var(--border)",
+            borderLeftWidth: "3px",
+            borderLeftColor: color,
+          }}
+        >
+          <div className="text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            {label}
+          </div>
+          <div className="text-lg font-extrabold font-mono" style={{ color }}>
+            {value}
+          </div>
+          {sub && (
+            <div className="text-[9px] text-[var(--text-muted)] truncate">
+              {sub}
+            </div>
+          )}
+        </div>
+      );
+
+      const topMissing = quality.topMissingColumns[0];
+      body = (
+        <div className="flex-1 flex flex-col p-2 gap-2 overflow-auto">
+          <div className="flex flex-wrap gap-2">
+            {tile(
+              "Duplicates",
+              quality.duplicateCount.toLocaleString(),
+              `of ${quality.rowCount.toLocaleString()} rows`,
+              tileColor("duplicates"),
+            )}
+            {tile(
+              "Missing",
+              `${quality.missingPercent.toFixed(1)}%`,
+              topMissing
+                ? `worst: ${topMissing.column} (${topMissing.nullPercent.toFixed(0)}%)`
+                : "no nulls",
+              tileColor("missing"),
+            )}
+            {tile(
+              "Schema drift",
+              quality.schemaDrift?.hasChange ? "Yes" : "No",
+              quality.schemaDrift?.hasChange
+                ? `+${quality.schemaDrift.added.length} / -${quality.schemaDrift.removed.length}`
+                : "stable",
+              tileColor("drift"),
+            )}
+            {tile(
+              "Anomalies",
+              quality.anomalyCount.toLocaleString(),
+              quality.anomalyCount === 1 ? "alert" : "alerts",
+              tileColor("anomalies"),
+            )}
+          </div>
+          {quality.topMissingColumns.length > 0 && (
+            <div className="text-[10px] text-[var(--text-muted)] px-1">
+              Top missing columns:{" "}
+              {quality.topMissingColumns
+                .slice(0, 3)
+                .map((c) => `${c.column} ${c.nullPercent.toFixed(0)}%`)
+                .join(" · ")}
+            </div>
+          )}
         </div>
       );
       break;
@@ -433,9 +708,6 @@ export function DataCardRenderer({
         );
         break;
       }
-      // Synchronous require for render-time lazy load (dynamic import() is async)
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { DataChart } = require("@/components/chat/DataChart");
       body = (
         <div className="flex-1 overflow-auto p-2">
           <DataChart
@@ -510,10 +782,6 @@ export function DataCardRenderer({
         );
         break;
       }
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const {
-        LineageFlowDiagram: _LineageFlowDiagram,
-      } = require("@/components/dashboard/LineageFlowDiagram");
       const pnlNames = Array.from(
         new Set(allRows.map((r) => String(r.NamedPnlName ?? ""))),
       )
@@ -575,11 +843,6 @@ function LineageCardBody({
   const [selectedPnl, setSelectedPnl] = useState<string | null>(
     initialPnl ?? pnlNames[0] ?? null,
   );
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const {
-    LineageFlowDiagram,
-  } = require("@/components/dashboard/LineageFlowDiagram");
-
   return (
     <div className="flex-1 overflow-auto p-3 space-y-2">
       <div className="flex items-center gap-2">

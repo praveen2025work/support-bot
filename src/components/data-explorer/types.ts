@@ -74,7 +74,29 @@ export interface DataViewPlugin {
 
 /* ─── Dashboard Builder Types ──────────────────────────────────── */
 
-export type DataCardType = "kpi" | "chart" | "table" | "lineage" | "summary";
+export type DataCardType =
+  | "kpi"
+  | "chart"
+  | "table"
+  | "lineage"
+  | "summary"
+  | "quality";
+
+export interface DataQuality {
+  queryName: string;
+  groupId: string;
+  rowCount: number;
+  columnCount: number;
+  duplicateCount: number;
+  missingPercent: number;
+  topMissingColumns: Array<{ column: string; nullPercent: number }>;
+  schemaDrift: {
+    hasChange: boolean;
+    added: string[];
+    removed: string[];
+  } | null;
+  anomalyCount: number;
+}
 
 export interface DataCard {
   id: string;

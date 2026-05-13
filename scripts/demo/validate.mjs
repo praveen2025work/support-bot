@@ -1562,6 +1562,42 @@ async function testAutocomplete() {
   );
 }
 
+async function testDataQuality() {
+  section("Data Explorer — /api/data/quality unified snapshot");
+  if (QUICK) {
+    record("data-quality", "skipped (--quick)", true);
+    return;
+  }
+  const r = await timed(() =>
+    getJson(`${ENGINE_URL}/api/data/quality/pnl_lineage?groupId=finance`),
+  );
+  const body = r.result?.body;
+  const ok = !!r.result?.ok && !!body && typeof body.rowCount === "number";
+  record(
+    "data-quality",
+    "GET /api/data/quality/:queryName returns a snapshot",
+    ok,
+    `status=${r.result?.status} rows=${body?.rowCount}`,
+    r.durationMs,
+  );
+  if (!ok) return;
+
+  const shapeOk =
+    typeof body.duplicateCount === "number" &&
+    typeof body.missingPercent === "number" &&
+    Array.isArray(body.topMissingColumns) &&
+    typeof body.anomalyCount === "number" &&
+    (body.schemaDrift === null ||
+      (typeof body.schemaDrift === "object" &&
+        typeof body.schemaDrift.hasChange === "boolean"));
+  record(
+    "data-quality",
+    "all four quality signals are present",
+    shapeOk,
+    `dup=${body.duplicateCount} nulls=${body.missingPercent}% drift=${body.schemaDrift?.hasChange ?? "null"} anomalies=${body.anomalyCount}`,
+  );
+}
+
 async function testRootCause() {
   section("Chat — root cause analysis on loaded result");
   if (QUICK) {
@@ -2023,6 +2059,7 @@ async function main() {
   await testAutoInsights();
   await testRootCause();
   await testDataExplorerInsights();
+  await testDataQuality();
   await testGlossaryCrud();
   await testSynonymCrud();
   await testLearningRetrain();
