@@ -44,9 +44,6 @@ function formatValue(
       break;
   }
 
-  if (format === "currency" || format === "percent") {
-    return formatted;
-  }
   return formatted;
 }
 
@@ -78,29 +75,39 @@ function computeTrend(
   return { direction: "flat", changePercent: null };
 }
 
-function getThresholdColor(
+function progressPercent(
   value: number | string,
   thresholds?: { warning: number; danger: number },
-): string {
-  if (!thresholds || typeof value !== "number") {
-    return "text-gray-900";
-  }
-  if (value >= thresholds.danger) return "text-red-600";
-  if (value >= thresholds.warning) return "text-amber-500";
-  return "text-green-600";
+): number | null {
+  if (typeof value !== "number") return null;
+  const ceiling = thresholds?.danger ?? Math.max(Math.abs(value) * 1.5, 100);
+  if (ceiling <= 0) return 0;
+  return Math.min(100, Math.max(0, (Math.abs(value) / ceiling) * 100));
 }
 
 const TREND_CONFIG = {
-  up: { icon: TrendingUp, color: "text-green-500", stroke: "#22c55e" },
-  down: { icon: TrendingDown, color: "text-red-500", stroke: "#ef4444" },
-  flat: { icon: Minus, color: "text-gray-400", stroke: "#9ca3af" },
+  up: {
+    icon: TrendingUp,
+    color: "text-emerald-500",
+    stroke: "#10b981",
+  },
+  down: {
+    icon: TrendingDown,
+    color: "text-rose-500",
+    stroke: "#f43f5e",
+  },
+  flat: {
+    icon: Minus,
+    color: "text-slate-400",
+    stroke: "#94a3b8",
+  },
 } as const;
 
 function Sparkline({ data, stroke }: { data: number[]; stroke: string }) {
   if (data.length < 2) return null;
 
-  const width = 60;
-  const height = 20;
+  const width = 72;
+  const height = 22;
   const padding = 1;
 
   const min = Math.min(...data);
@@ -121,12 +128,13 @@ function Sparkline({ data, stroke }: { data: number[]; stroke: string }) {
       height={height}
       viewBox={`0 0 ${width} ${height}`}
       className="inline-block"
+      aria-hidden="true"
     >
       <polyline
         points={points}
         fill="none"
         stroke={stroke}
-        strokeWidth={1.5}
+        strokeWidth={1.6}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -155,47 +163,59 @@ export function KpiCard({
   );
   const trendConfig = TREND_CONFIG[direction];
   const TrendIcon = trendConfig.icon;
-  const valueColor = color ? "" : getThresholdColor(value, thresholds);
   const displayValue = formatValue(value, format, prefix, unit);
+  const fillPercent = progressPercent(value, thresholds);
+  const accent = color ?? "var(--brand)";
 
   return (
     <div
-      className={`flex items-center gap-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 ${className}`}
-      style={color ? { borderLeftWidth: 3, borderLeftColor: color } : undefined}
+      className={`group relative flex flex-col gap-2 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3.5 shadow-[var(--shadow-xs)] hover:shadow-[var(--shadow-md)] hover:border-[var(--border-strong)] transition-all duration-200 overflow-hidden ${className}`}
     >
-      {/* Value */}
+      {/* Subtle accent stripe */}
       <span
-        className={`text-lg font-bold leading-none ${valueColor}`}
-        style={color ? { color } : undefined}
-      >
-        {displayValue}
-      </span>
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-[2px] opacity-70"
+        style={{ backgroundColor: accent }}
+      />
 
-      {/* Title + trend */}
-      <div className="flex flex-col min-w-0">
-        <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate leading-tight">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)] truncate">
           {title}
+        </span>
+        {sparklineData && sparklineData.length >= 2 && (
+          <Sparkline data={sparklineData} stroke={trendConfig.stroke} />
+        )}
+      </div>
+
+      <div className="flex items-baseline gap-1.5">
+        <span
+          className="numerals text-[24px] font-bold leading-none text-[var(--text-primary)]"
+          style={color ? { color } : undefined}
+        >
+          {displayValue}
         </span>
         {changePercent !== null && (
           <span
-            className={`text-[10px] font-medium leading-tight ${trendConfig.color}`}
+            className={`text-[11px] font-semibold inline-flex items-center gap-0.5 ${trendConfig.color}`}
           >
-            <TrendIcon className="inline h-2.5 w-2.5 mr-0.5" />
+            <TrendIcon className="h-3 w-3" />
             {changePercent >= 0 ? "+" : ""}
             {changePercent.toFixed(1)}%
           </span>
         )}
-        {trendLabel && !changePercent && (
-          <span className="text-[10px] text-gray-400 leading-tight">
+        {trendLabel && changePercent === null && (
+          <span className="text-[11px] text-[var(--text-muted)]">
             {trendLabel}
           </span>
         )}
       </div>
 
-      {/* Sparkline */}
-      {sparklineData && sparklineData.length >= 2 && (
-        <div className="ml-auto shrink-0">
-          <Sparkline data={sparklineData} stroke={trendConfig.stroke} />
+      {fillPercent !== null && (
+        <div className="w-full h-1 rounded-full bg-[var(--bg-tertiary)] overflow-hidden mt-auto">
+          <div
+            className="h-full rounded-full transition-[width] duration-500"
+            style={{ width: `${fillPercent}%`, backgroundColor: accent }}
+          />
         </div>
       )}
     </div>

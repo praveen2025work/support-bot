@@ -456,9 +456,10 @@ function DashboardShellInner({
   const isReadOnly = !!multiDashboard.activeDashboard?.simpleMode || isViewOnly;
 
   const dashboardContent = (
-    <div className="min-h-screen bg-[var(--bg-secondary)]">
+    <div className="min-h-screen bg-[var(--bg-canvas)]">
       <ContextualTopBar
         title={multiDashboard.activeDashboard?.name ?? "Dashboard"}
+        subtitle="Real-time performance & market trajectory"
         groups={groups}
         activeGroupId={groupId}
         onGroupChange={setGroupId}
@@ -483,61 +484,86 @@ function DashboardShellInner({
           multiDashboard.activeDashboard.parameters.length > 0 && (
             <button
               onClick={() => setFiltersOpen((prev) => !prev)}
-              className={`text-[11px] px-2.5 py-1 rounded-[var(--radius-md)] border transition-colors ${
+              className={`text-[11.5px] font-medium px-3 py-1.5 rounded-full border transition-all ${
                 filtersOpen
-                  ? "bg-[var(--brand-subtle)] text-[var(--brand)] border-[var(--brand)]"
-                  : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-tertiary)]"
+                  ? "bg-[var(--brand-subtle)] text-[var(--brand)] border-transparent"
+                  : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)]"
               }`}
               title="Toggle filters panel"
             >
-              <span className="inline-flex items-center gap-1">
+              <span className="inline-flex items-center gap-1.5">
                 <SlidersHorizontal size={12} />
                 Filters
               </span>
             </button>
           )}
 
-        {/* Simple/Interactive toggle */}
+        {/* Simple / Interactive segmented toggle — visible side-by-side */}
         {isGridView && (
+          <div
+            className="inline-flex items-center bg-[var(--bg-secondary)] border border-[var(--border)] rounded-full p-0.5"
+            role="radiogroup"
+            aria-label="Dashboard mode"
+          >
+            {[
+              { value: "simple", label: "Simple" },
+              { value: "interactive", label: "Interactive" },
+            ].map((opt) => {
+              const isSimple = !!multiDashboard.activeDashboard?.simpleMode;
+              const active =
+                (opt.value === "simple" && isSimple) ||
+                (opt.value === "interactive" && !isSimple);
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    if (!multiDashboard.activeDashboard) return;
+                    const wantsSimple = opt.value === "simple";
+                    if (wantsSimple !== isSimple) {
+                      multiDashboard.toggleSimpleMode(
+                        multiDashboard.activeDashboard.id,
+                      );
+                    }
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 text-[11.5px] font-semibold rounded-full transition-colors ${
+                    active
+                      ? "bg-[var(--bg-elevated)] text-[var(--brand)] shadow-[var(--shadow-xs)]"
+                      : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  }`}
+                  aria-pressed={active}
+                >
+                  {opt.value === "interactive" && active && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand)] animate-pulse-glow" />
+                  )}
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Edit — owners/editors only, hidden in simple/view-only modes */}
+        {isGridView && !isReadOnly && (
           <button
-            onClick={() => {
-              if (multiDashboard.activeDashboard) {
-                multiDashboard.toggleSimpleMode(
-                  multiDashboard.activeDashboard.id,
-                );
-              }
-            }}
-            className={`text-[11px] px-2.5 py-1 rounded-[var(--radius-md)] border transition-colors ${
-              multiDashboard.activeDashboard?.simpleMode
-                ? "bg-[var(--brand-subtle)] text-[var(--brand)] border-[var(--brand)]"
-                : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-tertiary)]"
+            onClick={() => setEditMode((v) => !v)}
+            className={`text-[11.5px] font-semibold px-3 py-1.5 rounded-full border transition-all ${
+              editMode
+                ? "bg-[var(--brand)] text-white border-transparent shadow-[var(--shadow-sm)]"
+                : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-tertiary)] hover:border-[var(--border-strong)]"
             }`}
           >
-            {multiDashboard.activeDashboard?.simpleMode
-              ? "Simple"
-              : "Interactive"}
+            {editMode ? "Editing" : "Edit"}
           </button>
         )}
 
-        {isGridView && !isReadOnly && (
-          <>
-            <button
-              onClick={() => setEditMode((v) => !v)}
-              className={`text-[11px] px-2.5 py-1 rounded-[var(--radius-md)] border transition-colors ${
-                editMode
-                  ? "bg-[var(--brand)] text-white border-transparent"
-                  : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-tertiary)]"
-              }`}
-            >
-              {editMode ? "Editing" : "Edit"}
-            </button>
-            <button
-              onClick={() => setPresentationMode(true)}
-              className="text-[11px] px-2.5 py-1 rounded-[var(--radius-md)] border bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-tertiary)] transition-colors"
-            >
-              Present
-            </button>
-          </>
+        {/* Present — read-only action, always available when a grid is loaded */}
+        {isGridView && (
+          <button
+            onClick={() => setPresentationMode(true)}
+            className="text-[11.5px] font-medium px-3 py-1.5 rounded-full border bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-tertiary)] hover:border-[var(--border-strong)] transition-all"
+          >
+            Present
+          </button>
         )}
       </ContextualTopBar>
 
@@ -921,36 +947,44 @@ function EmptyState({
   onCreateDashboard?: () => void;
 }) {
   return (
-    <div className="text-center py-16">
-      <div className="text-4xl mb-4">&#128202;</div>
-      <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
-        Your Dashboard is Empty
-      </h2>
-      <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-md mx-auto">
-        Add favorite queries for quick access, create a grid dashboard, or start
-        chatting to build your recent history.
-      </p>
-      <div className="flex gap-3 justify-center">
-        <button
-          onClick={onAddFavorite}
-          className="px-4 py-2 bg-[var(--brand)] text-white text-sm rounded-[var(--radius-lg)] hover:opacity-90 transition-colors"
-        >
-          Add a Favorite
-        </button>
-        {onCreateDashboard && (
-          <button
-            onClick={onCreateDashboard}
-            className="px-4 py-2 border border-[var(--border)] text-[var(--brand)] text-sm rounded-[var(--radius-lg)] hover:bg-[var(--brand-subtle)] transition-colors"
-          >
-            Create Dashboard
-          </button>
-        )}
-        <Link
-          href="/"
-          className="px-4 py-2 border border-[var(--border)] text-[var(--text-primary)] text-sm rounded-[var(--radius-lg)] hover:bg-[var(--bg-secondary)] transition-colors"
-        >
-          Open Chat
-        </Link>
+    <div className="px-6 py-12">
+      <div className="relative max-w-3xl mx-auto rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-elevated)] overflow-hidden shadow-[var(--shadow-md)]">
+        {/* Decorative gradient mesh */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 opacity-80 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(circle at 18% 12%, rgba(99,102,241,0.18), transparent 55%), radial-gradient(circle at 84% 88%, rgba(139,92,246,0.14), transparent 55%)",
+          }}
+        />
+        <div className="relative px-10 py-12 flex flex-col items-center text-center">
+          <span className="eyebrow !text-[var(--brand)] mb-3">
+            Your workspace
+          </span>
+          <h2 className="font-display text-[28px] font-bold text-[var(--text-primary)] tracking-tight mb-3 leading-tight">
+            Compose the dashboard <br />
+            you&apos;ve been imagining.
+          </h2>
+          <p className="text-[14px] text-[var(--text-secondary)] max-w-lg mb-7 leading-relaxed">
+            Pin a favorite query, spin up a fresh grid, or let the chat
+            assistant draft your first KPI strip. Everything you build here is
+            live and re-runnable.
+          </p>
+          <div className="flex flex-wrap gap-3 justify-center">
+            <button onClick={onAddFavorite} className="btn-primary">
+              Add a favorite
+            </button>
+            {onCreateDashboard && (
+              <button onClick={onCreateDashboard} className="btn-secondary">
+                Create dashboard
+              </button>
+            )}
+            <Link href="/" className="btn-ghost">
+              Open chat
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

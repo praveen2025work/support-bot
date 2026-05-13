@@ -11,38 +11,48 @@ interface KpiStripProps {
   items: KpiItem[];
 }
 
+const ACCENTS = ["var(--brand)", "var(--accent)", "var(--success)", "#a78bfa"];
+
 export function KpiStrip({ items }: KpiStripProps) {
   if (items.length === 0) return null;
   return (
-    <div className="flex gap-2 px-4 pt-2.5 pb-0 overflow-x-auto">
-      {items.map((item) => (
-        <div
-          key={item.label}
-          className="flex-1 min-w-[140px] bg-[var(--bg-primary)] rounded-[var(--radius-lg)] px-3.5 py-2.5 shadow-[var(--shadow-xs)] flex items-center gap-2.5"
-        >
-          <div>
-            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+    <div className="flex gap-3 px-5 pt-4 pb-1 overflow-x-auto">
+      {items.map((item, idx) => {
+        const accent = ACCENTS[idx % ACCENTS.length];
+        return (
+          <div
+            key={item.label}
+            className="relative flex-1 min-w-[160px] rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 shadow-[var(--shadow-xs)] hover:shadow-[var(--shadow-md)] hover:border-[var(--border-strong)] transition-all overflow-hidden"
+          >
+            <span
+              aria-hidden="true"
+              className="absolute inset-x-0 top-0 h-[2px] opacity-70"
+              style={{ backgroundColor: accent }}
+            />
+            <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)] truncate">
               {item.label}
             </div>
-            <div className="text-[20px] font-bold text-[var(--text-primary)] leading-tight">
-              {item.value}
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="numerals text-[22px] font-bold leading-none text-[var(--text-primary)]">
+                {item.value}
+              </span>
+              {item.change && (
+                <span
+                  className={`text-[11px] font-semibold ${
+                    item.changeType === "positive"
+                      ? "text-emerald-500"
+                      : item.changeType === "negative"
+                        ? "text-rose-500"
+                        : "text-[var(--text-muted)]"
+                  }`}
+                >
+                  {item.change}
+                </span>
+              )}
             </div>
           </div>
-          {item.change && (
-            <span
-              className={`text-[11px] px-1.5 py-0.5 rounded-[var(--radius-full)] ${
-                item.changeType === "positive"
-                  ? "text-[var(--success)] bg-[var(--success-subtle)]"
-                  : item.changeType === "negative"
-                    ? "text-[var(--danger)] bg-[var(--danger-subtle)]"
-                    : "text-[var(--text-muted)] bg-[var(--bg-tertiary)]"
-              }`}
-            >
-              {item.change}
-            </span>
-          )}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
