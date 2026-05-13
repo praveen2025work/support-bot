@@ -23,6 +23,8 @@ import {
   CircleDot,
   TriangleAlert,
   AlertOctagon,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 import { Fragment } from "react";
 import {
@@ -134,6 +136,29 @@ export function GridBoardShell() {
   const [data, setData] = useState<Record<string, unknown>[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [insightsHidden, setInsightsHidden] = useState(false);
+
+  useEffect(() => {
+    try {
+      setInsightsHidden(
+        localStorage.getItem("insights-hidden:gridboard") === "true",
+      );
+    } catch {
+      /* noop */
+    }
+  }, []);
+
+  const toggleInsightsHidden = () => {
+    setInsightsHidden((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("insights-hidden:gridboard", String(next));
+      } catch {
+        /* noop */
+      }
+      return next;
+    });
+  };
   const [error, setError] = useState<string | null>(null);
   // Proactive analytics — populated alongside the row fetch + a side
   // call to /api/data/quality. Optional; absent on small datasets.
@@ -475,12 +500,12 @@ export function GridBoardShell() {
         <button
           type="button"
           onClick={() => setDropdownOpen((o) => !o)}
-          className="flex items-center gap-2 text-[12px] border rounded-[var(--radius-md)] px-3 py-1.5 text-left transition-colors min-w-[180px] max-w-[280px]"
+          className="flex items-center gap-2 text-[12.5px] font-medium border rounded-full px-3.5 py-1.5 text-left transition-all min-w-[200px] max-w-[300px]"
           style={{
-            backgroundColor: "var(--bg-primary)",
+            backgroundColor: "var(--bg-secondary)",
             borderColor: dropdownOpen ? "var(--brand)" : "var(--border)",
             color: selectedQuery ? "var(--text-primary)" : "var(--text-muted)",
-            boxShadow: dropdownOpen ? "0 0 0 2px var(--brand-subtle)" : "none",
+            boxShadow: dropdownOpen ? "0 0 0 3px var(--brand-subtle)" : "none",
           }}
         >
           {selectedQuery ? (
@@ -622,9 +647,9 @@ export function GridBoardShell() {
       <button
         onClick={handleLoad}
         disabled={!selectedQuery || loading}
-        className="bg-[var(--brand)] text-[var(--brand-text)] rounded-[var(--radius-md)] px-3 py-1.5 text-[12px] font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+        className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
       >
-        {loading ? "Loading..." : "Load Data"}
+        {loading ? "Loading…" : "Load Data"}
       </button>
     </div>
   );
@@ -638,7 +663,7 @@ export function GridBoardShell() {
 
       <div
         className="h-full flex flex-col"
-        style={{ backgroundColor: "var(--bg-secondary)" }}
+        style={{ backgroundColor: "var(--bg-canvas)" }}
       >
         {/* Filters (shown below top bar when a query has filters) */}
         {queryFilterKeys.length > 0 && (
@@ -694,153 +719,255 @@ export function GridBoardShell() {
           </div>
         )}
 
-        {/* Quality + anomaly chip strip — single row of dot-separated
-            tiles. Only renders once data has loaded and the quality
-            snapshot returned. Click jumps to /admin/anomaly (handled
-            below as a plain anchor). */}
-        {dataLoaded && quality && (
+        {/* Insights expanded panel — renders the full list in one
+            place when the user expands the pill in the Tools row. */}
+        {dataLoaded && !insightsHidden && insights.length > 0 && (
           <div
-            className="mx-6 mt-3 flex flex-wrap items-center gap-2 text-[11px]"
-            style={{ color: "var(--text-muted)" }}
+            className="mx-6 mt-3 mb-1"
+            role="status"
+            aria-label="Auto-insights detail"
           >
-            <QualityChip
-              label="Duplicates"
-              value={quality.duplicateCount.toLocaleString()}
-              tone={
-                quality.duplicateCount > 0 ? "var(--warning)" : "var(--success)"
-              }
-            />
-            <QualityChip
-              label="Missing"
-              value={`${quality.missingPercent.toFixed(1)}%`}
-              tone={
-                quality.missingPercent > 20
+            <ul className="flex flex-col gap-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40 px-1 py-1">
+              {insights.map((ins, i) => {
+                const isWarn = ins.severity === "warning";
+                const isCrit = ins.severity === "critical";
+                const tone = isCrit
                   ? "var(--danger)"
-                  : quality.missingPercent > 5
+                  : isWarn
                     ? "var(--warning)"
-                    : "var(--success)"
-              }
-            />
-            <QualityChip
-              label="Drift"
-              value={quality.schemaDrift?.hasChange ? "Yes" : "No"}
-              tone={
-                quality.schemaDrift?.hasChange
-                  ? "var(--warning)"
-                  : "var(--success)"
-              }
-            />
-            <QualityChip
-              label="Anomalies"
-              value={quality.anomalyCount.toLocaleString()}
-              tone={
-                quality.anomalyCount > 3
-                  ? "var(--danger)"
-                  : quality.anomalyCount > 0
-                    ? "var(--warning)"
-                    : "var(--success)"
-              }
-            />
-          </div>
-        )}
-
-        {/* Auto-insights — same card design as Data Explorer. Each
-            line gets a severity icon + the engine's **bold** markers
-            rendered as actual emphasis. */}
-        {dataLoaded && insights.length > 0 && (
-          <div className="mx-6 mt-3" role="status" aria-label="Auto-insights">
-            <div
-              className="rounded-[var(--radius-md)] border bg-[var(--bg-primary)] overflow-hidden"
-              style={{ borderColor: "var(--border)" }}
-            >
-              <div
-                className="flex items-center gap-1.5 px-3 py-1.5 border-b text-[10px] font-semibold uppercase tracking-wider"
-                style={{
-                  borderColor: "var(--border)",
-                  color: "var(--brand)",
-                  backgroundColor:
-                    "color-mix(in srgb, var(--brand) 4%, transparent)",
-                }}
-              >
-                <Sparkles size={11} />
-                <span>Insights</span>
-                <span
-                  className="ml-auto"
-                  style={{ color: "var(--text-muted)" }}
-                >
-                  {insights.length}
-                </span>
-              </div>
-              <ul>
-                {insights.map((ins, i) => {
-                  const isWarn = ins.severity === "warning";
-                  const isCrit = ins.severity === "critical";
-                  const tone = isCrit
-                    ? "var(--danger)"
-                    : isWarn
-                      ? "var(--warning)"
-                      : "var(--brand)";
-                  const Icon = isCrit
-                    ? AlertOctagon
-                    : isWarn
-                      ? TriangleAlert
-                      : CircleDot;
-                  return (
-                    <li
-                      key={i}
-                      className="px-3 py-2 text-[12px] leading-snug flex items-start gap-2 border-t first:border-t-0"
-                      style={{ borderColor: "var(--border)" }}
+                    : "var(--brand)";
+                const Icon = isCrit
+                  ? AlertOctagon
+                  : isWarn
+                    ? TriangleAlert
+                    : CircleDot;
+                return (
+                  <li
+                    key={i}
+                    className="px-3 py-1.5 text-[12px] leading-snug flex items-start gap-2 rounded hover:bg-[var(--bg-elevated)] transition-colors"
+                  >
+                    <Icon
+                      size={12}
+                      className="mt-0.5 shrink-0"
+                      style={{ color: tone }}
+                    />
+                    <span
+                      className="min-w-0"
+                      style={{ color: "var(--text-secondary)" }}
                     >
-                      <Icon
-                        size={12}
-                        className="mt-0.5 shrink-0"
-                        style={{ color: tone }}
-                      />
-                      <span
-                        className="min-w-0"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        {renderInsightText(ins.text)}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+                      {renderInsightText(ins.text)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
 
         {/* Data grid */}
         <div className="flex-1 overflow-auto px-6 py-4">
           {dataLoaded ? (
-            <EditableDataGrid
-              data={data}
-              columns={columns}
-              queryName={selectedQuery}
-              onSave={handleSave}
-              onDelete={handleDelete}
-              viewConfig={activeView || undefined}
-              onViewConfigChange={handleViewConfigChange}
-              views={views}
-              activeView={activeView}
-              onLoadView={loadView}
-              onSaveView={handleSaveView}
-              onSaveViewAs={handleSaveViewAs}
-              onDeleteView={deleteView}
-              onClearView={clearActiveView}
-            />
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 h-full">
-              <div className="w-16 h-16 bg-[var(--brand-subtle)] rounded-[var(--radius-lg)] flex items-center justify-center mb-4">
-                <Table2 className="w-8 h-8 text-[var(--brand)]" />
+            <>
+              {/* Stitch-style tool row — anchor for AG Grid plus the
+                  data-quality chips and the insights summary pill so
+                  they don't claim their own row of vertical space. */}
+              <div className="mb-3 flex items-center gap-2 flex-wrap">
+                <span className="eyebrow !text-[9.5px] mr-1">Tools</span>
+                {[
+                  { label: "Group By", icon: "⊞" },
+                  { label: "Aggregate", icon: "Σ" },
+                  { label: "Pivot", icon: "⇋" },
+                  { label: "Formula", icon: "ƒ" },
+                ].map((t) => (
+                  <span
+                    key={t.label}
+                    className="chip !py-1 !px-2.5 !text-[11px] cursor-default"
+                  >
+                    <span
+                      className="text-[var(--brand)] font-semibold mr-0.5"
+                      aria-hidden
+                    >
+                      {t.icon}
+                    </span>
+                    {t.label}
+                  </span>
+                ))}
+
+                {/* Quality chips — only renders once snapshot exists */}
+                {quality && (
+                  <>
+                    <span
+                      aria-hidden
+                      className="mx-1 h-3 w-px bg-[var(--border)]"
+                    />
+                    <QualityChip
+                      label="Dup"
+                      value={quality.duplicateCount.toLocaleString()}
+                      tone={
+                        quality.duplicateCount > 0
+                          ? "var(--warning)"
+                          : "var(--success)"
+                      }
+                    />
+                    <QualityChip
+                      label="Missing"
+                      value={`${quality.missingPercent.toFixed(1)}%`}
+                      tone={
+                        quality.missingPercent > 20
+                          ? "var(--danger)"
+                          : quality.missingPercent > 5
+                            ? "var(--warning)"
+                            : "var(--success)"
+                      }
+                    />
+                    <QualityChip
+                      label="Drift"
+                      value={quality.schemaDrift?.hasChange ? "Yes" : "No"}
+                      tone={
+                        quality.schemaDrift?.hasChange
+                          ? "var(--warning)"
+                          : "var(--success)"
+                      }
+                    />
+                    <QualityChip
+                      label="Anom"
+                      value={quality.anomalyCount.toLocaleString()}
+                      tone={
+                        quality.anomalyCount > 3
+                          ? "var(--danger)"
+                          : quality.anomalyCount > 0
+                            ? "var(--warning)"
+                            : "var(--success)"
+                      }
+                    />
+                  </>
+                )}
+
+                <span className="ml-auto eyebrow !text-[9.5px]">
+                  {data.length.toLocaleString()} rows
+                </span>
+
+                {/* Insights summary pill — single chip in the tools
+                    row. Collapsed: shows the first insight + count of
+                    the rest. Expanded: shows just "Hide N insights"
+                    and the full list renders in the panel below. */}
+                {insights.length > 0 &&
+                  (() => {
+                    const firstInsight = insights[0];
+                    const tone =
+                      firstInsight.severity === "critical"
+                        ? "var(--danger)"
+                        : firstInsight.severity === "warning"
+                          ? "var(--warning)"
+                          : "var(--brand)";
+                    return (
+                      <button
+                        onClick={toggleInsightsHidden}
+                        className="inline-flex items-center gap-1.5 max-w-[400px] rounded-full border px-2.5 py-1 text-[11px] transition-colors hover:bg-[var(--bg-secondary)]"
+                        style={{
+                          borderColor: `color-mix(in srgb, ${tone} 30%, transparent)`,
+                          backgroundColor: `color-mix(in srgb, ${tone} 6%, transparent)`,
+                          color: "var(--text-primary)",
+                        }}
+                        title={
+                          insightsHidden ? "Show all insights" : "Hide insights"
+                        }
+                      >
+                        <Sparkles
+                          className="w-3 h-3 shrink-0"
+                          style={{ color: tone }}
+                        />
+                        {insightsHidden ? (
+                          <>
+                            <span className="truncate font-medium">
+                              {renderInsightText(firstInsight.text)}
+                            </span>
+                            {insights.length > 1 && (
+                              <span
+                                className="shrink-0 text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full"
+                                style={{
+                                  backgroundColor: `color-mix(in srgb, ${tone} 14%, transparent)`,
+                                  color: tone,
+                                }}
+                              >
+                                +{insights.length - 1}
+                              </span>
+                            )}
+                            <Eye
+                              className="w-3 h-3 shrink-0 opacity-70"
+                              style={{ color: tone }}
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-medium">
+                              Hide {insights.length} insight
+                              {insights.length === 1 ? "" : "s"}
+                            </span>
+                            <EyeOff
+                              className="w-3 h-3 shrink-0 opacity-70"
+                              style={{ color: tone }}
+                            />
+                          </>
+                        )}
+                      </button>
+                    );
+                  })()}
               </div>
-              <h3 className="text-[16px] font-semibold text-[var(--text-primary)] mb-1">
-                No data loaded
-              </h3>
-              <p className="text-[13px] text-[var(--text-muted)] max-w-md">
-                Select a query from the dropdown above and click Load Data to
-                start exploring your data in an interactive grid.
-              </p>
+              <EditableDataGrid
+                data={data}
+                columns={columns}
+                queryName={selectedQuery}
+                onSave={handleSave}
+                onDelete={handleDelete}
+                viewConfig={activeView || undefined}
+                onViewConfigChange={handleViewConfigChange}
+                views={views}
+                activeView={activeView}
+                onLoadView={loadView}
+                onSaveView={handleSaveView}
+                onSaveViewAs={handleSaveViewAs}
+                onDeleteView={deleteView}
+                onClearView={clearActiveView}
+              />
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center h-full">
+              <div className="relative w-full max-w-xl rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-elevated)] overflow-hidden shadow-[var(--shadow-md)]">
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 opacity-70 pointer-events-none"
+                  style={{
+                    background:
+                      "radial-gradient(circle at 20% 0%, rgba(99,102,241,0.16), transparent 55%), radial-gradient(circle at 100% 100%, rgba(139,92,246,0.12), transparent 60%)",
+                  }}
+                />
+                <div className="relative px-8 py-10 flex flex-col items-center text-center">
+                  <div
+                    className="w-12 h-12 rounded-[14px] flex items-center justify-center mb-4 shadow-[0_8px_24px_-8px_rgba(99,102,241,0.55)]"
+                    style={{ background: "var(--brand-gradient)" }}
+                  >
+                    <Table2 className="w-6 h-6 text-white" strokeWidth={1.6} />
+                  </div>
+                  <span className="eyebrow !text-[var(--brand)] mb-2">
+                    Grid Board
+                  </span>
+                  <h3 className="font-display text-[22px] font-bold text-[var(--text-primary)] tracking-tight mb-2 leading-tight">
+                    Pivot, aggregate, sculpt your data.
+                  </h3>
+                  <p className="text-[13.5px] text-[var(--text-secondary)] max-w-md leading-relaxed">
+                    Pick a query from the selector above to hydrate the grid.
+                    Group by columns, add formulas, and pivot inline — every
+                    edit syncs back to a saved view.
+                  </p>
+                  <div className="mt-5 flex flex-wrap items-center gap-1.5 justify-center text-[10.5px] font-medium text-[var(--text-muted)] uppercase tracking-[0.12em]">
+                    <span className="chip">Group by</span>
+                    <span className="chip">Aggregate</span>
+                    <span className="chip">Pivot</span>
+                    <span className="chip">Formula</span>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
