@@ -20,6 +20,23 @@ import { RichContentRenderer } from "./RichContentRenderer";
 import { DisambiguationChips } from "./SuggestionChips";
 import type { LinkedSelection, DiffInfo } from "./richContentTypes";
 
+/** Detect "Here are the results for "X"<suffix>:" boilerplate so we can
+ *  replace the noisy phrase + separate execution-time pill with a single
+ *  compact banner: brand bullet · queryName · N rows · Xms. The suffix
+ *  (e.g. "for region=APAC" or "(showing first 50 of 1,200 rows)") is
+ *  rendered as muted secondary text. Returns null if the text isn't a
+ *  results line, so callers fall back to plain markdown rendering. */
+function tryParseResultsBanner(
+  text: string,
+): { queryName: string; suffix: string } | null {
+  if (!text) return null;
+  // Strip a single trailing ":" before matching the quoted name pattern.
+  const trimmed = text.replace(/\s*:\s*$/, "");
+  const m = trimmed.match(/^Here are the results for\s+"([^"]+)"(.*)$/i);
+  if (!m) return null;
+  return { queryName: m[1], suffix: (m[2] ?? "").trim() };
+}
+
 /**
  * Renders assistant text with three inline affordances:
  *   1. **bold** markers   → <strong> with brand emphasis
@@ -264,20 +281,68 @@ export function MessageBubble({
         )}
         {/* Conversational text — hidden in dashboard mode (card title already shows context).
             For disambiguation messages, prefix with a question-circle icon
-            (per design Surface 1: `[icon: question circle] [headline]`). */}
-        {!dashboardMode && (
-          <div className="flex items-start gap-2">
-            {!isUser && message.disambiguation && (
-              <HelpCircle
-                className="h-4 w-4 mt-0.5 flex-shrink-0 text-[var(--brand)]"
-                aria-hidden="true"
-              />
-            )}
-            <p className="whitespace-pre-wrap text-sm">
-              {renderMarkdownText(message.text, isUser ? undefined : onAction)}
-            </p>
-          </div>
-        )}
+            (per design Surface 1: `[icon: question circle] [headline]`).
+            Boilerplate "Here are the results for "X":" lines collapse into a
+            single sleek banner that also absorbs the execution-time pill. */}
+        {(() => {
+          if (dashboardMode) return null;
+          const banner = !isUser ? tryParseResultsBanner(message.text) : null;
+          if (banner) {
+            const rcData = message.richContent?.data as
+              | Record<string, unknown>
+              | undefined;
+            const rowsArr = (rcData?.rows ?? rcData?.data) as
+              | unknown[]
+              | undefined;
+            const rowCount =
+              (rcData?.rowCount as number | undefined) ??
+              (Array.isArray(rowsArr) ? rowsArr.length : undefined);
+            return (
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span
+                  aria-hidden="true"
+                  className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--brand)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => onAction?.(banner.queryName)}
+                  className="font-display text-[14px] font-bold tracking-tight text-[var(--text-primary)] hover:text-[var(--brand)] transition-colors disabled:hover:text-[var(--text-primary)] disabled:cursor-default"
+                  disabled={!onAction}
+                  title={banner.queryName}
+                >
+                  {banner.queryName}
+                </button>
+                <span className="text-[11px] font-mono text-[var(--text-muted)]">
+                  {rowCount != null &&
+                    `${rowCount.toLocaleString()} row${rowCount === 1 ? "" : "s"}`}
+                  {rowCount != null && message.executionMs != null && " · "}
+                  {message.executionMs != null && `${message.executionMs}ms`}
+                </span>
+                {banner.suffix && (
+                  <span className="text-[11px] text-[var(--text-muted)] truncate max-w-full">
+                    {banner.suffix}
+                  </span>
+                )}
+              </div>
+            );
+          }
+          return (
+            <div className="flex items-start gap-2">
+              {!isUser && message.disambiguation && (
+                <HelpCircle
+                  className="h-4 w-4 mt-0.5 flex-shrink-0 text-[var(--brand)]"
+                  aria-hidden="true"
+                />
+              )}
+              <p className="whitespace-pre-wrap text-sm">
+                {renderMarkdownText(
+                  message.text,
+                  isUser ? undefined : onAction,
+                )}
+              </p>
+            </div>
+          );
+        })()}
         {/* "Did you mean?" disambiguation chips — clicking one POSTs forceIntent
             via useChat.sendForceIntent(). Hidden in dashboard mode. */}
         {!isUser &&
@@ -351,16 +416,27 @@ export function MessageBubble({
               <AnomalyAlert anomalies={message.anomalies} />
             </div>
           )}
-        {/* Execution time badge + source + confidence + reference link (hidden in dashboard/compact mode) */}
-        {!isUser &&
-          !dashboardMode &&
-          !compactRichContent &&
-          (message.executionMs != null ||
-            message.referenceUrl ||
-            message.sourceName ||
-            message.confidence != null) && (
+        {/* Execution time badge + source + confidence + reference link (hidden in dashboard/compact mode).
+            When the results banner above already absorbs the execution time,
+            suppress the duplicate pill so the meta row only shows source/confidence/ref. */}
+        {(() => {
+          if (isUser || dashboardMode || compactRichContent) return null;
+          const bannerHasTime =
+            tryParseResultsBanner(message.text) != null &&
+            message.executionMs != null;
+          const showTimePill =
+            message.executionMs != null && !hideExecutionTime && !bannerHasTime;
+          if (
+            !showTimePill &&
+            !message.referenceUrl &&
+            !message.sourceName &&
+            message.confidence == null
+          ) {
+            return null;
+          }
+          return (
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              {message.executionMs != null && !hideExecutionTime && (
+              {showTimePill && (
                 <span className="inline-flex items-center rounded-full bg-[var(--success-subtle)] px-2 py-0.5 text-[10px] font-medium text-[var(--success)]">
                   Completed in {message.executionMs}ms
                 </span>
@@ -386,7 +462,8 @@ export function MessageBubble({
                 </a>
               )}
             </div>
-          )}
+          );
+        })()}
         {/* Feedback bar (thumbs up/down) — hidden in dashboard/compact mode */}
         {!isUser &&
           !dashboardMode &&
