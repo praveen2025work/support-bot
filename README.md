@@ -158,6 +158,10 @@ Want to verify the latest features yourself? **[docs/SELF-TEST.md](./docs/SELF-T
 walks every recent addition (Packages A/B/C, glossary, autocomplete,
 userinfo) with both visual and `curl` checks per section.
 
+Designing a new surface or handing the app to a design tool? See
+**[docs/APP-SPEC.md](./docs/APP-SPEC.md)** — a structured snapshot of
+every route, component, capability layer, and design token.
+
 Latest validation report at **[docs/DEMO-VALIDATION.md](./docs/DEMO-VALIDATION.md)**
 — gets regenerated every time `npm run validate:demo` runs and
 uploaded as an artifact by CI.
