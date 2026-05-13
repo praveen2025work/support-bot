@@ -43,7 +43,7 @@ function ChatPage() {
     new Set(),
   );
   const [pinnedQueries, setPinnedQueries] = useState<
-    Array<{ name: string; label: string }>
+    Array<{ name: string; label: string; id?: string }>
   >([]);
   const { userInfo } = useUser();
   const { toggleTheme } = useTheme();
@@ -112,8 +112,15 @@ function ChatPage() {
           Array.isArray((prefs as { favorites: unknown }).favorites)
         ) {
           const favs = (
-            prefs as { favorites: Array<{ queryName: string; label?: string }> }
+            prefs as {
+              favorites: Array<{
+                id?: string;
+                queryName: string;
+                label?: string;
+              }>;
+            }
           ).favorites.map((f) => ({
+            id: f.id,
             name: f.queryName,
             label: f.label ?? f.queryName,
           }));
@@ -130,22 +137,63 @@ function ChatPage() {
     setActiveResult(null);
   }, []);
 
-  const handlePin = useCallback((queryName: string) => {
-    setPinnedQueryNames((prev) => {
-      const next = new Set(prev);
-      if (next.has(queryName)) {
-        next.delete(queryName);
-        setPinnedQueries((pq) => pq.filter((q) => q.name !== queryName));
-      } else {
-        next.add(queryName);
-        setPinnedQueries((pq) => [
-          ...pq,
-          { name: queryName, label: queryName },
-        ]);
+  // Toggle pin (favorite) for the active query. Persists through the
+  // engine via /api/preferences/favorites so the pin survives reloads
+  // and shows up immediately in the right-rail PinnedDashboard.
+  const handlePin = useCallback(
+    async (queryName: string) => {
+      const userId = userInfo?.samAccountName;
+      if (!userId) return;
+      const isPinned = pinnedQueryNames.has(queryName);
+      try {
+        if (isPinned) {
+          const existing = pinnedQueries.find((q) => q.name === queryName);
+          if (existing?.id) {
+            await fetch(
+              `/api/preferences/favorites/${encodeURIComponent(existing.id)}?userId=${encodeURIComponent(userId)}`,
+              { method: "DELETE" },
+            );
+          }
+          setPinnedQueryNames((prev) => {
+            const next = new Set(prev);
+            next.delete(queryName);
+            return next;
+          });
+          setPinnedQueries((pq) => pq.filter((q) => q.name !== queryName));
+        } else {
+          const res = await fetch(
+            `/api/preferences/favorites?userId=${encodeURIComponent(userId)}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                queryName,
+                groupId,
+                label: queryName,
+              }),
+            },
+          );
+          const fav = await res.json().catch(() => null);
+          setPinnedQueryNames((prev) => {
+            const next = new Set(prev);
+            next.add(queryName);
+            return next;
+          });
+          setPinnedQueries((pq) => [
+            ...pq,
+            {
+              id: fav?.id,
+              name: queryName,
+              label: queryName,
+            },
+          ]);
+        }
+      } catch (err) {
+        console.error("Failed to toggle pin:", err);
       }
-      return next;
-    });
-  }, []);
+    },
+    [userInfo?.samAccountName, pinnedQueryNames, pinnedQueries, groupId],
+  );
 
   const handlePinnedQueryClick = useCallback((_queryName: string) => {
     // Placeholder: full integration requires ChatWindow to expose an executeQuery callback
