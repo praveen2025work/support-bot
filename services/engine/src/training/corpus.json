@@ -971,6 +971,35 @@
       "answers": []
     },
     {
+      "intent": "analysis.root_cause",
+      "utterances": [
+        "why did this happen",
+        "why did revenue drop",
+        "why is this high",
+        "why is it low",
+        "what is driving this",
+        "what's driving revenue",
+        "what's behind the change",
+        "what is causing the drop",
+        "explain the change",
+        "explain the drop",
+        "explain the rise",
+        "explain the increase",
+        "explain the decrease",
+        "root cause analysis",
+        "find the root cause",
+        "biggest contributor",
+        "biggest driver",
+        "top drivers",
+        "what's the biggest factor",
+        "why the spike",
+        "why the dip",
+        "break down the change",
+        "decompose the change"
+      ],
+      "answers": []
+    },
+    {
       "intent": "None",
       "utterances": ["summarize"],
       "answers": []

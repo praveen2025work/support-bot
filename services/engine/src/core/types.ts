@@ -156,7 +156,8 @@ export interface RichContent {
     | "decision_tree_result"
     | "forecast_result"
     | "pca_result"
-    | "insight_report";
+    | "insight_report"
+    | "root_cause";
   data: unknown;
 }
 

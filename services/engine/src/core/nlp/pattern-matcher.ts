@@ -19,26 +19,115 @@ interface PatternRule {
 
 const PATTERN_RULES: PatternRule[] = [
   // Data analysis patterns
-  { regex: /\b(outlier|anomal|spike|unusual|weird|strange|extreme|abnormal)\b/i, intent: 'analysis.anomaly', name: 'anomaly', confidence: 0.7 },
-  { regex: /\b(trend|over\s+time|increas|decreas|grow|decline|trajectory)\b/i, intent: 'analysis.trend', name: 'trend', confidence: 0.7 },
-  { regex: /\b(forecast|predict|next|future|project|estimat|extrapolat)\b/i, intent: 'analysis.forecast', name: 'forecast', confidence: 0.7 },
-  { regex: /\b(cluster|segment|group\s+similar|categori[sz]e|classify)\b/i, intent: 'analysis.cluster', name: 'cluster', confidence: 0.7 },
-  { regex: /\b(correlat|related|relationship|depend|affect|associat)\b/i, intent: 'analysis.correlation', name: 'correlation', confidence: 0.7 },
-  { regex: /\b(duplicat|repeat|same|identical|redundant)\b/i, intent: 'analysis.duplicates', name: 'duplicates', confidence: 0.7 },
-  { regex: /\b(distribut|histogram|spread|range|how.*look|frequency)\b/i, intent: 'analysis.histogram', name: 'histogram', confidence: 0.65 },
-  { regex: /\b(analyz|describ|summar|profile|what.*have|column|field|stat)\b/i, intent: 'analysis.profile', name: 'profile', confidence: 0.6 },
+  {
+    regex: /\b(outlier|anomal|spike|unusual|weird|strange|extreme|abnormal)\b/i,
+    intent: "analysis.anomaly",
+    name: "anomaly",
+    confidence: 0.7,
+  },
+  {
+    regex: /\b(trend|over\s+time|increas|decreas|grow|decline|trajectory)\b/i,
+    intent: "analysis.trend",
+    name: "trend",
+    confidence: 0.7,
+  },
+  {
+    regex: /\b(forecast|predict|next|future|project|estimat|extrapolat)\b/i,
+    intent: "analysis.forecast",
+    name: "forecast",
+    confidence: 0.7,
+  },
+  {
+    regex: /\b(cluster|segment|group\s+similar|categori[sz]e|classify)\b/i,
+    intent: "analysis.cluster",
+    name: "cluster",
+    confidence: 0.7,
+  },
+  {
+    regex: /\b(correlat|related|relationship|depend|affect|associat)\b/i,
+    intent: "analysis.correlation",
+    name: "correlation",
+    confidence: 0.7,
+  },
+  {
+    regex: /\b(duplicat|repeat|same|identical|redundant)\b/i,
+    intent: "analysis.duplicates",
+    name: "duplicates",
+    confidence: 0.7,
+  },
+  {
+    regex: /\b(distribut|histogram|spread|range|how.*look|frequency)\b/i,
+    intent: "analysis.histogram",
+    name: "histogram",
+    confidence: 0.65,
+  },
+  {
+    regex: /\b(analyz|describ|summar|profile|what.*have|column|field|stat)\b/i,
+    intent: "analysis.profile",
+    name: "profile",
+    confidence: 0.6,
+  },
+  // Root cause — "why did/is X (drop|rise|change|high|low)" / "what drives" / "explain the change"
+  {
+    regex:
+      /\b(why\s+(did|does|is|are|has|have)|what(?:'s|\s+is)?\s+(driving|behind|causing)|explain\s+(the\s+)?(change|drop|rise|increase|decrease)|root\s+cause|biggest\s+(contributor|driver))\b/i,
+    intent: "analysis.root_cause",
+    name: "root_cause",
+    confidence: 0.72,
+  },
 
   // Query patterns
-  { regex: /\b(run|execute|show\s+me|get)\s+\w+/i, intent: 'query.execute', name: 'run_query', confidence: 0.6 },
-  { regex: /\b(list|show)\s+(all\s+)?queries\b/i, intent: 'query.list', name: 'list_queries', confidence: 0.75 },
-  { regex: /\bcompare\b.*\b(to|with|and|vs|versus)\b/i, intent: 'query.compare', name: 'compare', confidence: 0.7 },
+  {
+    regex: /\b(run|execute|show\s+me|get)\s+\w+/i,
+    intent: "query.execute",
+    name: "run_query",
+    confidence: 0.6,
+  },
+  {
+    regex: /\b(list|show)\s+(all\s+)?queries\b/i,
+    intent: "query.list",
+    name: "list_queries",
+    confidence: 0.75,
+  },
+  {
+    regex: /\bcompare\b.*\b(to|with|and|vs|versus)\b/i,
+    intent: "query.compare",
+    name: "compare",
+    confidence: 0.7,
+  },
 
   // General patterns
-  { regex: /\b(hi|hello|hey|good\s+(morning|afternoon|evening))\b/i, intent: 'greeting', name: 'greeting', confidence: 0.8 },
-  { regex: /\b(bye|goodbye|see\s+you|exit|quit)\b/i, intent: 'farewell', name: 'farewell', confidence: 0.8 },
-  { regex: /\b(help|what\s+can\s+you\s+do|commands?|features?)\b/i, intent: 'help', name: 'help', confidence: 0.65 },
-  { regex: /\b(search|find|look\s+for)\s+.+\s+(in|from|across)\s+(docs?|documents?|files?|knowledge)\b/i, intent: 'document.ask', name: 'doc_search', confidence: 0.7 },
-  { regex: /\b(how\s+long|estimate|eta|time\s+to)\b/i, intent: 'query.estimate', name: 'estimate', confidence: 0.65 },
+  {
+    regex: /\b(hi|hello|hey|good\s+(morning|afternoon|evening))\b/i,
+    intent: "greeting",
+    name: "greeting",
+    confidence: 0.8,
+  },
+  {
+    regex: /\b(bye|goodbye|see\s+you|exit|quit)\b/i,
+    intent: "farewell",
+    name: "farewell",
+    confidence: 0.8,
+  },
+  {
+    regex: /\b(help|what\s+can\s+you\s+do|commands?|features?)\b/i,
+    intent: "help",
+    name: "help",
+    confidence: 0.65,
+  },
+  {
+    regex:
+      /\b(search|find|look\s+for)\s+.+\s+(in|from|across)\s+(docs?|documents?|files?|knowledge)\b/i,
+    intent: "document.ask",
+    name: "doc_search",
+    confidence: 0.7,
+  },
+  {
+    regex: /\b(how\s+long|estimate|eta|time\s+to)\b/i,
+    intent: "query.estimate",
+    name: "estimate",
+    confidence: 0.65,
+  },
 ];
 
 export class PatternMatcher {

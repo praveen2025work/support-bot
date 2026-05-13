@@ -106,6 +106,13 @@ export async function handleAnalysis(
         return await handlePCA(csvData, context, classification);
       case INTENTS.ANALYSIS_REPORT:
         return await handleReport(csvData, context, classification);
+      case INTENTS.ANALYSIS_ROOT_CAUSE:
+        return await handleRootCause(
+          csvData,
+          userText,
+          context,
+          classification,
+        );
       default:
         return null;
     }
@@ -631,6 +638,64 @@ async function handleReport(
     text: `**Analysis Report** compiled with ${report.sections.length} sections. Download the full report below:`,
     richContent: { type: "insight_report", data: report },
     suggestions: ["Show correlations", "Find outliers", "Cluster the data"],
+    sessionId: context.sessionId,
+    intent: classification.intent,
+    confidence: classification.confidence,
+  };
+}
+
+/**
+ * Root-cause analysis — answers "why is X like this?" / "what's driving Y?".
+ *
+ * Mode selection:
+ *   - If the user named a metric column AND we can find a prior anomaly
+ *     snapshot for the active query, run in CHANGE mode (current vs
+ *     baseline). The biggest movers vs the baseline are surfaced.
+ *   - Otherwise, run in CONCENTRATION mode on the current rows alone:
+ *     "what fraction of X comes from which dimension value".
+ *
+ * Returns a structured result attached as `richContent.root_cause` so
+ * the UI can render a contributors table / waterfall.
+ */
+async function handleRootCause(
+  csvData: { headers: string[]; rows: Record<string, string | number>[] },
+  userText: string,
+  context: ConversationContext,
+  classification: ClassificationResult,
+): Promise<BotResponse> {
+  const ml = await loadML();
+  // Try to extract a metric column from the user's phrasing — e.g.
+  // "why is revenue dropping" → metric = "revenue".
+  const namedMetric = extractColumnFromText(userText, csvData.headers);
+
+  const result = ml.analyzeRootCause(csvData.rows, csvData.headers, {
+    ...(namedMetric ? { metric: namedMetric } : {}),
+  });
+
+  if (!result) {
+    return {
+      text: "I couldn't find a numeric metric and qualifying dimension columns in this dataset to explain. Try profiling the columns first, or load a result that has both a measure and a category.",
+      suggestions: ["Profile columns", "Smart summary", "Find outliers"],
+      sessionId: context.sessionId,
+      intent: classification.intent,
+      confidence: classification.confidence,
+    };
+  }
+
+  // Compose a brief explanation alongside the headline so non-technical
+  // viewers see why the system picked this dimension.
+  const topN = result.contributors
+    .slice(0, 3)
+    .map(
+      (c, i) =>
+        `${i + 1}. **${c.value}** (${c.dimension}) — ${Math.round(c.shareOfTotal * 100)}% of ${result.metric}`,
+    )
+    .join("\n");
+
+  return {
+    text: `${result.headline}\n\nTop contributors:\n${topN}`,
+    richContent: { type: "root_cause", data: result },
+    suggestions: ["Show correlations", "Find outliers", "Profile columns"],
     sessionId: context.sessionId,
     intent: classification.intent,
     confidence: classification.confidence,

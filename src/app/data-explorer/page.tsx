@@ -471,6 +471,39 @@ export default function DataExplorerPage() {
             </div>
           </div>
 
+          {/* Auto-insights banner — shown when the engine surfaced findings.
+              Compact, scannable, dismissible-by-filter (insights refresh on
+              the next query). Reuses the same builder powering chat 💡 lines. */}
+          {explorer.insights.length > 0 && (
+            <div
+              className="bg-[var(--bg-primary)] border-b border-[var(--border)] px-6 py-2 flex flex-wrap gap-x-4 gap-y-1 items-center"
+              role="status"
+              aria-label="Auto-insights"
+            >
+              {explorer.insights.map((ins, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-start gap-1.5 text-[11px] leading-snug"
+                  style={{
+                    color:
+                      ins.severity === "warning"
+                        ? "var(--warning)"
+                        : ins.severity === "critical"
+                          ? "var(--danger)"
+                          : "var(--text-secondary)",
+                  }}
+                  // Markdown-style **bold** isn't rendered here; the engine
+                  // emits `**X**` which we render as plain text. Keeping the
+                  // markers makes the same string usable in chat + dashboard
+                  // without two render paths.
+                >
+                  <span aria-hidden>💡</span>
+                  <span>{ins.text}</span>
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Filter bar */}
           <div className="bg-[var(--bg-primary)] border-b border-[var(--border)] px-6 py-2.5">
             <AutoFilterPanel

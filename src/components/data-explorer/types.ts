@@ -25,6 +25,13 @@ export interface DataQueryRequest {
   search?: string;
 }
 
+export interface DataInsight {
+  kind: "anomaly" | "top_value" | "low_value" | "spread" | "concentration";
+  text: string;
+  severity: "info" | "warning" | "critical";
+  column?: string;
+}
+
 export interface DataQueryResponse {
   headers: string[];
   rows: Record<string, string | number>[];
@@ -36,6 +43,8 @@ export interface DataQueryResponse {
   groupByResult?: unknown;
   aggregation?: unknown;
   durationMs: number;
+  /** Auto-insights ("💡 EMEA drives 45% of revenue") — only on page 1, plain row sets. */
+  insights?: DataInsight[];
 }
 
 export interface SchemaResponse {

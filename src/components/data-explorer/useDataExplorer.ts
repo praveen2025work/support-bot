@@ -5,6 +5,7 @@ import type {
   DataSource,
   DataQueryRequest,
   DataQueryResponse,
+  DataInsight,
   SchemaResponse,
   ColumnSchema,
 } from "./types";
@@ -42,6 +43,7 @@ export function useDataExplorer(groupId = "default") {
       percentChange?: number;
     }>
   >([]);
+  const [insights, setInsights] = useState<DataInsight[]>([]);
 
   // Load sources
   useEffect(() => {
@@ -121,6 +123,7 @@ export function useDataExplorer(groupId = "default") {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: DataQueryResponse = await res.json();
       setQueryResult(data);
+      setInsights(data.insights ?? []);
 
       // Use the already-fetched page rows for charts/KPIs when dataset is small,
       // otherwise make a capped secondary request for aggregation data
@@ -243,5 +246,6 @@ export function useDataExplorer(groupId = "default") {
     groupByCol,
     setGroupByCol,
     anomalies,
+    insights,
   };
 }

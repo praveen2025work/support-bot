@@ -1562,6 +1562,105 @@ async function testAutocomplete() {
   );
 }
 
+async function testRootCause() {
+  section("Chat — root cause analysis on loaded result");
+  if (QUICK) {
+    record("root-cause", "skipped (--quick)", true);
+    return;
+  }
+  const sid = `validation-rca-${Date.now()}`;
+  const load = await timed(() =>
+    postChat("run pnl_lineage", sid, "finance", { explicitFilters: {} }),
+  );
+  if (!load.result?.ok) {
+    record("root-cause", "(prereq) load pnl_lineage", false, "load failed");
+    return;
+  }
+
+  const ask = await timed(() =>
+    postChat("what is driving the change", sid, "finance"),
+  );
+  const data = ask.result?.data;
+  const ok =
+    !!ask.result?.ok && data?.intent === "analysis.root_cause" && !!data?.text;
+  record(
+    "root-cause",
+    'routes "what is driving the change" → analysis.root_cause',
+    ok,
+    `intent=${data?.intent} conf=${data?.confidence}`,
+    ask.durationMs,
+  );
+
+  // The response should attach a structured root_cause payload with a
+  // metric, contributors list, and kind in {concentration, change}.
+  const rc = data?.richContent?.data || {};
+  const shapeOk =
+    typeof rc.metric === "string" &&
+    Array.isArray(rc.contributors) &&
+    rc.contributors.length > 0 &&
+    ["concentration", "change"].includes(rc.kind);
+  record(
+    "root-cause",
+    "richContent.data.root_cause has valid shape",
+    shapeOk,
+    `kind=${rc.kind} metric=${rc.metric} contributors=${Array.isArray(rc.contributors) ? rc.contributors.length : 0}`,
+  );
+}
+
+async function testDataExplorerInsights() {
+  section("Data Explorer — /api/data/query attaches auto-insights");
+  if (QUICK) {
+    record("data-explorer-insights", "skipped (--quick)", true);
+    return;
+  }
+  const r = await timed(async () => {
+    const res = await fetch(`${ENGINE_URL}/api/data/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        queryName: "pnl_lineage",
+        groupId: "finance",
+        page: 1,
+        pageSize: 50,
+      }),
+    });
+    return {
+      ok: res.ok,
+      status: res.status,
+      body: await res.json().catch(() => null),
+    };
+  });
+  const body = r.result?.body;
+  record(
+    "data-explorer-insights",
+    "POST /api/data/query returns 200",
+    !!r.result?.ok && Array.isArray(body?.rows),
+    `status=${r.result?.status} rows=${Array.isArray(body?.rows) ? body.rows.length : "?"}`,
+    r.durationMs,
+  );
+
+  // Loose contract — when present, insights is an array of well-shaped
+  // objects. We don't assert the count because it depends on the live
+  // data (covered by unit tests).
+  const insights = body?.insights;
+  const shapeOk =
+    insights === undefined ||
+    (Array.isArray(insights) &&
+      insights.every(
+        (i) =>
+          i &&
+          typeof i.kind === "string" &&
+          typeof i.text === "string" &&
+          typeof i.severity === "string",
+      ));
+  record(
+    "data-explorer-insights",
+    "insights field has valid shape (or absent)",
+    shapeOk,
+    `present=${insights !== undefined} count=${Array.isArray(insights) ? insights.length : 0}`,
+  );
+}
+
 async function testAutoInsights() {
   section("Chat — auto-insights surface on initial query load");
   if (QUICK) {
@@ -1922,6 +2021,8 @@ async function main() {
   await testUserInfo();
   await testAutocomplete();
   await testAutoInsights();
+  await testRootCause();
+  await testDataExplorerInsights();
   await testGlossaryCrud();
   await testSynonymCrud();
   await testLearningRetrain();

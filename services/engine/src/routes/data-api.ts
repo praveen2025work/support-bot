@@ -15,6 +15,7 @@ import {
   type ColumnConfig,
 } from "@/core/api-connector/csv-analyzer";
 import { getAnomalyDetector } from "@/core/anomaly/anomaly-detector";
+import { buildAutoInsights } from "@/core/insights/auto-insights";
 import { logger } from "@/lib/logger";
 
 export const dataApiRouter = Router();
@@ -314,6 +315,19 @@ dataApiRouter.post("/query", async (req: Request, res: Response) => {
       return { name: h, type: meta?.detectedType ?? "string" };
     });
 
+    // 10. Auto-insights — only on page 1 (first load of a view). Pagination
+    //     and follow-up requests don't get re-narrated. Group-by /
+    //     aggregation paths skip insights because their output isn't a
+    //     plain row set (handled by their own UI affordances).
+    const shouldComputeInsights =
+      clampedPage === 1 && !groupByCol && !aggregation;
+    const insights = shouldComputeInsights
+      ? buildAutoInsights(
+          { headers, rows: rows as Record<string, string | number>[] },
+          undefined,
+        )
+      : [];
+
     return res.json({
       headers,
       rows: pagedRows,
@@ -325,6 +339,7 @@ dataApiRouter.post("/query", async (req: Request, res: Response) => {
       groupByResult,
       aggregation: aggregationResult,
       durationMs: Date.now() - start,
+      ...(insights.length > 0 && { insights }),
     });
   } catch (error) {
     logger.error({ error }, "Data query error");

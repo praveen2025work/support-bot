@@ -43,6 +43,7 @@ export const INTENTS = {
   ANALYSIS_FORECAST: "analysis.forecast",
   ANALYSIS_PCA: "analysis.pca",
   ANALYSIS_REPORT: "analysis.report",
+  ANALYSIS_ROOT_CAUSE: "analysis.root_cause",
 } as const;
 
 // Lowered from 0.6 to 0.5 per a follow-up audit (2026-05-11): with the
