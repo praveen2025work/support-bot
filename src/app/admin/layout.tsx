@@ -72,14 +72,17 @@ export default function AdminLayout({
   return (
     <div
       className="flex flex-col h-screen"
-      style={{ backgroundColor: "var(--bg-primary)" }}
+      style={{ backgroundColor: "var(--bg-canvas)" }}
     >
-      <ContextualTopBar title="Admin" />
+      <ContextualTopBar
+        title="Admin"
+        subtitle="Govern groups, roles, and engine settings"
+      />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <main
           className="flex-1 overflow-auto p-6"
-          style={{ backgroundColor: "var(--bg-primary)" }}
+          style={{ backgroundColor: "var(--bg-canvas)" }}
         >
           {children}
           <ScrollToTop />

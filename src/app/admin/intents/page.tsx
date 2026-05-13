@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { csrfHeaders } from "@/lib/csrf";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { AdminPageHeader } from "../components/AdminPageHeader";
 
 interface IntentData {
   intent: string;
@@ -208,12 +209,11 @@ export default function IntentBuilderPage() {
 
   return (
     <div>
-      <div className="pb-6 mb-6 border-b border-gray-100">
-        <h1 className="text-2xl font-semibold text-gray-900">Intent Builder</h1>
-        <p className="text-sm text-gray-500">
-          Manage intents, training phrases, and entity definitions
-        </p>
-      </div>
+      <AdminPageHeader
+        eyebrow="NLP"
+        title="Intents"
+        subtitle="The canonical intent vocabulary the engine resolves"
+      />
 
       {/* Tabs */}
       <div className="flex border-b border-gray-200 mb-6">

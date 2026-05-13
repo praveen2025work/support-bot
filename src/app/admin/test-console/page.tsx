@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { csrfHeaders } from "@/lib/csrf";
+import { AdminPageHeader } from "../components/AdminPageHeader";
 
 interface PipelineStep {
   name: string;
@@ -184,12 +185,11 @@ export default function TestConsolePage() {
 
   return (
     <div>
-      <div className="pb-6 mb-6 border-b border-gray-100">
-        <h1 className="text-2xl font-semibold text-gray-900">Test Console</h1>
-        <p className="text-sm text-gray-500">
-          Interactive query testing with pipeline inspection
-        </p>
-      </div>
+      <AdminPageHeader
+        eyebrow="Sandbox"
+        title="Test Console"
+        subtitle="Replay an utterance and inspect the engine's decision"
+      />
 
       {/* Input bar */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">

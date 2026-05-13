@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { csrfHeaders } from "@/lib/csrf";
+import { AdminPageHeader } from "../components/AdminPageHeader";
 
 interface User {
   id: string;
@@ -141,25 +142,24 @@ export default function UsersPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between pb-6 mb-6 border-b border-gray-100">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Users</h1>
-          <p className="text-sm text-gray-500">
-            Manage admin and viewer access
-          </p>
-        </div>
-        {!showForm && (
-          <button
-            onClick={() => {
-              resetForm();
-              setShowForm(true);
-            }}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 transition-colors"
-          >
-            + Add User
-          </button>
-        )}
-      </div>
+      <AdminPageHeader
+        eyebrow="Access"
+        title="Users & Roles"
+        subtitle="Manage who can sign in and what they can do"
+        actions={
+          !showForm ? (
+            <button
+              onClick={() => {
+                resetForm();
+                setShowForm(true);
+              }}
+              className="btn-primary"
+            >
+              + Add User
+            </button>
+          ) : undefined
+        }
+      />
 
       {error && (
         <div className="mb-4 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">

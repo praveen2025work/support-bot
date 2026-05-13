@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Sparkles, CheckCircle2, Clock, GraduationCap } from "lucide-react";
 import { csrfHeaders } from "@/lib/csrf";
+import { AdminPageHeader, AdminKpiTile } from "../components/AdminPageHeader";
 
 interface ReviewItem {
   id: string;
@@ -194,42 +196,75 @@ export default function LearningPage() {
     : 1;
 
   return (
-    <div>
-      <div className="flex items-center justify-between pb-6 mb-6 border-b border-gray-100">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Learning</h1>
-          <p className="text-sm text-gray-500">
-            NLP self-improvement from user interactions
-          </p>
-        </div>
-        <select
-          value={groupId}
-          onChange={(e) => setGroupId(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
-        >
-          <option value="default">Default</option>
-          <option value="finance">Finance</option>
-          <option value="engineering">Engineering</option>
-          <option value="analytics">Analytics</option>
-        </select>
-      </div>
+    <div className="flex flex-col">
+      <AdminPageHeader
+        eyebrow="Closed-loop NLP"
+        title="Learning"
+        subtitle="Approve low-confidence utterances and watch the corpus grow itself."
+        actions={
+          <select
+            value={groupId}
+            onChange={(e) => setGroupId(e.target.value)}
+            className="px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elevated)] text-[12px] font-medium text-[var(--text-secondary)] focus:outline-none focus:border-[var(--brand)]"
+          >
+            <option value="default">Default</option>
+            <option value="finance">Finance</option>
+            <option value="engineering">Engineering</option>
+            <option value="analytics">Analytics</option>
+          </select>
+        }
+        kpis={
+          stats ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <AdminKpiTile
+                label="Interactions"
+                value={(stats.totalInteractions ?? 0).toLocaleString()}
+                sub="lifetime · group"
+                tone="var(--brand)"
+                icon={<Sparkles className="w-3.5 h-3.5" />}
+              />
+              <AdminKpiTile
+                label="Pending Review"
+                value={(stats.pendingReview ?? 0).toLocaleString()}
+                sub="awaiting label"
+                tone="var(--warning)"
+                icon={<Clock className="w-3.5 h-3.5" />}
+              />
+              <AdminKpiTile
+                label="Auto-Learned"
+                value={(stats.autoLearned ?? 0).toLocaleString()}
+                sub="merged into corpus"
+                tone="var(--success)"
+                icon={<GraduationCap className="w-3.5 h-3.5" />}
+              />
+              <AdminKpiTile
+                label="Admin-Resolved"
+                value={(stats.resolvedByAdmin ?? 0).toLocaleString()}
+                sub="manual approvals"
+                tone="#a78bfa"
+                icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+              />
+            </div>
+          ) : undefined
+        }
+      />
 
       {status && (
-        <div className="mb-4 px-3 py-2 bg-blue-50 text-blue-700 text-sm rounded-md">
+        <div className="mb-4 px-3 py-2 chip chip-brand !text-[12px]">
           {status}
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b border-gray-200">
+      <div className="flex gap-1 mb-5 border-b border-[var(--border)]">
         {(["review", "auto-learned", "stats"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={`px-4 py-2.5 text-[12.5px] font-semibold border-b-2 transition-colors -mb-px ${
               tab === t
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
+                ? "border-[var(--brand)] text-[var(--brand)]"
+                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
             }`}
           >
             {t === "review"

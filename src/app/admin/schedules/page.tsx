@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { AdminPageHeader } from "../components/AdminPageHeader";
 
 interface ScheduledQuery {
   id: string;
@@ -237,30 +238,21 @@ export default function SchedulesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between pb-6 mb-6 border-b border-gray-100">
-        <div>
-          <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
-            Scheduled Queries
-          </h1>
-          <p className="text-sm text-[var(--text-muted)]">
-            Manage recurring query execution schedules
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={fetchSchedules}
-            className="text-xs text-[var(--text-link,#2563eb)] hover:underline"
-          >
-            Refresh
-          </button>
-          <button
-            onClick={openCreate}
-            className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700"
-          >
-            + Create Schedule
-          </button>
-        </div>
-      </div>
+      <AdminPageHeader
+        eyebrow="Automation"
+        title="Scheduled Runs"
+        subtitle="Cron-driven query refreshes"
+        actions={
+          <>
+            <button onClick={fetchSchedules} className="btn-ghost !py-1.5">
+              Refresh
+            </button>
+            <button onClick={openCreate} className="btn-primary">
+              + Create Schedule
+            </button>
+          </>
+        }
+      />
 
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4 mb-6">

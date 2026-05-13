@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AdminPageHeader } from "../components/AdminPageHeader";
 
 const CONNECTOR_TYPES = [
   {
@@ -50,14 +51,11 @@ const CONNECTOR_TYPES = [
 export default function ConnectorsLandingPage() {
   return (
     <div>
-      <div className="pb-6 mb-6 border-b border-gray-100">
-        <h1 className="text-2xl font-semibold text-gray-900">Data Sources</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Connect to external databases to create API endpoints. Each connector
-          runs as an independent service that can be scaled separately. Saved
-          queries are exposed as REST APIs for the Engine to consume.
-        </p>
-      </div>
+      <AdminPageHeader
+        eyebrow="Data sources"
+        title="Connectors"
+        subtitle="Wire CSV, file, MSSQL, or Oracle sources"
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {CONNECTOR_TYPES.map((ct) => (

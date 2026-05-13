@@ -1,8 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { RefreshCw, Activity, Timer, AlertOctagon, Layers } from "lucide-react";
 import { csrfHeaders } from "@/lib/csrf";
 import { useSSE } from "@/hooks/useSSE";
+import {
+  AdminPageHeader,
+  AdminKpiTile,
+  AdminDateRange,
+} from "../components/AdminPageHeader";
 
 interface QueryStat {
   id: string;
@@ -133,87 +139,82 @@ export default function AnalyticsPage() {
     (a, b) => b.totalExecutions - a.totalExecutions,
   );
 
+  const failPct = totalExecs > 0 ? (totalFails / totalExecs) * 100 : 0;
+
   return (
-    <div>
-      <div className="pb-6 mb-6 border-b border-gray-100">
-        <h1 className="text-2xl font-semibold text-gray-900">Analytics</h1>
-        <p className="text-sm text-gray-500">
-          Query execution statistics and performance metrics
-        </p>
-      </div>
-
-      {/* Summary cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <div className="text-xs text-gray-500 uppercase tracking-wide">
-            Total Executions
+    <div className="flex flex-col">
+      <AdminPageHeader
+        eyebrow="Telemetry"
+        title="Analytics"
+        subtitle={`Live query performance · ${sseConnected ? "streaming" : "polling"} every 10s`}
+        actions={
+          <>
+            <AdminDateRange
+              value={timeRange}
+              onChange={setTimeRange}
+              presets={[
+                { label: "1h", value: "1h" },
+                { label: "24h", value: "24h" },
+                { label: "7d", value: "7d" },
+                { label: "All", value: "all" },
+              ]}
+            />
+            <select
+              value={filterQuery}
+              onChange={(e) => setFilterQuery(e.target.value)}
+              className="px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-elevated)] text-[12px] font-medium text-[var(--text-secondary)] focus:outline-none focus:border-[var(--brand)]"
+            >
+              <option value="">All queries</option>
+              {aggregated.map((a) => (
+                <option key={a.queryName} value={a.queryName}>
+                  {a.queryName}
+                </option>
+              ))}
+            </select>
+            <button onClick={fetchStats} className="btn-ghost !py-1.5">
+              <RefreshCw className="w-3.5 h-3.5" />
+              Refresh
+            </button>
+          </>
+        }
+        kpis={
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <AdminKpiTile
+              label="Total Executions"
+              value={totalExecs.toLocaleString()}
+              sub={`window · ${timeRange}`}
+              tone="var(--brand)"
+              icon={<Activity className="w-3.5 h-3.5" />}
+            />
+            <AdminKpiTile
+              label="Unique Queries"
+              value={aggregated.length}
+              sub="distinct named runs"
+              tone="var(--accent)"
+              icon={<Layers className="w-3.5 h-3.5" />}
+            />
+            <AdminKpiTile
+              label="Avg Duration"
+              value={avgDuration > 0 ? `${avgDuration}ms` : "—"}
+              sub="weighted by volume"
+              tone="var(--success)"
+              icon={<Timer className="w-3.5 h-3.5" />}
+            />
+            <AdminKpiTile
+              label="Failure Rate"
+              value={`${failPct.toFixed(1)}%`}
+              sub={
+                totalFails > 0
+                  ? `${totalFails} failed runs`
+                  : "no failures in window"
+              }
+              tone={totalFails > 0 ? "var(--danger)" : "var(--success)"}
+              icon={<AlertOctagon className="w-3.5 h-3.5" />}
+              progress={Math.min(100, failPct * 5)}
+            />
           </div>
-          <div className="text-2xl font-bold text-gray-900 mt-1">
-            {totalExecs}
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <div className="text-xs text-gray-500 uppercase tracking-wide">
-            Unique Queries
-          </div>
-          <div className="text-2xl font-bold text-gray-900 mt-1">
-            {aggregated.length}
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <div className="text-xs text-gray-500 uppercase tracking-wide">
-            Avg Duration
-          </div>
-          <div className="text-2xl font-bold text-gray-900 mt-1">
-            {avgDuration}ms
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <div className="text-xs text-gray-500 uppercase tracking-wide">
-            Failure Rate
-          </div>
-          <div
-            className={`text-2xl font-bold mt-1 ${totalFails > 0 ? "text-red-600" : "text-green-600"}`}
-          >
-            {totalExecs > 0
-              ? ((totalFails / totalExecs) * 100).toFixed(1)
-              : "0.0"}
-            %
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex items-center gap-3 mb-4">
-        <select
-          value={timeRange}
-          onChange={(e) => setTimeRange(e.target.value)}
-          className="text-sm border border-gray-300 rounded-lg px-3 py-1.5"
-        >
-          <option value="all">All time</option>
-          <option value="1h">Last hour</option>
-          <option value="24h">Last 24 hours</option>
-          <option value="7d">Last 7 days</option>
-        </select>
-        <select
-          value={filterQuery}
-          onChange={(e) => setFilterQuery(e.target.value)}
-          className="text-sm border border-gray-300 rounded-lg px-3 py-1.5"
-        >
-          <option value="">All queries</option>
-          {aggregated.map((a) => (
-            <option key={a.queryName} value={a.queryName}>
-              {a.queryName}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={fetchStats}
-          className="text-sm text-blue-600 hover:underline"
-        >
-          Refresh
-        </button>
-      </div>
+        }
+      />
 
       {loading ? (
         <p className="text-sm text-gray-500">Loading stats...</p>

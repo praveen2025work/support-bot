@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { csrfHeaders } from "@/lib/csrf";
+import { AdminPageHeader } from "../components/AdminPageHeader";
 
 interface MetricBaseline {
   queryName: string;
@@ -116,9 +117,11 @@ export default function AnomalyPage() {
   if (loading) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-4">
-          Anomaly Detection
-        </h1>
+        <AdminPageHeader
+          eyebrow="Outliers"
+          title="Anomaly Detection"
+          subtitle="Configure detection sensitivity and review anomalies"
+        />
         <div className="text-sm text-gray-400">Loading...</div>
       </div>
     );
@@ -126,26 +129,22 @@ export default function AnomalyPage() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between pb-6 mb-6 border-b border-gray-100">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">
-            Anomaly Detection
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Monitor query results for unusual numeric patterns using z-score and
-            IQR analysis.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-500">Group:</label>
-          <input
-            type="text"
-            value={groupId}
-            onChange={(e) => setGroupId(e.target.value)}
-            className="text-sm border border-gray-300 rounded px-2 py-1 w-32"
-          />
-        </div>
-      </div>
+      <AdminPageHeader
+        eyebrow="Outliers"
+        title="Anomaly Detection"
+        subtitle="Configure detection sensitivity and review anomalies"
+        actions={
+          <>
+            <label className="text-xs text-gray-500">Group:</label>
+            <input
+              type="text"
+              value={groupId}
+              onChange={(e) => setGroupId(e.target.value)}
+              className="text-sm border border-gray-300 rounded px-2 py-1 w-32"
+            />
+          </>
+        }
+      />
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-gray-200">

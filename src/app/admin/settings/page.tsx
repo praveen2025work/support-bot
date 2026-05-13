@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { csrfHeaders } from "@/lib/csrf";
+import { AdminPageHeader } from "../components/AdminPageHeader";
 
 interface PlatformConfig {
   nlpConfidenceThreshold: number;
@@ -112,12 +113,11 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <div className="pb-6 mb-6 border-b border-gray-100">
-        <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
-        <p className="text-sm text-gray-500">
-          Platform configuration and thresholds
-        </p>
-      </div>
+      <AdminPageHeader
+        eyebrow="Configuration"
+        title="Platform Settings"
+        subtitle="Tune the engine's NLP thresholds and runtime defaults"
+      />
 
       <div className="flex gap-6">
         {/* Section nav */}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { csrfHeaders } from "@/lib/csrf";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { AdminPageHeader } from "../components/AdminPageHeader";
 
 export default function TemplateEditorPage() {
   const [baseTemplates, setBaseTemplates] = useState<Record<string, string[]>>(
@@ -117,15 +118,11 @@ export default function TemplateEditorPage() {
 
   return (
     <div>
-      <div className="pb-6 mb-6 border-b border-gray-100">
-        <h1 className="text-2xl font-semibold text-gray-900">
-          Template Editor
-        </h1>
-        <p className="text-sm text-gray-500">
-          Manage response templates for bot intents. Group-specific templates
-          override base templates.
-        </p>
-      </div>
+      <AdminPageHeader
+        eyebrow="Authoring"
+        title="Response Templates"
+        subtitle="Reusable answer scaffolds with variable slots"
+      />
 
       {/* Scope selector */}
       <div className="flex items-center gap-2 mb-4">

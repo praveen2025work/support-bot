@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { csrfHeaders } from "@/lib/csrf";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { AdminPageHeader } from "../components/AdminPageHeader";
 
 interface SynonymEntry {
   canonical: string;
@@ -174,30 +175,24 @@ export default function SynonymsPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">
-            Per-Group Synonyms
-          </h1>
-          <p className="text-sm text-gray-500">
-            Teach the NLP pipeline that &ldquo;client&rdquo; means
-            &ldquo;customer&rdquo;, &ldquo;ARR&rdquo; means &ldquo;annual
-            recurring revenue&rdquo;, etc. Synonyms apply only to the selected
-            group.
-          </p>
-        </div>
-        <select
-          value={groupId}
-          onChange={(e) => setGroupId(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
-        >
-          {GROUPS.map((g) => (
-            <option key={g} value={g}>
-              {g}
-            </option>
-          ))}
-        </select>
-      </div>
+      <AdminPageHeader
+        eyebrow="Vocabulary"
+        title="Synonyms"
+        subtitle="Term aliases the matcher tolerates"
+        actions={
+          <select
+            value={groupId}
+            onChange={(e) => setGroupId(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
+          >
+            {GROUPS.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+        }
+      />
 
       {status && (
         <div className="mb-4 px-3 py-2 bg-blue-50 text-blue-700 text-sm rounded-md flex items-center justify-between">

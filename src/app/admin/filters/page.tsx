@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { csrfHeaders } from "@/lib/csrf";
 import { RefreshCw } from "lucide-react";
+import { AdminPageHeader } from "../components/AdminPageHeader";
 
 interface FilterOption {
   value: string;
@@ -334,43 +335,39 @@ export default function FiltersPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between pb-6 mb-6 border-b border-gray-100">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">
-            Filter Options
-          </h1>
-          <p className="text-sm text-gray-500">
-            Configure which filters show as dropdowns, text inputs, or
-            true/false toggles
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {hasDynamicFilters && (
-            <button
-              onClick={() => handleRefresh()}
-              disabled={refreshing === "__all__"}
-              className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors flex items-center gap-1.5"
-              title="Refresh all dynamic filter sources"
-            >
-              <RefreshCw
-                className={`w-4 h-4 ${refreshing === "__all__" ? "animate-spin" : ""}`}
-              />
-              {refreshing === "__all__" ? "Refreshing..." : "Refresh All"}
-            </button>
-          )}
-          {!showForm && (
-            <button
-              onClick={() => {
-                resetForm();
-                setShowForm(true);
-              }}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 transition-colors"
-            >
-              + Add Filter
-            </button>
-          )}
-        </div>
-      </div>
+      <AdminPageHeader
+        eyebrow="Refinement"
+        title="Filter Configs"
+        subtitle="Define the dropdowns users see beside queries"
+        actions={
+          <>
+            {hasDynamicFilters && (
+              <button
+                onClick={() => handleRefresh()}
+                disabled={refreshing === "__all__"}
+                className="btn-ghost !py-1.5 disabled:opacity-50"
+                title="Refresh all dynamic filter sources"
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${refreshing === "__all__" ? "animate-spin" : ""}`}
+                />
+                {refreshing === "__all__" ? "Refreshing..." : "Refresh"}
+              </button>
+            )}
+            {!showForm && (
+              <button
+                onClick={() => {
+                  resetForm();
+                  setShowForm(true);
+                }}
+                className="btn-primary"
+              >
+                + Add Filter
+              </button>
+            )}
+          </>
+        }
+      />
 
       {error && (
         <div className="mb-4 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">

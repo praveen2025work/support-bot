@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { csrfHeaders } from "@/lib/csrf";
+import { AdminPageHeader } from "../components/AdminPageHeader";
 
 interface FileInfo {
   name: string;
@@ -138,23 +139,22 @@ export default function FileManagerPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between pb-6 mb-6 border-b border-gray-100">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">File Manager</h1>
-          <p className="text-sm text-gray-500">
-            Manage BRD, SOP, and knowledge documents for document search queries
-          </p>
-        </div>
-        <button
-          onClick={() => {
-            setShowNew(true);
-            setSelectedFile(null);
-          }}
-          className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700"
-        >
-          + New Document
-        </button>
-      </div>
+      <AdminPageHeader
+        eyebrow="Storage"
+        title="Files"
+        subtitle="Uploaded artifacts indexed by the engine"
+        actions={
+          <button
+            onClick={() => {
+              setShowNew(true);
+              setSelectedFile(null);
+            }}
+            className="btn-primary"
+          >
+            + New Document
+          </button>
+        }
+      />
 
       <div className="flex gap-4">
         {/* File list */}
