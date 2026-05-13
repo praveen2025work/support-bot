@@ -17,6 +17,8 @@ import {
   CircleDot,
   TriangleAlert,
   AlertOctagon,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 import { useRef } from "react";
 import { ContextualTopBar } from "@/components/shell/ContextualTopBar";
@@ -102,6 +104,29 @@ export default function DataExplorerPage() {
   const [editMode, setEditMode] = useState(false);
   const [sourceDropdownOpen, setSourceDropdownOpen] = useState(false);
   const [sourceSearch, setSourceSearch] = useState("");
+  // Lazy initializer reads localStorage exactly once on first
+  // render — no useEffect dance, and the lint guard against
+  // synchronous setState-in-effect stays happy.
+  const [insightsHidden, setInsightsHidden] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem("insights-hidden:data-explorer") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleInsightsHidden = () => {
+    setInsightsHidden((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("insights-hidden:data-explorer", String(next));
+      } catch {
+        /* noop */
+      }
+      return next;
+    });
+  };
   const sourceDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close source dropdown on outside click
@@ -226,9 +251,12 @@ export default function DataExplorerPage() {
   const globalFilters = dashboard.config?.globalFilters ?? explorer.filters;
 
   return (
-    <div className="h-screen flex flex-col bg-[var(--bg-secondary)] text-[var(--text-primary)]">
+    <div className="h-screen flex flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)]">
       {/* ── HEADER ───────────────────────────────────────────── */}
-      <ContextualTopBar title="Data Explorer">
+      <ContextualTopBar
+        title="Data Explorer"
+        subtitle="Synthesize signal from any source"
+      >
         <div className="flex items-center gap-2">
           {/* Source picker */}
           <div ref={sourceDropdownRef} className="relative">
@@ -446,40 +474,103 @@ export default function DataExplorerPage() {
         </div>
       </ContextualTopBar>
 
-      {/* ── No source selected ───────────────────────────────── */}
+      {/* ── No source selected — Stitch synthesis hero ──────── */}
       {!explorer.selectedSource && (
-        <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-muted)]">
-          <Database size={48} className="mb-4 opacity-30" />
-          <div className="text-lg font-semibold mb-1">Select a data source</div>
-          <div className="text-sm mb-6">
-            Choose a CSV or XLSX file to build a dashboard
-          </div>
-          {explorer.sources.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-3xl">
-              {explorer.sources.map((s) => (
-                <button
-                  key={s.name}
-                  onClick={() => {
-                    explorer.setSelectedSource(s.name);
-                    recordSourceView(s.name);
-                  }}
-                  className="text-left p-4 bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl hover:border-[var(--brand)] hover:shadow-md transition-all"
-                >
-                  <div className="text-sm font-semibold text-[var(--text-primary)]">
-                    {s.name}
+        <div className="flex-1 overflow-auto px-6 py-8">
+          <div className="max-w-5xl mx-auto">
+            {/* Hero card */}
+            <div className="relative rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--bg-elevated)] overflow-hidden shadow-[var(--shadow-md)] mb-8">
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 opacity-80 pointer-events-none"
+                style={{
+                  background:
+                    "radial-gradient(circle at 15% 8%, rgba(99,102,241,0.18), transparent 55%), radial-gradient(circle at 92% 92%, rgba(139,92,246,0.14), transparent 55%)",
+                }}
+              />
+              <div className="relative px-10 py-10 flex flex-col items-start gap-3 max-w-3xl">
+                <div className="inline-flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[var(--brand)]" />
+                  <span className="eyebrow !text-[var(--brand)]">
+                    AI Synthesis Report
+                  </span>
+                </div>
+                <h2 className="font-display text-[28px] font-bold text-[var(--text-primary)] tracking-tight leading-tight">
+                  Pick a source. Get a narrative.
+                </h2>
+                <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed">
+                  The synthesis engine reads schema, anomalies, and drift, then
+                  composes a performance brief with KPI tiles, regional charts,
+                  and recommended smart actions — all in seconds.
+                </p>
+                {explorer.sources.length > 0 && (
+                  <div className="text-[11.5px] text-[var(--text-muted)] mt-1 inline-flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" />
+                    {explorer.sources.length} source
+                    {explorer.sources.length === 1 ? "" : "s"} available
                   </div>
-                  {s.description && (
-                    <div className="text-[11px] text-[var(--text-muted)] mt-1 line-clamp-2">
-                      {s.description}
-                    </div>
-                  )}
-                  <div className="text-[10px] text-[var(--text-muted)] mt-2 uppercase tracking-wider">
-                    {s.type}
-                  </div>
-                </button>
-              ))}
+                )}
+              </div>
             </div>
-          )}
+
+            {/* Source picker grid */}
+            {explorer.sources.length > 0 && (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-tight">
+                    Choose a source
+                  </h3>
+                  <span className="eyebrow">
+                    {explorer.sources.length} available
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {explorer.sources.map((s) => (
+                    <button
+                      key={s.name}
+                      onClick={() => {
+                        explorer.setSelectedSource(s.name);
+                        recordSourceView(s.name);
+                      }}
+                      className="group text-left p-4 bg-[var(--bg-elevated)] border border-[var(--border)] rounded-[var(--radius-lg)] hover:border-[var(--brand)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-[10px] bg-[var(--brand-subtle)] flex items-center justify-center shrink-0 group-hover:bg-[var(--brand)] transition-colors">
+                          <Database className="w-4 h-4 text-[var(--brand)] group-hover:text-white transition-colors" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className="text-[13px] font-semibold text-[var(--text-primary)] truncate">
+                              {humanizeName(s.name)}
+                            </span>
+                            {s.recent && (
+                              <span className="chip chip-brand !py-0.5 !px-1.5 !text-[9px] !tracking-[0.1em] uppercase">
+                                Recent
+                              </span>
+                            )}
+                          </div>
+                          {s.description ? (
+                            <p className="text-[11.5px] text-[var(--text-muted)] line-clamp-2 leading-relaxed">
+                              {s.description}
+                            </p>
+                          ) : (
+                            <p className="text-[11.5px] text-[var(--text-muted)] line-clamp-2 leading-relaxed font-mono">
+                              {s.name}
+                            </p>
+                          )}
+                          <div className="mt-2 inline-flex items-center gap-1.5">
+                            <span className="eyebrow !text-[9px]">
+                              {s.type}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -491,182 +582,226 @@ export default function DataExplorerPage() {
               row right. The cards + grid + saved indicators collapse
               into one tasteful "·" separated string instead of three
               competing labels. */}
-          <div className="bg-[var(--bg-primary)] border-b border-[var(--border)] px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-2.5 min-w-0">
-              {/* Source-type icon left of the title */}
-              <span
-                className="flex items-center justify-center w-7 h-7 rounded-md shrink-0"
-                style={{
-                  backgroundColor: "var(--brand-subtle)",
-                  color: "var(--brand)",
-                }}
-              >
-                <Database size={14} />
-              </span>
-              {editingName ? (
-                <div className="flex items-center gap-1">
-                  <input
-                    value={nameInput}
-                    onChange={(e) => setNameInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
+          {/* ── Compact dashboard header ──────────────────────────
+              Single dense row: icon + inline title + metadata chips +
+              insight summary pill + actions. Total height ≈ 48px,
+              reclaiming ~80px of vertical space versus the previous
+              two-row layout. The full insights list expands inline
+              only when the user opens it. */}
+          {(() => {
+            const raw = dashboard.config.name;
+            const stripped = raw.replace(/\s*Dashboard\s*$/i, "");
+            const display = humanizeName(stripped) || raw;
+            const firstInsight = explorer.insights[0];
+            const insightTone = firstInsight
+              ? firstInsight.severity === "critical"
+                ? "var(--danger)"
+                : firstInsight.severity === "warning"
+                  ? "var(--warning)"
+                  : "var(--brand)"
+              : "var(--brand)";
+            return (
+              <div className="bg-[var(--bg-primary)] border-b border-[var(--border)] px-6 py-2.5 flex items-center gap-3 flex-wrap">
+                {/* Brand tile */}
+                <span
+                  className="flex items-center justify-center w-7 h-7 rounded-[8px] shrink-0"
+                  style={{
+                    background: "var(--brand-gradient)",
+                    color: "white",
+                    boxShadow: "0 4px 12px -6px rgba(99,102,241,0.55)",
+                  }}
+                >
+                  <Database size={13} />
+                </span>
+
+                {/* Title — single line, in-place editable */}
+                {editingName ? (
+                  <div className="flex items-center gap-1">
+                    <input
+                      value={nameInput}
+                      onChange={(e) => setNameInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          dashboard.setConfig({
+                            ...dashboard.config!,
+                            name: nameInput.trim() || dashboard.config!.name,
+                          });
+                          setEditingName(false);
+                        }
+                        if (e.key === "Escape") setEditingName(false);
+                      }}
+                      className="text-[15px] font-bold px-2 py-0.5 border border-[var(--brand)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none focus:ring-1 focus:ring-[var(--brand)] w-64"
+                      autoFocus
+                    />
+                    <button
+                      onClick={() => {
                         dashboard.setConfig({
                           ...dashboard.config!,
                           name: nameInput.trim() || dashboard.config!.name,
                         });
+                        dashboard.persistDashboard();
                         setEditingName(false);
-                      }
-                      if (e.key === "Escape") setEditingName(false);
-                    }}
-                    className="text-base font-semibold px-2 py-1 border border-[var(--brand)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none focus:ring-1 focus:ring-[var(--brand)] w-72"
-                    autoFocus
-                  />
+                      }}
+                      className="p-1 text-emerald-500 hover:text-emerald-600"
+                    >
+                      <Check size={14} />
+                    </button>
+                  </div>
+                ) : (
                   <button
                     onClick={() => {
-                      dashboard.setConfig({
-                        ...dashboard.config!,
-                        name: nameInput.trim() || dashboard.config!.name,
-                      });
-                      dashboard.persistDashboard();
-                      setEditingName(false);
+                      if (!editMode) return;
+                      setNameInput(dashboard.config!.name);
+                      setEditingName(true);
                     }}
-                    className="p-1 text-green-500 hover:text-green-700"
+                    className={`font-display text-[15px] font-bold tracking-tight text-[var(--text-primary)] truncate leading-tight inline-flex items-center gap-1 ${editMode ? "hover:text-[var(--brand)] cursor-pointer" : "cursor-default"}`}
+                    title={editMode ? "Click to rename" : display}
                   >
-                    <Check size={16} />
+                    <span className="truncate">{display}</span>
+                    {editMode && (
+                      <Pencil
+                        size={11}
+                        className="text-[var(--text-muted)] shrink-0"
+                      />
+                    )}
                   </button>
-                </div>
-              ) : (
-                // The default dashboard name is "<source> Dashboard"; we
-                // strip the suffix and humanise the source for display.
-                // The persisted name still matches what the user saved.
-                (() => {
-                  const raw = dashboard.config.name;
-                  const stripped = raw.replace(/\s*Dashboard\s*$/i, "");
-                  const display = humanizeName(stripped) || raw;
-                  return editMode ? (
-                    <button
-                      onClick={() => {
-                        setNameInput(dashboard.config!.name);
-                        setEditingName(true);
-                      }}
-                      className="flex items-center gap-1.5 text-base font-semibold text-[var(--text-primary)] hover:text-[var(--brand)] transition-colors truncate"
-                      title="Click to rename dashboard"
-                    >
-                      <span className="truncate">{display}</span>
-                      <Pencil size={12} className="text-[var(--text-muted)]" />
-                    </button>
-                  ) : (
-                    <span className="text-base font-semibold text-[var(--text-primary)] truncate">
-                      {display}
-                    </span>
-                  );
-                })()
-              )}
-              {explorer.anomalies.length > 0 && (
-                <AnomalyBadge anomalies={explorer.anomalies as never[]} />
-              )}
-            </div>
+                )}
 
-            {/* Metadata row — pill-like dot-separated string */}
-            <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] shrink-0">
-              <span>{dashboard.config.cards.length} cards</span>
-              {explorer.schema && (
-                <>
-                  <span aria-hidden>·</span>
-                  <span>
+                {/* Anomaly badge */}
+                {explorer.anomalies.length > 0 && (
+                  <AnomalyBadge anomalies={explorer.anomalies as never[]} />
+                )}
+
+                {/* Metadata chips — dense, scannable */}
+                <span className="chip !py-0.5 !px-2 !text-[10.5px] font-mono">
+                  {dashboard.config.cards.length} cards
+                </span>
+                {explorer.schema && (
+                  <span className="chip !py-0.5 !px-2 !text-[10.5px] font-mono">
                     {explorer.schema.columnCount}×
-                    {explorer.schema.rowCount.toLocaleString()} grid
+                    {explorer.schema.rowCount.toLocaleString()}
                   </span>
-                </>
-              )}
-              <span aria-hidden>·</span>
-              {dashboard.isDirty ? (
-                <span
-                  className="flex items-center gap-1 font-medium"
-                  style={{ color: "var(--warning)" }}
-                >
-                  <CircleDot size={9} />
-                  Unsaved
-                </span>
-              ) : (
-                <span
-                  title={new Date(dashboard.config.updatedAt).toLocaleString()}
-                >
-                  Saved {formatRelativeTime(dashboard.config.updatedAt)}
-                </span>
-              )}
-            </div>
-          </div>
+                )}
+                {dashboard.isDirty ? (
+                  <span
+                    className="chip chip-warning !py-0.5 !px-2 !text-[10.5px]"
+                    title="Unsaved changes"
+                  >
+                    <CircleDot size={9} />
+                    Unsaved
+                  </span>
+                ) : (
+                  <span
+                    className="text-[10.5px] text-[var(--text-muted)] font-mono"
+                    title={new Date(
+                      dashboard.config.updatedAt,
+                    ).toLocaleString()}
+                  >
+                    {formatRelativeTime(dashboard.config.updatedAt)}
+                  </span>
+                )}
 
-          {/* ── Auto-insights card ───────────────────────────────────
-              Replaces the old single-line strip with a contained card.
-              Renders **markdown bold** properly. Each insight is its
-              own row with a severity icon — no leading 💡 emoji on
-              every line since the card header already conveys it. */}
-          {explorer.insights.length > 0 && (
+                {/* Insights summary pill — single chip. Collapsed:
+                    first insight + count. Expanded: just "Hide N"
+                    and the full list renders below in one place. */}
+                {firstInsight && (
+                  <button
+                    onClick={toggleInsightsHidden}
+                    className="ml-auto inline-flex items-center gap-1.5 max-w-[420px] rounded-full border px-2.5 py-1 text-[11.5px] transition-colors hover:bg-[var(--bg-secondary)]"
+                    style={{
+                      borderColor: `color-mix(in srgb, ${insightTone} 30%, transparent)`,
+                      backgroundColor: `color-mix(in srgb, ${insightTone} 6%, transparent)`,
+                      color: "var(--text-primary)",
+                    }}
+                    title={
+                      insightsHidden ? "Show all insights" : "Hide insights"
+                    }
+                  >
+                    <Sparkles
+                      className="w-3 h-3 shrink-0"
+                      style={{ color: insightTone }}
+                    />
+                    {insightsHidden ? (
+                      <>
+                        <span className="truncate font-medium">
+                          {renderInsightText(firstInsight.text)}
+                        </span>
+                        {explorer.insights.length > 1 && (
+                          <span
+                            className="shrink-0 text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full"
+                            style={{
+                              backgroundColor: `color-mix(in srgb, ${insightTone} 14%, transparent)`,
+                              color: insightTone,
+                            }}
+                          >
+                            +{explorer.insights.length - 1}
+                          </span>
+                        )}
+                        <Eye
+                          className="w-3 h-3 shrink-0 opacity-70"
+                          style={{ color: insightTone }}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-medium">
+                          Hide {explorer.insights.length} insight
+                          {explorer.insights.length === 1 ? "" : "s"}
+                        </span>
+                        <EyeOff
+                          className="w-3 h-3 shrink-0 opacity-70"
+                          style={{ color: insightTone }}
+                        />
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Full insights panel — when expanded, every insight
+              renders here in one place. */}
+          {!insightsHidden && explorer.insights.length > 0 && (
             <div
-              className="px-6 pt-3 pb-1"
+              className="px-6 pt-2 pb-1"
               role="status"
               aria-label="Auto-insights"
             >
-              <div
-                className="rounded-[var(--radius-md)] border bg-[var(--bg-primary)] overflow-hidden"
-                style={{ borderColor: "var(--border)" }}
-              >
-                <div
-                  className="flex items-center gap-1.5 px-3 py-1.5 border-b text-[10px] font-semibold uppercase tracking-wider"
-                  style={{
-                    borderColor: "var(--border)",
-                    color: "var(--brand)",
-                    backgroundColor:
-                      "color-mix(in srgb, var(--brand) 4%, transparent)",
-                  }}
-                >
-                  <Sparkles size={11} />
-                  <span>Insights</span>
-                  <span
-                    className="ml-auto"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    {explorer.insights.length}
-                  </span>
-                </div>
-                <ul>
-                  {explorer.insights.map((ins, i) => {
-                    const isWarn = ins.severity === "warning";
-                    const isCrit = ins.severity === "critical";
-                    const tone = isCrit
-                      ? "var(--danger)"
-                      : isWarn
-                        ? "var(--warning)"
-                        : "var(--brand)";
-                    const Icon = isCrit
-                      ? AlertOctagon
-                      : isWarn
-                        ? TriangleAlert
-                        : CircleDot;
-                    return (
-                      <li
-                        key={i}
-                        className="px-3 py-2 text-[12px] leading-snug flex items-start gap-2 border-t first:border-t-0"
-                        style={{ borderColor: "var(--border)" }}
+              <ul className="flex flex-col gap-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40 px-1 py-1">
+                {explorer.insights.map((ins, i) => {
+                  const isWarn = ins.severity === "warning";
+                  const isCrit = ins.severity === "critical";
+                  const tone = isCrit
+                    ? "var(--danger)"
+                    : isWarn
+                      ? "var(--warning)"
+                      : "var(--brand)";
+                  const Icon = isCrit
+                    ? AlertOctagon
+                    : isWarn
+                      ? TriangleAlert
+                      : CircleDot;
+                  return (
+                    <li
+                      key={i}
+                      className="px-3 py-1.5 text-[12px] leading-snug flex items-start gap-2 rounded hover:bg-[var(--bg-elevated)] transition-colors"
+                    >
+                      <Icon
+                        size={12}
+                        className="mt-0.5 shrink-0"
+                        style={{ color: tone }}
+                      />
+                      <span
+                        className="min-w-0"
+                        style={{ color: "var(--text-secondary)" }}
                       >
-                        <Icon
-                          size={12}
-                          className="mt-0.5 shrink-0"
-                          style={{ color: tone }}
-                        />
-                        <span
-                          className="min-w-0"
-                          style={{ color: "var(--text-secondary)" }}
-                        >
-                          {renderInsightText(ins.text)}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
+                        {renderInsightText(ins.text)}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           )}
 
