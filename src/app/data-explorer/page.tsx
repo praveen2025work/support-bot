@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { Fragment, useEffect, useCallback } from "react";
 import {
   Database,
   Plus,
@@ -13,6 +13,10 @@ import {
   Undo2,
   ChevronDown,
   Search,
+  Sparkles,
+  CircleDot,
+  TriangleAlert,
+  AlertOctagon,
 } from "lucide-react";
 import { useRef } from "react";
 import { ContextualTopBar } from "@/components/shell/ContextualTopBar";
@@ -27,6 +31,65 @@ import { DataCardSettingsModal } from "@/components/data-explorer/DataCardSettin
 import { SimpleGrid } from "@/components/dashboard/SimpleGrid";
 import { AnomalyBadge } from "@/components/dashboard/AnomalyBadge";
 import type { DataCard, CardLayout } from "@/components/data-explorer/types";
+
+/**
+ * Turn a source name like "employee_compensation" or "pnl-lineage" into
+ * a sentence-cased display title: "Employee Compensation" / "Pnl Lineage".
+ * Keeps acronyms (length ≤ 3 letters, all caps in the source) as-is.
+ */
+function humanizeName(raw: string): string {
+  if (!raw) return "";
+  return raw
+    .split(/[_\-\s]+/)
+    .filter(Boolean)
+    .map((part) => {
+      if (part.length <= 3 && part === part.toUpperCase()) return part;
+      return part[0].toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join(" ");
+}
+
+/**
+ * Short relative-time label. We deliberately don't pull date-fns just for
+ * this one string; "just now / 3m / 2h / 5d" reads fine for save-state UI.
+ */
+function formatRelativeTime(iso: string): string {
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return "—";
+  const diff = Date.now() - t;
+  if (diff < 30_000) return "just now";
+  if (diff < 60_000) return "moments ago";
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+/**
+ * Render a string containing **bold** markers as React nodes. We don't
+ * want a full markdown parser — the engine only emits **X** for emphasis
+ * and never anything else. Anything between matched `**` pairs becomes
+ * a <strong> with brand color.
+ */
+function renderInsightText(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((p, i) => {
+    if (p.startsWith("**") && p.endsWith("**")) {
+      return (
+        <strong
+          key={i}
+          className="font-semibold"
+          style={{ color: "var(--text-primary)" }}
+        >
+          {p.slice(2, -2)}
+        </strong>
+      );
+    }
+    return <Fragment key={i}>{p}</Fragment>;
+  });
+}
 
 export default function DataExplorerPage() {
   const groupId = "default";
@@ -423,9 +486,23 @@ export default function DataExplorerPage() {
       {/* ── Dashboard grid ───────────────────────────────────── */}
       {explorer.selectedSource && dashboard.config && (
         <>
-          {/* Dashboard name bar */}
-          <div className="bg-[var(--bg-primary)] border-b border-[var(--border)] px-6 py-2 flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          {/* ── Dashboard header ────────────────────────────────────
+              Single-line layout: humanised title left, slim metadata
+              row right. The cards + grid + saved indicators collapse
+              into one tasteful "·" separated string instead of three
+              competing labels. */}
+          <div className="bg-[var(--bg-primary)] border-b border-[var(--border)] px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-2.5 min-w-0">
+              {/* Source-type icon left of the title */}
+              <span
+                className="flex items-center justify-center w-7 h-7 rounded-md shrink-0"
+                style={{
+                  backgroundColor: "var(--brand-subtle)",
+                  color: "var(--brand)",
+                }}
+              >
+                <Database size={14} />
+              </span>
               {editingName ? (
                 <div className="flex items-center gap-1">
                   <input
@@ -441,7 +518,7 @@ export default function DataExplorerPage() {
                       }
                       if (e.key === "Escape") setEditingName(false);
                     }}
-                    className="text-sm font-semibold px-2 py-1 border border-[var(--brand)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none focus:ring-1 focus:ring-[var(--brand)] w-64"
+                    className="text-base font-semibold px-2 py-1 border border-[var(--brand)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none focus:ring-1 focus:ring-[var(--brand)] w-72"
                     autoFocus
                   />
                   <button
@@ -458,80 +535,138 @@ export default function DataExplorerPage() {
                     <Check size={16} />
                   </button>
                 </div>
-              ) : editMode ? (
-                <button
-                  onClick={() => {
-                    setNameInput(dashboard.config!.name);
-                    setEditingName(true);
-                  }}
-                  className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)] hover:text-[var(--brand)] transition-colors"
-                  title="Click to rename dashboard"
-                >
-                  {dashboard.config.name}
-                  <Pencil size={12} className="text-[var(--text-muted)]" />
-                </button>
               ) : (
-                <span className="text-sm font-semibold text-[var(--text-primary)]">
-                  {dashboard.config.name}
-                </span>
+                // The default dashboard name is "<source> Dashboard"; we
+                // strip the suffix and humanise the source for display.
+                // The persisted name still matches what the user saved.
+                (() => {
+                  const raw = dashboard.config.name;
+                  const stripped = raw.replace(/\s*Dashboard\s*$/i, "");
+                  const display = humanizeName(stripped) || raw;
+                  return editMode ? (
+                    <button
+                      onClick={() => {
+                        setNameInput(dashboard.config!.name);
+                        setEditingName(true);
+                      }}
+                      className="flex items-center gap-1.5 text-base font-semibold text-[var(--text-primary)] hover:text-[var(--brand)] transition-colors truncate"
+                      title="Click to rename dashboard"
+                    >
+                      <span className="truncate">{display}</span>
+                      <Pencil size={12} className="text-[var(--text-muted)]" />
+                    </button>
+                  ) : (
+                    <span className="text-base font-semibold text-[var(--text-primary)] truncate">
+                      {display}
+                    </span>
+                  );
+                })()
               )}
-              <span className="text-[10px] text-[var(--text-muted)] ml-2">
-                {dashboard.config.cards.length} cards
-              </span>
               {explorer.anomalies.length > 0 && (
                 <AnomalyBadge anomalies={explorer.anomalies as never[]} />
               )}
             </div>
-            <div className="flex items-center gap-2 text-[10px] text-[var(--text-muted)]">
+
+            {/* Metadata row — pill-like dot-separated string */}
+            <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] shrink-0">
+              <span>{dashboard.config.cards.length} cards</span>
               {explorer.schema && (
-                <span>
-                  {explorer.schema.columnCount} cols ·{" "}
-                  {explorer.schema.rowCount.toLocaleString()} rows
-                </span>
+                <>
+                  <span aria-hidden>·</span>
+                  <span>
+                    {explorer.schema.columnCount}×
+                    {explorer.schema.rowCount.toLocaleString()} grid
+                  </span>
+                </>
               )}
+              <span aria-hidden>·</span>
               {dashboard.isDirty ? (
-                <span className="text-amber-500 font-medium">
-                  Unsaved changes
+                <span
+                  className="flex items-center gap-1 font-medium"
+                  style={{ color: "var(--warning)" }}
+                >
+                  <CircleDot size={9} />
+                  Unsaved
                 </span>
               ) : (
-                <span>
-                  Saved{" "}
-                  {new Date(dashboard.config.updatedAt).toLocaleTimeString()}
+                <span
+                  title={new Date(dashboard.config.updatedAt).toLocaleString()}
+                >
+                  Saved {formatRelativeTime(dashboard.config.updatedAt)}
                 </span>
               )}
             </div>
           </div>
 
-          {/* Auto-insights banner — shown when the engine surfaced findings.
-              Compact, scannable, dismissible-by-filter (insights refresh on
-              the next query). Reuses the same builder powering chat 💡 lines. */}
+          {/* ── Auto-insights card ───────────────────────────────────
+              Replaces the old single-line strip with a contained card.
+              Renders **markdown bold** properly. Each insight is its
+              own row with a severity icon — no leading 💡 emoji on
+              every line since the card header already conveys it. */}
           {explorer.insights.length > 0 && (
             <div
-              className="bg-[var(--bg-primary)] border-b border-[var(--border)] px-6 py-2 flex flex-wrap gap-x-4 gap-y-1 items-center"
+              className="px-6 pt-3 pb-1"
               role="status"
               aria-label="Auto-insights"
             >
-              {explorer.insights.map((ins, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-start gap-1.5 text-[11px] leading-snug"
+              <div
+                className="rounded-[var(--radius-md)] border bg-[var(--bg-primary)] overflow-hidden"
+                style={{ borderColor: "var(--border)" }}
+              >
+                <div
+                  className="flex items-center gap-1.5 px-3 py-1.5 border-b text-[10px] font-semibold uppercase tracking-wider"
                   style={{
-                    color:
-                      ins.severity === "warning"
-                        ? "var(--warning)"
-                        : ins.severity === "critical"
-                          ? "var(--danger)"
-                          : "var(--text-secondary)",
+                    borderColor: "var(--border)",
+                    color: "var(--brand)",
+                    backgroundColor:
+                      "color-mix(in srgb, var(--brand) 4%, transparent)",
                   }}
-                  // Markdown-style **bold** isn't rendered here; the engine
-                  // emits `**X**` which we render as plain text. Keeping the
-                  // markers makes the same string usable in chat + dashboard
-                  // without two render paths.
                 >
-                  <span aria-hidden>💡</span>
-                  <span>{ins.text}</span>
-                </span>
-              ))}
+                  <Sparkles size={11} />
+                  <span>Insights</span>
+                  <span
+                    className="ml-auto"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    {explorer.insights.length}
+                  </span>
+                </div>
+                <ul>
+                  {explorer.insights.map((ins, i) => {
+                    const isWarn = ins.severity === "warning";
+                    const isCrit = ins.severity === "critical";
+                    const tone = isCrit
+                      ? "var(--danger)"
+                      : isWarn
+                        ? "var(--warning)"
+                        : "var(--brand)";
+                    const Icon = isCrit
+                      ? AlertOctagon
+                      : isWarn
+                        ? TriangleAlert
+                        : CircleDot;
+                    return (
+                      <li
+                        key={i}
+                        className="px-3 py-2 text-[12px] leading-snug flex items-start gap-2 border-t first:border-t-0"
+                        style={{ borderColor: "var(--border)" }}
+                      >
+                        <Icon
+                          size={12}
+                          className="mt-0.5 shrink-0"
+                          style={{ color: tone }}
+                        />
+                        <span
+                          className="min-w-0"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          {renderInsightText(ins.text)}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
             </div>
           )}
 
