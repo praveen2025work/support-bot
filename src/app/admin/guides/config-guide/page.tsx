@@ -186,7 +186,7 @@ export default function ConfigGuidePage() {
                   <td className="px-3 py-2">
                     <em>empty</em>
                   </td>
-                  <td className="px-3 py-2">kumarp15</td>
+                  <td className="px-3 py-2">yoursamname</td>
                 </tr>
                 <tr className="border-t border-gray-100">
                   <td className="px-3 py-2 font-mono">API_BASE_URL</td>
@@ -383,7 +383,7 @@ export default function ConfigGuidePage() {
             </div>
             <div>
               <strong>Local dev shortcut</strong>: set{" "}
-              <Code>USER_INFO_DEV_OVERRIDE_SAM=kumarp15</Code> to skip the
+              <Code>USER_INFO_DEV_OVERRIDE_SAM=yoursamname</Code> to skip the
               upstream call entirely and pretend to be that user. Ignored in{" "}
               <Code>NODE_ENV=production</Code>.
             </div>

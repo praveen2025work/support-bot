@@ -1,7 +1,6 @@
 /**
  * Identity payload returned by the AD/SSO userinfo endpoint.
  *
- * Shape mirrors what the Barclays-style AD endpoint returns —
  * `samAccountName` and `userName` are the same value (the AD account
  * name); pick whichever reads better at the call site.
  *
@@ -10,21 +9,21 @@
  * may be populated by the admin lookup in users.json.
  */
 export interface UserInfo {
-  /** AD account name, e.g. "kumarp15". Same value as `userName`. */
+  /** AD account name. Same value as `userName`. */
   samAccountName: string;
   /** AD account name, kept as a separate field for legacy callers. */
   userName: string;
-  /** Human-readable description, e.g. "Nandyala, Praveen Kumar: IT (NYK)". */
+  /** Human-readable description from AD. */
   description?: string;
-  /** Display name, e.g. "Nandyala, Praveen Kumar : RFT COO (NYK)". */
+  /** Display name (often "Last, First : Title (Location)"). */
   displayName: string;
-  /** LDAP DN, e.g. "CN=Nandyala\, Praveen Kumar: IT (NYK),OU=Users,..." */
+  /** LDAP distinguished name (CN=..., OU=..., DC=...). */
   distinguishedName?: string;
   /** Email address. AD field is `emailAddress` (not `email`). */
   emailAddress: string;
   /** Internal employee identifier. */
   employeeId: string;
-  /** Full name as logged in, e.g. "Nandyala, Praveen Kumar: IT (NYK)". */
+  /** Full name as logged in. */
   name?: string;
   /** First name. */
   givenName: string;
