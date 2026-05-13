@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Database,
-  ChevronRight,
   Sparkles,
   TrendingUp,
   AlertOctagon,
@@ -13,7 +12,10 @@ import {
   Eye,
   LineChart,
   ArrowDownWideNarrow,
+  ArrowUpWideNarrow,
   Layers,
+  BarChart3,
+  Sigma,
 } from "lucide-react";
 
 interface ActiveResult {
@@ -177,6 +179,7 @@ export function ContextualInsightsRail({
   const trendReady = forecastReady;
 
   const synthesisActions = [
+    // Row 1 — patterns over time
     {
       label: "Forecast next 3 periods",
       icon: TrendingUp,
@@ -205,11 +208,22 @@ export function ContextualInsightsRail({
       disabled: !anomalyReady,
       disabledReason: "Needs a numeric column",
     },
+    // Row 2 — ranking & segmentation
     {
       label: rankReady ? `Top 5 by ${valueCol}` : "Top 5",
       icon: ArrowDownWideNarrow,
       action: () =>
         onSendChat?.(`top 5 by ${valueCol} in ${activeResult.queryName}`),
+      disabled: !rankReady,
+      disabledReason: labelCol
+        ? "Needs a numeric column"
+        : "Needs a category column",
+    },
+    {
+      label: rankReady ? `Bottom 5 by ${valueCol}` : "Bottom 5",
+      icon: ArrowUpWideNarrow,
+      action: () =>
+        onSendChat?.(`bottom 5 by ${valueCol} in ${activeResult.queryName}`),
       disabled: !rankReady,
       disabledReason: labelCol
         ? "Needs a numeric column"
@@ -222,6 +236,25 @@ export function ContextualInsightsRail({
         onSendChat?.(`group by ${labelCol} in ${activeResult.queryName}`),
       disabled: !groupReady,
       disabledReason: "Needs a category column",
+    },
+    // Row 3 — stats & synthesis
+    {
+      label: anomalyReady ? `Distribution of ${valueCol}` : "Distribution",
+      icon: BarChart3,
+      action: () =>
+        onSendChat?.(
+          `show distribution of ${valueCol} in ${activeResult.queryName}`,
+        ),
+      disabled: !anomalyReady,
+      disabledReason: "Needs a numeric column",
+    },
+    {
+      label: anomalyReady ? `Average ${valueCol}` : "Average",
+      icon: Sigma,
+      action: () =>
+        onSendChat?.(`average ${valueCol} in ${activeResult.queryName}`),
+      disabled: !anomalyReady,
+      disabledReason: "Needs a numeric column",
     },
     {
       label: "Generate summary",
@@ -260,11 +293,33 @@ export function ContextualInsightsRail({
           <div className="font-display text-[14px] font-bold tracking-tight text-[var(--text-primary)] truncate">
             {activeResult.queryName}
           </div>
-          <div className="text-[11px] text-[var(--text-muted)] mt-0.5 inline-flex items-center gap-1 font-mono">
-            <Clock className="w-2.5 h-2.5" />
-            {activeResult.data.length.toLocaleString()} rows
-            {activeResult.executionMs != null &&
-              ` · ${activeResult.executionMs}ms`}
+          <div className="flex items-center justify-between gap-2 mt-0.5 text-[11px] font-mono">
+            <div className="inline-flex items-center gap-1 text-[var(--text-muted)] shrink-0">
+              <Clock className="w-2.5 h-2.5" />
+              {activeResult.data.length.toLocaleString()} rows
+              {activeResult.executionMs != null &&
+                ` · ${activeResult.executionMs}ms`}
+            </div>
+            {(topPerformer || alert) && (
+              <div className="flex items-center gap-2 min-w-0 justify-end">
+                {topPerformer && (
+                  <span
+                    className="inline-flex items-center gap-0.5 text-emerald-500 truncate max-w-[110px]"
+                    title={`Top by ${topPerformer.metric}: ${topPerformer.label}`}
+                  >
+                    ↑ <span className="truncate">{topPerformer.label}</span>
+                  </span>
+                )}
+                {alert && (
+                  <span
+                    className="inline-flex items-center gap-0.5 text-rose-500 truncate max-w-[110px]"
+                    title={`Low by ${alert.metric}: ${alert.label}`}
+                  >
+                    ↓ <span className="truncate">{alert.label}</span>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {hasKpis && !kpiHidden && (
@@ -294,73 +349,32 @@ export function ContextualInsightsRail({
         </div>
       </section>
 
-      {/* Top Performer / Alert */}
-      {(topPerformer || alert) && (
-        <div className="grid grid-cols-2 gap-3">
-          {topPerformer && (
-            <div className="rounded-[var(--radius-lg)] border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-2.5 overflow-hidden">
-              <div className="eyebrow !text-[9.5px] !text-emerald-500">
-                Top Performer
-              </div>
-              <div className="font-display text-[14px] font-bold tracking-tight text-[var(--text-primary)] mt-1 leading-tight truncate">
-                {topPerformer.label}
-              </div>
-              <div className="text-[10px] text-[var(--text-muted)] mt-0.5 truncate">
-                by {topPerformer.metric}
-              </div>
-            </div>
-          )}
-          {alert && (
-            <div className="rounded-[var(--radius-lg)] border border-rose-500/30 bg-rose-500/5 px-3.5 py-2.5 overflow-hidden">
-              <div className="eyebrow !text-[9.5px] !text-rose-500">Alert</div>
-              <div className="font-display text-[14px] font-bold tracking-tight text-[var(--text-primary)] mt-1 leading-tight truncate">
-                {alert.label}
-              </div>
-              <div className="text-[10px] text-[var(--text-muted)] mt-0.5 truncate">
-                trailing {alert.metric}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Quick Synthesis Actions */}
       <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-elevated)] overflow-hidden">
         <header className="px-3.5 py-2.5 border-b border-[var(--border)] flex items-center gap-1.5">
           <Zap className="w-3.5 h-3.5 text-[var(--brand)]" />
           <span className="eyebrow !text-[10px]">Quick Synthesis Actions</span>
         </header>
-        <ul>
+        <div className="grid grid-cols-3 gap-px bg-[var(--border)]">
           {synthesisActions.map((a, i) => {
             const Icon = a.icon;
             const isDisabled = !onSendChat || a.disabled;
             return (
-              <li key={i}>
-                <button
-                  onClick={a.action}
-                  disabled={isDisabled}
-                  title={a.disabled ? a.disabledReason : a.label}
-                  className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 hover:bg-[var(--bg-secondary)] transition-colors text-left group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                >
-                  <span className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <Icon className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[var(--brand)] transition-colors shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[12.5px] font-medium text-[var(--text-primary)] truncate">
-                        {a.label}
-                      </div>
-                      {a.disabled && (
-                        <div className="text-[10px] text-[var(--text-muted)] truncate mt-0.5">
-                          {a.disabledReason}
-                        </div>
-                      )}
-                    </div>
-                  </span>
-                  <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[var(--brand)] transition-colors shrink-0" />
-                </button>
-              </li>
+              <button
+                key={i}
+                onClick={a.action}
+                disabled={isDisabled}
+                title={a.disabled ? a.disabledReason : a.label}
+                className="flex flex-col items-center justify-center text-center gap-1.5 px-2 py-3 bg-[var(--bg-elevated)] hover:bg-[var(--bg-secondary)] transition-colors group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--bg-elevated)]"
+              >
+                <Icon className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--brand)] transition-colors shrink-0" />
+                <div className="text-[11px] font-medium text-[var(--text-primary)] leading-tight line-clamp-2 break-words">
+                  {a.label}
+                </div>
+              </button>
             );
           })}
-        </ul>
+        </div>
       </section>
     </div>
   );
