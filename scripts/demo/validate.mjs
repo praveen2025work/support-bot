@@ -1516,6 +1516,84 @@ async function testUserInfo() {
   );
 }
 
+async function testSearchPersonalisation() {
+  section("Autocomplete — per-user pick learning bumps future ranks");
+  if (NO_WRITE || QUICK) {
+    record("search-personalisation", "skipped (--no-write / --quick)", true);
+    return;
+  }
+  const userName = `validation-bumper-${Date.now()}`;
+  const target = "pnl_summary";
+  const q = "pnl";
+
+  // Step 1 — anonymous baseline ranking
+  const baseline = await timed(() =>
+    getJson(
+      `${NEXT_URL}/api/queries/search?q=${q}&groupId=finance&userName=anon`,
+    ),
+  );
+  const baseTarget = (baseline.result?.body?.results || []).find(
+    (r) => r.queryName === target,
+  );
+  if (!baseTarget) {
+    record(
+      "search-personalisation",
+      `target query "${target}" appears in baseline results`,
+      false,
+      "not in top-10",
+    );
+    return;
+  }
+
+  // Step 2 — synthesise picks for a new user
+  const numPicks = 6;
+  for (let i = 0; i < numPicks; i++) {
+    await fetch(`${NEXT_URL}/api/queries/search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        groupId: "finance",
+        userName,
+        queryName: target,
+        query: q,
+      }),
+    });
+  }
+
+  // Step 3 — same search, now with user → score should be higher
+  const personalised = await timed(() =>
+    getJson(
+      `${NEXT_URL}/api/queries/search?q=${q}&groupId=finance&userName=${encodeURIComponent(userName)}`,
+    ),
+  );
+  const persTarget = (personalised.result?.body?.results || []).find(
+    (r) => r.queryName === target,
+  );
+  record(
+    "search-personalisation",
+    `${target} score increases after ${numPicks} picks`,
+    !!persTarget && persTarget.score > baseTarget.score,
+    `baseline=${baseTarget.score.toFixed(2)} personalised=${persTarget?.score?.toFixed(2)}`,
+    personalised.durationMs,
+  );
+
+  // Step 4 — anonymous search still untouched (no cross-user leak)
+  const anonAgain = await timed(() =>
+    getJson(
+      `${NEXT_URL}/api/queries/search?q=${q}&groupId=finance&userName=otherperson`,
+    ),
+  );
+  const otherTarget = (anonAgain.result?.body?.results || []).find(
+    (r) => r.queryName === target,
+  );
+  record(
+    "search-personalisation",
+    "other users are unaffected by another user's picks",
+    !!otherTarget && Math.abs(otherTarget.score - baseTarget.score) < 0.01,
+    `baseline=${baseTarget.score.toFixed(2)} other=${otherTarget?.score?.toFixed(2)}`,
+  );
+}
+
 async function testAutocomplete() {
   section("Type-ahead — /api/queries/search returns scored matches");
 
@@ -1604,6 +1682,60 @@ async function testForecastEndpoint() {
       `reason=${body?.reason}`,
     );
   }
+}
+
+async function testSourceReorder() {
+  section("Data Explorer — per-user source reorder via view tracker");
+  if (NO_WRITE || QUICK) {
+    record("source-reorder", "skipped (--no-write / --quick)", true);
+    return;
+  }
+  const userName = `validation-view-${Date.now()}`;
+  const groupId = "finance";
+
+  // Step 1 — baseline order (anonymous)
+  const baseline = await timed(() =>
+    getJson(`${ENGINE_URL}/api/data/sources?groupId=${groupId}`),
+  );
+  const baseSources = baseline.result?.body?.sources || [];
+  if (baseSources.length < 2) {
+    record(
+      "source-reorder",
+      "(prereq) finance has 2+ csv/xlsx sources",
+      false,
+      `count=${baseSources.length}`,
+    );
+    return;
+  }
+  // Pick a source that's NOT first today — we'll record views for it
+  // and assert it bubbles to the top.
+  const target = baseSources[baseSources.length - 1].name;
+
+  // Step 2 — synthesise views
+  for (let i = 0; i < 3; i++) {
+    await fetch(`${ENGINE_URL}/api/data/sources/view`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ groupId, userName, queryName: target }),
+    });
+  }
+
+  // Step 3 — re-list with userName → target should be first + carry the
+  // `recent` flag set by the engine.
+  const reordered = await timed(() =>
+    getJson(
+      `${ENGINE_URL}/api/data/sources?groupId=${groupId}&userName=${encodeURIComponent(userName)}`,
+    ),
+  );
+  const sources = reordered.result?.body?.sources || [];
+  const top = sources[0];
+  record(
+    "source-reorder",
+    `recently-viewed source "${target}" bubbles to top`,
+    top?.name === target && top?.recent === true,
+    `top=${top?.name} recent=${top?.recent}`,
+    reordered.durationMs,
+  );
 }
 
 async function testDataQuality() {
@@ -2100,11 +2232,13 @@ async function main() {
   await testGroupIsolation();
   await testUserInfo();
   await testAutocomplete();
+  await testSearchPersonalisation();
   await testAutoInsights();
   await testRootCause();
   await testDataExplorerInsights();
   await testDataQuality();
   await testForecastEndpoint();
+  await testSourceReorder();
   await testGlossaryCrud();
   await testSynonymCrud();
   await testLearningRetrain();

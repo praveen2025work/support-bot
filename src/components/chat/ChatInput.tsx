@@ -75,6 +75,7 @@ export function ChatInput({
   onCompactAutoChange,
   hasResults = false,
   groupId = "default",
+  userName = "",
 }: {
   onSend: (text: string) => void;
   disabled: boolean;
@@ -89,6 +90,8 @@ export function ChatInput({
   onCompactAutoChange?: (compact: boolean) => void;
   hasResults?: boolean;
   groupId?: string;
+  /** AD/SSO samAccountName — used to personalise autocomplete ranking. */
+  userName?: string;
 }) {
   const [text, setText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -120,7 +123,10 @@ export function ChatInput({
         return;
       }
       try {
-        const url = `/api/queries/search?q=${encodeURIComponent(trimmed)}&groupId=${encodeURIComponent(groupId)}`;
+        const userParam = userName
+          ? `&userName=${encodeURIComponent(userName)}`
+          : "";
+        const url = `/api/queries/search?q=${encodeURIComponent(trimmed)}&groupId=${encodeURIComponent(groupId)}${userParam}`;
         const res = await fetch(url);
         if (!res.ok) return;
         const data: { results?: QuerySuggestion[] } = await res.json();
@@ -134,15 +140,33 @@ export function ChatInput({
       }
     }, 200);
     return () => clearTimeout(timer);
-  }, [text, groupId]);
+  }, [text, groupId, userName]);
 
-  const acceptSuggestion = useCallback((s: QuerySuggestion) => {
-    // Fill the input rather than auto-submit so the user can tweak
-    // (add filters, switch ordering) before sending.
-    setText(`run ${s.queryName}`);
-    setShowSuggestions(false);
-    inputRef.current?.focus();
-  }, []);
+  const acceptSuggestion = useCallback(
+    (s: QuerySuggestion) => {
+      // Fill the input rather than auto-submit so the user can tweak
+      // (add filters, switch ordering) before sending.
+      setText(`run ${s.queryName}`);
+      setShowSuggestions(false);
+      inputRef.current?.focus();
+      // Fire-and-forget click-through telemetry. Anonymous users get a
+      // no-op response on the engine side. Failures are swallowed —
+      // the UI is already in the "picked" state.
+      if (userName) {
+        fetch("/api/queries/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            groupId,
+            userName,
+            queryName: s.queryName,
+            query: text,
+          }),
+        }).catch(() => {});
+      }
+    },
+    [userName, groupId, text],
+  );
 
   const handleSubmit = useCallback(() => {
     if (!text.trim() || disabled) return;

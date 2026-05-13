@@ -386,6 +386,10 @@ export function ChatWindow({
             onCompactAutoChange={setCompactAuto}
             hasResults={hasResults}
             groupId={groupId}
+            // Pass the AD samAccountName (preferring the live identity
+            // from context, falling back to the prop) so autocomplete
+            // can personalise rankings via click-through history.
+            userName={userInfo?.samAccountName || userName || ""}
           />
         </div>
       </FileDropZone>

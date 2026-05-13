@@ -161,6 +161,10 @@ export const paths = {
       join(DATA_DIR, "learning", groupId, "time-patterns.json"),
     userClusters: (groupId: string) =>
       join(DATA_DIR, "learning", groupId, "user-clusters.json"),
+    /** Autocomplete click-through learning — bumps frequently-picked
+        queries up in future search rankings. JSONL append-only. */
+    searchPicks: (groupId: string) =>
+      join(DATA_DIR, "learning", groupId, "search-picks.jsonl"),
 
     /** Anomaly detection */
     anomalyDir: (groupId: string) => join(DATA_DIR, "anomaly", groupId),

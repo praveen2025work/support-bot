@@ -7,6 +7,10 @@ import { paths } from "@/lib/env-config";
 import { QueryService } from "@/core/api-connector/query-service";
 import { extractDataArray } from "@/core/api-connector/join-engine";
 import { getSemanticIndex } from "@/core/semantic/semantic-index";
+import {
+  loadUserPickWeights,
+  recordPick,
+} from "@/core/recommendations/search-picks";
 import { logger } from "@/lib/logger";
 
 export const queriesRouter = Router();
@@ -77,6 +81,10 @@ queriesRouter.get("/queries/search", async (req: Request, res: Response) => {
   try {
     const q = (req.query.q as string) || "";
     const groupId = (req.query.groupId as string) || "default";
+    // userName lets us personalise the ranking using prior picks. Absent
+    // → falls back to pure semantic scoring (anonymous behaviour).
+    const userName =
+      typeof req.query.userName === "string" ? req.query.userName : "";
     if (!q.trim()) return res.json({ results: [] });
 
     const groupConfig = getGroupConfig(groupId);
@@ -93,12 +101,66 @@ queriesRouter.get("/queries/search", async (req: Request, res: Response) => {
     }
 
     const results = idx.search(q, 10);
+
+    // Personalised bump — when a userName is supplied, add the user's
+    // decayed click-through weight for each candidate. Modest multiplier
+    // so a strong typed query still beats a stale habit.
+    const BUMP_MULTIPLIER = 0.5;
+    if (userName) {
+      try {
+        const weights = await loadUserPickWeights(groupId, userName);
+        if (weights.size > 0) {
+          for (const r of results) {
+            const w = weights.get(r.queryName);
+            if (w) {
+              (r as { score: number }).score += w * BUMP_MULTIPLIER;
+            }
+          }
+          results.sort(
+            (a, b) =>
+              (b as { score: number }).score - (a as { score: number }).score,
+          );
+        }
+      } catch {
+        /* personalisation is best-effort; never break the search */
+      }
+    }
+
     return res.json({ results });
   } catch (error) {
     logger.error({ error }, "Semantic search error");
     return res.json({ results: [] });
   }
 });
+
+// POST /api/queries/search/pick — records that a user accepted a
+// suggestion. Used by the autocomplete dropdown to learn which queries
+// the user actually uses, so the next search ranks them higher.
+queriesRouter.post(
+  "/queries/search/pick",
+  async (req: Request, res: Response) => {
+    try {
+      const body = req.body ?? {};
+      const groupId =
+        typeof body.groupId === "string" ? body.groupId : "default";
+      const userName = typeof body.userName === "string" ? body.userName : "";
+      const queryName =
+        typeof body.queryName === "string" ? body.queryName : "";
+      const query = typeof body.query === "string" ? body.query : "";
+      if (!userName || !queryName) {
+        // Anonymous picks or malformed bodies are not an error — just a
+        // no-op acknowledgment. The autocomplete doesn't surface the
+        // failure either way.
+        return res.json({ recorded: false });
+      }
+      await recordPick(groupId, { userName, queryName, query });
+      return res.json({ recorded: true });
+    } catch (error) {
+      logger.error({ error }, "search-picks: record failed");
+      return res.json({ recorded: false });
+    }
+  },
+);
 
 // GET /api/filters — return filter config for chat UI
 queriesRouter.get("/filters", async (_req: Request, res: Response) => {

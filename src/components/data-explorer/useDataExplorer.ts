@@ -13,7 +13,7 @@ import type {
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_FILTER_DISTINCT_VALUES = 100;
 
-export function useDataExplorer(groupId = "default") {
+export function useDataExplorer(groupId = "default", userName = "") {
   const [sources, setSources] = useState<DataSource[]>([]);
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [schema, setSchema] = useState<SchemaResponse | null>(null);
@@ -45,12 +45,17 @@ export function useDataExplorer(groupId = "default") {
   >([]);
   const [insights, setInsights] = useState<DataInsight[]>([]);
 
-  // Load sources
+  // Load sources — when a userName is available, the engine reorders
+  // results by per-user view frequency and stamps the recent ones with
+  // a `recent: true` flag the UI can render.
   useEffect(() => {
     async function loadSources() {
       try {
+        const userParam = userName
+          ? `&userName=${encodeURIComponent(userName)}`
+          : "";
         const res = await fetch(
-          `/api/data/sources?groupId=${encodeURIComponent(groupId)}`,
+          `/api/data/sources?groupId=${encodeURIComponent(groupId)}${userParam}`,
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
@@ -60,7 +65,7 @@ export function useDataExplorer(groupId = "default") {
       }
     }
     loadSources();
-  }, [groupId]);
+  }, [groupId, userName]);
 
   // Load schema when source changes
   useEffect(() => {

@@ -17,6 +17,7 @@ import {
 import { useRef } from "react";
 import { ContextualTopBar } from "@/components/shell/ContextualTopBar";
 import { useState } from "react";
+import { useUser } from "@/contexts/UserContext";
 import { useDataExplorer } from "@/components/data-explorer/useDataExplorer";
 import { useDataDashboard } from "@/components/data-explorer/useDataDashboard";
 import { AutoFilterPanel } from "@/components/data-explorer/AutoFilterPanel";
@@ -29,6 +30,8 @@ import type { DataCard, CardLayout } from "@/components/data-explorer/types";
 
 export default function DataExplorerPage() {
   const groupId = "default";
+  const { userInfo } = useUser();
+  const userName = userInfo?.samAccountName ?? "";
   const [showAddCard, setShowAddCard] = useState(false);
   const [settingsCardId, setSettingsCardId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState(false);
@@ -52,7 +55,19 @@ export default function DataExplorerPage() {
     return () => document.removeEventListener("mousedown", handler);
   }, [sourceDropdownOpen]);
 
-  const explorer = useDataExplorer(groupId);
+  const explorer = useDataExplorer(groupId, userName);
+
+  // Fire-and-forget source-view ping so the engine's interaction tracker
+  // learns user preferences without us blocking the UI. Anonymous
+  // callers (no samAccountName yet) get a no-op on the engine side.
+  const recordSourceView = (name: string) => {
+    if (!userName) return;
+    fetch("/api/data/sources/view", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ groupId, userName, queryName: name }),
+    }).catch(() => {});
+  };
   const dashboard = useDataDashboard(explorer.selectedSource ?? "", groupId);
   const { config: dashboardConfig, initDashboard } = dashboard;
 
@@ -237,6 +252,7 @@ export default function DataExplorerPage() {
                             explorer.setSelectedSource(s.name);
                             dashboard.resetDashboard();
                             setSourceDropdownOpen(false);
+                            recordSourceView(s.name);
                           }}
                           className="w-full text-left px-3 py-2 text-[12px] transition-colors"
                           style={{
@@ -270,6 +286,18 @@ export default function DataExplorerPage() {
                             <span className="font-medium truncate">
                               {s.name}
                             </span>
+                            {s.recent && (
+                              <span
+                                className="text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider"
+                                style={{
+                                  backgroundColor: "var(--brand-subtle)",
+                                  color: "var(--brand)",
+                                }}
+                                title="You have used this source recently"
+                              >
+                                Recent
+                              </span>
+                            )}
                             <span
                               className="ml-auto text-[10px] uppercase"
                               style={{
@@ -368,7 +396,10 @@ export default function DataExplorerPage() {
               {explorer.sources.map((s) => (
                 <button
                   key={s.name}
-                  onClick={() => explorer.setSelectedSource(s.name)}
+                  onClick={() => {
+                    explorer.setSelectedSource(s.name);
+                    recordSourceView(s.name);
+                  }}
                   className="text-left p-4 bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl hover:border-[var(--brand)] hover:shadow-md transition-all"
                 >
                   <div className="text-sm font-semibold text-[var(--text-primary)]">

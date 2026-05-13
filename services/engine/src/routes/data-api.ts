@@ -17,6 +17,7 @@ import {
 import { getAnomalyDetector } from "@/core/anomaly/anomaly-detector";
 import { buildAutoInsights } from "@/core/insights/auto-insights";
 import { findDuplicates } from "@/core/ml/duplicates";
+import { getInteractionTracker } from "@/core/recommendations/interaction-tracker";
 import { analyzeMissing } from "@/core/ml/missing-analysis";
 import { forecast } from "@/core/ml/forecast";
 import { loadSchema } from "@/core/schema/registry";
@@ -77,10 +78,18 @@ async function getCsvData(
   return data;
 }
 
-/* ─── GET /api/data/sources ───────────────────────────────────── */
+/* ─── GET /api/data/sources ───────────────────────────────────── *
+ *
+ * When called with `?userName=X`, the response list is reordered so
+ * sources the caller has used recently bubble to the top — same
+ * mechanism as the chat-history tracker. Without `userName` the order
+ * is the catalog's natural order (current behaviour preserved).
+ */
 dataApiRouter.get("/sources", async (req: Request, res: Response) => {
   try {
     const groupId = (req.query.groupId as string) || "default";
+    const userName =
+      typeof req.query.userName === "string" ? req.query.userName : "";
     const groupConfig = getGroupConfig(groupId);
     const apiClient = new ApiClient(groupConfig.apiBaseUrl ?? undefined);
     const queryService = new QueryService(apiClient, groupConfig.sources);
@@ -97,13 +106,72 @@ dataApiRouter.get("/sources", async (req: Request, res: Response) => {
         columnConfig: q.columnConfig,
       }));
 
+    // Personalised ordering — promote sources the caller has touched
+    // recently. We reuse the interaction-tracker file the chat path
+    // already maintains, so a query the user ran in chat shows up
+    // ahead of unfamiliar ones in the Data Explorer picker too.
+    let recentNames = new Set<string>();
+    if (userName) {
+      try {
+        const tracker = getInteractionTracker(groupId);
+        const interactions = await tracker.readAll();
+        const counts = new Map<string, number>();
+        const recent = interactions
+          .filter((i) => i.userId === userName)
+          .slice(-200); // bounded scan
+        for (const i of recent) {
+          counts.set(i.queryName, (counts.get(i.queryName) ?? 0) + 1);
+        }
+        recentNames = new Set(counts.keys());
+        if (counts.size > 0) {
+          csvSources.sort((a, b) => {
+            const ca = counts.get(a.name) ?? 0;
+            const cb = counts.get(b.name) ?? 0;
+            if (ca !== cb) return cb - ca;
+            return a.name.localeCompare(b.name);
+          });
+        }
+      } catch {
+        /* personalisation best-effort */
+      }
+    }
+
     // Also list all available groups
     const groups = Object.keys(getGroupConfigs());
 
-    return res.json({ sources: csvSources, groups });
+    return res.json({
+      sources: csvSources.map((s) => ({
+        ...s,
+        ...(recentNames.has(s.name) ? { recent: true } : {}),
+      })),
+      groups,
+    });
   } catch (error) {
     logger.error({ error }, "Data sources error");
     return res.status(500).json({ error: "Failed to list data sources" });
+  }
+});
+
+/* ─── POST /api/data/sources/view ────────────────────────────────
+ *
+ * Lightweight ping the Data Explorer fires when the user selects a
+ * source. Records the interaction in the same file the chat path
+ * uses, so usage history is unified across surfaces.
+ */
+dataApiRouter.post("/sources/view", async (req: Request, res: Response) => {
+  try {
+    const body = req.body ?? {};
+    const groupId = typeof body.groupId === "string" ? body.groupId : "default";
+    const userName = typeof body.userName === "string" ? body.userName : "";
+    const queryName = typeof body.queryName === "string" ? body.queryName : "";
+    if (!userName || !queryName) {
+      return res.json({ recorded: false });
+    }
+    await getInteractionTracker(groupId).record(userName, queryName);
+    return res.json({ recorded: true });
+  } catch (error) {
+    logger.error({ error }, "sources/view: record failed");
+    return res.json({ recorded: false });
   }
 });
 

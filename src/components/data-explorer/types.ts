@@ -5,6 +5,9 @@ export interface DataSource {
   filePath?: string;
   filters?: string[];
   columnConfig?: Record<string, unknown>;
+  /** True when the engine reordered this source up because the user
+   *  has interacted with it recently (chat or explorer). */
+  recent?: boolean;
 }
 
 export interface ColumnSchema {
