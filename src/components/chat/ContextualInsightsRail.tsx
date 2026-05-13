@@ -6,7 +6,6 @@ import {
   Sparkles,
   TrendingUp,
   AlertOctagon,
-  Zap,
   EyeOff,
   Eye,
   LineChart,
@@ -290,12 +289,9 @@ export function ContextualInsightsRail({
         </div>
       </section>
 
-      {/* Quick Synthesis Actions */}
+      {/* Quick Synthesis Actions — dense, icon-left tiles. Header dropped
+          since the per-tile icons carry the visual cue. */}
       <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-elevated)] overflow-hidden">
-        <header className="px-3.5 py-2.5 border-b border-[var(--border)] flex items-center gap-1.5">
-          <Zap className="w-3.5 h-3.5 text-[var(--brand)]" />
-          <span className="eyebrow !text-[10px]">Quick Synthesis Actions</span>
-        </header>
         <div className="grid grid-cols-3 gap-px bg-[var(--border)]">
           {synthesisActions.map((a, i) => {
             const Icon = a.icon;
@@ -306,12 +302,12 @@ export function ContextualInsightsRail({
                 onClick={a.action}
                 disabled={isDisabled}
                 title={a.disabled ? a.disabledReason : a.label}
-                className="flex flex-col items-center justify-center text-center gap-1.5 px-2 py-3 bg-[var(--bg-elevated)] hover:bg-[var(--bg-secondary)] transition-colors group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--bg-elevated)]"
+                className="flex items-center gap-1.5 px-2 py-1.5 bg-[var(--bg-elevated)] hover:bg-[var(--bg-secondary)] transition-colors group text-left disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--bg-elevated)]"
               >
-                <Icon className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--brand)] transition-colors shrink-0" />
-                <div className="text-[11px] font-medium text-[var(--text-primary)] leading-tight line-clamp-2 break-words">
+                <Icon className="w-3 h-3 text-[var(--text-muted)] group-hover:text-[var(--brand)] transition-colors shrink-0" />
+                <span className="text-[10.5px] font-medium text-[var(--text-primary)] leading-tight truncate">
                   {a.label}
-                </div>
+                </span>
               </button>
             );
           })}

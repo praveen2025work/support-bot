@@ -207,8 +207,11 @@ export async function rerunLastQueryWithFilters(
       }
     }
 
-    // Re-attach chart/column config from context so follow-up charts render
+    // Re-attach chart/column config from context so follow-up charts render.
+    // Always include the canonical queryName so the client header doesn't
+    // have to parse it out of the bot text.
     const chartMeta = {
+      ...(context.lastQueryName && { queryName: context.lastQueryName }),
       ...(context.lastChartConfig && { chartConfig: context.lastChartConfig }),
       ...(context.lastColumnConfig && {
         columnConfig: context.lastColumnConfig,
@@ -1292,6 +1295,10 @@ export async function handleQueryExecute(
             type: "csv_table",
             data: {
               ...displayCsv,
+              // Stamp the canonical queryName so the client banner /
+              // Active Dataset rail can use it instead of falling back
+              // to the verbose first line of the bot text.
+              queryName: queryNameEntity.value,
               ...(chartConfig && { chartConfig }),
               ...(columnConfig && { columnConfig }),
               ...(columnMetadata && { columnMetadata }),
@@ -1324,13 +1331,16 @@ export async function handleQueryExecute(
           ...(columnConfig && { columnConfig }),
           ...(columnMetadata && { columnMetadata }),
         };
-        const apiData =
-          Object.keys(extraConfig).length > 0
-            ? {
-                ...(result.apiResult as Record<string, unknown>),
-                ...extraConfig,
-              }
-            : result.apiResult;
+        const apiData = (() => {
+          const base = result.apiResult as Record<string, unknown> | null;
+          const out: Record<string, unknown> = base ? { ...base } : {};
+          // Always stamp the canonical queryName so the client header
+          // doesn't fall back to splitting the bot text.
+          out.queryName = queryNameEntity.value;
+          if (Object.keys(extraConfig).length > 0)
+            Object.assign(out, extraConfig);
+          return out;
+        })();
         return {
           text: totalRowCount
             ? `Here are the results for "${queryNameEntity.value}"${filterLabel} (showing first ${displayedRows} of ${totalRowCount} rows):`
