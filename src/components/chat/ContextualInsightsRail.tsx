@@ -11,6 +11,9 @@ import {
   Zap,
   EyeOff,
   Eye,
+  LineChart,
+  ArrowDownWideNarrow,
+  Layers,
 } from "lucide-react";
 
 interface ActiveResult {
@@ -100,12 +103,15 @@ export function ContextualInsightsRail({
     return { hasNumeric, hasDate };
   }, [activeResult]);
 
-  // Derive top performer + alert from numeric columns
-  const { topPerformer, alert } = useMemo(() => {
+  // Pick representative columns once — shared by Top Performer/Alert
+  // calc and the capability-gated synthesis actions below.
+  const { labelCol, valueCol } = useMemo(() => {
     if (activeResult.data.length === 0) {
-      return { topPerformer: null, alert: null };
+      return {
+        labelCol: null as string | null,
+        valueCol: null as string | null,
+      };
     }
-
     const numericCols = activeResult.columns.filter((col) =>
       activeResult.data.some((row) => typeof row[col] === "number"),
     );
@@ -114,13 +120,21 @@ export function ContextualInsightsRail({
         (row) => typeof row[col] === "string" || row[col] == null,
       ),
     );
+    return {
+      labelCol: categoricalCols[0] ?? null,
+      valueCol: numericCols[0] ?? null,
+    };
+  }, [activeResult]);
 
-    if (numericCols.length === 0 || categoricalCols.length === 0) {
+  // Derive top performer + alert from numeric columns
+  const { topPerformer, alert } = useMemo(() => {
+    if (
+      activeResult.data.length === 0 ||
+      labelCol == null ||
+      valueCol == null
+    ) {
       return { topPerformer: null, alert: null };
     }
-
-    const labelCol = categoricalCols[0];
-    const valueCol = numericCols[0];
 
     let topRow = activeResult.data[0];
     let topVal = Number(topRow[valueCol] ?? 0);
@@ -150,13 +164,17 @@ export function ContextualInsightsRail({
           ? { label: String(minRow[labelCol] ?? "—"), metric: valueCol }
           : null,
     };
-  }, [activeResult]);
+  }, [activeResult, labelCol, valueCol]);
 
   // Forecast needs a date + numeric column; the engine returns a
   // helpful error otherwise, but we surface that as a disabled state
   // with a tooltip so the user understands why before clicking.
   const forecastReady = capabilities.hasNumeric && capabilities.hasDate;
   const anomalyReady = capabilities.hasNumeric;
+
+  const rankReady = capabilities.hasNumeric && labelCol != null;
+  const groupReady = labelCol != null;
+  const trendReady = forecastReady;
 
   const synthesisActions = [
     {
@@ -172,11 +190,38 @@ export function ContextualInsightsRail({
         : "Needs a numeric column",
     },
     {
+      label: "Show trend over time",
+      icon: LineChart,
+      action: () => onSendChat?.(`show trend in ${activeResult.queryName}`),
+      disabled: !trendReady,
+      disabledReason: !capabilities.hasDate
+        ? "Needs a date column"
+        : "Needs a numeric column",
+    },
+    {
       label: "Detect anomalies",
       icon: AlertOctagon,
       action: () => onSendChat?.(`find outliers in ${activeResult.queryName}`),
       disabled: !anomalyReady,
       disabledReason: "Needs a numeric column",
+    },
+    {
+      label: rankReady ? `Top 5 by ${valueCol}` : "Top 5",
+      icon: ArrowDownWideNarrow,
+      action: () =>
+        onSendChat?.(`top 5 by ${valueCol} in ${activeResult.queryName}`),
+      disabled: !rankReady,
+      disabledReason: labelCol
+        ? "Needs a numeric column"
+        : "Needs a category column",
+    },
+    {
+      label: groupReady ? `Group by ${labelCol}` : "Group by",
+      icon: Layers,
+      action: () =>
+        onSendChat?.(`group by ${labelCol} in ${activeResult.queryName}`),
+      disabled: !groupReady,
+      disabledReason: "Needs a category column",
     },
     {
       label: "Generate summary",
