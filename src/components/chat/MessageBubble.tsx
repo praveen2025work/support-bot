@@ -11,6 +11,9 @@ import {
   Check,
   HelpCircle,
   Share2,
+  CircleDot,
+  TriangleAlert,
+  AlertOctagon,
 } from "lucide-react";
 import { AnomalyAlert } from "@/components/dashboard/AnomalyBadge";
 import { FeedbackBar } from "./FeedbackBar";
@@ -19,6 +22,31 @@ import { ConfidenceBadge } from "./ConfidenceBadge";
 import { RichContentRenderer } from "./RichContentRenderer";
 import { DisambiguationChips } from "./SuggestionChips";
 import type { LinkedSelection, DiffInfo } from "./richContentTypes";
+
+/** Auto-insight schema as emitted by the engine. Matches the shape
+ *  GridBoardShell uses so we can render the same modern list. */
+interface AutoInsightLike {
+  kind?: string;
+  text: string;
+  severity?: "info" | "warning" | "critical";
+  column?: string;
+}
+
+/** Render a string containing **bold** markers as React nodes — same
+ *  helper GridBoard uses for its insights list. */
+function renderInsightText(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((p, i) => {
+    if (p.startsWith("**") && p.endsWith("**")) {
+      return (
+        <strong key={i} className="font-semibold text-[var(--text-primary)]">
+          {p.slice(2, -2)}
+        </strong>
+      );
+    }
+    return <span key={i}>{p}</span>;
+  });
+}
 
 /** Detect the engine's "Here are the results for "X"…" / "Here is the
  *  data from "X"…" boilerplate so we can replace the prose + the
@@ -369,9 +397,56 @@ export function MessageBubble({
             "csv_aggregation",
             "multi_query_result",
           ].includes(message.richContent.type) ? (
-          <div className="mt-1 text-[11px] text-[var(--text-muted)]">
-            Results shown in panel →
-          </div>
+          (() => {
+            const insightsArr = (
+              message.richContent?.data as Record<string, unknown> | undefined
+            )?.autoInsights as AutoInsightLike[] | undefined;
+            const insights = Array.isArray(insightsArr) ? insightsArr : [];
+            return (
+              <>
+                <div className="mt-1 text-[11px] text-[var(--text-muted)]">
+                  Results shown in panel →
+                </div>
+                {insights.length > 0 && (
+                  <ul
+                    className="mt-2 flex flex-col gap-0.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)]/40 p-1"
+                    role="status"
+                    aria-label="Auto-insights"
+                  >
+                    {insights.map((ins, i) => {
+                      const isWarn = ins.severity === "warning";
+                      const isCrit = ins.severity === "critical";
+                      const tone = isCrit
+                        ? "var(--danger)"
+                        : isWarn
+                          ? "var(--warning)"
+                          : "var(--brand)";
+                      const Icon = isCrit
+                        ? AlertOctagon
+                        : isWarn
+                          ? TriangleAlert
+                          : CircleDot;
+                      return (
+                        <li
+                          key={i}
+                          className="flex items-start gap-2 px-2 py-1 text-[12px] leading-snug text-[var(--text-secondary)] rounded hover:bg-[var(--bg-elevated)] transition-colors"
+                        >
+                          <Icon
+                            size={12}
+                            className="mt-0.5 shrink-0"
+                            style={{ color: tone }}
+                          />
+                          <span className="min-w-0">
+                            {renderInsightText(ins.text)}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </>
+            );
+          })()
         ) : message.richContent ? (
           <div className={dashboardMode ? "" : "mt-2"}>
             <RichContentRenderer
