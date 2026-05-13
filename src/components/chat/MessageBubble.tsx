@@ -20,19 +20,23 @@ import { RichContentRenderer } from "./RichContentRenderer";
 import { DisambiguationChips } from "./SuggestionChips";
 import type { LinkedSelection, DiffInfo } from "./richContentTypes";
 
-/** Detect "Here are the results for "X"<suffix>:" boilerplate so we can
- *  replace the noisy phrase + separate execution-time pill with a single
- *  compact banner: brand bullet · queryName · N rows · Xms. The suffix
- *  (e.g. "for region=APAC" or "(showing first 50 of 1,200 rows)") is
- *  rendered as muted secondary text. Returns null if the text isn't a
- *  results line, so callers fall back to plain markdown rendering. */
+/** Detect the engine's "Here are the results for "X"…" / "Here is the
+ *  data from "X"…" boilerplate so we can replace the prose + the
+ *  separate execution-time pill with a single compact label:
+ *
+ *     Active Dataset: <queryName>, <N> rows, <X>ms
+ *
+ *  Any tail context the engine appended (e.g. "for region=APAC" or
+ *  "(showing first 50 of 1,200 rows)") is rendered as a muted suffix
+ *  on the same line. Returns null if the text isn't a results line. */
 function tryParseResultsBanner(
   text: string,
 ): { queryName: string; suffix: string } | null {
   if (!text) return null;
-  // Strip a single trailing ":" before matching the quoted name pattern.
   const trimmed = text.replace(/\s*:\s*$/, "");
-  const m = trimmed.match(/^Here are the results for\s+"([^"]+)"(.*)$/i);
+  const m = trimmed.match(
+    /^(?:Here are the results for|Here is the data from)\s+"([^"]+)"(.*)$/i,
+  );
   if (!m) return null;
   return { queryName: m[1], suffix: (m[2] ?? "").trim() };
 }
@@ -298,26 +302,24 @@ export function MessageBubble({
               (rcData?.rowCount as number | undefined) ??
               (Array.isArray(rowsArr) ? rowsArr.length : undefined);
             return (
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span
-                  aria-hidden="true"
-                  className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--brand)]"
-                />
+              <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[12.5px]">
+                <span className="eyebrow !text-[10px]">Active Dataset:</span>
                 <button
                   type="button"
                   onClick={() => onAction?.(banner.queryName)}
-                  className="font-display text-[14px] font-bold tracking-tight text-[var(--text-primary)] hover:text-[var(--brand)] transition-colors disabled:hover:text-[var(--text-primary)] disabled:cursor-default"
+                  className="font-display font-bold tracking-tight text-[var(--text-primary)] hover:text-[var(--brand)] transition-colors disabled:hover:text-[var(--text-primary)] disabled:cursor-default truncate max-w-[60%]"
                   disabled={!onAction}
                   title={banner.queryName}
                 >
                   {banner.queryName}
                 </button>
-                <span className="text-[11px] font-mono text-[var(--text-muted)]">
-                  {rowCount != null &&
-                    `${rowCount.toLocaleString()} row${rowCount === 1 ? "" : "s"}`}
-                  {rowCount != null && message.executionMs != null && " · "}
-                  {message.executionMs != null && `${message.executionMs}ms`}
-                </span>
+                {(rowCount != null || message.executionMs != null) && (
+                  <span className="font-mono text-[11px] text-[var(--text-muted)]">
+                    {rowCount != null && `, ${rowCount.toLocaleString()}`}
+                    {message.executionMs != null &&
+                      `, ${message.executionMs}ms`}
+                  </span>
+                )}
                 {banner.suffix && (
                   <span className="text-[11px] text-[var(--text-muted)] truncate max-w-full">
                     {banner.suffix}
