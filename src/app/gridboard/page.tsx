@@ -1,9 +1,10 @@
 "use client";
 
+import { Suspense } from "react";
 import { ContextualTopBar } from "@/components/shell/ContextualTopBar";
 import { GridBoardShell } from "@/components/gridboard/GridBoardShell";
 
-export default function GridBoardPage() {
+function GridBoardPageInner() {
   return (
     <div className="h-screen flex flex-col">
       <ContextualTopBar title="Grid Board">
@@ -13,5 +14,17 @@ export default function GridBoardPage() {
       </ContextualTopBar>
       <GridBoardShell />
     </div>
+  );
+}
+
+export default function GridBoardPage() {
+  // GridBoardShell uses useSearchParams() to read the ?query= param
+  // on load. Next.js's static prerender pass requires that to be
+  // wrapped in <Suspense>, otherwise the build fails with a missing
+  // suspense boundary error.
+  return (
+    <Suspense fallback={<div />}>
+      <GridBoardPageInner />
+    </Suspense>
   );
 }

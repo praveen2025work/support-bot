@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 /** Compute a safe postMessage target origin instead of broadcasting to '*'.
@@ -29,7 +29,7 @@ interface ChatbotContext {
   extra?: Record<string, unknown>;
 }
 
-export default function ActionPanelDemo() {
+function ActionPanelDemoInner() {
   const searchParams = useSearchParams();
   const [context, setContext] = useState<ChatbotContext | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
@@ -512,5 +512,15 @@ window.addEventListener('message', function(e) {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ActionPanelDemo() {
+  // useSearchParams() requires a Suspense boundary for Next.js's
+  // static prerender pass to succeed.
+  return (
+    <Suspense fallback={<div />}>
+      <ActionPanelDemoInner />
+    </Suspense>
   );
 }
