@@ -145,6 +145,35 @@ export class WatchRuleService {
     fs.writeFileSync(filePath, updated.join("\n") + "\n", "utf-8");
   }
 
+  markAllAlertsRead(groupId: string): number {
+    const filePath = this.alertsPath(groupId);
+    if (!fs.existsSync(filePath)) return 0;
+    const lines = fs
+      .readFileSync(filePath, "utf-8")
+      .split("\n")
+      .filter((l) => l.trim().length > 0);
+    let changed = 0;
+    const updated = lines.map((l) => {
+      const alert = JSON.parse(l) as WatchAlert;
+      if (alert.read) return l;
+      changed += 1;
+      return JSON.stringify({ ...alert, read: true });
+    });
+    fs.writeFileSync(filePath, updated.join("\n") + "\n", "utf-8");
+    return changed;
+  }
+
+  clearAlerts(groupId: string): number {
+    const filePath = this.alertsPath(groupId);
+    if (!fs.existsSync(filePath)) return 0;
+    const removed = fs
+      .readFileSync(filePath, "utf-8")
+      .split("\n")
+      .filter((l) => l.trim().length > 0).length;
+    fs.writeFileSync(filePath, "", "utf-8");
+    return removed;
+  }
+
   getUnreadCount(groupId: string): number {
     const alerts = this.getAlerts(groupId, Number.MAX_SAFE_INTEGER);
     return alerts.filter((a) => !a.read).length;

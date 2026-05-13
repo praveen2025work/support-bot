@@ -22,3 +22,20 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const groupId = request.nextUrl.searchParams.get("groupId") || "default";
+    const engineRes = await proxyToEngine(
+      `/api/watch/alerts?groupId=${encodeURIComponent(groupId)}`,
+      { method: "DELETE" },
+    );
+    const data = await engineRes.json();
+    return NextResponse.json(data, { status: engineRes.status });
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Failed to reach engine" },
+      { status: 502 },
+    );
+  }
+}

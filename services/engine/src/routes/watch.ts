@@ -42,13 +42,10 @@ router.post("/rules", (req: Request, res: Response) => {
       !input.type ||
       !input.cronExpression
     ) {
-      res
-        .status(400)
-        .json({
-          success: false,
-          error:
-            "Missing required fields: name, queryName, type, cronExpression",
-        });
+      res.status(400).json({
+        success: false,
+        error: "Missing required fields: name, queryName, type, cronExpression",
+      });
       return;
     }
 
@@ -131,6 +128,32 @@ router.patch("/alerts/:id/read", (req: Request, res: Response) => {
     res
       .status(500)
       .json({ success: false, error: "Failed to mark alert as read" });
+  }
+});
+
+// PATCH /api/watch/alerts/read-all?groupId=default
+router.patch("/alerts/read-all", (req: Request, res: Response) => {
+  try {
+    const groupId = (req.query.groupId as string) || "default";
+    const updated = watchRuleService.markAllAlertsRead(groupId);
+    res.json({ success: true, updated });
+  } catch (error) {
+    console.error("[Watch] Mark all alerts read error:", error);
+    res
+      .status(500)
+      .json({ success: false, error: "Failed to mark alerts as read" });
+  }
+});
+
+// DELETE /api/watch/alerts?groupId=default
+router.delete("/alerts", (req: Request, res: Response) => {
+  try {
+    const groupId = (req.query.groupId as string) || "default";
+    const removed = watchRuleService.clearAlerts(groupId);
+    res.json({ success: true, removed });
+  } catch (error) {
+    console.error("[Watch] Clear alerts error:", error);
+    res.status(500).json({ success: false, error: "Failed to clear alerts" });
   }
 });
 

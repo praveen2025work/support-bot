@@ -76,6 +76,33 @@ export function NotificationCenter({ groupId }: NotificationCenterProps) {
     }
   }, []);
 
+  const handleMarkAllRead = useCallback(async () => {
+    if (unreadCount === 0) return;
+    try {
+      await fetch(
+        `/api/watch/alerts/read-all?groupId=${encodeURIComponent(groupId)}`,
+        { method: "PATCH" },
+      );
+      setAlerts((prev) => prev.map((a) => ({ ...a, read: true })));
+      setUnreadCount(0);
+    } catch {
+      // silently ignore
+    }
+  }, [groupId, unreadCount]);
+
+  const handleClearAll = useCallback(async () => {
+    if (alerts.length === 0) return;
+    try {
+      await fetch(`/api/watch/alerts?groupId=${encodeURIComponent(groupId)}`, {
+        method: "DELETE",
+      });
+      setAlerts([]);
+      setUnreadCount(0);
+    } catch {
+      // silently ignore
+    }
+  }, [alerts.length, groupId]);
+
   const handleViewData = useCallback((queryName: string) => {
     setOpen(false);
     window.location.href = `/?autoQuery=${encodeURIComponent(queryName)}`;
@@ -99,14 +126,36 @@ export function NotificationCenter({ groupId }: NotificationCenterProps) {
       {open && (
         <div className="absolute top-full right-0 mt-2 w-[340px] bg-[var(--bg-primary)] border border-[var(--border-primary,var(--border))] rounded-[var(--radius-md)] shadow-[var(--shadow-lg)] z-50 flex flex-col max-h-[480px]">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
-            <span className="text-[13px] font-semibold text-[var(--text-primary)]">
-              Notifications
-            </span>
-            {unreadCount > 0 && (
-              <span className="text-[11px] text-[var(--text-muted)]">
-                {unreadCount} unread
+          <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-[var(--border)]">
+            <div className="flex items-baseline gap-2">
+              <span className="text-[13px] font-semibold text-[var(--text-primary)]">
+                Notifications
               </span>
+              {unreadCount > 0 && (
+                <span className="text-[11px] text-[var(--text-muted)]">
+                  {unreadCount} unread
+                </span>
+              )}
+            </div>
+            {alerts.length > 0 && (
+              <div className="flex items-center gap-2">
+                {unreadCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleMarkAllRead}
+                    className="text-[11px] text-[var(--accent)] hover:underline"
+                  >
+                    Mark all read
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleClearAll}
+                  className="text-[11px] text-[var(--text-muted)] hover:text-[var(--danger)] hover:underline"
+                >
+                  Clear all
+                </button>
+              </div>
             )}
           </div>
 
