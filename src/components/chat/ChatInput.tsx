@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Paperclip,
   Plus,
@@ -11,7 +11,43 @@ import {
   LayoutGrid,
   ToggleLeft,
   ToggleRight,
+  Search,
 } from "lucide-react";
+
+interface QuerySuggestion {
+  queryName: string;
+  description?: string;
+  score?: number;
+}
+
+/**
+ * Phrases that look like follow-up commands on an existing result —
+ * we don't want to swap the input for a catalog query while the user
+ * is mid-conversation. Cheap prefix check; intentionally not the full
+ * NLP pattern.
+ */
+const FOLLOWUP_PREFIXES = [
+  "group by",
+  "break it down",
+  "break down",
+  "split by",
+  "for each",
+  "per ",
+  "sort",
+  "rank",
+  "summarize",
+  "summary",
+  "top ",
+  "bottom ",
+  "filter ",
+  "where ",
+  "show only",
+];
+
+function looksLikeFollowUp(t: string): boolean {
+  const s = t.toLowerCase().trim();
+  return FOLLOWUP_PREFIXES.some((p) => s.startsWith(p));
+}
 
 type DisplayMode = "auto" | "table" | "chart";
 
@@ -38,6 +74,7 @@ export function ChatInput({
   compactAuto = true,
   onCompactAutoChange,
   hasResults = false,
+  groupId = "default",
 }: {
   onSend: (text: string) => void;
   disabled: boolean;
@@ -51,15 +88,110 @@ export function ChatInput({
   compactAuto?: boolean;
   onCompactAutoChange?: (compact: boolean) => void;
   hasResults?: boolean;
+  groupId?: string;
 }) {
   const [text, setText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // ── Autocomplete state ──────────────────────────────────────────────
+  const [suggestions, setSuggestions] = useState<QuerySuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  // Tracks the latest in-flight search so a stale response doesn't
+  // overwrite a fresher one. AbortController would also work but is
+  // overkill for a 200ms-debounced 8-row JSON payload.
+  const requestIdRef = useRef(0);
+
+  // Debounced search effect. Hits the semantic search endpoint when
+  // the user has typed 2+ chars of a non-follow-up phrase. Both the
+  // clear-on-invalid path and the fetch path run inside setTimeout so
+  // we never call setState synchronously inside the effect body — the
+  // React lint rule against cascading renders.
+  useEffect(() => {
+    const trimmed = text.trim();
+    const myId = ++requestIdRef.current;
+    const invalid = trimmed.length < 2 || looksLikeFollowUp(trimmed);
+    const timer = setTimeout(async () => {
+      if (myId !== requestIdRef.current) return;
+      if (invalid) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+      try {
+        const url = `/api/queries/search?q=${encodeURIComponent(trimmed)}&groupId=${encodeURIComponent(groupId)}`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const data: { results?: QuerySuggestion[] } = await res.json();
+        if (myId !== requestIdRef.current) return;
+        const top = (data.results || []).slice(0, 6);
+        setSuggestions(top);
+        setShowSuggestions(top.length > 0);
+        setHighlightedIndex(0);
+      } catch {
+        /* offline / network blip — keep prior state */
+      }
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [text, groupId]);
+
+  const acceptSuggestion = useCallback((s: QuerySuggestion) => {
+    // Fill the input rather than auto-submit so the user can tweak
+    // (add filters, switch ordering) before sending.
+    setText(`run ${s.queryName}`);
+    setShowSuggestions(false);
+    inputRef.current?.focus();
+  }, []);
 
   const handleSubmit = useCallback(() => {
     if (!text.trim() || disabled) return;
     onSend(text);
     setText("");
+    setShowSuggestions(false);
   }, [text, disabled, onSend]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (showSuggestions && suggestions.length > 0) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setHighlightedIndex((i) => (i + 1) % suggestions.length);
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setHighlightedIndex(
+            (i) => (i - 1 + suggestions.length) % suggestions.length,
+          );
+          return;
+        }
+        if (e.key === "Tab") {
+          // Tab accepts the highlighted suggestion. Enter is reserved
+          // for sending — otherwise users who type a query name verbatim
+          // would accidentally accept a suggestion instead of sending.
+          e.preventDefault();
+          acceptSuggestion(suggestions[highlightedIndex]);
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setShowSuggestions(false);
+          return;
+        }
+      }
+      if (e.key === "Enter") {
+        handleSubmit();
+      }
+    },
+    [
+      showSuggestions,
+      suggestions,
+      highlightedIndex,
+      acceptSuggestion,
+      handleSubmit,
+    ],
+  );
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,15 +272,78 @@ export function ChatInput({
             <Paperclip size={18} />
           </button>
         )}
-        <input
-          type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-          placeholder="Type a message..."
-          disabled={disabled}
-          className="flex-1 rounded-full border border-[var(--border)] px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:border-transparent disabled:opacity-50"
-        />
+        <div className="relative flex-1">
+          <input
+            ref={inputRef}
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setShowSuggestions(suggestions.length > 0)}
+            onBlur={() => {
+              // Delay so a click on a suggestion lands before the
+              // dropdown unmounts.
+              setTimeout(() => setShowSuggestions(false), 120);
+            }}
+            placeholder="Type a message..."
+            disabled={disabled}
+            role="combobox"
+            aria-autocomplete="list"
+            aria-controls="chat-autocomplete-list"
+            aria-expanded={showSuggestions}
+            className="w-full rounded-full border border-[var(--border)] px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:border-transparent disabled:opacity-50"
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <ul
+              id="chat-autocomplete-list"
+              role="listbox"
+              className="absolute bottom-full left-0 right-0 mb-2 max-h-72 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] shadow-lg z-20"
+            >
+              <li className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)] border-b border-[var(--border)] flex items-center gap-1.5">
+                <Search size={11} />
+                Available queries · Tab to insert · Esc to dismiss
+              </li>
+              {suggestions.map((s, idx) => {
+                const active = idx === highlightedIndex;
+                return (
+                  <li
+                    key={s.queryName}
+                    role="option"
+                    aria-selected={active}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      acceptSuggestion(s);
+                    }}
+                    onMouseEnter={() => setHighlightedIndex(idx)}
+                    className="px-3 py-2 cursor-pointer border-b last:border-b-0 border-[var(--border)] transition-colors"
+                    style={{
+                      backgroundColor: active
+                        ? "color-mix(in srgb, var(--brand) 10%, transparent)"
+                        : "transparent",
+                    }}
+                  >
+                    <div
+                      className="text-sm font-medium truncate"
+                      style={{
+                        color: active ? "var(--brand)" : "var(--text-primary)",
+                      }}
+                    >
+                      {s.queryName}
+                    </div>
+                    {s.description && (
+                      <div
+                        className="text-xs truncate"
+                        style={{ color: "var(--text-muted)" }}
+                      >
+                        {s.description}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
         <button
           onClick={handleSubmit}
           disabled={disabled || !text.trim()}

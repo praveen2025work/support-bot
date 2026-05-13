@@ -1471,6 +1471,52 @@ async function testGroupIsolation() {
 // write-path LOGIC works. Browser CSRF flow is tested separately
 // during the manual demo rehearsal.
 
+async function testAutocomplete() {
+  section("Type-ahead — /api/queries/search returns scored matches");
+
+  const partial = await timed(() =>
+    getJson(
+      `${NEXT_URL}/api/queries/search?q=pnl&groupId=finance`,
+      { headers: {} },
+    ),
+  );
+  const results = partial.result?.body?.results || [];
+  const has = (n) => results.some((r) => r.queryName === n);
+  // pnl_lineage is the demo's canonical query; if it's not in the top
+  // matches, the semantic index is wrong.
+  record(
+    "autocomplete",
+    'partial "pnl" matches pnl_lineage in top results',
+    has("pnl_lineage"),
+    `count=${results.length} top=${results[0]?.queryName}`,
+    partial.durationMs,
+  );
+  record(
+    "autocomplete",
+    "results are scored and shape-valid",
+    results.every(
+      (r) => typeof r.queryName === "string" && typeof r.score === "number",
+    ),
+    `count=${results.length}`,
+  );
+
+  // Empty query should return an empty array, not an error — the
+  // ChatInput debounce relies on this to not hit a 4xx and trip the
+  // network error UX.
+  const empty = await timed(() =>
+    getJson(`${NEXT_URL}/api/queries/search?q=&groupId=finance`, {
+      headers: {},
+    }),
+  );
+  record(
+    "autocomplete",
+    "empty q returns empty results",
+    empty.result?.ok && Array.isArray(empty.result?.body?.results),
+    `ok=${empty.result?.ok} resultsType=${typeof empty.result?.body?.results}`,
+    empty.durationMs,
+  );
+}
+
 async function testAutoInsights() {
   section("Chat — auto-insights surface on initial query load");
   if (QUICK) {
@@ -1810,6 +1856,7 @@ async function main() {
   await testSnapshots();
   await testEdgeCases();
   await testGroupIsolation();
+  await testAutocomplete();
   await testAutoInsights();
   await testGlossaryCrud();
   await testSynonymCrud();

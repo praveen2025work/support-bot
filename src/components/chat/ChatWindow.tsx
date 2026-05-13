@@ -385,6 +385,7 @@ export function ChatWindow({
             compactAuto={compactAuto}
             onCompactAutoChange={setCompactAuto}
             hasResults={hasResults}
+            groupId={groupId}
           />
         </div>
       </FileDropZone>
