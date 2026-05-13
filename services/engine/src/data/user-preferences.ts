@@ -697,6 +697,18 @@ export class UserPreferencesStore {
   } | null> {
     try {
       const files = await fs.readdir(PREFS_DIR);
+      // Two-pass scan: dashboard ids are not unique across users, so we
+      // must look at every file first and pick the best permission match.
+      // A previous version returned `permission: null` on the first hit
+      // alphabetically, which incorrectly denied owners whose username
+      // sorted after another user that happened to share the same
+      // dashboard id.
+      let bestMatch: {
+        dashboard: Dashboard;
+        ownerId: string;
+        permission: "owner" | "edit" | "view" | null;
+      } | null = null;
+      const rank = { owner: 3, edit: 2, view: 1 } as const;
       for (const file of files) {
         if (!file.endsWith(".json") || file.endsWith(".tmp")) continue;
         try {
@@ -707,28 +719,35 @@ export class UserPreferencesStore {
           );
           if (!dash) continue;
           const ownerId = prefs.userId;
+          let permission: "owner" | "edit" | "view" | null = null;
           if (ownerId === requestingUserId) {
-            return { dashboard: dash, ownerId, permission: "owner" };
+            permission = "owner";
+          } else if (dash.sharing?.isPublic) {
+            permission = "view";
+          } else {
+            const shareEntry = dash.sharing?.sharedWith?.find(
+              (s) => s.userId === requestingUserId,
+            );
+            if (shareEntry) {
+              permission = shareEntry.permission;
+            }
           }
-          if (dash.sharing?.isPublic) {
-            return { dashboard: dash, ownerId, permission: "view" };
+          if (!bestMatch) {
+            bestMatch = { dashboard: dash, ownerId, permission };
+          } else if (
+            permission &&
+            (!bestMatch.permission ||
+              rank[permission] > rank[bestMatch.permission])
+          ) {
+            bestMatch = { dashboard: dash, ownerId, permission };
           }
-          const shareEntry = dash.sharing?.sharedWith?.find(
-            (s) => s.userId === requestingUserId,
-          );
-          if (shareEntry) {
-            return {
-              dashboard: dash,
-              ownerId,
-              permission: shareEntry.permission,
-            };
-          }
-          // Dashboard exists but user has no access
-          return { dashboard: dash, ownerId, permission: null };
+          // Short-circuit on owner — no better match possible.
+          if (permission === "owner") return bestMatch;
         } catch {
           // skip invalid files
         }
       }
+      return bestMatch;
     } catch {
       // preferences dir may not exist
     }

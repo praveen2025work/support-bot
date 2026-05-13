@@ -290,15 +290,17 @@ export async function handleQueryList(
       };
     }
 
-    const queryItems = queries.map((q) => {
-      return {
-        name: q.name,
-        description: q.description,
-        type: (q.type ?? "api") as string,
-        filters: (q.filters ?? []).map((f) => f.key),
-        url: q.type === "url" ? q.url : undefined,
-      };
-    });
+    const queryItems = queries
+      .map((q) => {
+        return {
+          name: q.name,
+          description: q.description,
+          type: (q.type ?? "api") as string,
+          filters: (q.filters ?? []).map((f) => f.key),
+          url: q.type === "url" ? q.url : undefined,
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     return {
       text: `Here are the available queries (${queries.length}):`,
