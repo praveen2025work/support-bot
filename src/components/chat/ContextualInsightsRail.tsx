@@ -6,7 +6,6 @@ import {
   Sparkles,
   TrendingUp,
   AlertOctagon,
-  Clock,
   Zap,
   EyeOff,
   Eye,
@@ -271,13 +270,18 @@ export function ContextualInsightsRail({
     <div className="flex flex-col gap-3">
       {/* Active Dataset */}
       <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-elevated)] overflow-hidden">
-        <header className="px-3.5 py-2.5 border-b border-[var(--border)] flex items-center gap-1.5">
-          <Database className="w-3.5 h-3.5 text-[var(--brand)]" />
-          <span className="eyebrow !text-[10px]">Active Dataset</span>
+        <header className="px-3.5 py-2.5 border-b border-[var(--border)] flex items-center gap-2 min-w-0">
+          <Database className="w-3.5 h-3.5 text-[var(--brand)] shrink-0" />
+          <span
+            className="font-display text-[13px] font-bold tracking-tight text-[var(--text-primary)] truncate"
+            title={activeResult.queryName}
+          >
+            {activeResult.queryName}
+          </span>
           {hasKpis && (
             <button
               onClick={toggleKpi}
-              className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              className="ml-auto shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
               title={kpiHidden ? "Show analysis" : "Hide analysis"}
               aria-label={kpiHidden ? "Show analysis" : "Hide analysis"}
             >
@@ -291,37 +295,42 @@ export function ContextualInsightsRail({
           )}
         </header>
         <div className="px-3.5 py-3">
-          <div className="font-display text-[14px] font-bold tracking-tight text-[var(--text-primary)] truncate">
-            {activeResult.queryName}
+          <div className="text-[11px] font-mono text-[var(--text-muted)]">
+            {activeResult.data.length.toLocaleString()} rows
+            {activeResult.executionMs != null &&
+              ` · ${activeResult.executionMs}ms`}
           </div>
-          <div className="flex items-center justify-between gap-2 mt-0.5 text-[11px] font-mono">
-            <div className="inline-flex items-center gap-1 text-[var(--text-muted)] shrink-0">
-              <Clock className="w-2.5 h-2.5" />
-              {activeResult.data.length.toLocaleString()} rows
-              {activeResult.executionMs != null &&
-                ` · ${activeResult.executionMs}ms`}
-            </div>
-            {(topPerformer || alert) && (
-              <div className="flex items-center gap-2 min-w-0 justify-end">
-                {topPerformer && (
-                  <span
-                    className="inline-flex items-center gap-0.5 text-emerald-500 truncate max-w-[110px]"
-                    title={`Top by ${topPerformer.metric}: ${topPerformer.label}`}
-                  >
-                    ↑ <span className="truncate">{topPerformer.label}</span>
+
+          {(topPerformer || alert) && (
+            <dl className="mt-3 space-y-1.5 border-t border-[var(--border-subtle)] pt-3 text-[11.5px]">
+              {topPerformer && (
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <dt className="eyebrow !text-[9px] !text-emerald-500 shrink-0 w-7">
+                    Top
+                  </dt>
+                  <dd className="font-medium text-[var(--text-primary)] truncate min-w-0 flex-1">
+                    {topPerformer.label}
+                  </dd>
+                  <span className="text-[10px] text-[var(--text-muted)] font-mono truncate max-w-[40%]">
+                    {topPerformer.metric}
                   </span>
-                )}
-                {alert && (
-                  <span
-                    className="inline-flex items-center gap-0.5 text-rose-500 truncate max-w-[110px]"
-                    title={`Low by ${alert.metric}: ${alert.label}`}
-                  >
-                    ↓ <span className="truncate">{alert.label}</span>
+                </div>
+              )}
+              {alert && (
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <dt className="eyebrow !text-[9px] !text-rose-500 shrink-0 w-7">
+                    Low
+                  </dt>
+                  <dd className="font-medium text-[var(--text-primary)] truncate min-w-0 flex-1">
+                    {alert.label}
+                  </dd>
+                  <span className="text-[10px] text-[var(--text-muted)] font-mono truncate max-w-[40%]">
+                    {alert.metric}
                   </span>
-                )}
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+            </dl>
+          )}
 
           {hasKpis && !kpiHidden && (
             <ul className="mt-3 space-y-2.5 border-t border-[var(--border-subtle)] pt-3">
@@ -334,12 +343,14 @@ export function ContextualInsightsRail({
                     <span className="numerals text-[15px] font-bold text-[var(--text-primary)] leading-none">
                       {s.avg}
                     </span>
-                    <div className="flex items-center gap-2 text-[10.5px] font-mono">
-                      <span className="text-emerald-500 inline-flex items-center gap-0.5">
-                        ↑ <span className="numerals">{s.max}</span>
+                    <div className="flex items-baseline gap-2 text-[10.5px] font-mono">
+                      <span className="text-emerald-500">
+                        <span className="numerals">{s.max}</span>
+                        <span className="opacity-70"> max</span>
                       </span>
-                      <span className="text-rose-500 inline-flex items-center gap-0.5">
-                        ↓ <span className="numerals">{s.min}</span>
+                      <span className="text-rose-500">
+                        <span className="numerals">{s.min}</span>
+                        <span className="opacity-70"> min</span>
                       </span>
                     </div>
                   </div>
