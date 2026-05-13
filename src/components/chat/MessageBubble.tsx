@@ -62,8 +62,10 @@ function tryParseResultsBanner(
 ): { queryName: string; suffix: string } | null {
   if (!text) return null;
   const trimmed = text.replace(/\s*:\s*$/, "");
+  // Cover all the engine's "Here {are the results for|is the data from|is}
+  // "X" …" phrasings (query, group-by, sort, filter, top-n follow-ups).
   const m = trimmed.match(
-    /^(?:Here are the results for|Here is the data from)\s+"([^"]+)"(.*)$/i,
+    /^Here\s+(?:are the results for|is the data from|is)\s+"([^"]+)"(.*)$/i,
   );
   if (!m) return null;
   return { queryName: m[1], suffix: (m[2] ?? "").trim() };

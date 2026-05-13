@@ -225,7 +225,10 @@ export function handleGroupByFollowUp(
 
   return {
     text: `Here is "${context.lastQueryName}" grouped by **${result.groupColumn}** (${result.groups.length} groups, ${dataToGroup.rows.length} total rows):`,
-    richContent: { type: "csv_group_by", data: result },
+    richContent: {
+      type: "csv_group_by",
+      data: { ...result, ...chartMetaFrom(context) },
+    },
     suggestions: [
       ...(drillSuggestion ? [drillSuggestion] : []),
       ...csvData.headers
