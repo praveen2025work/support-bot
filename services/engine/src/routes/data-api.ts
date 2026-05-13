@@ -722,6 +722,21 @@ dataApiRouter.post("/rows/:queryName", async (req: Request, res: Response) => {
     const offset = (page - 1) * pageSize;
     const pagedRows = rows.slice(offset, offset + pageSize);
 
+    // Auto-insights — same builder powering chat 💡 lines and the
+    // Data Explorer strip. Skipped beyond page 1 (the user is
+    // already paging through known data) and when the full row set
+    // is too small to draw conclusions from.
+    const insights =
+      page === 1
+        ? buildAutoInsights(
+            {
+              headers: columns,
+              rows: rows as Record<string, string | number>[],
+            },
+            undefined,
+          )
+        : [];
+
     return res.json({
       queryName,
       groupId,
@@ -730,6 +745,7 @@ dataApiRouter.post("/rows/:queryName", async (req: Request, res: Response) => {
       totalRows,
       page,
       pageSize,
+      ...(insights.length > 0 && { insights }),
     });
   } catch (error) {
     logger.error({ error }, "Data rows fetch error");

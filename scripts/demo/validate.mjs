@@ -1694,7 +1694,7 @@ async function testGridBoardRowsEndpoint() {
     const res = await fetch(`${ENGINE_URL}/api/data/rows/pnl_lineage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ groupId: "finance", pageSize: 10 }),
+      body: JSON.stringify({ groupId: "finance", pageSize: 50 }),
     });
     return {
       ok: res.ok,
@@ -1709,6 +1709,79 @@ async function testGridBoardRowsEndpoint() {
     !!r.result?.ok && Array.isArray(body?.rows) && Array.isArray(body?.columns),
     `status=${r.result?.status} rows=${body?.rows?.length} columns=${body?.columns?.length}`,
     r.durationMs,
+  );
+  // Insights ride along on page 1. Loose contract — present or absent
+  // depending on the live data; if present, every item is well-formed.
+  const insights = body?.insights;
+  const shapeOk =
+    insights === undefined ||
+    (Array.isArray(insights) &&
+      insights.every(
+        (i) =>
+          i &&
+          typeof i.kind === "string" &&
+          typeof i.text === "string" &&
+          typeof i.severity === "string",
+      ));
+  record(
+    "gridboard-rows",
+    "insights ride along on page 1 (or absent)",
+    shapeOk,
+    `present=${insights !== undefined} count=${Array.isArray(insights) ? insights.length : 0}`,
+  );
+}
+
+async function testGridBoardQueryReorder() {
+  section("GridBoard — /api/queries reorders by user usage");
+  if (NO_WRITE || QUICK) {
+    record("gridboard-query-reorder", "skipped (--no-write / --quick)", true);
+    return;
+  }
+  const userName = `gb-reorder-${Date.now()}`;
+
+  // Anonymous baseline
+  const baseline = await timed(() =>
+    getJson(`${ENGINE_URL}/api/queries?groupId=finance`),
+  );
+  const baseQs = baseline.result?.body?.queries || [];
+  if (baseQs.length < 2) {
+    record(
+      "gridboard-query-reorder",
+      "(prereq) finance has 2+ queries",
+      false,
+      `count=${baseQs.length}`,
+    );
+    return;
+  }
+  // Pick a query that's NOT first today so the reorder is visible.
+  const target = baseQs[baseQs.length - 1].name;
+
+  // Synthesise interactions via the shared tracker endpoint.
+  for (let i = 0; i < 3; i++) {
+    await fetch(`${ENGINE_URL}/api/data/sources/view`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        groupId: "finance",
+        userName,
+        queryName: target,
+      }),
+    });
+  }
+
+  const personalised = await timed(() =>
+    getJson(
+      `${ENGINE_URL}/api/queries?groupId=finance&userName=${encodeURIComponent(userName)}`,
+    ),
+  );
+  const list = personalised.result?.body?.queries || [];
+  const top = list[0];
+  record(
+    "gridboard-query-reorder",
+    `recently-used query "${target}" bubbles to top with recent=true`,
+    top?.name === target && top?.recent === true,
+    `top=${top?.name} recent=${top?.recent}`,
+    personalised.durationMs,
   );
 }
 
@@ -2383,6 +2456,7 @@ async function main() {
   await testDataQuality();
   await testForecastEndpoint();
   await testGridBoardRowsEndpoint();
+  await testGridBoardQueryReorder();
   await testGridBoardViews();
   await testSourceReorder();
   await testGlossaryCrud();

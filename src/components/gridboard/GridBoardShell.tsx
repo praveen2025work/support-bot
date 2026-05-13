@@ -14,7 +14,17 @@ import {
 import { useGridBoardViews } from "@/hooks/useGridBoardViews";
 import { useUser } from "@/contexts/UserContext";
 import type { GridBoardView } from "@/types/dashboard";
-import { Table2, ChevronDown, Search, Database } from "lucide-react";
+import {
+  Table2,
+  ChevronDown,
+  Search,
+  Database,
+  Sparkles,
+  CircleDot,
+  TriangleAlert,
+  AlertOctagon,
+} from "lucide-react";
+import { Fragment } from "react";
 import {
   fetchFilterConfigs,
   getFilterConfig as lookupFilterConfig,
@@ -26,6 +36,74 @@ interface QueryOption {
   name: string;
   description: string;
   filters: Array<string | { key: string; binding: string }>;
+  /** Server-set when the caller has used this query recently. */
+  recent?: boolean;
+}
+
+interface InsightItem {
+  kind: string;
+  text: string;
+  severity: "info" | "warning" | "critical";
+  column?: string;
+}
+
+interface QualitySnapshot {
+  duplicateCount: number;
+  missingPercent: number;
+  anomalyCount: number;
+  schemaDrift: { hasChange: boolean } | null;
+}
+
+/**
+ * Compact severity-coded chip used in the quality strip above the
+ * grid. Tone is the foreground color; the chip itself is tinted with
+ * a matching translucent background so it reads at a glance.
+ */
+function QualityChip({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: string;
+}) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2 py-1 rounded-[var(--radius-md)] text-[11px] font-medium"
+      style={{
+        backgroundColor: `color-mix(in srgb, ${tone} 10%, transparent)`,
+        color: tone,
+      }}
+    >
+      <span style={{ opacity: 0.75 }}>{label}</span>
+      <span className="font-semibold">{value}</span>
+    </span>
+  );
+}
+
+/**
+ * Render a string containing **bold** markers as React nodes. The
+ * insights builder emits `**X**` for emphasis; treat anything between
+ * matched `**` as bold and pass the rest through verbatim. We don't
+ * use a full markdown parser because nothing else is needed.
+ */
+function renderInsightText(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((p, i) => {
+    if (p.startsWith("**") && p.endsWith("**")) {
+      return (
+        <strong
+          key={i}
+          className="font-semibold"
+          style={{ color: "var(--text-primary)" }}
+        >
+          {p.slice(2, -2)}
+        </strong>
+      );
+    }
+    return <Fragment key={i}>{p}</Fragment>;
+  });
 }
 
 // ── Component ────────────────────────────────────────────────────────
@@ -57,6 +135,10 @@ export function GridBoardShell() {
   const [columns, setColumns] = useState<string[]>([]);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Proactive analytics — populated alongside the row fetch + a side
+  // call to /api/data/quality. Optional; absent on small datasets.
+  const [insights, setInsights] = useState<InsightItem[]>([]);
+  const [quality, setQuality] = useState<QualitySnapshot | null>(null);
 
   // Saving
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -84,18 +166,24 @@ export function GridBoardShell() {
     autoSave,
   } = useGridBoardViews(userId, selectedQuery, groupId);
 
-  // Fetch available queries
+  // Fetch available queries — passes userName so the engine reorders
+  // by per-user usage and stamps frequently-run queries with `recent`.
+  // Falls back to catalog order for anonymous callers.
   useEffect(() => {
-    fetch("/api/queries")
+    const userParam = userInfo?.samAccountName
+      ? `?userName=${encodeURIComponent(userInfo.samAccountName)}&groupId=${encodeURIComponent(groupId)}`
+      : `?groupId=${encodeURIComponent(groupId)}`;
+    fetch(`/api/queries${userParam}`)
       .then((res) => res.json())
       .then((json) => {
         const list: QueryOption[] = (json.queries || json || []).map(
           (q: Record<string, unknown>) => ({
-            name: q.name || q.id,
-            description: q.description || "",
+            name: (q.name || q.id) as string,
+            description: (q.description || "") as string,
             filters: (q.filters || []) as Array<
               string | { key: string; binding: string }
             >,
+            ...(q.recent ? { recent: true } : {}),
           }),
         );
         setQueries(list);
@@ -105,7 +193,7 @@ export function GridBoardShell() {
         setQueries([]);
       })
       .finally(() => setLoadingQueries(false));
-  }, []);
+  }, [userInfo?.samAccountName, groupId]);
 
   // Fetch filter configs (shared cached utility)
   useEffect(() => {
@@ -193,11 +281,25 @@ export function GridBoardShell() {
         setData(resultData);
         setColumns(resultColumns);
         setDataLoaded(true);
+        // Engine attaches `insights` on page 1 when there are
+        // meaningful findings. Strip leading [] so callers can render
+        // unconditionally.
+        setInsights(Array.isArray(json.insights) ? json.insights : []);
+        // Quality snapshot — single side call. Failures are silent
+        // (the chip just doesn't render).
+        fetch(
+          `/api/data/quality/${encodeURIComponent(selectedQuery)}?groupId=${encodeURIComponent(groupId)}`,
+        )
+          .then((r) => (r.ok ? r.json() : null))
+          .then((q) => setQuality(q as QualitySnapshot | null))
+          .catch(() => setQuality(null));
       } else {
         setError("No data returned from query.");
         setData([]);
         setColumns([]);
         setDataLoaded(false);
+        setInsights([]);
+        setQuality(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load data");
@@ -346,6 +448,22 @@ export function GridBoardShell() {
     setSaveMessage(null);
     setDropdownOpen(false);
     setSearchTerm("");
+    setInsights([]);
+    setQuality(null);
+    // Fire-and-forget interaction ping so the engine's recency
+    // tracker learns what this user actually reaches for. Same file
+    // chat + Data Explorer already write to.
+    if (userInfo?.samAccountName) {
+      fetch("/api/data/sources/view", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          groupId,
+          userName: userInfo.samAccountName,
+          queryName: name,
+        }),
+      }).catch(() => {});
+    }
   };
 
   // ── Top-bar controls (portalled into ContextualTopBar slot) ──
@@ -458,15 +576,29 @@ export function GridBoardShell() {
                         }}
                       />
                       <div className="min-w-0 flex-1">
-                        <div
-                          className="text-[12px] font-medium truncate"
-                          style={{
-                            color: isSelected
-                              ? "var(--brand)"
-                              : "var(--text-primary)",
-                          }}
-                        >
-                          {q.name}
+                        <div className="flex items-center gap-1.5">
+                          <div
+                            className="text-[12px] font-medium truncate"
+                            style={{
+                              color: isSelected
+                                ? "var(--brand)"
+                                : "var(--text-primary)",
+                            }}
+                          >
+                            {q.name}
+                          </div>
+                          {q.recent && (
+                            <span
+                              className="text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider shrink-0"
+                              style={{
+                                backgroundColor: "var(--brand-subtle)",
+                                color: "var(--brand)",
+                              }}
+                              title="You have used this query recently"
+                            >
+                              Recent
+                            </span>
+                          )}
                         </div>
                         {q.description && (
                           <div
@@ -559,6 +691,122 @@ export function GridBoardShell() {
         {saveMessage && (
           <div className="mx-6 mt-3 px-4 py-2 bg-[var(--success-subtle)] border border-[var(--success)] rounded-[var(--radius-md)] text-[12px] text-[var(--success)]">
             {saveMessage}
+          </div>
+        )}
+
+        {/* Quality + anomaly chip strip — single row of dot-separated
+            tiles. Only renders once data has loaded and the quality
+            snapshot returned. Click jumps to /admin/anomaly (handled
+            below as a plain anchor). */}
+        {dataLoaded && quality && (
+          <div
+            className="mx-6 mt-3 flex flex-wrap items-center gap-2 text-[11px]"
+            style={{ color: "var(--text-muted)" }}
+          >
+            <QualityChip
+              label="Duplicates"
+              value={quality.duplicateCount.toLocaleString()}
+              tone={
+                quality.duplicateCount > 0 ? "var(--warning)" : "var(--success)"
+              }
+            />
+            <QualityChip
+              label="Missing"
+              value={`${quality.missingPercent.toFixed(1)}%`}
+              tone={
+                quality.missingPercent > 20
+                  ? "var(--danger)"
+                  : quality.missingPercent > 5
+                    ? "var(--warning)"
+                    : "var(--success)"
+              }
+            />
+            <QualityChip
+              label="Drift"
+              value={quality.schemaDrift?.hasChange ? "Yes" : "No"}
+              tone={
+                quality.schemaDrift?.hasChange
+                  ? "var(--warning)"
+                  : "var(--success)"
+              }
+            />
+            <QualityChip
+              label="Anomalies"
+              value={quality.anomalyCount.toLocaleString()}
+              tone={
+                quality.anomalyCount > 3
+                  ? "var(--danger)"
+                  : quality.anomalyCount > 0
+                    ? "var(--warning)"
+                    : "var(--success)"
+              }
+            />
+          </div>
+        )}
+
+        {/* Auto-insights — same card design as Data Explorer. Each
+            line gets a severity icon + the engine's **bold** markers
+            rendered as actual emphasis. */}
+        {dataLoaded && insights.length > 0 && (
+          <div className="mx-6 mt-3" role="status" aria-label="Auto-insights">
+            <div
+              className="rounded-[var(--radius-md)] border bg-[var(--bg-primary)] overflow-hidden"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <div
+                className="flex items-center gap-1.5 px-3 py-1.5 border-b text-[10px] font-semibold uppercase tracking-wider"
+                style={{
+                  borderColor: "var(--border)",
+                  color: "var(--brand)",
+                  backgroundColor:
+                    "color-mix(in srgb, var(--brand) 4%, transparent)",
+                }}
+              >
+                <Sparkles size={11} />
+                <span>Insights</span>
+                <span
+                  className="ml-auto"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {insights.length}
+                </span>
+              </div>
+              <ul>
+                {insights.map((ins, i) => {
+                  const isWarn = ins.severity === "warning";
+                  const isCrit = ins.severity === "critical";
+                  const tone = isCrit
+                    ? "var(--danger)"
+                    : isWarn
+                      ? "var(--warning)"
+                      : "var(--brand)";
+                  const Icon = isCrit
+                    ? AlertOctagon
+                    : isWarn
+                      ? TriangleAlert
+                      : CircleDot;
+                  return (
+                    <li
+                      key={i}
+                      className="px-3 py-2 text-[12px] leading-snug flex items-start gap-2 border-t first:border-t-0"
+                      style={{ borderColor: "var(--border)" }}
+                    >
+                      <Icon
+                        size={12}
+                        className="mt-0.5 shrink-0"
+                        style={{ color: tone }}
+                      />
+                      <span
+                        className="min-w-0"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        {renderInsightText(ins.text)}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           </div>
         )}
 

@@ -11,6 +11,7 @@ import {
   loadUserPickWeights,
   recordPick,
 } from "@/core/recommendations/search-picks";
+import { getInteractionTracker } from "@/core/recommendations/interaction-tracker";
 import { logger } from "@/lib/logger";
 
 export const queriesRouter = Router();
@@ -50,24 +51,60 @@ queriesRouter.get("/queries/preview", async (req: Request, res: Response) => {
 });
 
 // GET /api/queries — list queries for a group
+// When `?userName=X` is provided, results are reordered so queries the
+// caller has used recently bubble to the top and carry `recent: true`.
+// Reuses the shared interaction-tracker (chat + Data Explorer both
+// write to it), so usage history is unified across surfaces.
 queriesRouter.get("/queries", async (req: Request, res: Response) => {
   try {
     const groupId = (req.query.groupId as string) || "default";
+    const userName =
+      typeof req.query.userName === "string" ? req.query.userName : "";
     const groupConfig = getGroupConfig(groupId);
     const apiClient = new ApiClient(groupConfig.apiBaseUrl ?? undefined);
     const queryService = new QueryService(apiClient, groupConfig.sources);
     const queries = await queryService.getQueries();
 
+    const shaped = queries.map((q) => ({
+      name: q.name,
+      description: q.description,
+      filters: q.filters || [],
+      type: q.type ?? "api",
+      ...(q.drillDown ? { drillDown: q.drillDown } : {}),
+      ...(q.combinedConfig ? { combinedConfig: q.combinedConfig } : {}),
+      ...(q.actionConfig ? { actionConfig: q.actionConfig } : {}),
+      ...(q.columnConfig ? { columnConfig: q.columnConfig } : {}),
+    }));
+
+    let recentNames = new Set<string>();
+    if (userName) {
+      try {
+        const tracker = getInteractionTracker(groupId);
+        const interactions = await tracker.readAll();
+        const counts = new Map<string, number>();
+        for (const i of interactions
+          .filter((i) => i.userId === userName)
+          .slice(-200)) {
+          counts.set(i.queryName, (counts.get(i.queryName) ?? 0) + 1);
+        }
+        recentNames = new Set(counts.keys());
+        if (counts.size > 0) {
+          shaped.sort((a, b) => {
+            const ca = counts.get(a.name) ?? 0;
+            const cb = counts.get(b.name) ?? 0;
+            if (ca !== cb) return cb - ca;
+            return a.name.localeCompare(b.name);
+          });
+        }
+      } catch {
+        /* best-effort */
+      }
+    }
+
     return res.json({
-      queries: queries.map((q) => ({
-        name: q.name,
-        description: q.description,
-        filters: q.filters || [],
-        type: q.type ?? "api",
-        ...(q.drillDown ? { drillDown: q.drillDown } : {}),
-        ...(q.combinedConfig ? { combinedConfig: q.combinedConfig } : {}),
-        ...(q.actionConfig ? { actionConfig: q.actionConfig } : {}),
-        ...(q.columnConfig ? { columnConfig: q.columnConfig } : {}),
+      queries: shaped.map((q) => ({
+        ...q,
+        ...(recentNames.has(q.name) ? { recent: true } : {}),
       })),
     });
   } catch (error) {
