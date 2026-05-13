@@ -28,7 +28,7 @@ describe("DataPanel", () => {
     expect(screen.getByText(/No pinned queries yet/i)).toBeInTheDocument();
   });
 
-  it("renders the active result's query name in the Contextual Insights rail", () => {
+  it("renders the active result's query name and row count in the rail header", () => {
     render(
       <DataPanel
         activeResult={{
@@ -40,13 +40,16 @@ describe("DataPanel", () => {
         }}
       />,
     );
-    // The Active Dataset card surfaces the raw query name.
+    // Active Dataset card now uses the query name as its heading; the
+    // "Active Dataset" eyebrow was dropped because the heading is the
+    // query name itself.
     expect(screen.getByText("pnl-lineage")).toBeInTheDocument();
-    // Active Dataset header (text content) is always present.
-    expect(screen.getByText(/Active Dataset/i)).toBeInTheDocument();
+    // Row count + meta sits inline next to the name. The same row count
+    // also renders in the DataPanel pagination footer, so use getAllByText.
+    expect(screen.getAllByText(/1 row/i).length).toBeGreaterThan(0);
   });
 
-  it("renders the Quick Synthesis Actions panel when a result is active", () => {
+  it("renders the Quick Synthesis Actions tiles when a result is active", () => {
     render(
       <DataPanel
         activeResult={{
@@ -58,7 +61,10 @@ describe("DataPanel", () => {
         }}
       />,
     );
-    expect(screen.getByText(/Quick Synthesis Actions/i)).toBeInTheDocument();
+    // The "Quick Synthesis Actions" section header was dropped — the
+    // tiles themselves are the heading-less affordance. Assert two of
+    // the always-available actions render.
     expect(screen.getByText(/Generate summary/i)).toBeInTheDocument();
+    expect(screen.getByText(/Detect anomalies/i)).toBeInTheDocument();
   });
 });
