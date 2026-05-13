@@ -1354,3 +1354,77 @@ taskkill /PID <PID> /F
 :: Or kill all node processes (careful in shared environments)
 taskkill /IM node.exe /F
 ```
+
+---
+
+## Operational endpoints (added since v1)
+
+The engine exposes a handful of operator-facing endpoints beyond the
+chat / admin surface. None require auth — they're meant for scrapers,
+load balancers, and integration testing.
+
+| URL                                     | Purpose                                                                                                                                                                                                                       |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/health`                       | Liveness probe (always 200 if process is alive). Returns uptime + memory.                                                                                                                                                     |
+| `GET /api/health/ready`                 | Readiness probe. 503 when NLP isn't initialized, data dir is unreachable, or every configured data source is down. LBs should drain on 503.                                                                                   |
+| `GET /api/metrics`                      | Prometheus text exposition. Counters: `chat_requests_total{intent,status,group}`. Histogram (summary): `chat_request_duration_seconds`. Gauges: `engines_initialized`, `sources_ok`, `sources_unreachable`, plus `process_*`. |
+| `GET /api/openapi.json`                 | OpenAPI 3.0 spec for the engine's admin + chat surface. Hand-maintained at `services/engine/openapi.json`. Mounted with a 60s cache.                                                                                          |
+| `GET /api/admin/sources/health`         | Per-baseUrl reachability snapshot from the background prober. Requires `analytics.view` permission.                                                                                                                           |
+| `POST /api/admin/sources/recheck`       | Force an immediate probe of every registered source. Requires `learning.manage`.                                                                                                                                              |
+| `GET /api/admin/schema/drift?groupId=X` | Queries with unacknowledged column-set changes. Requires `learning.manage`.                                                                                                                                                   |
+| `POST /api/admin/schema/acknowledge`    | Drop the drift flag + evict query cache for that (group, query). Body: `{groupId, queryName}`. Requires `learning.manage`.                                                                                                    |
+
+### Validation harness
+
+Every push runs `scripts/demo/validate.mjs` — 128 checks across
+service health, chat intents, follow-ups, drill-down, PII masking,
+shareable snapshots, schema drift, source health, cache, error
+envelope, metrics, security headers, OpenAPI, and CRUD round-trips.
+
+```bash
+# Full run (~30s — boots through every chat phase)
+npm run validate:demo
+
+# Quick run (~10s — skips slow chat phases)
+npm run validate:demo:quick
+
+# Skip mutation tests (CSRF-locked environments)
+node scripts/demo/validate.mjs --no-write
+```
+
+The report renders to `docs/DEMO-VALIDATION.md` after every run. CI
+uploads it as an artifact on every PR (see `.github/workflows/ci.yml`).
+
+### Tunable env vars (the recent ones)
+
+These layer on top of the original `.env.example` variables and only
+need overriding for production-scale tuning.
+
+| Var                              | Default   | What                                                                                                               |
+| -------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------ |
+| `CHAT_REQUEST_TIMEOUT_MS`        | `30000`   | Wall-clock budget for one `/api/chat` call. Past this → 503 `DATA_SOURCE_UNAVAILABLE`.                             |
+| `QUERY_RESULT_CACHE_TTL_MS`      | `60000`   | Per-query result cache TTL. Identical request within window returns cached.                                        |
+| `QUERY_RESULT_CACHE_MAX_ENTRIES` | `500`     | LRU capacity for the per-query cache.                                                                              |
+| `ENGINE_IDLE_TTL_MS`             | `1800000` | Idle group eviction (30 min). `0` to disable. Set higher for many-group SaaS.                                      |
+| `ENGINE_SWEEP_INTERVAL_MS`       | `300000`  | How often the idle-eviction sweep runs.                                                                            |
+| `GROUP_SYNONYM_CACHE_MAX`        | `1000`    | Per-group synonym LRU.                                                                                             |
+| `ANOMALY_DETECTOR_CACHE_MAX`     | `1000`    | Per-group anomaly detector LRU.                                                                                    |
+| `RATE_LIMIT_CHAT`                | `1500`    | `/api/chat` per-IP per-minute. Past this → 429 `RATE_LIMITED` envelope.                                            |
+| `RATE_LIMIT_ADMIN`               | `200`     | `/api/admin/*` per-IP per-minute.                                                                                  |
+| `MAX_CONCURRENT_REQUESTS`        | `50`      | Concurrent chat-classification ceiling. Backpressure under burst.                                                  |
+| `SESSION_TTL_MS`                 | `1800000` | Stale session eviction (30 min).                                                                                   |
+| `PII_MASKING_DISABLED`           | unset     | Set `true` for break-glass investigations. Still audited.                                                          |
+| `ENGINE_CSP`                     | unset     | Set to a CSP string to enable Content-Security-Policy. Default off because the embedded widget loads cross-origin. |
+
+### Log correlation
+
+Every request is tagged with `x-request-id` — generated by the
+tenant-context middleware if the caller doesn't provide one, returned
+as a response header, AND embedded in every error envelope. Forward
+this header from your load balancer / API gateway and index it in
+Splunk / Datadog / Loki so one ID traces a request across:
+
+- Browser toast (UI shows it as "Reference: …")
+- Engine logs (`requestId` field in every Pino entry)
+- Audit log (`requestId` in mutation entries)
+- Per-request response header
