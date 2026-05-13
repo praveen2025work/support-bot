@@ -143,11 +143,41 @@
     '@keyframes chatbot-greeting-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}';
   document.head.appendChild(style);
 
+  // ── Persisted size (user can resize the widget panel) ─────────────
+  // Stored as { w, h } in localStorage so it carries across page loads.
+  // Min size keeps the chat usable; max size respects viewport.
+  var MIN_W = 320;
+  var MIN_H = 420;
+  var DEFAULT_W = 380;
+  var DEFAULT_H = 560;
+  var SIZE_KEY = 'mitr-widget-size';
+
+  function readSavedSize() {
+    try {
+      var raw = window.localStorage.getItem(SIZE_KEY);
+      if (!raw) return { w: DEFAULT_W, h: DEFAULT_H };
+      var parsed = JSON.parse(raw);
+      var w = Math.max(MIN_W, Math.min(window.innerWidth - 40, parseInt(parsed.w, 10) || DEFAULT_W));
+      var h = Math.max(MIN_H, Math.min(window.innerHeight - 120, parseInt(parsed.h, 10) || DEFAULT_H));
+      return { w: w, h: h };
+    } catch (e) {
+      return { w: DEFAULT_W, h: DEFAULT_H };
+    }
+  }
+
+  function writeSavedSize(w, h) {
+    try {
+      window.localStorage.setItem(SIZE_KEY, JSON.stringify({ w: w, h: h }));
+    } catch (e) { /* ignore quota */ }
+  }
+
+  var initialSize = readSavedSize();
+
   // Create iframe container
   var iframeWrap = document.createElement('div');
   iframeWrap.id = 'chatbot-widget-wrap';
   iframeWrap.style.cssText =
-    'position:fixed;bottom:84px;' + iframeHPos + 'width:380px;height:560px;z-index:999999;display:none;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.18),0 2px 8px rgba(0,0,0,0.08);' +
+    'position:fixed;bottom:84px;' + iframeHPos + 'width:' + initialSize.w + 'px;height:' + initialSize.h + 'px;z-index:999999;display:none;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.18),0 2px 8px rgba(0,0,0,0.08);' +
     'max-width:calc(100vw - 40px);max-height:calc(100vh - 120px);';
 
   var widgetUrl = baseUrl + '/widget';
@@ -160,6 +190,74 @@
   iframe.setAttribute('allow', 'clipboard-write');
   iframe.setAttribute('title', 'MITR AI');
   iframeWrap.appendChild(iframe);
+
+  // ── Resize handle ────────────────────────────────────────────────
+  // Sits in the corner OPPOSITE the anchor (anchor is bottom-right or
+  // bottom-left). Dragging grows the panel toward the screen interior.
+  var handle = document.createElement('div');
+  handle.id = 'chatbot-widget-resize';
+  handle.title = 'Drag to resize';
+  // top-left if anchored right, top-right if anchored left
+  var handleCorner = isLeft
+    ? 'top:0;right:0;border-radius:0 16px 0 12px;cursor:ne-resize;'
+    : 'top:0;left:0;border-radius:16px 0 12px 0;cursor:nw-resize;';
+  handle.style.cssText =
+    'position:absolute;' + handleCorner + 'width:18px;height:18px;background:rgba(255,255,255,0.85);' +
+    'border:1px solid rgba(0,0,0,0.08);box-shadow:0 1px 2px rgba(0,0,0,0.12);' +
+    'z-index:2;display:flex;align-items:center;justify-content:center;color:#64748b;';
+  // Grip glyph
+  var grip = createSvgElement('svg', { width: '10', height: '10', viewBox: '0 0 12 12', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round' }, [
+    createSvgElement('line', { x1: '2', y1: '6', x2: '6', y2: '2' }),
+    createSvgElement('line', { x1: '2', y1: '10', x2: '10', y2: '2' }),
+    createSvgElement('line', { x1: '6', y1: '10', x2: '10', y2: '6' }),
+  ]);
+  handle.appendChild(grip);
+
+  var resizing = false;
+  var startX = 0;
+  var startY = 0;
+  var startW = 0;
+  var startH = 0;
+
+  handle.addEventListener('mousedown', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    resizing = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    var rect = iframeWrap.getBoundingClientRect();
+    startW = rect.width;
+    startH = rect.height;
+    // Disable iframe pointer events during drag so cursor doesn't get
+    // swallowed by the embedded chat.
+    iframe.style.pointerEvents = 'none';
+    document.body.style.cursor = isLeft ? 'ne-resize' : 'nw-resize';
+  });
+
+  document.addEventListener('mousemove', function (e) {
+    if (!resizing) return;
+    var dx = e.clientX - startX;
+    var dy = e.clientY - startY;
+    // Top-handle on right-anchored widget: dragging up/left grows it
+    var newW = isLeft ? startW + dx : startW - dx;
+    var newH = startH - dy;
+    newW = Math.max(MIN_W, Math.min(window.innerWidth - 40, newW));
+    newH = Math.max(MIN_H, Math.min(window.innerHeight - 120, newH));
+    iframeWrap.style.width = newW + 'px';
+    iframeWrap.style.height = newH + 'px';
+    savedHeight = newH + 'px';
+  });
+
+  document.addEventListener('mouseup', function () {
+    if (!resizing) return;
+    resizing = false;
+    iframe.style.pointerEvents = '';
+    document.body.style.cursor = '';
+    var rect = iframeWrap.getBoundingClientRect();
+    writeSavedSize(Math.round(rect.width), Math.round(rect.height));
+  });
+
+  iframeWrap.appendChild(handle);
 
   // Create toggle button (using DOM-based SVG, no innerHTML)
   var toggle = document.createElement('button');
@@ -204,7 +302,7 @@
 
   // ── Widget states: 'closed' | 'open' | 'minimized' ──────────────────
   var widgetState = 'closed'; // 'closed' | 'open' | 'minimized'
-  var savedHeight = '560px';
+  var savedHeight = initialSize.h + 'px';
 
   // Create minimized bar
   var minimizedBar = document.createElement('div');
