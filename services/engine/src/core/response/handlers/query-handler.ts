@@ -43,6 +43,10 @@ import { logAudit } from "../../../lib/audit-logger";
 import { loadSchema, saveSchema } from "../../schema/registry";
 import { detectDrift, formatDriftMessage } from "../../schema/drift-detector";
 import {
+  buildAutoInsights,
+  renderInsightPrefix,
+} from "../../insights/auto-insights";
+import {
   buildQueryCacheKey,
   getCachedResult,
   getStaleCachedResult,
@@ -1224,8 +1228,30 @@ export async function handleQueryExecute(
           : cacheStatus?.status === "cached"
             ? ` _(cached ${Math.round(cacheStatus.ageMs / 1000)}s ago — say "refresh ${queryNameEntity.value}" to bypass)_`
             : "";
+
+        // Auto-insights — the proactive "you didn't ask but EMEA dropped
+        // 12%" layer. Runs on initial query loads only:
+        //   - skip on cache hits (we already showed insights on the
+        //     first miss; re-prepending feels nagging)
+        //   - skip on follow-ups (group-by / aggregation took their
+        //     own branches above; this is the plain-table case)
+        //   - skip when servedStale (the user already sees a loud
+        //     warning — don't crowd it)
+        const autoInsights =
+          !cacheHit && !servedStale
+            ? buildAutoInsights(
+                {
+                  headers: csv.headers,
+                  rows: csv.rows as Record<string, string | number>[],
+                },
+                anomalies,
+              )
+            : [];
+        const insightPrefix = renderInsightPrefix(autoInsights);
+
         return {
           text:
+            insightPrefix +
             (totalRowCount
               ? `Here is the data from "${queryNameEntity.value}" (showing first ${displayedRows} of ${totalRowCount} rows):`
               : `Here is the data from "${queryNameEntity.value}" (${csv.rowCount} rows):`) +
@@ -1246,6 +1272,7 @@ export async function handleQueryExecute(
                   ? { ...cacheStatus, staleFallback: true }
                   : cacheStatus,
               }),
+              ...(autoInsights.length > 0 && { autoInsights }),
             },
           },
           sessionId: context.sessionId,

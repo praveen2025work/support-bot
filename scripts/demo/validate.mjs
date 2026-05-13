@@ -1471,6 +1471,69 @@ async function testGroupIsolation() {
 // write-path LOGIC works. Browser CSRF flow is tested separately
 // during the manual demo rehearsal.
 
+async function testAutoInsights() {
+  section("Chat — auto-insights surface on initial query load");
+  if (QUICK) {
+    record("auto-insights", "skipped (--quick)", true);
+    return;
+  }
+  const sid = `validation-insights-${Date.now()}`;
+  const load = await timed(() =>
+    postChat("run pnl_lineage", sid, "finance", { explicitFilters: {} }),
+  );
+  const data = load.result?.data;
+  const richData = data?.richContent?.data;
+  const loadedOk =
+    !!load.result?.ok &&
+    data?.intent === "query.execute" &&
+    !!richData;
+  record(
+    "auto-insights",
+    "(prereq) load pnl_lineage",
+    loadedOk,
+    `intent=${data?.intent} hasRich=${!!richData}`,
+    load.durationMs,
+  );
+  if (!loadedOk) return;
+
+  // Loose contract: when present, autoInsights is an array of objects with
+  // `kind`, `text`, `severity`. We do NOT assert specific findings because
+  // they depend on the live data — the test would flake every time the
+  // mock-api fixture changed. Empty array is allowed (data may not be
+  // interesting enough to surface anything); the contract is just that
+  // the engine attempted the computation and returned a valid shape OR
+  // omitted the field entirely.
+  const ai = richData.autoInsights;
+  const shapeOk =
+    ai === undefined ||
+    (Array.isArray(ai) &&
+      ai.every(
+        (i) =>
+          i &&
+          typeof i.kind === "string" &&
+          typeof i.text === "string" &&
+          typeof i.severity === "string",
+      ));
+  record(
+    "auto-insights",
+    "richContent.data.autoInsights has valid shape (or omitted)",
+    shapeOk,
+    `present=${ai !== undefined} count=${Array.isArray(ai) ? ai.length : 0}`,
+  );
+
+  // When autoInsights has at least one entry, the bot text should be
+  // prefixed with the 💡 marker. This proves the prefix wiring works
+  // end-to-end. If no insights surfaced, we don't expect the prefix.
+  const hasPrefix = typeof data?.text === "string" && data.text.startsWith("💡");
+  const expectPrefix = Array.isArray(ai) && ai.length > 0;
+  record(
+    "auto-insights",
+    "💡 prefix matches insights count",
+    expectPrefix ? hasPrefix : true,
+    `expectPrefix=${expectPrefix} hasPrefix=${hasPrefix}`,
+  );
+}
+
 async function testGlossaryCrud() {
   section("Write paths — glossary CRUD (engine-direct)");
   if (NO_WRITE || QUICK) {
@@ -1747,6 +1810,7 @@ async function main() {
   await testSnapshots();
   await testEdgeCases();
   await testGroupIsolation();
+  await testAutoInsights();
   await testGlossaryCrud();
   await testSynonymCrud();
   await testLearningRetrain();
