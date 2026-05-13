@@ -5,7 +5,7 @@ Rehearse this end-to-end at least twice. Time the full run: target 12 minutes in
 ## Pre-demo checklist (30 min before)
 
 - [ ] Boot services: `npm run dev` in one tab, `npm run svc:mock-api` in another. Engine on `:4001`, Next.js on `:3001`, mock-api on `:8080`.
-- [ ] Run `npm run validate:demo`. Confirm 76/76 green.
+- [ ] Run `npm run validate:demo`. Confirm 150+/150+ green.
 - [ ] Pre-warm the engine — hit `/api/chat` once with `{text:"hello"}` against `default`, `finance`, `engineering`, `analytics` so first request in the demo isn't a 3–8s cold start.
 - [ ] Close all terminal tabs that show logs.
 - [ ] Close DevTools.
@@ -25,15 +25,21 @@ Rehearse this end-to-end at least twice. Time the full run: target 12 minutes in
 
 | Type this                                             | Expect                                                | If it fails                          |
 | ----------------------------------------------------- | ----------------------------------------------------- | ------------------------------------ |
-| `run pnl_lineage` (switch to **finance** group first) | Filter form OR table of 93 rows                       | Click "Skip filters" if form appears |
+| Type `pnl` slowly (don't send)                        | Autocomplete dropdown above the input with matches    | Skip — type the full name            |
+| `run pnl_lineage` (switch to **finance** group first) | 💡 auto-insights prefix + table of 93 rows            | Click "Skip filters" if form appears |
 | `break it down by region`                             | "grouped by Region (3 groups, 93 total rows)" + table | Try `group by region` instead        |
 | `for each feedname`                                   | "grouped by FeedName (6 groups…)"                     | Pre-recorded screenshot              |
+| `what is driving the change`                          | Root cause: ranked contributors with shares           | Re-prime with `run pnl_lineage`      |
 | `summarize`                                           | Stats panel: row count, column types, top values      | —                                    |
 | `find outliers`                                       | Outlier detection result                              | —                                    |
 
 **What to say while typing:**
 
 > "Watch how this works. I'm asking the same questions I'd ask a data analyst — but in English, not SQL. The bot understands `break it down by`, `for each`, `per region` — operators don't need to memorize the column name `Region`."
+
+> (when 💡 lines appear) "And notice this — the bot didn't wait to be asked. It surfaced that one product line drives 90% of the metric. That's proactive analytics, not just a chat box."
+
+> (after `what is driving the change`) "The 'why' question is the one every business user asks and most BI tools can't answer. Here it ranks the actual contributors — no LLM, just rule-based math we can audit."
 
 > (after `find outliers`) "We didn't write code for outlier detection per query. The platform ships statistical operations and they apply to whatever's loaded."
 
@@ -95,6 +101,21 @@ Then briefly mention but don't open:
 - `/admin/data-roles` — row/column gating per role
 - `/admin/anomaly` — auto-detect of metric spikes
 - `/admin/schedules` — recurring queries with email/Slack alerts
+
+### Step 5b — The dashboard surface (optional, 90 sec)
+
+**Where:** `/data-explorer`
+
+1. Pick a **finance** source (e.g. `pnl_lineage`).
+2. Wait ~1s for the layout to render. Point out:
+   - **💡 Auto-insights strip** above the filter bar — same engine that powered the chat 💡 lines.
+   - **KPI tiles** with `↑ / ↓` trend pills and a **"show forecast"** toggle that opens an inline sparkline.
+   - **Data Quality** card (lower row) — duplicates / missing % / schema drift / anomaly count in one severity-coded glance.
+   - The **"Recent"** pill in the source picker if you've used this source before.
+
+**What to say:**
+
+> "This isn't a separate tool — it's the same engine driving the chat, just laid out as a dashboard. Same anomaly model, same auto-insights, same forecast math. One ML stack, two surfaces."
 
 ### Step 6 — The close (1 min)
 

@@ -1,9 +1,41 @@
 # Next Steps to Improve the App
 
-Authored 2026-05-11. Drives the post-pilot roadmap after the B-1/B-2/B-3/B-4
-productionization merge and the WIP data-roles + admin-proxy refactor.
+Authored 2026-05-11; live-updated 2026-05-13. Drives the post-pilot roadmap
+after the B-1/B-2/B-3/B-4 productionization merge and the WIP data-roles +
+admin-proxy refactor.
 
 Ordering is roughly P0 → P3. Items inside each tier are unordered.
+
+---
+
+## ✅ Shipped since 2026-05-11
+
+These were on the wishlist or not even listed; they're done now and live on `main`.
+
+**Proactive analytics (Packages A / B / C — completed 2026-05-13):**
+
+- Auto-insights stream (`💡 ...`) on chat results and Data Explorer dashboards — top-mover + concentration findings, capped at 3 per response.
+- Change narratives — `FYI **X** is up 12% vs. 5 min ago` lines computed against the prior anomaly snapshot.
+- **Root cause analysis** — chat handler for `"why did X change"` / `"what is driving Y"`; returns ranked contributors by share of total (or by delta when a baseline exists). New intent `analysis.root_cause` + 23 corpus utterances.
+- **Data Explorer Quality card** — single GET `/api/data/quality/:queryName` rolls duplicates + missing % + schema drift + anomaly count into one 4-tile card with severity-coded borders.
+- **KPI trend badges** — `↑ 12.3%` / `↓ 8.1%` pills on every KPI tile when a date column exists and ≥ 8 rows. Pure client compute.
+- **KPI on-demand forecast** — toggleable inline SVG sparkline per KPI (historical solid, predicted dashed). Lazy-fetched from `/api/data/forecast/:queryName` (exponential smoothing).
+- **Type-ahead autocomplete in chat** — dropdown above ChatInput hitting `/api/queries/search`. Tab to insert, Esc to dismiss, suppressed when input looks like a follow-up.
+- **Click-through search learning** — `POST /api/queries/search/pick` records (user, query, picked) with 14-day half-life decay; subsequent searches re-rank per user. No cross-user leak.
+- **Data Explorer source reorder** — most-viewed sources for the current user bubble to the top with a "Recent" pill. Shares the same `interaction-tracker` file the chat path writes, so chat and dashboard usage histories unify.
+
+**Identity & RBAC:**
+
+- Per-group business glossary at `/admin/glossary` (formal metric definitions, aliases, formulas, examples).
+- Passthrough Windows auth for `/api/userinfo` — forwards Authorization / Cookie / X-Forwarded-User / X-IIS-User / X-Remote-User / Remote-User / X-User-Principal-Name to the upstream AD endpoint. `USER_INFO_DEV_OVERRIDE_SAM` for local dev. UserInfo type extended to the full AD shape.
+- Admin role lookup falls through samAccountName → userName → emailAddress (vs. just samAccountName).
+
+**UX polish:**
+
+- Toast notifications moved to **top-right** consistently across screens (was bottom-right).
+- Real-user identity strings scrubbed from docs/comments/env-examples; only generic placeholders remain in the tree.
+
+**Validation harness:** 128 → 152 checks. CI gate still green on every PR.
 
 ## P0 — Stabilize the baseline (one-week unblock)
 

@@ -812,6 +812,139 @@
         "security": [{ "userRole": [] }],
         "responses": { "200": { "description": "Updated" } }
       }
+    },
+    "/api/admin/glossary": {
+      "get": {
+        "tags": ["Admin · Catalog"],
+        "summary": "List business glossary entries for a group",
+        "security": [{ "userRole": [] }],
+        "parameters": [
+          { "in": "query", "name": "groupId", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Glossary file" } }
+      },
+      "post": {
+        "tags": ["Admin · Catalog"],
+        "summary": "Create or update a glossary entry",
+        "security": [{ "userRole": [] }],
+        "responses": { "200": { "description": "Upserted" } }
+      },
+      "delete": {
+        "tags": ["Admin · Catalog"],
+        "summary": "Delete a glossary entry",
+        "security": [{ "userRole": [] }],
+        "parameters": [
+          { "in": "query", "name": "groupId", "schema": { "type": "string" } },
+          { "in": "query", "name": "id", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Deleted" } }
+      }
+    },
+    "/api/queries/search": {
+      "get": {
+        "tags": ["Catalog"],
+        "summary": "Semantic search across query catalog (autocomplete)",
+        "description": "Returns ranked matches. When `userName` is supplied, results are personalised by each user's decayed click-through history.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          { "in": "query", "name": "groupId", "schema": { "type": "string" } },
+          { "in": "query", "name": "userName", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Ranked results array" } }
+      }
+    },
+    "/api/queries/search/pick": {
+      "post": {
+        "tags": ["Catalog"],
+        "summary": "Record that the user accepted an autocomplete suggestion",
+        "description": "Click-through telemetry feeds search-ranking personalisation with a 14-day exponential decay. Anonymous picks (no userName) are a no-op.",
+        "responses": { "200": { "description": "Recorded acknowledgement" } }
+      }
+    },
+    "/api/data/sources": {
+      "get": {
+        "tags": ["Data Explorer"],
+        "summary": "List CSV/XLSX sources for a group",
+        "description": "When `userName` is supplied, sources reorder by per-user view frequency and carry a `recent: true` flag.",
+        "parameters": [
+          { "in": "query", "name": "groupId", "schema": { "type": "string" } },
+          { "in": "query", "name": "userName", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Source list" } }
+      }
+    },
+    "/api/data/sources/view": {
+      "post": {
+        "tags": ["Data Explorer"],
+        "summary": "Record that the user opened a source",
+        "responses": { "200": { "description": "Recorded acknowledgement" } }
+      }
+    },
+    "/api/data/query": {
+      "post": {
+        "tags": ["Data Explorer"],
+        "summary": "Run a paginated query against a source",
+        "description": "Returns rows + schema. On page 1 of plain (no group-by, no aggregation) responses, attaches an `insights[]` array of auto-findings (💡 top-mover / concentration).",
+        "responses": {
+          "200": { "description": "Query result with optional insights" }
+        }
+      }
+    },
+    "/api/data/quality/{queryName}": {
+      "get": {
+        "tags": ["Data Explorer"],
+        "summary": "Unified data-quality snapshot for a source",
+        "description": "Single call rolling duplicates + missing % + schema drift + anomaly count. Each signal is best-effort; one failure doesn't break the others.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "queryName",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          { "in": "query", "name": "groupId", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Quality snapshot" } }
+      }
+    },
+    "/api/data/forecast/{queryName}": {
+      "get": {
+        "tags": ["Data Explorer"],
+        "summary": "Forecast a numeric column (exponential smoothing)",
+        "description": "Returns `{forecastable: true, historical, predicted, dateColumn, valueColumn}` when the data supports it, `{forecastable: false, reason}` otherwise.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "queryName",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "in": "query",
+            "name": "valueColumn",
+            "schema": { "type": "string" }
+          },
+          {
+            "in": "query",
+            "name": "periods",
+            "schema": { "type": "integer", "default": 5 }
+          },
+          { "in": "query", "name": "groupId", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Forecast result envelope" } }
+      }
+    },
+    "/api/data/anomalies": {
+      "post": {
+        "tags": ["Data Explorer"],
+        "summary": "Run anomaly detection over the current filtered view",
+        "responses": { "200": { "description": "Anomaly array" } }
+      }
     }
   }
 }

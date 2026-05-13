@@ -652,6 +652,7 @@ export default function UserGuidePage() {
               </thead>
               <tbody className="text-gray-600">
                 {[
+                  ["Root Cause", '"what is driving the change"'],
                   ["Profile", '"profile columns"'],
                   ["Smart Summary", '"smart summary"'],
                   ["Correlation", '"show correlations"'],

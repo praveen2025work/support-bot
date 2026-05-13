@@ -59,8 +59,19 @@ environment covered).
 
 - 11+ follow-up phrasings (`group by` / `break down by` / `split by` / `for each` / `per`)
 - Semantic column synonyms + per-group operator-edited vocabulary
+- Per-group business **glossary** (`/admin/glossary`) — formal metric definitions, aliases, formulas
+- Type-ahead autocomplete with click-through learning — picks bump future ranks per user
 - Drill-down chip on grouped results
 - Closed learning loop — admin approves low-confidence interactions, retrain merges them into the live NLP corpus
+
+**Proactive analytics (no LLM)**
+
+- Auto-insights ("💡 EMEA drives 45% of revenue") prepended to query results and dashboard views
+- Change narratives ("FYI **revenue** is up 12% vs. 5 min ago") against the prior anomaly snapshot
+- Root cause analysis — chat `"what is driving X"` ranks top contributors by share of total
+- Trend badge (`↑ 12.3%`) on every KPI tile with a date column
+- On-demand forecast sparkline per KPI (exponential smoothing)
+- Unified Data Quality card — duplicates + missing % + schema drift + anomaly count in one tile
 
 **Security**
 
@@ -88,7 +99,7 @@ environment covered).
 
 **Process**
 
-- 128-check automated validation harness (`npm run validate:demo`)
+- 150+ check automated validation harness (`npm run validate:demo`)
 - GitHub Actions CI workflow runs the harness on every PR
 - OpenAPI 3.0 reference
 - Demo flow rehearsal script
@@ -142,6 +153,10 @@ see [`docs/SETUP.md` § Docker](./docs/SETUP.md).
 Running a CIO demo? See **[docs/DEMO-FLOW.md](./docs/DEMO-FLOW.md)**
 for the 12-minute rehearsal script (6 steps, pre-baked answers,
 hard-skips, recovery paths).
+
+Want to verify the latest features yourself? **[docs/SELF-TEST.md](./docs/SELF-TEST.md)**
+walks every recent addition (Packages A/B/C, glossary, autocomplete,
+userinfo) with both visual and `curl` checks per section.
 
 Latest validation report at **[docs/DEMO-VALIDATION.md](./docs/DEMO-VALIDATION.md)**
 — gets regenerated every time `npm run validate:demo` runs and

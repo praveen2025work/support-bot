@@ -234,23 +234,48 @@ Baselines are built automatically after 5+ executions of the same query. When an
 
 Run a query first, then ask for analysis on the results:
 
-| Analysis          | Example               | What It Does                            |
-| ----------------- | --------------------- | --------------------------------------- |
-| **Profile**       | "profile columns"     | Column statistics, types, distributions |
-| **Smart Summary** | "smart summary"       | AI-generated narrative summary          |
-| **Correlation**   | "show correlations"   | Numeric column correlation matrix       |
-| **Distribution**  | "show distribution"   | Value distribution across columns       |
-| **Anomaly**       | "find outliers"       | Identifies unusual values               |
-| **Trend**         | "show trend"          | Time-series trend detection             |
-| **Duplicates**    | "find duplicates"     | Identifies duplicate rows               |
-| **Missing Data**  | "show missing values" | Visualizes gaps in data                 |
-| **Clustering**    | "cluster the data"    | K-means clustering                      |
-| **Decision Tree** | "decision tree"       | Decision tree classification            |
-| **Forecast**      | "forecast ahead"      | Time-series forecasting                 |
-| **PCA**           | "PCA analysis"        | Dimensionality reduction                |
-| **Full Report**   | "insight report"      | Combined multi-analysis report          |
+| Analysis          | Example                      | What It Does                            |
+| ----------------- | ---------------------------- | --------------------------------------- |
+| **Root Cause**    | "what is driving the change" | Top contributors by share of total      |
+| **Profile**       | "profile columns"            | Column statistics, types, distributions |
+| **Smart Summary** | "smart summary"              | Narrative summary of the dataset        |
+| **Correlation**   | "show correlations"          | Numeric column correlation matrix       |
+| **Distribution**  | "show distribution"          | Value distribution across columns       |
+| **Anomaly**       | "find outliers"              | Identifies unusual values               |
+| **Trend**         | "show trend"                 | Time-series trend detection             |
+| **Duplicates**    | "find duplicates"            | Identifies duplicate rows               |
+| **Missing Data**  | "show missing values"        | Visualizes gaps in data                 |
+| **Clustering**    | "cluster the data"           | K-means clustering                      |
+| **Decision Tree** | "decision tree"              | Decision tree classification            |
+| **Forecast**      | "forecast ahead"             | Time-series forecasting                 |
+| **PCA**           | "PCA analysis"               | Dimensionality reduction                |
+| **Full Report**   | "insight report"             | Combined multi-analysis report          |
 
 After running an analysis, the bot suggests logical next steps (e.g., after correlation, it suggests PCA or clustering).
+
+### Proactive insights — read these without asking
+
+Every query result is annotated automatically:
+
+- **💡 Auto-insights** — up to 3 findings prepended to the bot text (top mover, concentration, active anomaly alerts). Skipped on cache hits and follow-ups so they don't repeat.
+- **Change narratives** — "FYI **revenue** is up 12% vs. 5 min ago" when a numeric column moved meaningfully versus the prior anomaly snapshot. Columns already covered by an anomaly alert are skipped to avoid double-narration.
+
+You can always ask "what is driving the change" to get the structured contributor table behind a 💡 line.
+
+### Type-ahead autocomplete
+
+As you type a query name in the chat input, matching queries from the active group's catalog surface above the input box:
+
+- **↑ / ↓** — move highlight
+- **Tab** — insert `run <name>` into the input
+- **Esc** — dismiss
+- The dropdown is **suppressed** if your input starts with a follow-up phrase (`group by`, `sort`, `per …`, etc.) so it doesn't intrude mid-conversation.
+
+The bot learns from your picks: a query you Tab-accept gets a small ranking bump the next time you type a similar prefix. Picks decay with a 14-day half-life — old habits fade if you stop using them.
+
+### Business glossary
+
+If your operators have defined a per-group business glossary (admin → Glossary), terms with formal definitions are recognized in your chat questions. For example, when an admin records `Net Revenue` = `Gross - returns - discounts`, asking "show me net revenue by region" maps `net revenue` to the formula.
 
 ### Conversational Commands
 
@@ -298,6 +323,51 @@ Run two queries at once to see side-by-side results:
 "compare error_rate and performance"
 "show me active_users and customer_churn"
 ```
+
+---
+
+## Flow 3b: Data Explorer — Self-serve dashboards
+
+A no-code dashboard builder. Pick a CSV/XLSX source, get an auto-generated layout you can edit.
+
+### What's on the screen
+
+When you open `/data-explorer` and pick a source, the platform auto-builds:
+
+- A row of **KPI tiles** (avg / sum / count over your numeric columns) with `↑ / ↓` trend badges when a date column exists.
+- A **chart** and **summary** card.
+- A **data table** at the bottom.
+- A **Data Quality** card showing duplicates / missing % / schema drift / anomaly count for the active source.
+- A **💡 Auto-insights strip** between the dashboard name and the filter bar — same proactive findings the chat shows.
+
+The **source picker** lists CSV/XLSX sources in your active group. Sources you've used recently bubble to the top with a **Recent** pill.
+
+### Each KPI tile
+
+- Big number = your aggregation result.
+- **`↑ 12.3%`** / **`↓ 8.1%`** badge below — comparison of the first half vs. second half of the dataset, by date. Flat (< 1% change) is hidden so the UI doesn't yell when nothing's happening.
+- **"show forecast"** link — click once to expand a tiny sparkline (solid = historical, dashed = predicted). Click again to hide. Cards you never click never hit the engine.
+
+### Data Quality card
+
+Four severity-coded tiles in one card:
+
+| Tile         | Green      | Amber              | Red         |
+| ------------ | ---------- | ------------------ | ----------- |
+| Duplicates   | 0          | ≥ 1                | —           |
+| Missing      | < 5% nulls | 5–20% nulls        | > 20% nulls |
+| Schema drift | unchanged  | added/removed cols | —           |
+| Anomalies    | 0 alerts   | 1–3 alerts         | > 3 alerts  |
+
+The footer line shows the top 3 columns with the most nulls so you know where to dig.
+
+### Editing the layout
+
+Click **Edit** in the top bar to enter edit mode. Cards expose chevrons / + / − buttons in their headers to move, resize, or remove them. Add new cards via **+ Add Card** — you can also add a stand-alone Data Quality card to any dashboard.
+
+### Saving
+
+Layout changes auto-stage in memory; a **Save / Revert** pair appears in the top bar while changes are unsaved. Click Save to persist to your browser. Click Revert to drop back to the last saved version.
 
 ---
 
