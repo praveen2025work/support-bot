@@ -27,6 +27,11 @@ import {
 } from "./grid-helpers";
 import { GridToolbar } from "./GridToolbar";
 import { ChangeHistoryPanel } from "./ChangeHistoryPanel";
+import {
+  BulkEditModal,
+  FormulaEditorModal,
+  ShortcutsOverlay,
+} from "./GridBoardModals";
 import { ImportModal } from "./ImportModal";
 import { FindReplaceBar } from "./FindReplaceBar";
 import { SparklineCell } from "./SparklineCell";
@@ -130,7 +135,7 @@ export function AgEditableDataGrid({
   );
 
   // ── Formula columns ──
-  const [formulaColumns] = useState<FormulaColumn[]>(
+  const [formulaColumns, setFormulaColumns] = useState<FormulaColumn[]>(
     viewConfig?.formulaColumns || [],
   );
 
@@ -157,10 +162,19 @@ export function AgEditableDataGrid({
   // ── Change history ──
   const [changeHistory, setChangeHistory] = useState<ChangeEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  // Undo / redo — separate from changeHistory (the audit log). undo
+  // pops the last action onto redo; redo replays. Cleared on save /
+  // discard so the user can't undo something they already persisted.
+  const [redoStack, setRedoStack] = useState<ChangeEntry[]>([]);
 
   // ── Import & Find/Replace ──
   const [showImport, setShowImport] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
+  // ── Bulk-edit / formula-editor / shortcuts-help modals ──
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const [showFormulaEditor, setShowFormulaEditor] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   // ── Frozen rows ──
   const [frozenRowIndices] = useState<Set<number>>(
@@ -185,17 +199,9 @@ export function AgEditableDataGrid({
     setSelectedRows(new Set());
   }, [initialData]);
 
-  // ── Ctrl+F for find/replace ──
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
-        e.preventDefault();
-        setShowFindReplace(true);
-      }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, []);
+  // Global keyboard shortcuts are wired further down — after undo/redo
+  // are declared. Order matters: TS won't let us reference block-scoped
+  // callbacks before they exist.
 
   // ── View config sync ──
   const emitViewChange = useCallback(
@@ -410,6 +416,9 @@ export function AgEditableDataGrid({
         return next;
       });
 
+      // Fresh edit invalidates the redo history — there's no longer
+      // a coherent forward direction after the user diverged.
+      setRedoStack([]);
       setChangeHistory((prev) => [
         ...prev,
         {
@@ -455,7 +464,106 @@ export function AgEditableDataGrid({
     setAddedRows(new Set());
     setDeletedRows(new Set());
     setSelectedRows(new Set());
+    // Undo history is cell-level. Discarding reverts every cell at
+    // once, so the per-cell undo stack would no longer match the
+    // visible state — clear it.
+    setChangeHistory([]);
+    setRedoStack([]);
   }, [initialData]);
+
+  /**
+   * Apply a cell change (old → new) to the rows + dirtyMap. Used by
+   * undo (which inverts the change) and redo (which replays it).
+   * Mirrors the bookkeeping done by onCellValueChanged so the two
+   * paths stay in sync.
+   */
+  const applyChange = useCallback(
+    (rowIdx: number, col: string, fromVal: string, toVal: string) => {
+      setRows((prev) => {
+        const next = [...prev];
+        next[rowIdx] = { ...next[rowIdx], [col]: toVal };
+        return next;
+      });
+      setDirtyMap((prev) => {
+        const next = new Map(prev);
+        const rowDirty = new Map(next.get(rowIdx) || new Map());
+        const existing = rowDirty.get(col);
+        const originalOld = existing ? existing.oldValue : fromVal;
+        if (originalOld === toVal) {
+          rowDirty.delete(col);
+          if (rowDirty.size === 0) next.delete(rowIdx);
+          else next.set(rowIdx, rowDirty);
+        } else {
+          rowDirty.set(col, { oldValue: originalOld, newValue: toVal });
+          next.set(rowIdx, rowDirty);
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  const undo = useCallback(() => {
+    setChangeHistory((prev) => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      applyChange(last.rowIndex, last.column, last.newValue, last.oldValue);
+      setRedoStack((r) => [...r, last]);
+      return prev.slice(0, -1);
+    });
+  }, [applyChange]);
+
+  const redo = useCallback(() => {
+    setRedoStack((prev) => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      applyChange(last.rowIndex, last.column, last.oldValue, last.newValue);
+      setChangeHistory((h) => [...h, last]);
+      return prev.slice(0, -1);
+    });
+  }, [applyChange]);
+
+  // ── Global keyboard shortcuts ──
+  // Ctrl+F → find, Ctrl+Z → undo, Ctrl+Shift+Z / Ctrl+Y → redo, ? → shortcuts.
+  // Bails when the focus is inside an editor input — we don't want to
+  // hijack typed `?` or steal Ctrl+Z away from the cell editor.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      const inEditable =
+        tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        setShowFindReplace(true);
+        return;
+      }
+      if (meta && !e.shiftKey && e.key.toLowerCase() === "z") {
+        if (inEditable) return;
+        if (changeHistory.length === 0) return;
+        e.preventDefault();
+        undo();
+        return;
+      }
+      if (
+        meta &&
+        (e.key.toLowerCase() === "y" ||
+          (e.shiftKey && e.key.toLowerCase() === "z"))
+      ) {
+        if (inEditable) return;
+        if (redoStack.length === 0) return;
+        e.preventDefault();
+        redo();
+        return;
+      }
+      if (!meta && !inEditable && e.key === "?") {
+        e.preventDefault();
+        setShowShortcuts(true);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [undo, redo, changeHistory.length, redoStack.length]);
 
   const handleSave = useCallback(async () => {
     if (!onSave) return;
@@ -503,6 +611,95 @@ export function AgEditableDataGrid({
       exportToCsv(rows, `${queryName || "export"}.csv`);
     }
   }, [rows, queryName]);
+
+  /**
+   * xlsx export — preserves cell types (numbers stay numeric, dates
+   * stay date-like) which CSV flattens to strings. Uses the same
+   * xlsx package that ships for the file-connector import path, so
+   * no new dependency.
+   */
+  const handleExportXlsx = useCallback(async () => {
+    try {
+      const XLSX = await import("xlsx");
+      const visibleCols = initialColumns.filter((c) => !hiddenColumns.has(c));
+      const exportRows = rows
+        .filter((_, i) => !deletedRows.has(i))
+        .map((r) => {
+          const out: Record<string, unknown> = {};
+          for (const c of visibleCols) out[c] = r[c];
+          return out;
+        });
+      const sheet = XLSX.utils.json_to_sheet(exportRows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, sheet, queryName || "data");
+      XLSX.writeFile(wb, `${queryName || "export"}.xlsx`);
+    } catch (err) {
+      console.error("xlsx export failed", err);
+    }
+  }, [rows, queryName, initialColumns, hiddenColumns, deletedRows]);
+
+  /**
+   * Bulk-edit — set the same value for column X across every selected
+   * row. Routes through onCellValueChanged-shaped bookkeeping so the
+   * resulting dirty markers + change history are identical to typing
+   * them by hand. Each cell change is a separate undo step (correct;
+   * undoing a 50-row bulk edit one cell at a time would be annoying
+   * but a bulk-undo affordance can come later).
+   */
+  const bulkSetColumn = useCallback(
+    (column: string, value: string) => {
+      const indices = Array.from(selectedRows);
+      if (indices.length === 0) return;
+      for (const rowIdx of indices) {
+        const oldVal = formatValue(rows[rowIdx]?.[column]);
+        if (oldVal === value) continue;
+        applyChange(rowIdx, column, oldVal, value);
+        setChangeHistory((prev) => [
+          ...prev,
+          {
+            id: `ch_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            timestamp: new Date().toISOString(),
+            userId: "current_user",
+            rowIndex: rowIdx,
+            column,
+            oldValue: oldVal,
+            newValue: value,
+          },
+        ]);
+      }
+      setRedoStack([]);
+    },
+    [selectedRows, rows, applyChange],
+  );
+
+  /**
+   * Generate a shareable URL pinned to the current group + query +
+   * view + filters. Other users with permission to that view will
+   * land on the same shape after the GridBoardShell reads URL params.
+   */
+  const handleShareUrl = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      const g =
+        new URLSearchParams(window.location.search).get("group") ?? "default";
+      params.set("group", g);
+      if (queryName) params.set("query", queryName);
+      if (activeView?.id) params.set("view", activeView.id);
+      // Encode client-side filters too so a shared link reproduces
+      // the same filtered view.
+      if (activeView?.clientFilters) {
+        for (const [k, v] of Object.entries(activeView.clientFilters)) {
+          if (v?.value) params.set(k, v.value);
+        }
+      }
+      const url = `${window.location.origin}/gridboard?${params.toString()}`;
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    } catch (err) {
+      console.error("Share URL copy failed", err);
+    }
+  }, [queryName, activeView]);
 
   // ── Toolbar handlers ──
   const toggleColumn = useCallback(
@@ -675,6 +872,18 @@ export function AgEditableDataGrid({
     showHistory,
     onToggleHistory: () => setShowHistory(!showHistory),
     saving,
+    // Undo / redo
+    canUndo: changeHistory.length > 0,
+    canRedo: redoStack.length > 0,
+    onUndo: undo,
+    onRedo: redo,
+    // Modals + ancillary actions
+    onBulkEdit: () => setShowBulkEdit(true),
+    onOpenFormula: () => setShowFormulaEditor(true),
+    onShowShortcuts: () => setShowShortcuts(true),
+    onExportXlsx: handleExportXlsx,
+    onShareUrl: handleShareUrl,
+    shareCopied,
   };
 
   // ── Pivot mode — rendered via AG Grid ──
@@ -939,6 +1148,44 @@ export function AgEditableDataGrid({
           }}
           onClose={() => setShowImport(false)}
         />
+      )}
+
+      {/* Bulk-edit modal — set the same value on every selected row */}
+      {showBulkEdit && (
+        <BulkEditModal
+          columns={initialColumns}
+          selectedCount={selectedRows.size}
+          onApply={(col, val) => {
+            bulkSetColumn(col, val);
+            setShowBulkEdit(false);
+          }}
+          onClose={() => setShowBulkEdit(false)}
+        />
+      )}
+
+      {/* Formula-column editor — list + add a new derived column */}
+      {showFormulaEditor && (
+        <FormulaEditorModal
+          columns={initialColumns}
+          rows={rows}
+          formulas={formulaColumns}
+          onAdd={(fc) => {
+            const next = [...formulaColumns, fc];
+            setFormulaColumns(next);
+            emitViewChange({ formulaColumns: next });
+          }}
+          onRemove={(name) => {
+            const next = formulaColumns.filter((f) => f.name !== name);
+            setFormulaColumns(next);
+            emitViewChange({ formulaColumns: next });
+          }}
+          onClose={() => setShowFormulaEditor(false)}
+        />
+      )}
+
+      {/* Keyboard-shortcuts overlay */}
+      {showShortcuts && (
+        <ShortcutsOverlay onClose={() => setShowShortcuts(false)} />
       )}
     </div>
   );

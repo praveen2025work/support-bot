@@ -20,6 +20,12 @@ import {
   History,
   Table2,
   Calculator,
+  Redo2,
+  Edit3,
+  FileSpreadsheet,
+  Keyboard,
+  Link2,
+  Check,
 } from "lucide-react";
 import type { ConditionalFormatRule, GridBoardView } from "@/types/dashboard";
 import { FILTER_OPERATORS } from "./grid-helpers";
@@ -67,6 +73,18 @@ interface GridToolbarProps {
   showHistory?: boolean;
   onToggleHistory?: () => void;
   saving?: boolean;
+  // Undo / redo
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  // Bulk / formula / shortcuts / xlsx / share
+  onBulkEdit?: () => void;
+  onOpenFormula?: () => void;
+  onShowShortcuts?: () => void;
+  onExportXlsx?: () => void;
+  onShareUrl?: () => void;
+  shareCopied?: boolean;
 }
 
 // ── Component ──────────────────────────────────────────────────────
@@ -108,6 +126,16 @@ export function GridToolbar({
   showHistory: historyOpen = false,
   onToggleHistory,
   saving = false,
+  canUndo = false,
+  canRedo = false,
+  onUndo,
+  onRedo,
+  onBulkEdit,
+  onOpenFormula,
+  onShowShortcuts,
+  onExportXlsx,
+  onShareUrl,
+  shareCopied = false,
 }: GridToolbarProps) {
   const [showColMenu, setShowColMenu] = useState(false);
   const [showGroupMenu, setShowGroupMenu] = useState(false);
@@ -490,10 +518,104 @@ export function GridToolbar({
         </span>
       )}
 
-      {/* Export */}
-      <button onClick={onExport} className={btnDefault}>
-        <Download size={14} className="inline mr-1" /> Export CSV
+      {/* Undo / Redo — only meaningful when there's history. Kept
+          compact (icon-only) since they're the standard Ctrl+Z gesture. */}
+      {(onUndo || onRedo) && (
+        <span className="inline-flex items-center gap-0.5 mr-1">
+          <button
+            onClick={onUndo}
+            disabled={!canUndo}
+            title="Undo (Ctrl+Z)"
+            className={`px-2 py-1 text-xs rounded ${
+              canUndo
+                ? "text-gray-700 hover:bg-gray-100"
+                : "text-gray-300 cursor-not-allowed"
+            }`}
+          >
+            <Undo2 size={14} />
+          </button>
+          <button
+            onClick={onRedo}
+            disabled={!canRedo}
+            title="Redo (Ctrl+Shift+Z)"
+            className={`px-2 py-1 text-xs rounded ${
+              canRedo
+                ? "text-gray-700 hover:bg-gray-100"
+                : "text-gray-300 cursor-not-allowed"
+            }`}
+          >
+            <Redo2 size={14} />
+          </button>
+        </span>
+      )}
+
+      {/* Bulk edit — visible only when rows are selected. Drops a
+          modal that sets the same value on every selected row. */}
+      {!readOnly && onBulkEdit && selectedCount > 0 && (
+        <button
+          onClick={onBulkEdit}
+          className={btnDefault}
+          title={`Set value for ${selectedCount} selected row${
+            selectedCount === 1 ? "" : "s"
+          }`}
+        >
+          <Edit3 size={14} className="inline mr-1" /> Bulk edit
+        </button>
+      )}
+
+      {/* Formula columns editor */}
+      {!readOnly && onOpenFormula && (
+        <button
+          onClick={onOpenFormula}
+          className={btnDefault}
+          title="Formula columns"
+        >
+          <Calculator size={14} className="inline mr-1" /> Formula
+        </button>
+      )}
+
+      {/* Export — CSV + xlsx side by side */}
+      <button onClick={onExport} className={btnDefault} title="Export CSV">
+        <Download size={14} className="inline mr-1" /> CSV
       </button>
+      {onExportXlsx && (
+        <button
+          onClick={onExportXlsx}
+          className={btnDefault}
+          title="Export Excel"
+        >
+          <FileSpreadsheet size={14} className="inline mr-1" /> XLSX
+        </button>
+      )}
+
+      {/* Share / Shortcuts — pushed to the end so they don't compete
+          with the data-editing buttons. */}
+      {onShareUrl && (
+        <button
+          onClick={onShareUrl}
+          className={btnDefault}
+          title="Copy a share link with the current view + filters"
+        >
+          {shareCopied ? (
+            <>
+              <Check size={14} className="inline mr-1" /> Copied
+            </>
+          ) : (
+            <>
+              <Link2 size={14} className="inline mr-1" /> Share
+            </>
+          )}
+        </button>
+      )}
+      {onShowShortcuts && (
+        <button
+          onClick={onShowShortcuts}
+          className={btnDefault}
+          title="Keyboard shortcuts (?)"
+        >
+          <Keyboard size={14} />
+        </button>
+      )}
 
       {/* Conditional Formatting Modal */}
       {showFormatModal && (
