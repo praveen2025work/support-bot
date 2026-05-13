@@ -48,9 +48,14 @@ import { summarizeDocument } from "./knowledge-handler";
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
-/** Build chart/column metadata spread from context so follow-up charts render */
+/** Build chart/column metadata spread from context so follow-up charts render.
+ *  Always includes the canonical queryName so the client can keep its
+ *  active-result label stable across follow-ups (and so Quick Synthesis
+ *  Actions reference the original query rather than the prior follow-up
+ *  prompt, which would otherwise compound: "top 5 by X in bottom 5 in …"). */
 function chartMetaFrom(context: ConversationContext): Record<string, unknown> {
   return {
+    ...(context.lastQueryName && { queryName: context.lastQueryName }),
     ...(context.lastChartConfig && { chartConfig: context.lastChartConfig }),
     ...(context.lastColumnConfig && { columnConfig: context.lastColumnConfig }),
     ...(context.lastColumnMetadata && {

@@ -188,9 +188,26 @@ export function ChatWindow({
         (rows.length > 0 ? Object.keys(rows[0]) : []);
     }
 
+    // Prefer the engine's canonical queryName (set by chartMetaFrom in
+    // followup-handler) so follow-ups don't clobber the active query name
+    // with the user's free-text input. Falls back to extracting the
+    // trailing identifier from synthesis-action prompts like
+    // "top 5 by daily_active in active_users" → "active_users".
+    const rcQueryName = (d as { queryName?: unknown })?.queryName;
+    const fromCanonical =
+      typeof rcQueryName === "string" && rcQueryName ? rcQueryName : undefined;
+    const fromOriginal = (() => {
+      const t = lastBotMsg.originalQuery?.trim();
+      if (!t) return undefined;
+      const inMatch = t.match(/\s+in\s+([a-z_][a-z0-9_]*)\s*$/i);
+      if (inMatch) return inMatch[1];
+      if (/^[a-z_][a-z0-9_]*$/i.test(t)) return t;
+      return undefined;
+    })();
     onQueryResult({
       queryName:
-        lastBotMsg.originalQuery ||
+        fromCanonical ||
+        fromOriginal ||
         lastBotMsg.text?.split("\n")[0] ||
         "Query Result",
       title: lastBotMsg.text?.split("\n")[0] || "Query Result",

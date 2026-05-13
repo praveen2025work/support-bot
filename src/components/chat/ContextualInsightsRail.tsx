@@ -277,10 +277,11 @@ export function ContextualInsightsRail({
           {hasKpis && (
             <button
               onClick={toggleKpi}
-              className="ml-auto p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
               title={kpiHidden ? "Show analysis" : "Hide analysis"}
               aria-label={kpiHidden ? "Show analysis" : "Hide analysis"}
             >
+              <span className="eyebrow !text-[10px]">Analysis</span>
               {kpiHidden ? (
                 <Eye className="w-3 h-3" />
               ) : (
