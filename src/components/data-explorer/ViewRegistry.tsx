@@ -41,7 +41,11 @@ function LineageFlowView({
         </select>
       </div>
       <LineageFlowDiagram
-        data={sourceData as unknown}
+        data={
+          sourceData as unknown as React.ComponentProps<
+            typeof LineageFlowDiagram
+          >["data"]
+        }
         selectedPnl={selectedPnl}
       />
     </div>

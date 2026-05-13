@@ -1562,6 +1562,50 @@ async function testAutocomplete() {
   );
 }
 
+async function testForecastEndpoint() {
+  section("Data Explorer — /api/data/forecast contract");
+  if (QUICK) {
+    record("forecast", "skipped (--quick)", true);
+    return;
+  }
+  const r = await timed(() =>
+    getJson(
+      `${ENGINE_URL}/api/data/forecast/pnl_lineage?valueColumn=DurationAvg&groupId=finance&periods=3`,
+    ),
+  );
+  const body = r.result?.body;
+  const ok = !!r.result?.ok && body && typeof body.forecastable === "boolean";
+  record(
+    "forecast",
+    "GET /api/data/forecast/:queryName returns a contract envelope",
+    ok,
+    `status=${r.result?.status} forecastable=${body?.forecastable}`,
+    r.durationMs,
+  );
+
+  // When forecastable, the response should carry historical + predicted
+  // arrays of {date, value} points. When not, a "reason" should be
+  // present so the caller can render a useful state.
+  if (body?.forecastable) {
+    record(
+      "forecast",
+      "historical and predicted points are present",
+      Array.isArray(body.historical) &&
+        Array.isArray(body.predicted) &&
+        body.historical.length > 0 &&
+        body.predicted.length > 0,
+      `history=${body.historical?.length} predicted=${body.predicted?.length}`,
+    );
+  } else {
+    record(
+      "forecast",
+      "non-forecastable response carries a reason",
+      typeof body?.reason === "string",
+      `reason=${body?.reason}`,
+    );
+  }
+}
+
 async function testDataQuality() {
   section("Data Explorer — /api/data/quality unified snapshot");
   if (QUICK) {
@@ -2060,6 +2104,7 @@ async function main() {
   await testRootCause();
   await testDataExplorerInsights();
   await testDataQuality();
+  await testForecastEndpoint();
   await testGlossaryCrud();
   await testSynonymCrud();
   await testLearningRetrain();

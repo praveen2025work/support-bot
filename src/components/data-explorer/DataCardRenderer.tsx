@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  TrendingUp,
 } from "lucide-react";
 import type { DataCard, DataQueryResponse, DataQuality } from "./types";
 import { ExplorerDataTable } from "./ExplorerDataTable";
@@ -46,6 +47,61 @@ function pickDateColumn(
     if (allDates) return h;
   }
   return null;
+}
+
+/**
+ * Inline SVG sparkline — renders the forecast's historical + predicted
+ * series in a single stroke. Cheap, no chart library needed. Color
+ * splits visually: historical solid, predicted dashed.
+ */
+function Sparkline({
+  historical,
+  predicted,
+  width = 140,
+  height = 32,
+}: {
+  historical: Array<{ value: number }>;
+  predicted: Array<{ value: number }>;
+  width?: number;
+  height?: number;
+}) {
+  const all = [...historical, ...predicted];
+  if (all.length < 2) return null;
+  const vals = all.map((p) => p.value);
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min || 1;
+  const step = width / (all.length - 1);
+  const toY = (v: number) => height - ((v - min) / range) * height;
+  const histPath = historical
+    .map((p, i) => `${i === 0 ? "M" : "L"}${i * step},${toY(p.value)}`)
+    .join(" ");
+  const predFirstX = (historical.length - 1) * step;
+  const predFirstY = toY(historical[historical.length - 1].value);
+  const predPath = predicted
+    .map(
+      (p, i) =>
+        `${i === 0 ? `M${predFirstX},${predFirstY} L` : "L"}${(historical.length + i) * step},${toY(p.value)}`,
+    )
+    .join(" ");
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      aria-label="Forecast sparkline"
+    >
+      <path d={histPath} fill="none" stroke="var(--brand)" strokeWidth="1.5" />
+      <path
+        d={predPath}
+        fill="none"
+        stroke="var(--brand)"
+        strokeWidth="1.5"
+        strokeDasharray="3,2"
+        opacity="0.7"
+      />
+    </svg>
+  );
 }
 
 /**
@@ -180,6 +236,14 @@ export function DataCardRenderer({
   // (the quality snapshot is over the full dataset, not the filtered view).
   const [quality, setQuality] = useState<DataQuality | null>(null);
   const [qualityLoading, setQualityLoading] = useState(false);
+  // KPI forecast — opt-in per card. Stored alongside the rest of the
+  // KPI state so re-renders don't reshow the loading state.
+  const [forecast, setForecast] = useState<{
+    historical: Array<{ date: string; value: number }>;
+    predicted: Array<{ date: string; value: number }>;
+  } | null>(null);
+  const [forecastOpen, setForecastOpen] = useState(false);
+  const [forecastLoading, setForecastLoading] = useState(false);
 
   const effectiveSource = card.source ?? source;
 
@@ -564,6 +628,64 @@ export function DataCardRenderer({
               {Math.abs(trend.percentChange).toFixed(1)}%
             </div>
           )}
+          {/* Forecast toggle — fetched lazily so cards no one clicks
+              never hit the engine. Re-clicking just hides the sparkline. */}
+          <button
+            type="button"
+            onClick={async () => {
+              if (forecastOpen) {
+                setForecastOpen(false);
+                return;
+              }
+              if (forecast) {
+                setForecastOpen(true);
+                return;
+              }
+              setForecastLoading(true);
+              try {
+                const url = `/api/data/forecast/${encodeURIComponent(
+                  effectiveSource,
+                )}?valueColumn=${encodeURIComponent(
+                  kpi.column,
+                )}&groupId=${encodeURIComponent(groupId)}`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error("fetch failed");
+                const d = await res.json();
+                if (d?.forecastable) {
+                  setForecast({
+                    historical: d.historical,
+                    predicted: d.predicted,
+                  });
+                  setForecastOpen(true);
+                }
+              } catch {
+                /* silent — UI just doesn't expand */
+              } finally {
+                setForecastLoading(false);
+              }
+            }}
+            className="text-[10px] flex items-center gap-1 mt-1.5 text-[var(--text-muted)] hover:text-[var(--brand)] transition-colors"
+            title="Toggle forecast sparkline"
+          >
+            <TrendingUp size={11} />
+            {forecastLoading
+              ? "loading…"
+              : forecastOpen
+                ? "hide forecast"
+                : "show forecast"}
+          </button>
+          {forecastOpen && forecast && (
+            <div className="mt-1 flex flex-col items-center">
+              <Sparkline
+                historical={forecast.historical}
+                predicted={forecast.predicted}
+              />
+              <div className="text-[9px] text-[var(--text-muted)] mt-0.5">
+                {forecast.historical.length}h · {forecast.predicted.length}p
+                (dashed)
+              </div>
+            </div>
+          )}
         </div>
       );
       break;
@@ -863,7 +985,15 @@ function LineageCardBody({
         </select>
       </div>
       <LineageFlowDiagram
-        data={rows}
+        // LineageRow has typed fields plus [key: string]: unknown; the
+        // generic explorer row is Record<string, string | number>. Both
+        // satisfy the runtime shape; cast through unknown to make TS
+        // accept the wider type.
+        data={
+          rows as unknown as React.ComponentProps<
+            typeof LineageFlowDiagram
+          >["data"]
+        }
         selectedPnl={selectedPnl}
         compact={compactProp}
       />

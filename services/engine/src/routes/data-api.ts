@@ -18,6 +18,7 @@ import { getAnomalyDetector } from "@/core/anomaly/anomaly-detector";
 import { buildAutoInsights } from "@/core/insights/auto-insights";
 import { findDuplicates } from "@/core/ml/duplicates";
 import { analyzeMissing } from "@/core/ml/missing-analysis";
+import { forecast } from "@/core/ml/forecast";
 import { loadSchema } from "@/core/schema/registry";
 import { detectDrift } from "@/core/schema/drift-detector";
 import { logger } from "@/lib/logger";
@@ -518,6 +519,62 @@ dataApiRouter.get(
     } catch (error) {
       logger.error({ error }, "Data quality check error");
       return res.status(500).json({ error: "Quality check failed" });
+    }
+  },
+);
+
+/* ─── GET /api/data/forecast/:queryName ───────────────────────────
+ *
+ * Lightweight forecast endpoint for KPI cards. Wraps core/ml/forecast
+ * (exponential smoothing). Returns null history+null forecast on data
+ * the model can't fit — caller renders a "no forecast available"
+ * state instead of erroring.
+ *
+ * Query params:
+ *   - valueColumn (optional): override the auto-picked numeric column
+ *   - periods     (optional, default 5): how many points to project
+ *   - groupId     (optional, default "default")
+ */
+dataApiRouter.get(
+  "/forecast/:queryName",
+  async (req: Request, res: Response) => {
+    try {
+      const queryName = req.params.queryName;
+      const groupId =
+        typeof req.query.groupId === "string" ? req.query.groupId : "default";
+      const valueColumn =
+        typeof req.query.valueColumn === "string"
+          ? req.query.valueColumn
+          : undefined;
+      const periods = Math.min(
+        Math.max(parseInt(String(req.query.periods ?? "5"), 10), 1),
+        24,
+      );
+
+      const rawData = await getCsvData(queryName, groupId);
+      const result = forecast(rawData, periods, undefined, valueColumn);
+
+      if (!result) {
+        return res.json({
+          forecastable: false,
+          reason:
+            "No date column + numeric column pair found, or fewer than 3 data points.",
+        });
+      }
+
+      return res.json({
+        forecastable: true,
+        dateColumn: result.dateColumn,
+        valueColumn: result.valueColumn,
+        historical: result.historical,
+        predicted: result.predicted,
+        nlDescription: result.nlDescription,
+      });
+    } catch (error) {
+      logger.error({ error }, "Forecast endpoint error");
+      return res
+        .status(500)
+        .json({ forecastable: false, reason: "Forecast failed" });
     }
   },
 );
