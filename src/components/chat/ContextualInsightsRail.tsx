@@ -126,6 +126,46 @@ export function ContextualInsightsRail({
     };
   }, [activeResult]);
 
+  // Derive top performer + low performer for inline chips in the header.
+  const { topPerformer, alert } = useMemo(() => {
+    if (
+      activeResult.data.length === 0 ||
+      labelCol == null ||
+      valueCol == null
+    ) {
+      return {
+        topPerformer: null as { label: string; metric: string } | null,
+        alert: null as { label: string; metric: string } | null,
+      };
+    }
+    let topRow = activeResult.data[0];
+    let topVal = Number(topRow[valueCol] ?? 0);
+    let minVal = topVal;
+    let minRow = topRow;
+    for (const row of activeResult.data) {
+      const v = Number(row[valueCol] ?? NaN);
+      if (!Number.isFinite(v)) continue;
+      if (v > topVal) {
+        topVal = v;
+        topRow = row;
+      }
+      if (v < minVal) {
+        minVal = v;
+        minRow = row;
+      }
+    }
+    return {
+      topPerformer: {
+        label: String(topRow[labelCol] ?? "—"),
+        metric: valueCol,
+      },
+      alert:
+        minVal < topVal * 0.5 && activeResult.data.length > 2
+          ? { label: String(minRow[labelCol] ?? "—"), metric: valueCol }
+          : null,
+    };
+  }, [activeResult, labelCol, valueCol]);
+
   // Forecast needs a date + numeric column; the engine returns a
   // helpful error otherwise, but we surface that as a disabled state
   // with a tooltip so the user understands why before clicking.
@@ -248,6 +288,32 @@ export function ContextualInsightsRail({
             {activeResult.executionMs != null &&
               ` · ${activeResult.executionMs}ms`}
           </span>
+          {(topPerformer || alert) && (
+            <span className="inline-flex items-center gap-2 text-[10.5px] font-mono min-w-0 shrink">
+              {topPerformer && (
+                <span
+                  className="inline-flex items-baseline gap-0.5 text-emerald-500 truncate max-w-[110px]"
+                  title={`Top by ${topPerformer.metric}: ${topPerformer.label}`}
+                >
+                  <span className="opacity-80">Top</span>
+                  <span className="truncate text-[var(--text-primary)] font-semibold">
+                    {topPerformer.label}
+                  </span>
+                </span>
+              )}
+              {alert && (
+                <span
+                  className="inline-flex items-baseline gap-0.5 text-rose-500 truncate max-w-[110px]"
+                  title={`Low by ${alert.metric}: ${alert.label}`}
+                >
+                  <span className="opacity-80">Low</span>
+                  <span className="truncate text-[var(--text-primary)] font-semibold">
+                    {alert.label}
+                  </span>
+                </span>
+              )}
+            </span>
+          )}
           {hasKpis && (
             <button
               onClick={toggleKpi}
