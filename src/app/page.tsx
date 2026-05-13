@@ -195,8 +195,14 @@ function ChatPage() {
     [userInfo?.samAccountName, pinnedQueryNames, pinnedQueries, groupId],
   );
 
-  const handlePinnedQueryClick = useCallback((_queryName: string) => {
-    // Placeholder: full integration requires ChatWindow to expose an executeQuery callback
+  // Click on a pinned query in the right rail → dispatch the same
+  // mitr:send-chat custom event the Quick Synthesis Actions use, so
+  // ChatWindow runs the query through its normal sendMessage path.
+  const handlePinnedQueryClick = useCallback((queryName: string) => {
+    if (!queryName) return;
+    window.dispatchEvent(
+      new CustomEvent("mitr:send-chat", { detail: `run ${queryName}` }),
+    );
   }, []);
 
   const handleQueryResult = useCallback((result: ActiveResult) => {
