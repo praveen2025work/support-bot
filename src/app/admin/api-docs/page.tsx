@@ -59,9 +59,12 @@ export default function ApiDocsPage() {
       {/* Redoc renders into this element via the spec-url attribute. */}
       {}
       {(() => {
-        const Element = "redoc" as unknown as React.ElementType<
-          React.HTMLAttributes<HTMLElement> & { "spec-url"?: string }
-        >;
+        // Redocly's `<redoc>` web component takes kebab-case props.
+        // Cast to ComponentType<any> so the extra `theme` attribute
+        // (and any other non-standard HTML props) don't trip JSX
+        // intrinsic-element type narrowing.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const Element = "redoc" as unknown as React.ComponentType<any>;
         return (
           <Element
             spec-url="/api/openapi.json"

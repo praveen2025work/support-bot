@@ -20,7 +20,9 @@ const OPERATOR_LABELS: Record<string, string> = {
 };
 
 function ConditionSummary({ rule }: { rule: WatchRule }) {
-  const c = rule.condition as Record<string, unknown>;
+  // Coerce via `unknown` because the discriminated union ↔ Record<string, unknown>
+  // overlap isn't enough for TS to accept the direct cast.
+  const c = rule.condition as unknown as Record<string, unknown>;
   switch (rule.type) {
     case "threshold":
       return (

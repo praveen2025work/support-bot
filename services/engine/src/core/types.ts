@@ -157,6 +157,7 @@ export interface RichContent {
     | "forecast_result"
     | "pca_result"
     | "insight_report"
+    | "query_filter_form"
     | "root_cause";
   data: unknown;
 }

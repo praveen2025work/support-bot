@@ -27,12 +27,12 @@ router.post("/", (req: Request, res: Response) => {
       groupId?: string;
       name: string;
       steps: WorkflowStep[];
-      params: {
+      params: Array<{
         name: string;
-        type: string;
+        type: "text" | "select" | "number" | "date";
         options?: string | string[];
         defaultValue?: string;
-      }[];
+      }>;
       owner: string;
       visibility: "private" | "group";
     };

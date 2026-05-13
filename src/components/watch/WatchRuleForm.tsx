@@ -46,7 +46,9 @@ const INITIAL_STATE: FormState = {
 };
 
 function stateFromRule(rule: WatchRule): FormState {
-  const c = rule.condition as Record<string, unknown>;
+  // Coerce via `unknown` because the discriminated union ↔ Record<string, unknown>
+  // overlap isn't enough for TS to accept the direct cast.
+  const c = rule.condition as unknown as Record<string, unknown>;
   return {
     name: rule.name,
     queryName: rule.queryName,

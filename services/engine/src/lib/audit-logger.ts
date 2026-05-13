@@ -7,6 +7,7 @@ export interface AuditEntry {
   timestamp: string;
   action:
     | "create"
+    | "read" // forensic read of sensitive data (e.g. clear-text PII view)
     | "update"
     | "delete"
     | "upload"

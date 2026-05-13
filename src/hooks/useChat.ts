@@ -80,6 +80,10 @@ export interface Message {
    * `sendForceIntent(queryName)`, which bypasses NLP server-side.
    */
   disambiguation?: DisambiguationPayload;
+  /** Optional name of the executed query — used by retry + sharing UIs. */
+  queryName?: string;
+  /** Classified intent label — used by analytics + suggestion routing. */
+  intent?: string;
 }
 
 /** Per-candidate metadata returned alongside the headline. */
@@ -271,7 +275,16 @@ export function useChat(
       explicitFilters?: Record<string, string>,
       feedbackType?: string,
       forceIntent?: string,
-    ): Promise<{ data?: Record<string, unknown>; error?: boolean }> => {
+    ): Promise<{
+      data?: Record<string, unknown>;
+      error?: boolean;
+      errorEnvelope?: {
+        error?: string;
+        code?: string;
+        requestId?: string;
+        retryable?: boolean;
+      };
+    }> => {
       const payload: Record<string, unknown> = {
         text,
         sessionId: sessionIdRef.current,

@@ -120,6 +120,34 @@ export interface DrillDownConfig {
   label?: string; // display label for the drill-down option
 }
 
+/**
+ * An ad-hoc drill-down query registered at runtime (not stored on a
+ * card config). Used by ExternalDrillDownContext so any surface can
+ * surface "click cell → run linked query" affordances.
+ */
+export interface ExternalDrillDownQuery {
+  /** Unique registry key. */
+  id: string;
+  /** External system this drill-down originated from (used for bulk
+   *  deregister by source). */
+  sourceSystem: string;
+  /** Query (or external URL) to execute when the user clicks a value. */
+  targetQuery: string;
+  /** Filter key to pass the clicked value to. */
+  targetFilter?: string;
+  /** Columns this drill-down applies to (matched case-insensitively
+   *  with underscores/spaces collapsed). */
+  applicableColumns: string[];
+  /** Optional label shown in the drill menu. */
+  label?: string;
+  /** Optional context info (cardId, groupId) for analytics. */
+  context?: Record<string, string>;
+  /** Registered-at timestamp (ms epoch). Set by the registry on insert. */
+  registeredAt: number;
+  /** Eviction TTL in ms. Defaults to 5 minutes when omitted. */
+  ttlMs?: number;
+}
+
 // ── Data Validation ──────────────────────────────────────────────
 
 export interface ValidationRule {

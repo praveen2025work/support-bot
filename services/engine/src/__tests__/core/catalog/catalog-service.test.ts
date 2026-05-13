@@ -1,7 +1,7 @@
 import { CatalogService } from "../../../core/catalog/catalog-service";
 import * as fs from "fs";
 import * as path from "path";
-import { vi } from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 
 const mockQueries = [
   {
@@ -52,10 +52,12 @@ describe("CatalogService", () => {
     );
 
     service = new CatalogService(testDataDir);
-    // Mock the private fetchQueries method to avoid HTTP calls
-    vi.spyOn(service as never, "fetchQueries" as never).mockResolvedValue(
-      mockQueries as never,
-    );
+    // Mock the private fetchQueries method to avoid HTTP calls.
+    // vi.spyOn returns MockInstance<never> when narrowed via `as never`;
+    // cast the spy to a permissive type so .mockResolvedValue is callable.
+
+    const spy = vi.spyOn(service as any, "fetchQueries") as any;
+    spy.mockResolvedValue(mockQueries);
   });
 
   afterEach(() => {

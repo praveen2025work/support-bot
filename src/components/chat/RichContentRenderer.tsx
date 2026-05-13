@@ -1261,8 +1261,18 @@ export function RichContentRenderer({
             }
           >
             <ForecastChart
-              historical={fcData.historical}
-              predicted={fcData.predicted}
+              historical={
+                fcData.historical as unknown as Array<{
+                  date: string;
+                  value: number;
+                }>
+              }
+              predicted={
+                fcData.predicted as unknown as Array<{
+                  date: string;
+                  value: number;
+                }>
+              }
               valueLabel={fcData.valueColumn}
             />
           </Suspense>

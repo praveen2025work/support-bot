@@ -910,12 +910,16 @@ export class QueryService {
     for (const r of readResults) {
       if (r.status !== "fulfilled") continue;
       const { query, content } = r.value;
+      // readFile may return a Buffer for binary sources; normalise to
+      // string before passing to the BM25/keyword search helpers.
+      const text =
+        typeof content === "string" ? content : content.toString("utf-8");
 
       // Use BM25 for better ranking (falls back to keyword search if query is too short)
       const sections =
         queryString.length >= 3
-          ? searchDocumentBM25(content, queryString, maxResultsPerDoc)
-          : searchDocument(content, keywords, maxResultsPerDoc);
+          ? searchDocumentBM25(text, queryString, maxResultsPerDoc)
+          : searchDocument(text, keywords, maxResultsPerDoc);
       if (sections.length === 0) continue;
 
       results.push({

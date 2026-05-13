@@ -150,6 +150,10 @@ export const QuerySchema = z.object({
       }),
     )
     .optional(),
+  // Data-role gate — when set, only users holding one of these roles
+  // (or an admin) can run the query. Empty / undefined means open to
+  // anyone in the group.
+  allowedRoles: z.array(z.string()).optional(),
 });
 
 export const QueryResultSchema = z.object({
