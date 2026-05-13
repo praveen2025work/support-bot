@@ -42,10 +42,7 @@ import { checkPermission, isValidRole, type Role } from "../../../lib/rbac";
 import { logAudit } from "../../../lib/audit-logger";
 import { loadSchema, saveSchema } from "../../schema/registry";
 import { detectDrift, formatDriftMessage } from "../../schema/drift-detector";
-import {
-  buildAutoInsights,
-  renderInsightPrefix,
-} from "../../insights/auto-insights";
+import { buildAutoInsights } from "../../insights/auto-insights";
 import {
   loadPreviousSnapshot,
   buildChangeNarratives,
@@ -1279,11 +1276,12 @@ export async function handleQueryExecute(
             /* change-narrative is best-effort, never fail the query */
           }
         }
-        const insightPrefix = renderInsightPrefix(autoInsights);
-
+        // Auto-insights still flow through richContent.data.autoInsights so
+        // the UI can surface them where it makes sense (Active Dataset rail,
+        // proactive insight pill). They used to be prepended as 💡 lines to
+        // the bot text, which doubled up with the rail and felt noisy.
         return {
           text:
-            insightPrefix +
             (totalRowCount
               ? `Here is the data from "${queryNameEntity.value}" (showing first ${displayedRows} of ${totalRowCount} rows):`
               : `Here is the data from "${queryNameEntity.value}" (${csv.rowCount} rows):`) +

@@ -207,36 +207,26 @@ function ChatPage() {
         activeGroupId={groupId}
         onGroupChange={handleGroupChange}
       >
+        {/* Query-name chip removed: the same info already lives in the
+            Active Dataset card and the inline result banner. The Table /
+            Chart toggle stays because it's the only action surface for
+            switching the active result's view mode. */}
         {activeResult && (
-          <>
-            <div className="flex items-center gap-1.5 bg-[var(--brand-subtle)] px-2.5 py-1 rounded-full">
-              <div className="w-1.5 h-1.5 bg-[var(--brand)] rounded-full" />
-              <span className="text-[11px] text-[var(--brand)] font-medium">
-                {activeResult.queryName}
-              </span>
-              <span className="text-[10px] text-[var(--brand)] opacity-70">
-                {activeResult.data.length} rows
-                {activeResult.executionMs != null &&
-                  ` · ${activeResult.executionMs}ms`}
-              </span>
-            </div>
-
-            <div className="inline-flex items-center bg-[var(--bg-secondary)] border border-[var(--border)] rounded-full p-0.5">
-              {(["table", "chart"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setViewMode(mode)}
-                  className={`px-3 py-1 text-[11.5px] font-semibold rounded-full capitalize transition-colors ${
-                    viewMode === mode
-                      ? "bg-[var(--bg-elevated)] text-[var(--brand)] shadow-[var(--shadow-xs)]"
-                      : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                  }`}
-                >
-                  {mode === "table" ? "Table" : "Chart"}
-                </button>
-              ))}
-            </div>
-          </>
+          <div className="inline-flex items-center bg-[var(--bg-secondary)] border border-[var(--border)] rounded-full p-0.5">
+            {(["table", "chart"] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={`px-3 py-1 text-[11.5px] font-semibold rounded-full capitalize transition-colors ${
+                  viewMode === mode
+                    ? "bg-[var(--bg-elevated)] text-[var(--brand)] shadow-[var(--shadow-xs)]"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                }`}
+              >
+                {mode === "table" ? "Table" : "Chart"}
+              </button>
+            ))}
+          </div>
         )}
       </ContextualTopBar>
 

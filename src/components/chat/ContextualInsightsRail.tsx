@@ -127,46 +127,6 @@ export function ContextualInsightsRail({
     };
   }, [activeResult]);
 
-  // Derive top performer + alert from numeric columns
-  const { topPerformer, alert } = useMemo(() => {
-    if (
-      activeResult.data.length === 0 ||
-      labelCol == null ||
-      valueCol == null
-    ) {
-      return { topPerformer: null, alert: null };
-    }
-
-    let topRow = activeResult.data[0];
-    let topVal = Number(topRow[valueCol] ?? 0);
-    let minVal = topVal;
-    let minRow = topRow;
-    for (const row of activeResult.data) {
-      const v = Number(row[valueCol] ?? NaN);
-      if (Number.isFinite(v)) {
-        if (v > topVal) {
-          topVal = v;
-          topRow = row;
-        }
-        if (v < minVal) {
-          minVal = v;
-          minRow = row;
-        }
-      }
-    }
-
-    return {
-      topPerformer: {
-        label: String(topRow[labelCol] ?? "—"),
-        metric: valueCol,
-      },
-      alert:
-        minVal < topVal * 0.5 && activeResult.data.length > 2
-          ? { label: String(minRow[labelCol] ?? "—"), metric: valueCol }
-          : null,
-    };
-  }, [activeResult, labelCol, valueCol]);
-
   // Forecast needs a date + numeric column; the engine returns a
   // helpful error otherwise, but we surface that as a disabled state
   // with a tooltip so the user understands why before clicking.
@@ -300,37 +260,6 @@ export function ContextualInsightsRail({
             {activeResult.executionMs != null &&
               ` · ${activeResult.executionMs}ms`}
           </div>
-
-          {(topPerformer || alert) && (
-            <dl className="mt-3 space-y-1.5 border-t border-[var(--border-subtle)] pt-3 text-[11.5px]">
-              {topPerformer && (
-                <div className="flex items-baseline gap-2 min-w-0">
-                  <dt className="eyebrow !text-[9px] !text-emerald-500 shrink-0 w-7">
-                    Top
-                  </dt>
-                  <dd className="font-medium text-[var(--text-primary)] truncate min-w-0 flex-1">
-                    {topPerformer.label}
-                  </dd>
-                  <span className="text-[10px] text-[var(--text-muted)] font-mono truncate max-w-[40%]">
-                    {topPerformer.metric}
-                  </span>
-                </div>
-              )}
-              {alert && (
-                <div className="flex items-baseline gap-2 min-w-0">
-                  <dt className="eyebrow !text-[9px] !text-rose-500 shrink-0 w-7">
-                    Low
-                  </dt>
-                  <dd className="font-medium text-[var(--text-primary)] truncate min-w-0 flex-1">
-                    {alert.label}
-                  </dd>
-                  <span className="text-[10px] text-[var(--text-muted)] font-mono truncate max-w-[40%]">
-                    {alert.metric}
-                  </span>
-                </div>
-              )}
-            </dl>
-          )}
 
           {hasKpis && !kpiHidden && (
             <ul className="mt-3 space-y-2.5 border-t border-[var(--border-subtle)] pt-3">
