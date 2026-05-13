@@ -168,11 +168,25 @@ export default function ConfigGuidePage() {
                 </tr>
                 <tr className="border-t border-gray-100">
                   <td className="px-3 py-2 font-mono">USER_INFO_URL</td>
-                  <td className="px-3 py-2">AD/SSO endpoint</td>
+                  <td className="px-3 py-2">
+                    AD/SSO endpoint (passthrough Windows auth)
+                  </td>
                   <td className="px-3 py-2">
                     <em>empty</em> (mock user)
                   </td>
-                  <td className="px-3 py-2">Your org SSO URL</td>
+                  <td className="px-3 py-2">Your org AD endpoint</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="px-3 py-2 font-mono">
+                    USER_INFO_DEV_OVERRIDE_SAM
+                  </td>
+                  <td className="px-3 py-2">
+                    Local dev: synthetic user keyed on this samAccountName
+                  </td>
+                  <td className="px-3 py-2">
+                    <em>empty</em>
+                  </td>
+                  <td className="px-3 py-2">kumarp15</td>
                 </tr>
                 <tr className="border-t border-gray-100">
                   <td className="px-3 py-2 font-mono">API_BASE_URL</td>
@@ -326,6 +340,52 @@ export default function ConfigGuidePage() {
               <span>
                 Run <Code>npm run dev</Code> &mdash; engine + UI start together
               </span>
+            </div>
+          </div>
+
+          <div className="text-xs font-medium text-gray-700 mt-4 mb-2">
+            Windows Authentication (passthrough)
+          </div>
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-900 mb-3 space-y-2">
+            <div>
+              The bot expects a proxy in front of Node to terminate the Windows
+              auth handshake. Topology:
+            </div>
+            <pre className="font-mono text-[10px] bg-white p-2 rounded border border-blue-100 overflow-x-auto">
+              {`Browser ──Negotiate/NTLM──> IIS / nginx-spnego / corporate gateway
+                  │
+                  │ (auth terminated; principal in header or cookie)
+                  ▼
+                Node (/api/userinfo) ──forwards headers──> USER_INFO_URL
+                  │
+                  ▼
+                AD endpoint → { samAccountName, name, emailAddress, ... }`}
+            </pre>
+            <div>
+              <strong>Headers forwarded</strong> from the incoming request:{" "}
+              <Code>Authorization</Code>, <Code>Cookie</Code>,{" "}
+              <Code>X-Forwarded-User</Code>, <Code>X-IIS-User</Code>,{" "}
+              <Code>X-Remote-User</Code>, <Code>Remote-User</Code>,{" "}
+              <Code>X-User-Principal-Name</Code>.
+            </div>
+            <div>
+              <strong>Response shape</strong> the AD endpoint must return:{" "}
+              <Code>{`{ samAccountName, userName, displayName, emailAddress, employeeId, name, givenName, surname, middleName, distinguishedName, domain }`}</Code>
+              . <Code>samAccountName</Code> and <Code>userName</Code> are
+              treated as equivalent.
+            </div>
+            <div>
+              <strong>Role mapping</strong>: the value of{" "}
+              <Code>samAccountName</Code> is looked up in{" "}
+              <Code>src/config/users.json</Code> (field <Code>userid</Code>).
+              Users not in the file default to <Code>viewer</Code>; admin grants
+              are explicit.
+            </div>
+            <div>
+              <strong>Local dev shortcut</strong>: set{" "}
+              <Code>USER_INFO_DEV_OVERRIDE_SAM=kumarp15</Code> to skip the
+              upstream call entirely and pretend to be that user. Ignored in{" "}
+              <Code>NODE_ENV=production</Code>.
             </div>
           </div>
 

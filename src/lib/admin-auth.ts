@@ -1,10 +1,10 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import { timeoutSignal } from '@/lib/generate-id';
+import { promises as fs } from "fs";
+import path from "path";
+import { timeoutSignal } from "@/lib/generate-id";
 
-const USERS_JSON_PATH = path.join(process.cwd(), 'src/config/users.json');
+const USERS_JSON_PATH = path.join(process.cwd(), "src/config/users.json");
 
-export type Role = 'admin' | 'builder' | 'viewer';
+export type Role = "admin" | "builder" | "viewer";
 
 interface AdminUser {
   id: string;
@@ -24,21 +24,23 @@ interface AdminCheckResult {
  * Read the users database from users.json.
  */
 async function readUsers(): Promise<{ users: AdminUser[] }> {
-  const raw = await fs.readFile(USERS_JSON_PATH, 'utf-8');
+  const raw = await fs.readFile(USERS_JSON_PATH, "utf-8");
   return JSON.parse(raw);
 }
 
 /**
- * Check if a user (identified by their AD samAccountName and/or email)
+ * Check if a user (identified by their AD samAccountName/userName and/or email)
  * is registered as an admin in users.json.
  *
  * Matching priority:
  * 1. userid field matches samAccountName (AD account name)
- * 2. email field matches emailAddress (fallback)
+ * 2. userid field matches userName (alias for samAccountName on the AD response)
+ * 3. email field matches emailAddress (fallback)
  */
 export async function checkAdminByIdentity(
   samAccountName?: string,
-  emailAddress?: string
+  emailAddress?: string,
+  userName?: string,
 ): Promise<AdminCheckResult> {
   try {
     const data = await readUsers();
@@ -46,20 +48,31 @@ export async function checkAdminByIdentity(
     // Primary match: userid === samAccountName
     if (samAccountName) {
       const match = data.users.find(
-        (u) => u.userid.toLowerCase() === samAccountName.toLowerCase()
+        (u) => u.userid.toLowerCase() === samAccountName.toLowerCase(),
       );
       if (match) {
-        return { isAdmin: match.role === 'admin', user: match };
+        return { isAdmin: match.role === "admin", user: match };
+      }
+    }
+
+    // Secondary match: userid === userName (AD endpoint returns both
+    // — same value, but defensive against payloads that only carry one).
+    if (userName && userName !== samAccountName) {
+      const match = data.users.find(
+        (u) => u.userid.toLowerCase() === userName.toLowerCase(),
+      );
+      if (match) {
+        return { isAdmin: match.role === "admin", user: match };
       }
     }
 
     // Fallback match: email === emailAddress
     if (emailAddress) {
       const match = data.users.find(
-        (u) => u.email.toLowerCase() === emailAddress.toLowerCase()
+        (u) => u.email.toLowerCase() === emailAddress.toLowerCase(),
       );
       if (match) {
-        return { isAdmin: match.role === 'admin', user: match };
+        return { isAdmin: match.role === "admin", user: match };
       }
     }
 
@@ -78,24 +91,40 @@ export async function checkAdminByIdentity(
  * Pass the incoming request so we can forward cookies/auth headers.
  */
 export async function isRequestAdmin(
-  request: Request
+  request: Request,
 ): Promise<AdminCheckResult> {
   try {
     // Build the internal URL for userinfo
     const url = new URL(request.url);
     const userInfoUrl = `${url.origin}/api/userinfo`;
 
-    // Forward relevant auth headers
+    // Forward auth-relevant headers so the userinfo route can in turn
+    // passthrough to the upstream AD endpoint. Mirrors the FORWARD_HEADERS
+    // list in /api/userinfo/route.ts.
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
-    const cookie = request.headers.get('cookie');
-    if (cookie) headers['Cookie'] = cookie;
-    const auth = request.headers.get('authorization');
-    if (auth) headers['Authorization'] = auth;
+    const forward = [
+      "cookie",
+      "authorization",
+      "x-forwarded-user",
+      "x-iis-user",
+      "x-remote-user",
+      "remote-user",
+    ];
+    for (const h of forward) {
+      const v = request.headers.get(h);
+      if (v)
+        headers[
+          h
+            .split("-")
+            .map((p) => p[0].toUpperCase() + p.slice(1))
+            .join("-")
+        ] = v;
+    }
 
     const res = await fetch(userInfoUrl, {
-      method: 'GET',
+      method: "GET",
       headers,
       signal: timeoutSignal(5_000),
     });
@@ -105,7 +134,11 @@ export async function isRequestAdmin(
     }
 
     const userInfo = await res.json();
-    return checkAdminByIdentity(userInfo.samAccountName, userInfo.emailAddress);
+    return checkAdminByIdentity(
+      userInfo.samAccountName,
+      userInfo.emailAddress,
+      userInfo.userName,
+    );
   } catch {
     return { isAdmin: false };
   }

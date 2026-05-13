@@ -1471,6 +1471,51 @@ async function testGroupIsolation() {
 // write-path LOGIC works. Browser CSRF flow is tested separately
 // during the manual demo rehearsal.
 
+async function testUserInfo() {
+  section("User identity — /api/userinfo shape (passthrough)");
+
+  const r = await timed(() => getJson(`${NEXT_URL}/api/userinfo`));
+  const body = r.result?.body;
+  const ok = !!r.result?.ok && !!body;
+  record(
+    "userinfo",
+    "GET /api/userinfo returns a body",
+    ok,
+    `status=${r.result?.status} hasBody=${!!body}`,
+    r.durationMs,
+  );
+  if (!ok) return;
+
+  // The endpoint must return the AD-shaped fields the rest of the app
+  // expects. We don't assert specific values — in dev fallback the
+  // user is "local_dev", in real deployment it's whoever IIS auth'd.
+  const required = [
+    "samAccountName",
+    "userName",
+    "displayName",
+    "emailAddress",
+    "employeeId",
+    "givenName",
+    "surname",
+  ];
+  const missing = required.filter((k) => !(k in body));
+  record(
+    "userinfo",
+    "response carries all required AD fields",
+    missing.length === 0,
+    `missing=${missing.join(",") || "none"}`,
+  );
+
+  // samAccountName and userName should be the same string per the AD
+  // contract. If they ever drift, downstream role lookup breaks.
+  record(
+    "userinfo",
+    "samAccountName === userName",
+    body.samAccountName === body.userName,
+    `sam=${body.samAccountName} userName=${body.userName}`,
+  );
+}
+
 async function testAutocomplete() {
   section("Type-ahead — /api/queries/search returns scored matches");
 
@@ -1874,6 +1919,7 @@ async function main() {
   await testSnapshots();
   await testEdgeCases();
   await testGroupIsolation();
+  await testUserInfo();
   await testAutocomplete();
   await testAutoInsights();
   await testGlossaryCrud();

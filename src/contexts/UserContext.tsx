@@ -77,16 +77,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
           const msg =
             err instanceof Error ? err.message : "Failed to load user info";
           setError(msg);
-          // Fallback for dev
+          // Fallback for dev — matches the AD response shape so
+          // role-mapping code paths exercise the same fields.
           if (process.env.NODE_ENV === "development") {
             setUserInfo({
-              samAccountName: "jdoe",
-              displayName: "John Doe",
-              emailAddress: "john.doe@company.com",
-              employeeId: "EMP001",
-              givenName: "John",
-              surname: "Doe",
-              userName: "DOMAIN\\jdoe",
+              samAccountName: "local_dev",
+              userName: "local_dev",
+              displayName: "Local Developer",
+              emailAddress: "dev@localhost",
+              employeeId: "EMP-LOCAL",
+              name: "Local Developer",
+              givenName: "Local",
+              middleName: null,
+              surname: "Developer",
+              domain: null,
             });
             setIsAdmin(false);
           }
