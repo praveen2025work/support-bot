@@ -1,9 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ClipboardCopy, Check } from "lucide-react";
+import { ClipboardCopy, Check, ArrowUpRight } from "lucide-react";
 import type { DisambiguationCandidate } from "@/hooks/useChat";
 
+/**
+ * Suggestion follow-up chips rendered under the latest assistant turn.
+ * Stitch-styled pill with arrow-up-right glyph + hover-revealed copy button.
+ */
 export function SuggestionChips({
   suggestions,
   onSelect,
@@ -24,36 +28,34 @@ export function SuggestionChips({
         setTimeout(() => setCopiedIndex(null), 1500);
       })
       .catch((err) => {
-        // Clipboard can legitimately fail in restricted contexts (Teams iframe,
-        // permission-denied). Log so we can spot persistent failures, but never
-        // block the rest of the chip UI.
         console.warn("Clipboard copy failed", err);
       });
   };
 
   return (
-    <div className="flex flex-wrap gap-2 px-4 pb-2">
+    <div className="flex flex-wrap gap-2 px-4 pb-2.5">
       {suggestions.map((suggestion, i) => (
         <span
           key={i}
-          className="group inline-flex items-center gap-1 rounded-full border border-[var(--brand)] bg-[var(--brand-subtle)] text-xs text-[var(--brand)] hover:opacity-80 transition-colors"
+          className="group inline-flex items-center gap-1 rounded-full border border-[var(--brand)]/40 bg-[var(--brand-subtle)] text-[12px] font-medium text-[var(--brand)] hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)] transition-all hover:shadow-[var(--shadow-sm)]"
         >
           <button
             onClick={() => onSelect(suggestion, "suggestion_click")}
             data-testid="suggestion-chip"
-            className="pl-3 py-1 cursor-pointer"
+            className="pl-3 pr-1.5 py-1.5 cursor-pointer inline-flex items-center gap-1.5"
           >
-            {suggestion}
+            <span>{suggestion}</span>
+            <ArrowUpRight className="w-3 h-3" />
           </button>
           <button
             onClick={(e) => handleCopy(suggestion, i, e)}
-            className="pr-2 py-1 text-[var(--brand)] hover:opacity-70 transition-colors cursor-pointer"
+            className="pr-2.5 py-1.5 opacity-60 hover:opacity-100 cursor-pointer transition-opacity border-l border-current/20"
             title="Copy to clipboard"
           >
             {copiedIndex === i ? (
-              <Check size={12} className="text-green-600" />
+              <Check size={11} className="text-emerald-500" />
             ) : (
-              <ClipboardCopy size={12} />
+              <ClipboardCopy size={11} />
             )}
           </button>
         </span>

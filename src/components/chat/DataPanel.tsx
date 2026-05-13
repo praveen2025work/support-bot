@@ -1,6 +1,7 @@
 "use client";
 import { lazy, Suspense, useState } from "react";
 import { PinnedDashboard } from "./PinnedDashboard";
+import { ContextualInsightsRail, type KpiStat } from "./ContextualInsightsRail";
 
 const DataChart = lazy(() =>
   import("./DataChart").then((m) => ({ default: m.DataChart })),
@@ -27,6 +28,10 @@ interface DataPanelProps {
   onPinnedQueryClick?: (name: string) => void;
   onPin?: (queryName: string) => void;
   viewMode?: "table" | "chart";
+  /** Numeric KPI stats for the active result (avg/max/min per column). */
+  kpiStats?: KpiStat[];
+  /** Fire a follow-up chat message (used by Quick Synthesis Actions). */
+  onSendChat?: (text: string) => void;
 }
 
 export function DataPanel({
@@ -35,6 +40,8 @@ export function DataPanel({
   onPinnedQueryClick,
   onPin,
   viewMode = "table",
+  kpiStats,
+  onSendChat,
 }: DataPanelProps) {
   if (!activeResult) {
     return (
@@ -54,6 +61,8 @@ export function DataPanel({
       pinnedQueries={pinnedQueries}
       onPin={onPin}
       viewMode={viewMode}
+      kpiStats={kpiStats}
+      onSendChat={onSendChat}
     />
   );
 }
@@ -63,11 +72,15 @@ function ResultView({
   pinnedQueries,
   onPin,
   viewMode,
+  kpiStats,
+  onSendChat,
 }: {
   activeResult: ActiveResult;
   pinnedQueries?: DataPanelProps["pinnedQueries"];
   onPin?: (queryName: string) => void;
   viewMode: "table" | "chart";
+  kpiStats?: KpiStat[];
+  onSendChat?: (text: string) => void;
 }) {
   const [page, setPage] = useState(0);
   const [sortCol, setSortCol] = useState<string | null>(null);
@@ -90,7 +103,14 @@ function ResultView({
 
   return (
     <div className="flex-1 p-3 overflow-auto">
-      <div className="bg-[var(--bg-primary)] rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] flex flex-col h-full">
+      <div className="mb-3">
+        <ContextualInsightsRail
+          activeResult={activeResult}
+          kpiStats={kpiStats}
+          onSendChat={onSendChat}
+        />
+      </div>
+      <div className="bg-[var(--bg-elevated)] rounded-[var(--radius-lg)] border border-[var(--border)] shadow-[var(--shadow-xs)] flex flex-col">
         <div className="flex-1 overflow-auto px-3 py-2">
           {viewMode === "table" && (
             <div className="border border-[var(--border-subtle)] rounded-[var(--radius-md)] overflow-auto">

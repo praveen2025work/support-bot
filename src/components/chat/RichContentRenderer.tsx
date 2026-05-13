@@ -641,44 +641,87 @@ export function RichContentRenderer({
         xlsx: "bg-emerald-100 text-emerald-700",
         xls: "bg-emerald-100 text-emerald-700",
       };
+
+      // Derive a category from each query name's prefix (e.g.
+      // "hr_report_salaries" → "hr", "monthly_revenue" → "general"). Falls
+      // back to the data type when no underscore prefix is found.
+      const categoryOf = (name: string, type: string): string => {
+        const prefix = name.split(/[_\-:.]/)[0];
+        if (prefix && prefix.length >= 2 && prefix.length <= 10) {
+          return prefix.toLowerCase();
+        }
+        return type.toLowerCase();
+      };
+
+      // Group + alphabetise within each group, then alphabetise groups
+      const groups = new Map<string, typeof items>();
+      for (const it of items) {
+        const cat = categoryOf(it.name, it.type);
+        if (!groups.has(cat)) groups.set(cat, []);
+        groups.get(cat)!.push(it);
+      }
+      type QLItem = import("./richContentTypes").QueryListItem;
+      for (const list of Array.from(groups.values())) {
+        list.sort((a: QLItem, b: QLItem) => a.name.localeCompare(b.name));
+      }
+      const grouped = Array.from(groups.entries()).sort(
+        (a: [string, QLItem[]], b: [string, QLItem[]]) =>
+          a[0].localeCompare(b[0]),
+      );
+
       return (
-        <div className="mt-1 space-y-1.5">
-          {items.map((item) => (
-            <button
-              key={item.name}
-              onClick={() => {
-                if (item.type === "url" && item.url) {
-                  window.open(item.url, "_blank", "noopener,noreferrer");
-                } else {
-                  onAction?.(`run ${item.name}`);
-                }
-              }}
-              className="w-full flex items-start gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2 text-left hover:border-[var(--brand)] hover:bg-[var(--brand-subtle)] transition-colors"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-semibold text-[var(--text-primary)] truncate">
-                    {item.name}
-                  </span>
-                  <span
-                    className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${typeColors[item.type] || "bg-[var(--bg-secondary)] text-[var(--text-primary)]"}`}
-                  >
-                    {item.type}
-                  </span>
-                </div>
-                {item.description && (
-                  <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 line-clamp-1">
-                    {item.description}
-                  </p>
-                )}
-              </div>
-              {item.filters.length > 0 && (
-                <span className="text-[10px] text-[var(--text-muted)] whitespace-nowrap mt-0.5">
-                  {item.filters.length} filter
-                  {item.filters.length > 1 ? "s" : ""}
+        <div className="mt-1 flex flex-col gap-3">
+          {grouped.map(([category, list]) => (
+            <div key={category} className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2 px-0.5">
+                <span className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                  {category}
                 </span>
-              )}
-            </button>
+                <span className="text-[9.5px] text-[var(--text-muted)] font-mono">
+                  {list.length}
+                </span>
+                <span className="flex-1 h-px bg-[var(--border-subtle)]" />
+              </div>
+              <div className="space-y-1">
+                {list.map((item) => (
+                  <button
+                    key={item.name}
+                    onClick={() => {
+                      if (item.type === "url" && item.url) {
+                        window.open(item.url, "_blank", "noopener,noreferrer");
+                      } else {
+                        onAction?.(`run ${item.name}`);
+                      }
+                    }}
+                    className="w-full flex items-start gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-left hover:border-[var(--brand)] hover:shadow-[var(--shadow-sm)] transition-all"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-semibold text-[var(--text-primary)] truncate">
+                          {item.name}
+                        </span>
+                        <span
+                          className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${typeColors[item.type] || "bg-[var(--bg-secondary)] text-[var(--text-primary)]"}`}
+                        >
+                          {item.type}
+                        </span>
+                      </div>
+                      {item.description && (
+                        <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 line-clamp-1">
+                          {item.description}
+                        </p>
+                      )}
+                    </div>
+                    {item.filters.length > 0 && (
+                      <span className="text-[10px] text-[var(--text-muted)] whitespace-nowrap mt-0.5">
+                        {item.filters.length} filter
+                        {item.filters.length > 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       );

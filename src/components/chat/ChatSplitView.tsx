@@ -62,7 +62,7 @@ export function ChatSplitView({
   return (
     <div ref={containerRef} className="flex flex-1 overflow-hidden">
       <div
-        className="flex flex-col overflow-hidden bg-[var(--bg-secondary)]"
+        className="flex flex-col overflow-hidden bg-[var(--bg-canvas)] border-r border-[var(--border)]"
         style={{ width: `${chatPercent}%` }}
       >
         {chatPanel}
@@ -71,9 +71,9 @@ export function ChatSplitView({
         data-testid="split-divider"
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
-        className="w-[5px] cursor-col-resize flex-shrink-0 bg-[var(--border-subtle)] hover:bg-[var(--brand)] transition-colors duration-150"
+        className="w-[4px] cursor-col-resize flex-shrink-0 bg-transparent hover:bg-[var(--brand)]/30 transition-colors duration-150 -ml-[2px] z-10"
       />
-      <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg-secondary)]">
+      <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg-canvas)]">
         {dataPanel}
       </div>
     </div>

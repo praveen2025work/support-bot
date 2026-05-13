@@ -114,6 +114,20 @@ export function ChatWindow({
     }
   }, [initialMessage, engineStatus, sendMessage]);
 
+  // External actors (e.g. Quick Synthesis Actions in the right rail) can
+  // request a follow-up by dispatching `mitr:send-chat` with the text in
+  // `event.detail`. Keeps the chat hook private to ChatWindow.
+  useEffect(() => {
+    function handler(event: Event) {
+      const text = (event as CustomEvent<string>).detail;
+      if (typeof text === "string" && text.trim()) {
+        sendMessage(text);
+      }
+    }
+    window.addEventListener("mitr:send-chat", handler);
+    return () => window.removeEventListener("mitr:send-chat", handler);
+  }, [sendMessage]);
+
   useEffect(() => {
     if (!onQueryResult) return;
     const lastBotMsg = [...messages]

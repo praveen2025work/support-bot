@@ -209,7 +209,7 @@ function ChatPage() {
       >
         {activeResult && (
           <>
-            <div className="flex items-center gap-1.5 bg-[var(--brand-subtle)] px-2.5 py-1 rounded-[var(--radius-md)]">
+            <div className="flex items-center gap-1.5 bg-[var(--brand-subtle)] px-2.5 py-1 rounded-full">
               <div className="w-1.5 h-1.5 bg-[var(--brand)] rounded-full" />
               <span className="text-[11px] text-[var(--brand)] font-medium">
                 {activeResult.queryName}
@@ -221,38 +221,16 @@ function ChatPage() {
               </span>
             </div>
 
-            {kpiStats.length > 0 && (
-              <div className="flex items-center gap-2">
-                {kpiStats.map((s) => (
-                  <div
-                    key={s.col}
-                    className="flex items-center gap-1 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-[var(--radius-md)] px-2 py-0.5"
-                  >
-                    <span className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider">
-                      {s.col}
-                    </span>
-                    <span className="text-[10px] font-semibold text-[var(--text-primary)]">
-                      {s.avg}
-                    </span>
-                    <span className="text-[9px] text-[var(--success)]">
-                      ↑{s.max}
-                    </span>
-                    <span className="text-[9px] text-[var(--danger)]">
-                      ↓{s.min}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="w-px h-4 bg-[var(--border)]" />
-
-            <div className="flex gap-0.5">
+            <div className="inline-flex items-center bg-[var(--bg-secondary)] border border-[var(--border)] rounded-full p-0.5">
               {(["table", "chart"] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
-                  className={`px-2 py-0.5 rounded-[var(--radius-md)] text-[10px] font-medium capitalize transition-colors ${viewMode === mode ? "bg-[var(--brand-subtle)] text-[var(--brand)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"}`}
+                  className={`px-3 py-1 text-[11.5px] font-semibold rounded-full capitalize transition-colors ${
+                    viewMode === mode
+                      ? "bg-[var(--bg-elevated)] text-[var(--brand)] shadow-[var(--shadow-xs)]"
+                      : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  }`}
                 >
                   {mode === "table" ? "Table" : "Chart"}
                 </button>
@@ -283,6 +261,12 @@ function ChatPage() {
             onPinnedQueryClick={handlePinnedQueryClick}
             onPin={handlePin}
             viewMode={viewMode}
+            kpiStats={kpiStats}
+            onSendChat={(text) =>
+              window.dispatchEvent(
+                new CustomEvent("mitr:send-chat", { detail: text }),
+              )
+            }
           />
         }
       />

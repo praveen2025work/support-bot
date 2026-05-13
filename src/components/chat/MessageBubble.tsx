@@ -20,13 +20,38 @@ import { RichContentRenderer } from "./RichContentRenderer";
 import { DisambiguationChips } from "./SuggestionChips";
 import type { LinkedSelection, DiffInfo } from "./richContentTypes";
 
+/**
+ * Renders assistant text with three inline affordances:
+ *   1. **bold** markers   → <strong> with brand emphasis
+ *   2. "quoted text"      → clickable chip that fires onAction
+ *   3. [[ref:N]] markers  → small "REF: N" citation pill (Stitch design)
+ *
+ * Bold-followed-by-citation is the Stitch DocQA pattern, e.g.
+ *   "saw a **42% YoY growth** [[ref:1]]" → bold + REF: 01 pill.
+ */
 function renderMarkdownText(text: string, onAction?: (text: string) => void) {
-  // Split on **bold** markers and "quoted" text
-  const parts = text.split(/(\*\*[^*]+\*\*|"[^"]{3,}")/g);
+  const parts = text.split(/(\*\*[^*]+\*\*|"[^"]{3,}"|\[\[ref:\d+\]\])/gi);
   return parts.map((part, i) => {
     const boldMatch = part.match(/^\*\*(.+)\*\*$/);
     if (boldMatch) {
-      return <strong key={i}>{boldMatch[1]}</strong>;
+      return (
+        <strong key={i} className="font-semibold text-[var(--text-primary)]">
+          {boldMatch[1]}
+        </strong>
+      );
+    }
+    const refMatch = part.match(/^\[\[ref:(\d+)\]\]$/i);
+    if (refMatch) {
+      const n = String(refMatch[1]).padStart(2, "0");
+      return (
+        <sup
+          key={i}
+          className="inline-flex items-center mx-0.5 align-baseline text-[9px] font-semibold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded bg-[var(--brand-subtle)] text-[var(--brand)]"
+          title={`Reference ${n}`}
+        >
+          REF: {n}
+        </sup>
+      );
     }
     const quoteMatch = part.match(/^"(.{3,})"$/);
     if (quoteMatch && onAction) {
@@ -182,12 +207,18 @@ export function MessageBubble({
         className={`relative ${
           dashboardMode
             ? "w-full"
-            : `${isUser ? "max-w-[80%]" : hasRichContent ? "max-w-[98%] w-full" : "max-w-[85%]"} rounded-2xl px-4 py-3 ${
+            : `${
                 isUser
-                  ? "bg-[var(--brand)] text-white"
-                  : message.isError
-                    ? "bg-[var(--danger-subtle)] text-[var(--text-primary)] border border-[var(--danger)]"
-                    : "bg-[var(--bg-secondary)] text-[var(--text-primary)]"
+                  ? "max-w-[80%] rounded-2xl rounded-br-sm px-4 py-2.5 bg-[var(--brand)] text-white text-[13px]"
+                  : hasRichContent
+                    ? "max-w-[98%] w-full"
+                    : "max-w-[88%]"
+              } ${
+                !isUser && message.isError
+                  ? "rounded-[var(--radius-lg)] rounded-tl-sm border border-[var(--danger)] bg-[var(--danger-subtle)] text-[var(--text-primary)] px-4 py-3 border-l-[3px]"
+                  : !isUser
+                    ? "rounded-[var(--radius-lg)] rounded-tl-sm border border-[var(--border)] bg-[var(--bg-elevated)] text-[var(--text-primary)] px-4 py-3 border-l-[3px] border-l-[var(--brand)] shadow-[var(--shadow-xs)]"
+                    : ""
               }`
         }`}
       >

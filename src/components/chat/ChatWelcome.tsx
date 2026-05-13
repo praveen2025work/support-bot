@@ -52,10 +52,10 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 const HELP_ITEMS = [
-  { label: "List all queries", command: "list queries", icon: Database },
+  { label: "List queries", command: "list queries", icon: Database },
   { label: "Run a query", command: "run monthly_revenue", icon: Sparkles },
   {
-    label: "Search knowledge base",
+    label: "Search docs",
     command: "search docs for...",
     icon: Search,
   },
@@ -120,16 +120,42 @@ export function ChatWelcome({
       )
     : queries;
 
+  // Group by primary category (first tag → fallback to type) and sort A→Z
+  // within each group so users can scan alphabetically inside a known bucket.
+  const groupedQueries = (() => {
+    const groups = new Map<string, typeof filteredQueries>();
+    for (const q of filteredQueries) {
+      const cat = (q.tags?.[0] || q.type || "uncategorized").toLowerCase();
+      if (!groups.has(cat)) groups.set(cat, []);
+      groups.get(cat)!.push(q);
+    }
+    for (const list of Array.from(groups.values())) {
+      list.sort((a: CatalogEntry, b: CatalogEntry) =>
+        a.name.localeCompare(b.name),
+      );
+    }
+    return Array.from(groups.entries()).sort(
+      (a: [string, CatalogEntry[]], b: [string, CatalogEntry[]]) =>
+        a[0].localeCompare(b[0]),
+    );
+  })();
+
   return (
-    <div className="flex-1 flex items-start justify-center overflow-auto px-4 py-6">
-      <div className="w-full max-w-2xl flex flex-col gap-5">
-        {/* Greeting */}
+    <div className="flex-1 flex items-start justify-center overflow-auto px-4 py-8">
+      <div className="w-full max-w-2xl flex flex-col gap-6">
+        {/* Greeting — Stitch-style hero */}
         <div className="text-center">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-            {getGreeting()}
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--brand-subtle)] mb-3">
+            <Sparkles className="w-3 h-3 text-[var(--brand)]" />
+            <span className="text-[10.5px] font-semibold text-[var(--brand)] uppercase tracking-[0.12em]">
+              MITR AI · ready
+            </span>
+          </div>
+          <h2 className="font-display text-[28px] font-bold text-[var(--text-primary)] tracking-tight leading-tight">
+            {getGreeting()}.
           </h2>
-          <p className="text-[13px] text-[var(--text-muted)] mt-0.5">
-            Ask me about your data, run a query, or pick from below.
+          <p className="text-[14px] text-[var(--text-secondary)] mt-1.5">
+            Ask about your data, run a saved query, or pick a starter below.
           </p>
         </div>
 
@@ -167,27 +193,27 @@ export function ChatWelcome({
 
         {/* Quick Help */}
         <div>
-          <div className="flex items-center gap-1.5 mb-2">
+          <div className="flex items-center gap-1.5 mb-2.5">
             <HelpCircle className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-            <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-wider">
-              Quick Actions
-            </span>
+            <span className="eyebrow">Quick actions</span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2.5">
             {HELP_ITEMS.map((item) => {
               const Icon = item.icon;
               return (
                 <button
                   key={item.command}
                   onClick={() => onSendQuery(item.command)}
-                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--bg-tertiary)] transition-colors text-left"
+                  className="group relative flex items-center gap-3 px-3.5 py-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-elevated)] hover:border-[var(--brand)] hover:shadow-[var(--shadow-md)] transition-all text-left overflow-hidden"
                 >
-                  <Icon className="w-4 h-4 text-[var(--accent)] shrink-0" />
-                  <div>
-                    <div className="text-[13px] font-medium text-[var(--text-primary)]">
+                  <span className="w-9 h-9 rounded-[10px] bg-[var(--brand-subtle)] flex items-center justify-center shrink-0 transition-colors group-hover:bg-[var(--brand)] group-hover:text-white">
+                    <Icon className="w-4 h-4 text-[var(--brand)] group-hover:text-white transition-colors" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13px] font-semibold text-[var(--text-primary)] leading-tight">
                       {item.label}
                     </div>
-                    <div className="text-[11px] text-[var(--text-muted)] font-mono">
+                    <div className="text-[10.5px] text-[var(--text-muted)] font-mono truncate mt-0.5">
                       {item.command}
                     </div>
                   </div>
@@ -259,43 +285,58 @@ export function ChatWelcome({
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[280px] overflow-auto pr-1">
-                  {filteredQueries.map((q) => {
-                    const Icon = TYPE_ICONS[q.type] ?? Database;
-                    const colorClass =
-                      TYPE_COLORS[q.type] ?? "bg-gray-100 text-gray-700";
-                    return (
-                      <button
-                        key={q.name}
-                        onClick={() => onSendQuery(`run ${q.name}`)}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--bg-tertiary)] transition-colors text-left"
-                      >
-                        <Icon className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[12px] font-medium text-[var(--text-primary)] truncate">
-                              {q.name}
-                            </span>
-                            <span
-                              className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-medium ${colorClass}`}
-                            >
-                              {q.type}
-                            </span>
-                          </div>
-                          {q.description && (
-                            <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">
-                              {q.description}
-                            </p>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
+                <div className="flex flex-col gap-3 max-h-[360px] overflow-auto pr-1">
                   {filteredQueries.length === 0 && (
-                    <div className="col-span-2 text-[12px] text-[var(--text-muted)] text-center py-3">
+                    <div className="text-[12px] text-[var(--text-muted)] text-center py-4">
                       No queries match &ldquo;{queryFilter}&rdquo;
                     </div>
                   )}
+                  {groupedQueries.map(([category, list]) => (
+                    <div key={category} className="flex flex-col gap-1.5">
+                      <div className="sticky top-0 z-10 bg-[var(--bg-canvas)] py-1 flex items-center gap-2">
+                        <span className="eyebrow !text-[9.5px] !tracking-[0.14em]">
+                          {category}
+                        </span>
+                        <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                          {list.length}
+                        </span>
+                        <span className="flex-1 h-px bg-[var(--border-subtle)]" />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                        {list.map((q) => {
+                          const Icon = TYPE_ICONS[q.type] ?? Database;
+                          const colorClass =
+                            TYPE_COLORS[q.type] ?? "bg-gray-100 text-gray-700";
+                          return (
+                            <button
+                              key={q.name}
+                              onClick={() => onSendQuery(`run ${q.name}`)}
+                              className="flex items-center gap-2.5 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-elevated)] hover:border-[var(--brand)] hover:shadow-[var(--shadow-sm)] transition-all text-left"
+                            >
+                              <Icon className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[12px] font-medium text-[var(--text-primary)] truncate">
+                                    {q.name}
+                                  </span>
+                                  <span
+                                    className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-medium ${colorClass}`}
+                                  >
+                                    {q.type}
+                                  </span>
+                                </div>
+                                {q.description && (
+                                  <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">
+                                    {q.description}
+                                  </p>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </>
             )}
