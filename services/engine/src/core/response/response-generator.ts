@@ -40,6 +40,7 @@ import {
   handleDocumentAsk,
   handleDocumentList,
 } from "./handlers/document-qa-handler";
+import { handleActiveDocumentQuestion } from "./handlers/active-document-handler";
 import {
   handleFollowUp,
   handleFilterFollowUp,
@@ -229,6 +230,45 @@ export class ResponseGenerator {
     recommendations?: Recommendation[],
   ): Promise<BotResponse> {
     const { intent } = classification;
+
+    // Active-document shortcut — when a markdown/PDF query is loaded
+    // and the input looks like a free-text question, score the question
+    // against the loaded content BEFORE going through intent-based
+    // routing. Catches "how many incidents", "how much revenue", "what
+    // is the severity" style follow-ups that NLP would otherwise drag
+    // off to followup.aggregation / query.estimate / knowledge.search.
+    // Intents that ARE about a different action (greeting, listing
+    // queries, running another query) skip this fast-path.
+    const userText = getLastUserText(context);
+    const last = context.lastApiResult as { content?: string } | undefined;
+    const SAFE_FAST_PATH_INTENTS = new Set<string>([
+      "followup.aggregation",
+      "followup.group_by",
+      "followup.sort",
+      "followup.summary",
+      "followup.top_n",
+      "followup.data_lookup",
+      "followup.filter",
+      "knowledge.search",
+      "query.estimate",
+      "analysis.profile",
+      "analysis.smart_summary",
+      "None",
+      "disambiguation.no_match",
+      "document.ask",
+    ]);
+    if (
+      typeof last?.content === "string" &&
+      last.content.length > 50 &&
+      SAFE_FAST_PATH_INTENTS.has(intent)
+    ) {
+      const docAnswer = handleActiveDocumentQuestion(
+        classification,
+        context,
+        userText,
+      );
+      if (docAnswer) return docAnswer;
+    }
 
     // Dispatch to the appropriate handler
     const response = await this.dispatch(
@@ -487,7 +527,10 @@ export class ResponseGenerator {
       case INTENTS.FAREWELL:
         return handleFarewell(classification, context, this.templates);
       case INTENTS.KNOWLEDGE_SEARCH: {
-        // When user has active data context, try data lookup BEFORE doc search
+        // Active-document QA already ran in generate() above. By the
+        // time we get here either there was no active document or it
+        // didn't have a useful answer — fall through to data lookup
+        // and the global doc-manager search.
         if (context.lastQueryName && context.lastApiResult) {
           const dataLookup = handleDataLookup(classification, context);
           if (dataLookup) return dataLookup;
@@ -529,7 +572,9 @@ export class ResponseGenerator {
         );
       }
 
-      // Follow-up intents — route to data operation handlers when query context exists
+      // Follow-up intents — route to data operation handlers when query context exists.
+      // Active-document QA already ran in generate() above — by the time we get
+      // here either no doc was loaded or the question didn't pull a useful answer.
       case INTENTS.FOLLOWUP_GROUP_BY:
       case INTENTS.FOLLOWUP_SORT:
       case INTENTS.FOLLOWUP_SUMMARY:
@@ -677,6 +722,16 @@ export class ResponseGenerator {
           const analysisResult = await handleAnalysis(classification, context);
           if (analysisResult) return analysisResult;
         }
+        // Active-document QA — when a markdown/PDF query is loaded
+        // and the user just asked a free-text question, search the
+        // loaded content first. Catches "how many incidents" style
+        // follow-ups that otherwise fall through to "I don't understand".
+        const docAnswer = handleActiveDocumentQuestion(
+          classification,
+          context,
+          getLastUserText(context),
+        );
+        if (docAnswer) return docAnswer;
         // Last-resort: try knowledge search before giving up
         const knowledgeFallback = await handleKnowledgeSearch(
           classification,

@@ -157,8 +157,19 @@ export class ChatbotEngine {
       // the [0.4, 0.5) disambig band and surface chips for unrelated
       // queries (e.g. "query.execute:0.46"). That's worse UX than just
       // running the follow-up.
+      // Follow-up routing only applies to row-shaped results (CSV /
+      // API). When the active context is a document (markdown / PDF
+      // body), aggregation and group-by patterns aren't meaningful
+      // — those questions get routed to the active-document QA path
+      // instead, which actually has the content to answer them.
+      const activeContextIsDocument =
+        hasQueryContext &&
+        typeof (context.lastApiResult as { content?: unknown } | undefined)
+          ?.content === "string";
+
       const looksLikeFollowUp =
         hasQueryContext &&
+        !activeContextIsDocument &&
         (GROUP_BY_PATTERN.test(processedText) ||
           SORT_PATTERN.test(processedText) ||
           AGGREGATION_PATTERN.test(processedText) ||
@@ -174,6 +185,21 @@ export class ChatbotEngine {
           UNDO_PATTERN.test(processedText) ||
           DRILL_DOWN_PATTERN.test(processedText));
 
+      // "Ask the active document" bypass — when the user has just loaded
+      // a document (e.g. `run incident_report`) and types a free-text
+      // question, route through the normal handler so the active-document
+      // QA path can score the question against the loaded content. Without
+      // this, the below-floor short-circuit eats every such question with
+      // "I don't understand" — even though the loaded document has the
+      // answer.
+      const looksLikeDocQuestion =
+        hasQueryContext &&
+        typeof (context.lastApiResult as { content?: unknown } | undefined)
+          ?.content === "string" &&
+        /^\s*(how\s+(many|much|do|does|did|long|often)|what|why|when|where|who|which|count\b|list\b|tell\s+me)\b|\?\s*$/i.test(
+          processedText,
+        );
+
       // Disambiguation band: NLP top score landed in [NLP_DISAMBIG_FLOOR,
       // NLP_CONFIDENCE_THRESHOLD). Short-circuit before the response generator
       // and return chips instead of guessing the wrong query.
@@ -183,7 +209,8 @@ export class ChatbotEngine {
       // definitely doesn't want.
       if (
         classification.disambiguationCandidates?.length &&
-        !looksLikeFollowUp
+        !looksLikeFollowUp &&
+        !looksLikeDocQuestion
       ) {
         const disambigResponse = await this.buildDisambiguationResponse(
           message,
@@ -210,7 +237,8 @@ export class ChatbotEngine {
       if (
         classification.intent !== "None" &&
         classification.confidence < NLP_DISAMBIG_FLOOR &&
-        !looksLikeFollowUp
+        !looksLikeFollowUp &&
+        !looksLikeDocQuestion
       ) {
         const belowFloor = this.buildBelowFloorResponse(
           message,

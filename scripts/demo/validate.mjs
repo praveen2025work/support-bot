@@ -1991,6 +1991,48 @@ async function testDataQuality() {
   );
 }
 
+async function testActiveDocumentQA() {
+  section("Chat — questions follow up against an active document");
+  if (QUICK) {
+    record("active-doc-qa", "skipped (--quick)", true);
+    return;
+  }
+  const sid = `validation-doc-${Date.now()}`;
+
+  // Prime: load a document-backed query
+  const load = await timed(() =>
+    postChat("run incident_report", sid, "engineering", { explicitFilters: {} }),
+  );
+  if (!load.result?.ok) {
+    record("active-doc-qa", "(prereq) load incident_report", false, "load failed");
+    return;
+  }
+
+  // Follow-up questions that previously bottomed out with "I don't
+  // understand". Each should now route to document.ask and return the
+  // relevant slice of the loaded markdown.
+  const cases = [
+    { q: "how many incidents", expectInText: "incident" },
+    { q: "what was the root cause", expectInText: "root cause" },
+    { q: "what is the severity", expectInText: "Severity" },
+    { q: "list the action items", expectInText: "Action" },
+  ];
+  for (const c of cases) {
+    const t = await timed(() => postChat(c.q, sid, "engineering"));
+    const data = t.result?.data;
+    const text = data?.text || "";
+    const ok =
+      data?.intent === "document.ask" && text.includes(c.expectInText);
+    record(
+      "active-doc-qa",
+      `"${c.q}" → document.ask carrying "${c.expectInText}"`,
+      ok,
+      `intent=${data?.intent} hasExpected=${text.includes(c.expectInText)}`,
+      t.durationMs,
+    );
+  }
+}
+
 async function testRootCause() {
   section("Chat — root cause analysis on loaded result");
   if (QUICK) {
@@ -2452,6 +2494,7 @@ async function main() {
   await testSearchPersonalisation();
   await testAutoInsights();
   await testRootCause();
+  await testActiveDocumentQA();
   await testDataExplorerInsights();
   await testDataQuality();
   await testForecastEndpoint();
