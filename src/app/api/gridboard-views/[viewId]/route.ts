@@ -1,30 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFileSync, writeFileSync, existsSync } from "fs";
-import { join } from "path";
-import type { GridBoardView } from "@/types/dashboard";
-
-const VIEWS_PATH = join(
-  process.cwd(),
-  "services/engine/data/gridboard-views.json",
-);
-
-function readAllViews(): GridBoardView[] {
-  if (!existsSync(VIEWS_PATH)) return [];
-  try {
-    const raw = JSON.parse(readFileSync(VIEWS_PATH, "utf-8"));
-    return Array.isArray(raw) ? raw : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeAllViews(views: GridBoardView[]) {
-  writeFileSync(VIEWS_PATH, JSON.stringify(views, null, 2) + "\n", "utf-8");
-}
+import { proxyToEngine } from "@/lib/engine-proxy";
 
 /**
- * PUT /api/gridboard-views/[viewId]
- * Update an existing view. Only the owner can update.
+ * Thin proxy to the engine. The engine enforces ownership + optimistic
+ * concurrency. The If-Match header is forwarded so the engine can
+ * surface 409 when another writer beat us.
  */
 export async function PUT(
   request: NextRequest,
@@ -33,85 +13,36 @@ export async function PUT(
   try {
     const { viewId } = await params;
     const body = await request.json();
-    const { userId } = body;
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: "userId is required" },
-        { status: 400 },
-      );
-    }
-
-    const all = readAllViews();
-    const idx = all.findIndex((v) => v.id === viewId);
-
-    if (idx === -1) {
-      return NextResponse.json({ error: "View not found" }, { status: 404 });
-    }
-
-    if (all[idx].userId !== userId) {
-      return NextResponse.json(
-        { error: "Only the view owner can update it" },
-        { status: 403 },
-      );
-    }
-
-    const updated: GridBoardView = {
-      ...all[idx],
-      ...body,
-      id: viewId,
-      userId: all[idx].userId,
-      queryName: all[idx].queryName,
-      updatedAt: new Date().toISOString(),
-    };
-
-    all[idx] = updated;
-    writeAllViews(all);
-
-    return NextResponse.json(updated);
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    const ifMatch = request.headers.get("If-Match");
+    const engineRes = await proxyToEngine(
+      `/api/gridboard-views/${encodeURIComponent(viewId)}`,
+      {
+        method: "PUT",
+        body,
+        headers: ifMatch ? { "If-Match": ifMatch } : undefined,
+      },
+    );
+    const data = await engineRes.json();
+    return NextResponse.json(data, { status: engineRes.status });
+  } catch {
+    return NextResponse.json({ error: "Engine unavailable" }, { status: 502 });
   }
 }
 
-/**
- * DELETE /api/gridboard-views/[viewId]?userId=X
- * Delete a view. Only the owner can delete.
- */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ viewId: string }> },
 ) {
   try {
     const { viewId } = await params;
-    const userId = request.nextUrl.searchParams.get("userId");
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: "userId is required" },
-        { status: 400 },
-      );
-    }
-
-    const all = readAllViews();
-    const idx = all.findIndex((v) => v.id === viewId);
-
-    if (idx === -1) {
-      return NextResponse.json({ error: "View not found" }, { status: 404 });
-    }
-
-    if (all[idx].userId !== userId) {
-      return NextResponse.json(
-        { error: "Only the view owner can delete it" },
-        { status: 403 },
-      );
-    }
-
-    all.splice(idx, 1);
-    writeAllViews(all);
-
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    const qs = request.nextUrl.search;
+    const engineRes = await proxyToEngine(
+      `/api/gridboard-views/${encodeURIComponent(viewId)}${qs}`,
+      { method: "DELETE" },
+    );
+    const data = await engineRes.json();
+    return NextResponse.json(data, { status: engineRes.status });
+  } catch {
+    return NextResponse.json({ error: "Engine unavailable" }, { status: 502 });
   }
 }

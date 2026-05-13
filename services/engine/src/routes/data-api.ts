@@ -647,6 +647,98 @@ dataApiRouter.get(
   },
 );
 
+/* ─── POST /api/data/rows/:queryName ─────────────────────────────
+ *
+ * Source-agnostic row fetcher. CSV/XLSX/API/SQL queries all return
+ * `{ rows, columns, totalRows }`. Built for the GridBoard editing
+ * surface, which previously called /api/chat just to get rows —
+ * paying the cost of NLP classification + anomaly snapshot + audit
+ * logging for every reload. This endpoint skips all of that.
+ *
+ * Filters are applied client-style (string-equal, case-insensitive)
+ * for CSV; for API/SQL sources the engine's existing query pipeline
+ * routes filter params to the source.
+ */
+dataApiRouter.post("/rows/:queryName", async (req: Request, res: Response) => {
+  try {
+    const queryName = req.params.queryName;
+    const body = req.body ?? {};
+    const groupId = typeof body.groupId === "string" ? body.groupId : "default";
+    // QueryFilters is Record<string, string>. Flatten array-typed
+    // filter values (single-pick OR is the only multi-value case
+    // here) by taking the first non-empty entry — matches what the
+    // chat path does when a multi-select reaches a SQL/REST source.
+    const filters: Record<string, string> | undefined =
+      body.filters && typeof body.filters === "object"
+        ? Object.fromEntries(
+            Object.entries(body.filters as Record<string, unknown>)
+              .map(([k, v]): [string, string] | null => {
+                if (Array.isArray(v)) {
+                  const first = v.find(
+                    (x) => typeof x === "string" && x.length > 0,
+                  );
+                  return first ? [k, String(first)] : null;
+                }
+                if (typeof v === "string" && v.length > 0) {
+                  return [k, v];
+                }
+                return null;
+              })
+              .filter((e): e is [string, string] => e !== null),
+          )
+        : undefined;
+    const pageSize = Math.min(
+      Math.max(parseInt(String(body.pageSize ?? "1000"), 10), 1),
+      10000,
+    );
+    const page = Math.max(parseInt(String(body.page ?? "1"), 10), 1);
+
+    const groupConfig = getGroupConfig(groupId);
+    const apiClient = new ApiClient(groupConfig.apiBaseUrl ?? undefined);
+    const queryService = new QueryService(apiClient, groupConfig.sources);
+    const result = await queryService.executeQuery(queryName, filters);
+
+    // Extract rows + headers regardless of source type.
+    let rows: Record<string, unknown>[] = [];
+    let columns: string[] = [];
+
+    if (result.csvResult) {
+      rows = result.csvResult.rows as Record<string, unknown>[];
+      columns = result.csvResult.headers;
+    } else if (result.apiResult) {
+      const apiData = result.apiResult as { data?: unknown[] };
+      const data = Array.isArray(apiData.data) ? apiData.data : [];
+      rows = data as Record<string, unknown>[];
+      if (rows.length > 0) {
+        columns = Object.keys(rows[0]);
+      }
+    } else {
+      return res
+        .status(400)
+        .json({ error: `Query "${queryName}" returned no rows` });
+    }
+
+    const totalRows = rows.length;
+    const offset = (page - 1) * pageSize;
+    const pagedRows = rows.slice(offset, offset + pageSize);
+
+    return res.json({
+      queryName,
+      groupId,
+      rows: pagedRows,
+      columns,
+      totalRows,
+      page,
+      pageSize,
+    });
+  } catch (error) {
+    logger.error({ error }, "Data rows fetch error");
+    return res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : "Fetch failed" });
+  }
+});
+
 /* ─── POST /api/data/cache/clear ───────────────────────────────── */
 dataApiRouter.post("/cache/clear", (_req: Request, res: Response) => {
   csvCache.clear();

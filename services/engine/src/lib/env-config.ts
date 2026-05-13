@@ -165,6 +165,12 @@ export const paths = {
         queries up in future search rankings. JSONL append-only. */
     searchPicks: (groupId: string) =>
       join(DATA_DIR, "learning", groupId, "search-picks.jsonl"),
+    /** GridBoard saved views — per-group flat JSON of view objects.
+        Each entry stays scoped to its (groupId, queryName, userId).
+        Optimistic concurrency via a monotonic `version` counter on
+        each view; PUT requires If-Match. */
+    gridboardViews: (groupId: string) =>
+      join(DATA_DIR, "gridboard-views", `${groupId}.json`),
 
     /** Anomaly detection */
     anomalyDir: (groupId: string) => join(DATA_DIR, "anomaly", groupId),

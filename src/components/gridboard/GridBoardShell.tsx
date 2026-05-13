@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import {
   FilterInput,
@@ -32,6 +33,12 @@ interface QueryOption {
 export function GridBoardShell() {
   const { userInfo } = useUser();
   const userId = userInfo?.emailAddress || userInfo?.displayName || "local_dev";
+  // Active group from URL (?group=finance). All write/read paths use this
+  // value so a user landing on /gridboard?group=finance sees finance data,
+  // not the default tenant's. Fallback "default" preserves the historical
+  // behaviour for any in-product link that hasn't been updated yet.
+  const searchParams = useSearchParams();
+  const groupId = searchParams.get("group") || "default";
 
   // Query list
   const [queries, setQueries] = useState<QueryOption[]>([]);
@@ -75,7 +82,7 @@ export function GridBoardShell() {
     deleteView,
     clearActiveView,
     autoSave,
-  } = useGridBoardViews(userId, selectedQuery);
+  } = useGridBoardViews(userId, selectedQuery, groupId);
 
   // Fetch available queries
   useEffect(() => {
@@ -141,7 +148,11 @@ export function GridBoardShell() {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  // Load data
+  // Load data — uses /api/data/rows so the grid doesn't pay the cost of
+  // going through chat (NLP classification, anomaly detection, audit
+  // logging) just to fetch raw rows for editing. The endpoint handles
+  // CSV / XLSX / API / SQL sources uniformly and returns the same
+  // shape: { rows, columns, totalRows }.
   const handleLoad = useCallback(async () => {
     if (!selectedQuery) return;
     setLoading(true);
@@ -151,46 +162,36 @@ export function GridBoardShell() {
       const activeFilters = Object.fromEntries(
         Object.entries(filterValues).filter(([, v]) => v.trim()),
       );
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: `run ${selectedQuery}`,
-          sessionId: `gridboard-${Date.now()}`,
-          groupId: "default",
-          explicitFilters: activeFilters,
-        }),
-      });
-      const json = await res.json();
-      // eslint-disable-next-line no-console -- Debug logging for grid data fetch
-      console.log(
-        "[GridBoard] chat response:",
-        JSON.stringify(json).slice(0, 500),
+      const res = await fetch(
+        `/api/data/rows/${encodeURIComponent(selectedQuery)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            groupId,
+            filters: activeFilters,
+            pageSize: 1000,
+          }),
+        },
       );
-
-      // Extract data — chat API returns { richContent: { type, data }, ... }
-      let resultData: Record<string, unknown>[] = [];
-      const rc = json.richContent;
-      if (rc) {
-        if (rc.type === "query_result" || rc.type === "csv_table") {
-          const rd = rc.data;
-          if (Array.isArray(rd?.data)) {
-            resultData = rd.data;
-          } else if (Array.isArray(rd?.rows)) {
-            resultData = rd.rows;
-          } else if (Array.isArray(rd)) {
-            resultData = rd;
-          }
-        }
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `Load failed (${res.status})`);
       }
-      // Fallback: check top-level data array
-      if (resultData.length === 0 && Array.isArray(json.data)) {
-        resultData = json.data;
-      }
+      const json = await res.json();
+      const resultData: Record<string, unknown>[] = Array.isArray(json.rows)
+        ? json.rows
+        : [];
+      const resultColumns: string[] =
+        Array.isArray(json.columns) && json.columns.length > 0
+          ? json.columns
+          : resultData.length > 0
+            ? Object.keys(resultData[0])
+            : [];
 
       if (resultData.length > 0) {
         setData(resultData);
-        setColumns(Object.keys(resultData[0]));
+        setColumns(resultColumns);
         setDataLoaded(true);
       } else {
         setError("No data returned from query.");
@@ -206,7 +207,7 @@ export function GridBoardShell() {
     } finally {
       setLoading(false);
     }
-  }, [selectedQuery, filterValues]);
+  }, [selectedQuery, filterValues, groupId]);
 
   // Trigger auto-load once state has settled from URL-param integration
   useEffect(() => {
@@ -225,7 +226,7 @@ export function GridBoardShell() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             queryName: selectedQuery,
-            groupId: "default",
+            groupId,
             changes: changes.map((c) => ({
               primaryKey: c.originalRow,
               updates: Object.fromEntries(
@@ -259,7 +260,7 @@ export function GridBoardShell() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             queryName: selectedQuery,
-            groupId: "default",
+            groupId,
             action: "delete",
             changes: rows.map((row) => ({
               primaryKey: row,

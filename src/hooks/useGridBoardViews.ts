@@ -25,6 +25,7 @@ interface UseGridBoardViewsReturn {
 export function useGridBoardViews(
   userId: string | undefined,
   queryName: string,
+  groupId: string = "default",
 ): UseGridBoardViewsReturn {
   const [views, setViews] = useState<GridBoardView[]>([]);
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
@@ -40,7 +41,7 @@ export function useGridBoardViews(
     setError(null);
     try {
       const res = await fetch(
-        `/api/gridboard-views?userId=${encodeURIComponent(userId)}&queryName=${encodeURIComponent(queryName)}`,
+        `/api/gridboard-views?userId=${encodeURIComponent(userId)}&queryName=${encodeURIComponent(queryName)}&groupId=${encodeURIComponent(groupId)}`,
       );
       if (!res.ok) throw new Error("Failed to fetch views");
       const json = await res.json();
@@ -50,7 +51,7 @@ export function useGridBoardViews(
     } finally {
       setLoading(false);
     }
-  }, [userId, queryName]);
+  }, [userId, queryName, groupId]);
 
   // Auto-fetch on mount / queryName change
   useEffect(() => {
@@ -73,12 +74,36 @@ export function useGridBoardViews(
   const saveView = useCallback(
     async (partial: Partial<GridBoardView>): Promise<GridBoardView | null> => {
       if (!userId || !activeViewId) return null;
+      // Optimistic concurrency — send If-Match with the version we
+      // last saw. Engine returns 409 with the current view if it
+      // moved under us; we refresh state from that response so a
+      // retry succeeds without forcing the user to reload.
+      const current = views.find((v) => v.id === activeViewId);
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (current?.version !== undefined) {
+        headers["If-Match"] = String(current.version);
+      }
       try {
         const res = await fetch(`/api/gridboard-views/${activeViewId}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, ...partial }),
+          headers,
+          body: JSON.stringify({ userId, groupId, ...partial }),
         });
+        if (res.status === 409) {
+          const body = await res.json().catch(() => ({}));
+          if (body?.view) {
+            // Replace our stale copy with the server's. The auto-save
+            // can re-fire and will pick up the new version on the next
+            // tick.
+            setViews((prev) =>
+              prev.map((v) => (v.id === activeViewId ? body.view : v)),
+            );
+          }
+          setError("View was updated elsewhere — refreshed to latest");
+          return null;
+        }
         if (!res.ok) throw new Error("Failed to save view");
         const updated = await res.json();
         setViews((prev) =>
@@ -90,7 +115,7 @@ export function useGridBoardViews(
         return null;
       }
     },
-    [userId, activeViewId],
+    [userId, activeViewId, views, groupId],
   );
 
   const saveViewAs = useCallback(
@@ -106,6 +131,7 @@ export function useGridBoardViews(
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId,
+            groupId,
             queryName,
             viewName,
             visibility,
@@ -130,7 +156,7 @@ export function useGridBoardViews(
         return null;
       }
     },
-    [userId, queryName],
+    [userId, queryName, groupId],
   );
 
   const deleteView = useCallback(
@@ -138,7 +164,7 @@ export function useGridBoardViews(
       if (!userId) return false;
       try {
         const res = await fetch(
-          `/api/gridboard-views/${viewId}?userId=${encodeURIComponent(userId)}`,
+          `/api/gridboard-views/${viewId}?userId=${encodeURIComponent(userId)}&groupId=${encodeURIComponent(groupId)}`,
           { method: "DELETE" },
         );
         if (!res.ok) throw new Error("Failed to delete view");
@@ -150,7 +176,7 @@ export function useGridBoardViews(
         return false;
       }
     },
-    [userId, activeViewId],
+    [userId, activeViewId, groupId],
   );
 
   // Debounced auto-save (500ms)

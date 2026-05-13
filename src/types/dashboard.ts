@@ -171,6 +171,11 @@ export interface SparklineConfig {
 export interface GridBoardView {
   id: string;
   userId: string;
+  /** Tenant scope. Missing means legacy view (treat as "default"). */
+  groupId?: string;
+  /** Monotonic counter bumped on every save. Clients send the last
+   *  observed value as If-Match; server returns 409 on mismatch. */
+  version?: number;
   queryName: string;
   viewName: string;
   /** "private" = only visible to owner, "public" = visible to all users */

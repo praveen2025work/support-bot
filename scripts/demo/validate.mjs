@@ -1684,6 +1684,150 @@ async function testForecastEndpoint() {
   }
 }
 
+async function testGridBoardRowsEndpoint() {
+  section("GridBoard — /api/data/rows source-agnostic fetch");
+  if (QUICK) {
+    record("gridboard-rows", "skipped (--quick)", true);
+    return;
+  }
+  const r = await timed(async () => {
+    const res = await fetch(`${ENGINE_URL}/api/data/rows/pnl_lineage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ groupId: "finance", pageSize: 10 }),
+    });
+    return {
+      ok: res.ok,
+      status: res.status,
+      body: await res.json().catch(() => null),
+    };
+  });
+  const body = r.result?.body;
+  record(
+    "gridboard-rows",
+    "POST /api/data/rows/:queryName returns rows+columns",
+    !!r.result?.ok && Array.isArray(body?.rows) && Array.isArray(body?.columns),
+    `status=${r.result?.status} rows=${body?.rows?.length} columns=${body?.columns?.length}`,
+    r.durationMs,
+  );
+}
+
+async function testGridBoardViews() {
+  section("GridBoard — views CRUD + optimistic concurrency");
+  if (NO_WRITE || QUICK) {
+    record("gridboard-views", "skipped (--no-write / --quick)", true);
+    return;
+  }
+  const userId = `validation-view-${Date.now()}`;
+  const groupId = "finance";
+
+  // Create
+  const create = await timed(async () => {
+    const res = await fetch(`${ENGINE_URL}/api/gridboard-views`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId,
+        groupId,
+        queryName: "pnl_lineage",
+        viewName: "harness-view",
+        visibility: "private",
+        hiddenColumns: ["dummy"],
+      }),
+    });
+    return {
+      ok: res.ok,
+      status: res.status,
+      body: await res.json().catch(() => null),
+    };
+  });
+  const created = create.result?.body;
+  record(
+    "gridboard-views",
+    "POST creates a view with version=1",
+    !!create.result?.ok && created?.version === 1 && !!created?.id,
+    `status=${create.result?.status} id=${created?.id} version=${created?.version}`,
+    create.durationMs,
+  );
+  if (!created?.id) return;
+  const viewId = created.id;
+
+  // List — should include our view + scope by groupId
+  const list = await timed(() =>
+    getJson(
+      `${ENGINE_URL}/api/gridboard-views?userId=${encodeURIComponent(userId)}&queryName=pnl_lineage&groupId=${encodeURIComponent(groupId)}`,
+    ),
+  );
+  const listViews = list.result?.body?.views || [];
+  record(
+    "gridboard-views",
+    "GET filters by (userId, queryName, groupId)",
+    listViews.length === 1 && listViews[0].id === viewId,
+    `count=${listViews.length} matched=${listViews.some((v) => v.id === viewId)}`,
+    list.durationMs,
+  );
+
+  // 409 on stale If-Match
+  const stale = await timed(async () => {
+    const res = await fetch(`${ENGINE_URL}/api/gridboard-views/${viewId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "If-Match": "999" },
+      body: JSON.stringify({ userId, groupId, viewName: "renamed" }),
+    });
+    return {
+      ok: res.ok,
+      status: res.status,
+      body: await res.json().catch(() => null),
+    };
+  });
+  record(
+    "gridboard-views",
+    "PUT with stale If-Match returns 409 + current view",
+    stale.result?.status === 409 &&
+      stale.result?.body?.currentVersion === 1 &&
+      !!stale.result?.body?.view,
+    `status=${stale.result?.status} currentVersion=${stale.result?.body?.currentVersion}`,
+    stale.durationMs,
+  );
+
+  // Correct If-Match bumps version
+  const ok = await timed(async () => {
+    const res = await fetch(`${ENGINE_URL}/api/gridboard-views/${viewId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "If-Match": "1" },
+      body: JSON.stringify({ userId, groupId, viewName: "renamed" }),
+    });
+    return {
+      ok: res.ok,
+      status: res.status,
+      body: await res.json().catch(() => null),
+    };
+  });
+  record(
+    "gridboard-views",
+    "PUT with matching If-Match succeeds and bumps version",
+    ok.result?.ok && ok.result?.body?.version === 2,
+    `status=${ok.result?.status} version=${ok.result?.body?.version}`,
+    ok.durationMs,
+  );
+
+  // Cleanup
+  const del = await timed(async () => {
+    const res = await fetch(
+      `${ENGINE_URL}/api/gridboard-views/${viewId}?userId=${encodeURIComponent(userId)}&groupId=${encodeURIComponent(groupId)}`,
+      { method: "DELETE" },
+    );
+    return { ok: res.ok, status: res.status };
+  });
+  record(
+    "gridboard-views",
+    "DELETE cleans up the view",
+    del.result?.ok,
+    `status=${del.result?.status}`,
+    del.durationMs,
+  );
+}
+
 async function testSourceReorder() {
   section("Data Explorer — per-user source reorder via view tracker");
   if (NO_WRITE || QUICK) {
@@ -2238,6 +2382,8 @@ async function main() {
   await testDataExplorerInsights();
   await testDataQuality();
   await testForecastEndpoint();
+  await testGridBoardRowsEndpoint();
+  await testGridBoardViews();
   await testSourceReorder();
   await testGlossaryCrud();
   await testSynonymCrud();
