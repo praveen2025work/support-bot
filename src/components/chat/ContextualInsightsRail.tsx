@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Database,
   ChevronRight,
@@ -49,14 +49,21 @@ export function ContextualInsightsRail({
   kpiStats,
   onSendChat,
 }: ContextualInsightsRailProps) {
-  const [kpiHidden, setKpiHidden] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
+  // Initial state matches the SSR render to avoid hydration mismatch;
+  // patched from localStorage after mount.
+  const [kpiHidden, setKpiHidden] = useState<boolean>(false);
+
+  /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration sync of a persisted prefs value */
+  useEffect(() => {
     try {
-      return localStorage.getItem("active-dataset-kpis-hidden") === "true";
+      setKpiHidden(
+        localStorage.getItem("active-dataset-kpis-hidden") === "true",
+      );
     } catch {
-      return false;
+      /* ignore */
     }
-  });
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const toggleKpi = () => {
     setKpiHidden((prev) => {

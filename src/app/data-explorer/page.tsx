@@ -104,17 +104,21 @@ export default function DataExplorerPage() {
   const [editMode, setEditMode] = useState(false);
   const [sourceDropdownOpen, setSourceDropdownOpen] = useState(false);
   const [sourceSearch, setSourceSearch] = useState("");
-  // Lazy initializer reads localStorage exactly once on first
-  // render — no useEffect dance, and the lint guard against
-  // synchronous setState-in-effect stays happy.
-  const [insightsHidden, setInsightsHidden] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
+  // Initial state matches the SSR render to avoid hydration mismatch;
+  // patched from localStorage after mount.
+  const [insightsHidden, setInsightsHidden] = useState<boolean>(false);
+
+  /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration sync of a persisted prefs value */
+  useEffect(() => {
     try {
-      return localStorage.getItem("insights-hidden:data-explorer") === "true";
+      setInsightsHidden(
+        localStorage.getItem("insights-hidden:data-explorer") === "true",
+      );
     } catch {
-      return false;
+      /* ignore */
     }
-  });
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const toggleInsightsHidden = () => {
     setInsightsHidden((prev) => {

@@ -97,19 +97,25 @@ export function Sidebar({ isAdmin }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [hovered, setHovered] = useState(false);
-  // Default pinned (Stitch-style wide nav) — user can collapse.
-  // Lazy initializer reads localStorage on first render so we don't
-  // need a useEffect setState (which the lint guards against).
-  const [pinned, setPinned] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
+  // Default pinned (Stitch-style wide nav) — user can collapse. The
+  // initial state MUST match the SSR render to avoid hydration
+  // mismatches, so we start with the default `true` and patch in the
+  // persisted preference inside a useEffect after mount.
+  const [pinned, setPinned] = useState<boolean>(true);
+  const collapseTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // After mount, restore the user's last pinned preference. Runs once
+  // and only on the client.
+  /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration sync of a persisted prefs value */
+  useEffect(() => {
     try {
       const stored = localStorage.getItem(PIN_STORAGE_KEY);
-      return stored === null ? true : stored === "true";
+      if (stored !== null) setPinned(stored === "true");
     } catch {
-      return true;
+      /* ignore */
     }
-  });
-  const collapseTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const setSidebarWidth = useCallback((wide: boolean) => {
     document.documentElement.style.setProperty(
