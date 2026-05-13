@@ -65,6 +65,12 @@ const NAV_SECTIONS: NavSection[] = [
         match: (p: string) => p.startsWith("/admin/synonyms"),
       },
       {
+        href: "/admin/glossary",
+        label: "Glossary",
+        icon: BookOpen,
+        match: (p: string) => p.startsWith("/admin/glossary"),
+      },
+      {
         href: "/admin/templates",
         label: "Templates",
         icon: LayoutTemplate,

@@ -1471,6 +1471,82 @@ async function testGroupIsolation() {
 // write-path LOGIC works. Browser CSRF flow is tested separately
 // during the manual demo rehearsal.
 
+async function testGlossaryCrud() {
+  section("Write paths — glossary CRUD (engine-direct)");
+  if (NO_WRITE || QUICK) {
+    record("glossary", "skipped (--no-write / --quick)", true);
+    return;
+  }
+
+  const groupId = "default";
+  const id = `_validation_${Date.now()}`;
+  const payload = {
+    groupId,
+    id,
+    name: `Test metric ${id}`,
+    aliases: ["test-alias-a", "test-alias-b"],
+    definition: "A throwaway metric used by the validation harness.",
+    formula: "COUNT(*) WHERE id = 'harness'",
+    owner: "harness",
+  };
+
+  const create = await timed(async () => {
+    const r = await fetch(`${ENGINE_URL}/api/admin/glossary`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-user-role": "admin" },
+      body: JSON.stringify(payload),
+    });
+    return {
+      ok: r.ok,
+      status: r.status,
+      body: await r.json().catch(() => null),
+    };
+  });
+  record(
+    "glossary",
+    "create entry",
+    create.result?.ok && create.result?.body?.success === true,
+    `status=${create.result?.status} entry.id=${create.result?.body?.entry?.id}`,
+    create.durationMs,
+  );
+
+  const read = await timed(() =>
+    getJson(`${ENGINE_URL}/api/admin/glossary?groupId=${groupId}`, {
+      headers: { "x-user-role": "admin" },
+    }),
+  );
+  const found = (read.result?.body?.entries || []).find((e) => e.id === id);
+  record(
+    "glossary",
+    "read-back contains created entry",
+    !!found &&
+      found.name === payload.name &&
+      found.aliases.length === 2 &&
+      typeof found.formula === "string",
+    `found=${!!found} name=${found?.name}`,
+    read.durationMs,
+  );
+
+  const del = await timed(async () => {
+    const r = await fetch(
+      `${ENGINE_URL}/api/admin/glossary?groupId=${groupId}&id=${encodeURIComponent(id)}`,
+      { method: "DELETE", headers: { "x-user-role": "admin" } },
+    );
+    return {
+      ok: r.ok,
+      status: r.status,
+      body: await r.json().catch(() => null),
+    };
+  });
+  record(
+    "glossary",
+    "delete entry (cleanup)",
+    del.result?.ok && del.result?.body?.success === true,
+    `status=${del.result?.status}`,
+    del.durationMs,
+  );
+}
+
 async function testSynonymCrud() {
   section("Write paths — synonyms CRUD (engine-direct)");
   if (NO_WRITE) {
@@ -1671,6 +1747,7 @@ async function main() {
   await testSnapshots();
   await testEdgeCases();
   await testGroupIsolation();
+  await testGlossaryCrud();
   await testSynonymCrud();
   await testLearningRetrain();
 

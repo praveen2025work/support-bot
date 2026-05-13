@@ -99,6 +99,14 @@ export const paths = {
     viewsDir: join(DATA_DIR, "views"),
     viewFile: (id: string) => join(DATA_DIR, "views", `${id}.json`),
 
+    /** Business glossary — per-group metric catalog. One JSON per group
+     *  holds every formally-defined metric (revenue, churn, etc.). The
+     *  "single source of truth" admins point at when CIOs ask "what
+     *  counts as revenue?". */
+    glossaryDir: join(DATA_DIR, "glossary"),
+    glossaryFile: (groupId: string) =>
+      join(DATA_DIR, "glossary", `${groupId}.json`),
+
     /** Schema registry — last-known column set per (group, query). Used
      *  by the drift detector to surface "the source data changed
      *  underneath this query" warnings to admins. */
