@@ -227,20 +227,31 @@ export function ContextualInsightsRail({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Active Dataset */}
+      {/* Active Dataset — single-row header carries the query name plus
+          the rows/ms meta inline, so there's no second row of chrome.
+          Body only renders when the user has the Analysis panel open. */}
       <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--bg-elevated)] overflow-hidden">
-        <header className="px-3.5 py-2.5 border-b border-[var(--border)] flex items-center gap-2 min-w-0">
-          <Database className="w-3.5 h-3.5 text-[var(--brand)] shrink-0" />
+        <header
+          className={`px-3.5 py-2.5 flex items-baseline gap-2 min-w-0 ${
+            hasKpis && !kpiHidden ? "border-b border-[var(--border)]" : ""
+          }`}
+        >
+          <Database className="w-3.5 h-3.5 text-[var(--brand)] shrink-0 self-center" />
           <span
             className="font-display text-[13px] font-bold tracking-tight text-[var(--text-primary)] truncate"
             title={activeResult.queryName}
           >
             {activeResult.queryName}
           </span>
+          <span className="text-[10.5px] font-mono text-[var(--text-muted)] truncate shrink-0">
+            {activeResult.data.length.toLocaleString()} rows
+            {activeResult.executionMs != null &&
+              ` · ${activeResult.executionMs}ms`}
+          </span>
           {hasKpis && (
             <button
               onClick={toggleKpi}
-              className="ml-auto shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              className="ml-auto shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors self-center"
               title={kpiHidden ? "Show analysis" : "Hide analysis"}
               aria-label={kpiHidden ? "Show analysis" : "Hide analysis"}
             >
@@ -253,15 +264,9 @@ export function ContextualInsightsRail({
             </button>
           )}
         </header>
-        <div className="px-3.5 py-3">
-          <div className="text-[11px] font-mono text-[var(--text-muted)]">
-            {activeResult.data.length.toLocaleString()} rows
-            {activeResult.executionMs != null &&
-              ` · ${activeResult.executionMs}ms`}
-          </div>
-
-          {hasKpis && !kpiHidden && (
-            <ul className="mt-3 space-y-2.5 border-t border-[var(--border-subtle)] pt-3">
+        {hasKpis && !kpiHidden && (
+          <div className="px-3.5 py-3">
+            <ul className="space-y-2.5">
               {kpiStats!.map((s) => (
                 <li key={s.col} className="flex flex-col gap-0.5">
                   <span className="eyebrow !text-[9px] !tracking-[0.12em] truncate">
@@ -285,8 +290,8 @@ export function ContextualInsightsRail({
                 </li>
               ))}
             </ul>
-          )}
-        </div>
+          </div>
+        )}
       </section>
 
       {/* Quick Synthesis Actions — dense, icon-left tiles. Header dropped
