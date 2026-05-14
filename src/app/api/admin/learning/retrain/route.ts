@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const ENGINE_URL = process.env.ENGINE_URL || "http://localhost:4001";
+import { proxyToEngine } from "@/lib/engine-proxy";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const res = await fetch(`${ENGINE_URL}/api/admin/learning/retrain`, {
+    const res = await proxyToEngine(`/api/admin/learning/retrain`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body,
     });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
