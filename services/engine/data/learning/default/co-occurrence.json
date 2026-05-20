@@ -5,41 +5,95 @@
   },
   "performance": {
     "user_profile": 1,
-    "hr_report_ratings": 1,
-    "monthly_revenue": 1
+    "hr_report_ratings": 2,
+    "monthly_revenue": 1,
+    "lending_book_with_pipeline": 1,
+    "gross_margin": 1,
+    "trading_risk_dashboard": 1,
+    "budget_vs_actual": 1,
+    "employee_compensation": 1
   },
   "trading_risk_dashboard": {
-    "user_profile": 1
+    "user_profile": 1,
+    "employee_full_review": 1,
+    "pnl_lineage": 1,
+    "lending_book_with_pipeline": 1,
+    "gross_margin": 1,
+    "budget_vs_actual": 1,
+    "employee_compensation": 1,
+    "hr_report_ratings": 1,
+    "performance": 1
   },
   "monthly_revenue": {
-    "sales_data": 10,
+    "sales_data": 23,
     "api_changelog": 1,
-    "active_users": 1,
-    "cash_position": 1,
+    "active_users": 5,
+    "cash_position": 2,
     "aml_alerts": 1,
     "hr_report_ratings": 1,
     "performance": 1,
     "employee_directory": 1,
     "order_summary": 1,
-    "daily_orders": 1,
-    "employee_full_review": 1
+    "daily_orders": 2,
+    "employee_full_review": 3,
+    "report_generator": 1,
+    "pnl_signoff": 3,
+    "budget_headcount_review": 1,
+    "pnl_lineage": 2,
+    "error_rate": 3,
+    "incident_report": 2,
+    "customer_churn": 1,
+    "employee_metrics": 1,
+    "lending_book_with_pipeline": 2,
+    "dept_metrics_compensation": 1,
+    "trading_desk_risk": 1,
+    "regional_sales_support": 1,
+    "headcount": 1
   },
   "sales_data": {
-    "monthly_revenue": 10,
-    "cash_position": 1,
+    "monthly_revenue": 23,
+    "cash_position": 2,
     "aml_alerts": 1,
     "hr_report_salaries": 1,
     "hr_report_bonuses": 1,
-    "employee_compensation": 1,
-    "customer_churn_copy": 1
+    "employee_compensation": 2,
+    "customer_churn_copy": 1,
+    "employee_full_review": 2,
+    "pnl_lineage": 4,
+    "lending_book_with_pipeline": 2,
+    "budget_headcount_review": 1,
+    "active_users": 5,
+    "service_reliability_report": 1,
+    "daily_commerce_engagement": 1,
+    "error_rate": 4,
+    "incident_report": 1,
+    "customer_churn": 1,
+    "employee_metrics": 1,
+    "trading_desk_risk": 2,
+    "daily_orders": 1,
+    "support_tickets": 1,
+    "regional_sales_support": 1,
+    "loan_origination": 1,
+    "headcount": 1
   },
   "report_generator": {
     "support_tickets": 1,
-    "regional_sales_support": 1
+    "regional_sales_support": 2,
+    "monthly_revenue": 1,
+    "pnl_lineage": 1,
+    "employee_metrics": 1,
+    "error_rate": 1,
+    "hr_report_salaries": 1
   },
   "support_tickets": {
     "report_generator": 1,
-    "employee_compensation": 1
+    "employee_compensation": 3,
+    "active_users": 1,
+    "hr_report_bonuses": 1,
+    "customer_churn": 1,
+    "hr_report_salaries": 1,
+    "sales_data": 1,
+    "revenue_by_segment": 1
   },
   "api_changelog": {
     "monthly_revenue": 1
@@ -48,15 +102,37 @@
     "error_rate": 1
   },
   "error_rate": {
-    "fx_exposure": 1
+    "fx_exposure": 1,
+    "pnl_lineage": 1,
+    "regional_sales_support": 1,
+    "employee_metrics": 1,
+    "report_generator": 1,
+    "hr_report_salaries": 1,
+    "sales_data": 4,
+    "monthly_revenue": 3,
+    "employee_full_review": 1,
+    "trading_desk_risk": 1,
+    "lending_book_with_pipeline": 1,
+    "headcount": 1
   },
   "active_users": {
-    "monthly_revenue": 1
+    "monthly_revenue": 5,
+    "sales_data": 5,
+    "cash_position": 1,
+    "incident_report": 1,
+    "customer_churn": 2,
+    "employee_metrics": 1,
+    "support_tickets": 1,
+    "employee_compensation": 1,
+    "hr_report_bonuses": 1,
+    "hr_report_salaries": 1,
+    "regional_sales_support": 1
   },
   "cash_position": {
-    "monthly_revenue": 1,
+    "monthly_revenue": 2,
     "aml_alerts": 1,
-    "sales_data": 1
+    "sales_data": 2,
+    "active_users": 1
   },
   "aml_alerts": {
     "monthly_revenue": 1,
@@ -64,30 +140,63 @@
     "sales_data": 1
   },
   "pnl_availability": {
-    "pnl_summary": 4
+    "pnl_summary": 5,
+    "daily_orders": 1
   },
   "pnl_summary": {
-    "pnl_availability": 4
+    "pnl_availability": 5,
+    "daily_orders": 1,
+    "yoy_growth": 1,
+    "pnl_signoff": 1,
+    "pnl_lineage": 1
   },
   "employee_compensation": {
-    "support_tickets": 1,
-    "hr_report_salaries": 1,
-    "hr_report_bonuses": 1,
-    "sales_data": 1
+    "support_tickets": 3,
+    "hr_report_salaries": 2,
+    "hr_report_bonuses": 2,
+    "sales_data": 2,
+    "lending_book_with_pipeline": 2,
+    "gross_margin": 1,
+    "trading_risk_dashboard": 1,
+    "budget_vs_actual": 1,
+    "hr_report_ratings": 1,
+    "performance": 1,
+    "active_users": 1,
+    "customer_churn": 1,
+    "employee_full_review": 1,
+    "dept_metrics_compensation": 1
   },
   "hr_report_salaries": {
-    "hr_report_bonuses": 1,
-    "employee_compensation": 1,
-    "sales_data": 1
+    "hr_report_bonuses": 2,
+    "employee_compensation": 2,
+    "sales_data": 1,
+    "pnl_lineage": 1,
+    "regional_sales_support": 1,
+    "employee_metrics": 1,
+    "report_generator": 1,
+    "error_rate": 1,
+    "support_tickets": 1,
+    "active_users": 1,
+    "customer_churn": 1
   },
   "hr_report_bonuses": {
-    "hr_report_salaries": 1,
-    "employee_compensation": 1,
-    "sales_data": 1
+    "hr_report_salaries": 2,
+    "employee_compensation": 2,
+    "sales_data": 1,
+    "pnl_lineage": 1,
+    "loan_portfolio": 1,
+    "support_tickets": 1,
+    "active_users": 1,
+    "customer_churn": 1
   },
   "hr_report_ratings": {
-    "performance": 1,
-    "monthly_revenue": 1
+    "performance": 2,
+    "monthly_revenue": 1,
+    "lending_book_with_pipeline": 1,
+    "gross_margin": 1,
+    "trading_risk_dashboard": 1,
+    "budget_vs_actual": 1,
+    "employee_compensation": 1
   },
   "customer_churn_copy": {
     "sales_data": 1
@@ -99,36 +208,209 @@
   },
   "daily_orders": {
     "order_summary": 1,
-    "monthly_revenue": 1
+    "monthly_revenue": 2,
+    "pnl_summary": 1,
+    "pnl_availability": 1,
+    "employee_full_review": 3,
+    "lending_book_with_pipeline": 2,
+    "sales_data": 1,
+    "hiring_pipeline": 1,
+    "dept_metrics_compensation": 1,
+    "service_reliability_report": 2,
+    "daily_commerce_engagement": 2
   },
   "employee_directory": {
     "monthly_revenue": 1,
     "order_summary": 1
   },
   "regional_sales_support": {
-    "report_generator": 1
+    "report_generator": 2,
+    "employee_full_review": 1,
+    "dept_metrics_compensation": 1,
+    "pnl_lineage": 1,
+    "employee_metrics": 1,
+    "error_rate": 1,
+    "hr_report_salaries": 1,
+    "monthly_revenue": 1,
+    "active_users": 1,
+    "sales_data": 1
   },
   "service_reliability_report": {
-    "daily_commerce_engagement": 1,
-    "employee_full_review": 1
+    "daily_commerce_engagement": 4,
+    "employee_full_review": 4,
+    "pnl_lineage": 1,
+    "sales_data": 1,
+    "dept_metrics_compensation": 2,
+    "lending_book_with_pipeline": 2,
+    "daily_orders": 2
   },
   "daily_commerce_engagement": {
-    "service_reliability_report": 1,
-    "employee_full_review": 1
+    "service_reliability_report": 4,
+    "employee_full_review": 3,
+    "pnl_lineage": 1,
+    "sales_data": 1,
+    "revenue_by_segment": 1,
+    "lending_book_with_pipeline": 1,
+    "dept_metrics_compensation": 1,
+    "daily_orders": 2
   },
   "employee_full_review": {
-    "service_reliability_report": 1,
-    "daily_commerce_engagement": 1,
-    "lending_book_with_pipeline": 2,
-    "monthly_revenue": 1,
-    "dept_metrics_compensation": 1
+    "service_reliability_report": 4,
+    "daily_commerce_engagement": 3,
+    "lending_book_with_pipeline": 14,
+    "monthly_revenue": 3,
+    "dept_metrics_compensation": 7,
+    "daily_orders": 3,
+    "regional_sales_support": 1,
+    "pnl_lineage": 2,
+    "sales_data": 2,
+    "trading_risk_dashboard": 1,
+    "incident_report": 1,
+    "trading_desk_risk": 1,
+    "error_rate": 1,
+    "employee_compensation": 1,
+    "revenue_by_segment": 1
   },
   "lending_book_with_pipeline": {
-    "employee_full_review": 2,
-    "dept_metrics_compensation": 1
+    "employee_full_review": 14,
+    "dept_metrics_compensation": 6,
+    "daily_orders": 2,
+    "pnl_lineage": 1,
+    "sales_data": 2,
+    "service_reliability_report": 2,
+    "gross_margin": 1,
+    "trading_risk_dashboard": 1,
+    "budget_vs_actual": 1,
+    "employee_compensation": 2,
+    "hr_report_ratings": 1,
+    "performance": 1,
+    "incident_report": 1,
+    "monthly_revenue": 2,
+    "trading_desk_risk": 1,
+    "error_rate": 1,
+    "revenue_by_segment": 1,
+    "daily_commerce_engagement": 1
   },
   "dept_metrics_compensation": {
+    "employee_full_review": 7,
+    "lending_book_with_pipeline": 6,
+    "regional_sales_support": 1,
+    "service_reliability_report": 2,
+    "incident_report": 1,
+    "monthly_revenue": 1,
+    "employee_compensation": 1,
+    "daily_orders": 1,
+    "daily_commerce_engagement": 1
+  },
+  "budget_vs_actual": {
+    "yoy_growth": 1,
+    "lending_book_with_pipeline": 1,
+    "gross_margin": 1,
+    "trading_risk_dashboard": 1,
+    "employee_compensation": 1,
+    "hr_report_ratings": 1,
+    "performance": 1
+  },
+  "yoy_growth": {
+    "budget_vs_actual": 1,
+    "pnl_summary": 1
+  },
+  "pnl_signoff": {
+    "pnl_summary": 1,
+    "monthly_revenue": 3
+  },
+  "pnl_lineage": {
+    "pnl_summary": 1,
+    "employee_full_review": 2,
+    "lending_book_with_pipeline": 1,
+    "sales_data": 4,
+    "monthly_revenue": 2,
+    "service_reliability_report": 1,
+    "daily_commerce_engagement": 1,
+    "regional_sales_support": 1,
+    "employee_metrics": 1,
+    "report_generator": 1,
+    "error_rate": 1,
+    "hr_report_salaries": 1,
+    "trading_risk_dashboard": 1,
+    "hr_report_bonuses": 1,
+    "loan_portfolio": 1
+  },
+  "budget_headcount_review": {
+    "monthly_revenue": 1,
+    "sales_data": 1
+  },
+  "employee_metrics": {
+    "pnl_lineage": 1,
+    "regional_sales_support": 1,
+    "report_generator": 1,
+    "error_rate": 1,
+    "hr_report_salaries": 1,
+    "incident_report": 1,
+    "monthly_revenue": 1,
+    "customer_churn": 1,
+    "sales_data": 1,
+    "active_users": 1
+  },
+  "loan_portfolio": {
+    "pnl_lineage": 1,
+    "hr_report_bonuses": 1
+  },
+  "gross_margin": {
+    "lending_book_with_pipeline": 1,
+    "trading_risk_dashboard": 1,
+    "budget_vs_actual": 1,
+    "employee_compensation": 1,
+    "hr_report_ratings": 1,
+    "performance": 1
+  },
+  "incident_report": {
+    "monthly_revenue": 2,
+    "customer_churn": 1,
+    "employee_metrics": 1,
+    "sales_data": 1,
+    "active_users": 1,
     "employee_full_review": 1,
-    "lending_book_with_pipeline": 1
+    "lending_book_with_pipeline": 1,
+    "dept_metrics_compensation": 1
+  },
+  "customer_churn": {
+    "incident_report": 1,
+    "monthly_revenue": 1,
+    "employee_metrics": 1,
+    "sales_data": 1,
+    "active_users": 2,
+    "support_tickets": 1,
+    "employee_compensation": 1,
+    "hr_report_bonuses": 1,
+    "hr_report_salaries": 1
+  },
+  "trading_desk_risk": {
+    "employee_full_review": 1,
+    "lending_book_with_pipeline": 1,
+    "sales_data": 2,
+    "monthly_revenue": 1,
+    "error_rate": 1
+  },
+  "revenue_by_segment": {
+    "employee_full_review": 1,
+    "lending_book_with_pipeline": 1,
+    "daily_commerce_engagement": 1,
+    "trading_desk_pnl": 1,
+    "support_tickets": 1
+  },
+  "hiring_pipeline": {
+    "daily_orders": 1
+  },
+  "trading_desk_pnl": {
+    "revenue_by_segment": 1
+  },
+  "loan_origination": {
+    "sales_data": 1
+  },
+  "headcount": {
+    "sales_data": 1,
+    "error_rate": 1,
+    "monthly_revenue": 1
   }
 }

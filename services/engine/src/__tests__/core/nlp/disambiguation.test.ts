@@ -369,6 +369,28 @@ describe("ChatbotEngine — disambiguation branching", () => {
     expect(response.disambiguation).toBeUndefined();
   });
 
+  it("edge: keyboard-mash input does not surface disambiguation chips", async () => {
+    const state = makeFakeNlpService();
+    state.classifyResult = {
+      intent: "query.execute",
+      confidence: 0.45,
+      entities: [],
+      source: "ensemble",
+      disambiguationCandidates: [
+        { intent: "query.execute", queryName: "monthly_revenue", score: 0.45 },
+        { intent: "query.execute", queryName: "active_users", score: 0.42 },
+      ],
+    };
+    const engine = buildEngine(state);
+    const response = await engine.processMessage(
+      makeMessage("asdfghjkl qwerty zxcvbn"),
+    );
+
+    expect(response.intent).toBe("disambiguation.no_match");
+    expect(response.text).toMatch(/don't understand/i);
+    expect(response.disambiguation).toBeUndefined();
+  });
+
   it("forceIntent path: bypasses NLP and runs the chosen query", async () => {
     const state = makeFakeNlpService();
     // Even if NLP would return None/low — we should never call classify().

@@ -15,10 +15,22 @@ router.get("/", async (req: Request, res: Response) => {
     const groupConfig = getGroupConfig(groupId);
     const apiBaseUrl = groupConfig.apiBaseUrl ?? undefined;
     const sources = groupConfig.sources;
+    const queryAllowlist = groupConfig.queries;
 
     const results = searchQuery
-      ? await catalogService.search(groupId, searchQuery, apiBaseUrl, sources)
-      : await catalogService.listQueries(groupId, apiBaseUrl, sources);
+      ? await catalogService.search(
+          groupId,
+          searchQuery,
+          apiBaseUrl,
+          sources,
+          queryAllowlist,
+        )
+      : await catalogService.listQueries(
+          groupId,
+          apiBaseUrl,
+          sources,
+          queryAllowlist,
+        );
     res.json({ success: true, data: results, total: results.length });
   } catch (error) {
     console.error("[Catalog] List error:", error);
@@ -33,12 +45,14 @@ router.get("/:queryName", async (req: Request, res: Response) => {
     const groupConfig = getGroupConfig(groupId);
     const apiBaseUrl = groupConfig.apiBaseUrl ?? undefined;
     const sources = groupConfig.sources;
+    const queryAllowlist = groupConfig.queries;
 
     const detail = await catalogService.getQueryDetail(
       groupId,
       req.params.queryName,
       apiBaseUrl,
       sources,
+      queryAllowlist,
     );
     if (!detail) {
       res.status(404).json({ success: false, error: "Query not found" });

@@ -63,12 +63,17 @@ export interface MultiQueryResult {
 
 export class QueryService {
   private sources: string[];
+  private queryAllowlist: Set<string>;
 
   constructor(
     private apiClient: ApiClient,
     sources?: string[],
+    queryAllowlist?: string[],
   ) {
     this.sources = sources ?? [];
+    this.queryAllowlist = new Set(
+      (queryAllowlist ?? []).map((name) => name.toLowerCase()),
+    );
   }
 
   async getQueries(): Promise<Query[]> {
@@ -77,11 +82,17 @@ export class QueryService {
     });
     let queries = raw.map((q) => QuerySchema.parse(q));
 
-    if (this.sources.length > 0) {
+    if (this.queryAllowlist.size > 0) {
+      queries = queries.filter((q) =>
+        this.queryAllowlist.has(q.name.toLowerCase()),
+      );
+    } else if (this.sources.length > 0) {
       queries = queries.filter(
         (q) =>
-          q.type === "combined" ||
-          (q.source && this.sources.includes(q.source)),
+          (q.source && this.sources.includes(q.source)) ||
+          (q.type === "combined" &&
+            q.source &&
+            this.sources.includes(q.source)),
       );
     }
 

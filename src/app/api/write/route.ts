@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 
-const ENGINE_URL = process.env.ENGINE_URL || "http://localhost:4001";
+function getEngineUrl() {
+  return process.env.ENGINE_URL || "http://localhost:4001";
+}
 
 /**
  * POST /api/write
@@ -27,7 +29,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Forward to engine
-    const engineRes = await fetch(`${ENGINE_URL}/api/write`, {
+    const engineRes = await fetch(`${getEngineUrl()}/api/write`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ queryName, groupId, changes }),

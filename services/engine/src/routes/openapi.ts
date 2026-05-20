@@ -17,10 +17,8 @@ import { logger } from "@/lib/logger";
 
 export const openapiRouter = Router();
 
-// Path is relative to the compiled `dist/server.js` AND the `tsx`
-// dev runtime. The spec sits at services/engine/openapi.json which
-// is two levels up from src/routes/.
-const SPEC_PATH = path.resolve(__dirname, "../../openapi.json");
+const SPEC_PATH =
+  process.env.OPENAPI_PATH || path.join(process.cwd(), "openapi.json");
 
 let cached: string | null = null;
 let cachedAt = 0;

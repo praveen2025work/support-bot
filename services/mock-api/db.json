@@ -726,49 +726,47 @@
       "id": "q93",
       "name": "pnl_lineage",
       "description": "PnL sign-off lineage tracker \u2014 traces feed availability, BOFC/FOBO completion, VP sign-off, and delay classification across named PnLs, master books, feeds, and regions",
-      "estimatedDuration": 0,
-      "url": "",
+      "estimatedDuration": 1300,
+      "url": "https://confluence.example.com/wiki/finance/pnl-lineage",
       "source": "finance",
-      "type": "csv",
-      "filePath": "pnl-signoff.csv",
-      "fileBaseDir": "../../data",
+      "type": "api",
       "filters": [
         {
           "key": "NamedPnlName",
-          "binding": "column"
+          "binding": "body"
         },
         {
           "key": "MasterBookID",
-          "binding": "column"
+          "binding": "body"
         },
         {
           "key": "MasterBookName",
-          "binding": "column"
+          "binding": "body"
         },
         {
           "key": "FeedName",
-          "binding": "column"
+          "binding": "body"
         },
         {
           "key": "Region",
-          "binding": "column"
+          "binding": "body"
         },
         {
           "key": "SYEY_ID",
-          "binding": "column"
+          "binding": "body"
         },
         {
           "key": "NamedPnLID",
-          "binding": "column"
+          "binding": "body"
         },
         {
           "key": "MSBk_ID",
-          "binding": "column"
+          "binding": "body"
         }
       ],
-      "endpoint": "",
+      "endpoint": "/finance/pnl/lineage",
       "baseUrl": "",
-      "method": "",
+      "method": "POST",
       "authType": "none",
       "bamTokenUrl": "",
       "columnConfig": {
@@ -948,6 +946,252 @@
     },
     {
       "id": "q98",
+      "name": "pnl_subledger",
+      "description": "Bank P&L sub-ledger balances, postings, breaks, unreconciled exposure, aging, and sign-off status by business unit, desk, product, and region",
+      "estimatedDuration": 1800,
+      "url": "https://confluence.example.com/wiki/finance/bank-pnl-subledger",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/finance/pnl/subledger",
+      "method": "POST",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "business_unit",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "body"
+        },
+        {
+          "key": "status",
+          "binding": "body"
+        }
+      ],
+      "chartConfig": {
+        "defaultType": "bar",
+        "labelKey": "sub_ledger",
+        "valueKeys": ["net_pnl", "unreconciled_amount", "break_count"],
+        "showLegend": true
+      },
+      "columnConfig": {
+        "idColumns": ["sub_ledger"],
+        "dateColumns": ["business_date"],
+        "labelColumns": [
+          "sub_ledger",
+          "business_unit",
+          "region",
+          "desk",
+          "product",
+          "status"
+        ],
+        "valueColumns": [
+          "postings",
+          "debit",
+          "credit",
+          "net_pnl",
+          "break_count",
+          "unreconciled_amount",
+          "aging_days"
+        ]
+      },
+      "drillDown": [
+        {
+          "sourceColumn": "business_unit",
+          "targetQuery": "budget_vs_actual",
+          "targetFilter": "business_unit",
+          "label": "View Budget Variance"
+        },
+        {
+          "sourceColumn": "region",
+          "targetQuery": "pnl_lineage",
+          "targetFilter": "Region",
+          "label": "View P&L Lineage"
+        }
+      ]
+    },
+    {
+      "id": "q99",
+      "name": "support_dashboard",
+      "description": "Bank finance support dashboard with opened, resolved, backlog, SLA breaches, reopen rate, resolution time, and customer satisfaction by queue and region",
+      "estimatedDuration": 1200,
+      "url": "https://confluence.example.com/wiki/finance/bank-support-dashboard",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/finance/support/dashboard",
+      "method": "POST",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "business_unit",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "body"
+        },
+        {
+          "key": "status",
+          "binding": "body"
+        }
+      ],
+      "chartConfig": {
+        "defaultType": "stacked-bar",
+        "labelKey": "queue",
+        "valueKeys": ["opened", "resolved", "backlog", "sla_breaches"],
+        "stacked": true,
+        "showLegend": true
+      },
+      "columnConfig": {
+        "dateColumns": ["business_date"],
+        "labelColumns": [
+          "queue",
+          "business_unit",
+          "region",
+          "priority",
+          "status"
+        ],
+        "valueColumns": [
+          "opened",
+          "resolved",
+          "backlog",
+          "sla_breaches",
+          "avg_resolution_hours",
+          "reopened",
+          "csat"
+        ]
+      }
+    },
+    {
+      "id": "q100",
+      "name": "process_stats_dashboard",
+      "description": "Bank operations process statistics with STP rate, completed volume, exception count, cycle time, failed jobs, and status by process and control area",
+      "estimatedDuration": 1300,
+      "url": "https://confluence.example.com/wiki/finance/bank-process-stats",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/finance/process/stats",
+      "method": "POST",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "business_unit",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "body"
+        },
+        {
+          "key": "control_area",
+          "binding": "body"
+        },
+        {
+          "key": "process_name",
+          "binding": "body"
+        }
+      ],
+      "chartConfig": {
+        "defaultType": "bar",
+        "labelKey": "process_name",
+        "valueKeys": ["stp_rate", "exceptions", "p95_cycle_minutes"],
+        "showLegend": true
+      },
+      "columnConfig": {
+        "dateColumns": ["business_date"],
+        "labelColumns": [
+          "process_name",
+          "control_area",
+          "business_unit",
+          "region",
+          "status"
+        ],
+        "valueColumns": [
+          "volume",
+          "completed",
+          "exceptions",
+          "stp_rate",
+          "avg_cycle_minutes",
+          "p95_cycle_minutes",
+          "failed_jobs"
+        ]
+      }
+    },
+    {
+      "id": "q101",
+      "name": "daily_control_checkups",
+      "description": "Configurable daily finance check-up controls for Tableau/Power BI-style monitoring: run count, pass rate, failed controls, open exceptions, severity score, and owner",
+      "estimatedDuration": 1100,
+      "url": "https://confluence.example.com/wiki/finance/daily-control-checkups",
+      "source": "finance",
+      "type": "api",
+      "endpoint": "/finance/reporting/daily-controls",
+      "method": "POST",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "business_unit",
+          "binding": "body"
+        },
+        {
+          "key": "region",
+          "binding": "body"
+        },
+        {
+          "key": "control_area",
+          "binding": "body"
+        },
+        {
+          "key": "status",
+          "binding": "body"
+        }
+      ],
+      "chartConfig": {
+        "defaultType": "bar",
+        "labelKey": "check_name",
+        "valueKeys": [
+          "pass_rate",
+          "failed",
+          "open_exceptions",
+          "severity_score"
+        ],
+        "showLegend": true
+      },
+      "columnConfig": {
+        "dateColumns": ["business_date"],
+        "labelColumns": [
+          "control_area",
+          "check_name",
+          "owner",
+          "business_unit",
+          "region",
+          "status"
+        ],
+        "valueColumns": [
+          "checks_run",
+          "passed",
+          "failed",
+          "pass_rate",
+          "open_exceptions",
+          "severity_score"
+        ]
+      }
+    },
+    {
+      "id": "q102",
       "name": "infrastructure_costs",
       "description": "Cloud infrastructure costs by service and environment",
       "estimatedDuration": 2100,

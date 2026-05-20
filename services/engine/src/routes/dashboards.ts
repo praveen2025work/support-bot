@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { randomUUID } from "crypto";
 import { preferencesStore } from "@/data/user-preferences";
 import { logger } from "@/lib/logger";
 export const dashboardsRouter = Router();
@@ -33,11 +34,9 @@ async function checkDashboardAccess(
   }
   const hierarchy = { owner: 3, edit: 2, view: 1 };
   if (hierarchy[result.permission] < hierarchy[requiredPermission]) {
-    res
-      .status(403)
-      .json({
-        error: `Access denied — requires ${requiredPermission} permission`,
-      });
+    res.status(403).json({
+      error: `Access denied — requires ${requiredPermission} permission`,
+    });
     return false;
   }
   return result.permission;
@@ -127,11 +126,33 @@ dashboardsRouter.post(
       );
       if (!template)
         return res.status(404).json({ error: "Template not found" });
+      const now = new Date().toISOString();
+      const idMap = new Map<string, string>();
+      const cards = template.cards.map((card, index) => {
+        const id = randomUUID();
+        idMap.set(`card-${index}`, id);
+        return { ...card, id, createdAt: now };
+      });
+      const layouts = template.layouts.map((layout) => ({
+        ...layout,
+        i: idMap.get(layout.i) ?? layout.i,
+      }));
+      const tabs = template.tabs?.map((tab) => ({
+        ...tab,
+        cardIds: tab.cardIds.map((cardId) => idMap.get(cardId) ?? cardId),
+      }));
       const dashboard = await preferencesStore.createDashboard(userId, {
         name: template.name,
-        cards:
-          template.cards as import("@/data/user-preferences").DashboardCard[],
-        layouts: template.layouts,
+        cards,
+        layouts,
+        simpleMode: template.simpleMode,
+        globalRefreshSec: template.globalRefreshSec,
+        tabs,
+        activeTabId: template.activeTabId,
+        filterDependencies: template.filterDependencies,
+        stompEnabled: template.stompEnabled,
+        parameters: template.parameters,
+        kpiCards: template.kpiCards,
       });
       return res.status(201).json(dashboard);
     } catch (err) {
@@ -449,17 +470,93 @@ interface DashboardTemplate {
     Omit<import("@/data/user-preferences").DashboardCard, "id" | "createdAt">
   >;
   layouts: import("@/data/user-preferences").CardLayout[];
+  simpleMode?: boolean;
+  globalRefreshSec?: number;
+  tabs?: import("@/data/user-preferences").DashboardTab[];
+  activeTabId?: string;
+  filterDependencies?: import("@/data/user-preferences").FilterDependency[];
+  stompEnabled?: boolean;
+  parameters?: import("@/data/user-preferences").DashboardParameter[];
+  kpiCards?: import("@/data/user-preferences").KpiCardConfig[];
 }
 
 function getDashboardTemplates(): DashboardTemplate[] {
   return [
     {
       id: "financial-overview",
-      name: "Financial Overview",
-      description: "P&L summary, balance sheet, and cash flow cards",
+      name: "Bank Finance Daily Controls",
+      description:
+        "Curated P&L sub-ledger, support, process health, and daily control check-up cards for finance operations",
       category: "Finance",
-      cards: [],
-      layouts: [],
+      globalRefreshSec: 900,
+      stompEnabled: false,
+      tabs: [
+        {
+          id: "overview",
+          name: "Overview",
+          cardIds: ["card-0", "card-1"],
+          order: 0,
+        },
+        {
+          id: "controls",
+          name: "Controls",
+          cardIds: ["card-2", "card-3"],
+          order: 1,
+        },
+      ],
+      activeTabId: "overview",
+      cards: [
+        {
+          queryName: "pnl_subledger",
+          groupId: "finance",
+          label: "P&L Sub-ledger",
+          defaultFilters: { date_range: "today" },
+          autoRun: true,
+          eventLink: { mode: "auto" },
+          displayMode: "auto",
+          refreshIntervalSec: 900,
+          savedChartType: "bar",
+        },
+        {
+          queryName: "support_dashboard",
+          groupId: "finance",
+          label: "Support Dashboard",
+          defaultFilters: { date_range: "today" },
+          autoRun: true,
+          eventLink: { mode: "auto" },
+          displayMode: "auto",
+          refreshIntervalSec: 900,
+          savedChartType: "stacked-bar",
+        },
+        {
+          queryName: "process_stats_dashboard",
+          groupId: "finance",
+          label: "Process Stats",
+          defaultFilters: { date_range: "today" },
+          autoRun: true,
+          eventLink: { mode: "auto" },
+          displayMode: "auto",
+          refreshIntervalSec: 900,
+          savedChartType: "bar",
+        },
+        {
+          queryName: "daily_control_checkups",
+          groupId: "finance",
+          label: "Daily Control Check-ups",
+          defaultFilters: { date_range: "today" },
+          autoRun: true,
+          eventLink: { mode: "auto" },
+          displayMode: "auto",
+          refreshIntervalSec: 900,
+          savedChartType: "bar",
+        },
+      ],
+      layouts: [
+        { i: "card-0", x: 0, y: 0, w: 6, h: 6, minW: 4, minH: 4 },
+        { i: "card-1", x: 6, y: 0, w: 6, h: 6, minW: 4, minH: 4 },
+        { i: "card-2", x: 0, y: 6, w: 6, h: 6, minW: 4, minH: 4 },
+        { i: "card-3", x: 6, y: 6, w: 6, h: 6, minW: 4, minH: 4 },
+      ],
     },
     {
       id: "operations-monitor",

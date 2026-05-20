@@ -11,6 +11,7 @@ import { extractDateEntities } from "./date-entity-extractor";
 import { correctTypos, addToDictionary } from "./typo-corrector";
 import { PatternMatcher } from "./pattern-matcher";
 import { TfIdfIntentScorer } from "./tfidf-intent-scorer";
+import { readTrainingJson } from "./training-files";
 import type {
   ClassificationResult,
   DisambiguationCandidate,
@@ -33,6 +34,12 @@ const ENSEMBLE_WEIGHT_NLP = 0.5;
 const ENSEMBLE_WEIGHT_TFIDF = 0.3;
 const ENSEMBLE_WEIGHT_PATTERN = 0.2;
 
+type CorpusIntentEntry = { intent: string; utterances: string[] };
+
+export interface CorpusData extends Record<string, unknown> {
+  data?: CorpusIntentEntry[];
+}
+
 export class NlpService {
   private nlp: InstanceType<typeof Nlp> | null = null;
   private fuzzyMatcher: FuzzyMatcher;
@@ -42,6 +49,7 @@ export class NlpService {
   private corpusFile: string | null;
   private cachedOverlaps: IntentOverlap[] = [];
   private sources: string[];
+  private queryAllowlist: Set<string>;
   // Classification cache — avoids re-running NLP for identical user texts.
   // At 1500 req/min, many users ask similar/identical questions (e.g. "help",
   // "list queries"). Cache saves ~50ms per hit. 2000 entries × 2min TTL.
@@ -57,11 +65,15 @@ export class NlpService {
     corpusFile?: string | null,
     sources?: string[],
     groupId?: string,
+    queryAllowlist?: string[],
   ) {
     this.fuzzyMatcher = fuzzyMatcher;
     this.corpusFile = corpusFile ?? null;
     this.sources = sources ?? [];
     this.groupId = groupId ?? "default";
+    this.queryAllowlist = new Set(
+      (queryAllowlist ?? []).map((name) => name.toLowerCase()),
+    );
   }
 
   async initialize(): Promise<void> {
@@ -77,14 +89,16 @@ export class NlpService {
     this.nlp.settings.autoSave = false;
 
     // Always load base corpus first — ensures all groups share core intents/entities
-    const baseMod = await import("@/training/corpus.json");
-    const corpusData = baseMod.default;
+    const corpusData = await readTrainingJson<CorpusData>("corpus.json");
     await this.nlp.addCorpus(corpusData);
 
     // Additionally load group-specific corpus for focused training (addCorpus merges additively)
     if (this.corpusFile) {
-      const groupMod = await import(`@/training/groups/${this.corpusFile}`);
-      await this.nlp.addCorpus(groupMod.default);
+      const groupCorpus = await readTrainingJson<CorpusData>(
+        "groups",
+        this.corpusFile,
+      );
+      await this.nlp.addCorpus(groupCorpus);
     }
 
     // Dynamically sync query names from the API so newly-added queries are
@@ -111,8 +125,7 @@ export class NlpService {
     // Initialize TF-IDF scorer from corpus utterances
     try {
       const intentUtterances = new Map<string, string[]>();
-      const dataEntries: Array<{ intent: string; utterances: string[] }> =
-        corpusData.data || [];
+      const dataEntries = corpusData.data || [];
       for (const entry of dataEntries) {
         intentUtterances.set(entry.intent, entry.utterances);
       }
@@ -614,14 +627,19 @@ export class NlpService {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const allQueries: any[] = dbData.queries || [];
 
-      // Filter by group sources if applicable
-      // Combined queries bypass source filtering since they aggregate across sources
+      // Filter by explicit group query allowlist first, then by sources.
       let queries = allQueries;
-      if (this.sources.length > 0) {
+      if (this.queryAllowlist.size > 0) {
+        queries = allQueries.filter((q) =>
+          this.queryAllowlist.has(String(q.name ?? "").toLowerCase()),
+        );
+      } else if (this.sources.length > 0) {
         queries = allQueries.filter(
           (q) =>
-            q.type === "combined" ||
-            (q.source && this.sources.includes(q.source)),
+            (q.source && this.sources.includes(q.source)) ||
+            (q.type === "combined" &&
+              q.source &&
+              this.sources.includes(q.source)),
         );
       }
 
@@ -678,14 +696,12 @@ export class NlpService {
    * 2. Utterances where top-2 intent confidences are within 0.15 (ambiguous)
    */
   private async detectOverlaps(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    corpusData: any,
+    corpusData: CorpusData,
   ): Promise<IntentOverlap[]> {
     if (!this.nlp) return [];
 
     const overlaps: IntentOverlap[] = [];
-    const dataEntries: Array<{ intent: string; utterances: string[] }> =
-      corpusData.data || [];
+    const dataEntries = corpusData.data || [];
 
     for (const entry of dataEntries) {
       const trainedIntent = entry.intent;

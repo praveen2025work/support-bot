@@ -10,6 +10,7 @@ import {
   type GridApi,
   type ColDef,
 } from "ag-grid-community";
+import { useTheme } from "@/contexts/ThemeContext";
 
 // Register all Community modules once
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -17,14 +18,14 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 // AG Grid v35+ Theming API — no CSS imports needed
 const agThemeLight = themeQuartz;
 const agThemeDark = themeQuartz.withParams({
-  backgroundColor: "#1e293b",
-  foregroundColor: "#e2e8f0",
-  headerBackgroundColor: "#334155",
-  headerTextColor: "#e2e8f0",
-  borderColor: "#475569",
-  rowHoverColor: "#334155",
-  selectedRowBackgroundColor: "#1e40af30",
-  chromeBackgroundColor: "#1e293b",
+  backgroundColor: "#0b1020",
+  foregroundColor: "#e6e8ee",
+  headerBackgroundColor: "#131a2e",
+  headerTextColor: "#e6e8ee",
+  borderColor: "#232b48",
+  rowHoverColor: "#1d2540",
+  selectedRowBackgroundColor: "rgba(129, 140, 248, 0.22)",
+  chromeBackgroundColor: "#161d33",
 });
 
 // ── Project defaults ────────────────────────────────────────────────
@@ -73,6 +74,7 @@ export function AgGrid<TData = Record<string, unknown>>({
   ...rest
 }: AgGridWrapperProps<TData>) {
   const gridRef = useRef<AgGridReact<TData>>(null);
+  const { isDark } = useTheme();
 
   const mergedColDef: ColDef = {
     ...DEFAULT_COL_DEF,
@@ -100,10 +102,13 @@ export function AgGrid<TData = Record<string, unknown>>({
   const effectiveHeaderHeight = headerHeight ?? (compact ? 32 : 40);
 
   return (
-    <div className={className} style={{ height, width: "100%", ...style }}>
+    <div
+      className={`mitr-ag-grid ${className}`.trim()}
+      style={{ height, width: "100%", ...style }}
+    >
       <AgGridReact<TData>
         ref={gridRef}
-        theme={agThemeLight}
+        theme={isDark ? agThemeDark : agThemeLight}
         defaultColDef={mergedColDef}
         pagination={pagination}
         paginationPageSize={paginationPageSize}

@@ -43,8 +43,13 @@ export class CatalogService {
     groupId: string,
     apiBaseUrl?: string,
     sources?: string[],
+    queryAllowlist?: string[],
   ): Promise<CatalogEntry[]> {
-    const queries = await this.fetchQueries(apiBaseUrl, sources);
+    const queries = await this.fetchQueries(
+      apiBaseUrl,
+      sources,
+      queryAllowlist,
+    );
     const signals = this.loadSignals(groupId);
     return queries.map((q) => this.toCatalogEntry(q, signals));
   }
@@ -54,8 +59,14 @@ export class CatalogService {
     query: string,
     apiBaseUrl?: string,
     sources?: string[],
+    queryAllowlist?: string[],
   ): Promise<CatalogEntry[]> {
-    const entries = await this.listQueries(groupId, apiBaseUrl, sources);
+    const entries = await this.listQueries(
+      groupId,
+      apiBaseUrl,
+      sources,
+      queryAllowlist,
+    );
     const searchableEntries = entries.map((e) => ({
       ...e,
       columnNames: e.columns.map((c) => c.label).join(" "),
@@ -76,7 +87,11 @@ export class CatalogService {
     });
 
     return fuse.search(query).map((r) => {
-      const { columnNames, filterNames, ...entry } = r.item;
+      const {
+        columnNames: _columnNames,
+        filterNames: _filterNames,
+        ...entry
+      } = r.item;
       return entry;
     });
   }
@@ -86,8 +101,13 @@ export class CatalogService {
     queryName: string,
     apiBaseUrl?: string,
     sources?: string[],
+    queryAllowlist?: string[],
   ): Promise<CatalogDetail | null> {
-    const queries = await this.fetchQueries(apiBaseUrl, sources);
+    const queries = await this.fetchQueries(
+      apiBaseUrl,
+      sources,
+      queryAllowlist,
+    );
     const q = queries.find((q) => q.name === queryName);
     if (!q) return null;
 
@@ -144,9 +164,10 @@ export class CatalogService {
   private async fetchQueries(
     apiBaseUrl?: string,
     sources?: string[],
+    queryAllowlist?: string[],
   ): Promise<Query[]> {
     const apiClient = new ApiClient(apiBaseUrl);
-    const queryService = new QueryService(apiClient, sources);
+    const queryService = new QueryService(apiClient, sources, queryAllowlist);
     return queryService.getQueries();
   }
 

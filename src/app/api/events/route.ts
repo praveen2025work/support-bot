@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
-const ENGINE_URL = process.env.ENGINE_URL || "http://localhost:4001";
+function getEngineUrl() {
+  return process.env.ENGINE_URL || "http://localhost:4001";
+}
 
 // SSE stream — opt out of static rendering so the build doesn't hang
 // trying to prerender an infinite event stream.
@@ -9,7 +11,7 @@ export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    const res = await fetch(`${ENGINE_URL}/api/events`, {
+    const res = await fetch(`${getEngineUrl()}/api/events`, {
       headers: { Accept: "text/event-stream" },
     });
 

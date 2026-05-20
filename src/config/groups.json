@@ -4,20 +4,37 @@
       "name": "MITR AI",
       "description": "Access to all data sources",
       "sources": [],
+      "queries": [
+        "pnl_subledger",
+        "pnl_lineage",
+        "support_dashboard",
+        "process_stats_dashboard",
+        "daily_control_checkups",
+        "budget_vs_actual"
+      ],
       "apiBaseUrl": null,
-      "templates": null,
+      "templates": {
+        "greeting": [
+          "Hello! I'm MITR AI. I can help demo bank finance controls, P&L sub-ledger checks, support dashboards, process stats, and daily reporting check-ups. What would you like to review?"
+        ],
+        "help": [
+          "I can help you with:\n- **P&L Sub-ledger**: ledger balances, adjustment counts, unreconciled breaks, aging, and ownership\n- **P&L Lineage**: FOBO, BOFC, VP sign-off, adjustment, and substantiation controls\n- **Support Dashboard**: ticket volume, SLA risk, backlog, reopened tickets, resolution time, and CSAT\n- **Process Stats**: STP rate, exceptions, failed jobs, cycle time, throughput, and process health\n- **Daily Check-ups**: configurable daily control checks for reporting dashboards like Tableau or Power BI\n- **Budget vs Actual**: departmental budget variance and spend tracking\n\nExamples:\n- \"run pnl_subledger\"\n- \"show support dashboard\"\n- \"run process stats dashboard\"\n- \"show daily control checkups at risk\"\n- \"run budget vs actual\"\n- \"list queries\""
+        ]
+      },
       "corpus": null,
       "faq": null
     },
     "finance": {
       "name": "MITR Finance",
       "description": "Revenue, trading, risk, compliance, treasury, and financial operations",
-      "sources": [
-        "finance",
-        "commerce",
-        "trading",
-        "risk",
-        "treasury"
+      "sources": ["finance", "commerce", "trading", "risk", "treasury"],
+      "queries": [
+        "pnl_subledger",
+        "pnl_lineage",
+        "support_dashboard",
+        "process_stats_dashboard",
+        "daily_control_checkups",
+        "budget_vs_actual"
       ],
       "apiBaseUrl": null,
       "templates": {
@@ -25,7 +42,7 @@
           "Hello! I'm MITR Finance. I can help with revenue, trading, risk, compliance, treasury, and financial operations data. What would you like to know?"
         ],
         "help": [
-          "I can help you with:\n- **Revenue & P&L**: quarterly revenue, EBITDA, gross margin, net income, P&L summary\n- **Trading**: trade volume, desk P&L, positions, market exposure\n- **Risk & Compliance**: VaR, credit risk, AML alerts, capital adequacy, regulatory reports\n- **Client & Portfolio**: AUM, portfolio performance, fund NAV, client assets\n- **Operations**: settlement failures, STP rate, reconciliation, trade breaks\n- **Lending**: loan book, NPL ratio, origination pipeline\n- **Treasury**: liquidity, cash position, FX exposure, interest rate risk\n\nExamples:\n- \"run ebitda\" / \"show VaR report\"\n- \"show trading PnL for APAC\"\n- \"run settlement failures for this week\"\n- \"compare revenue and EBITDA\"\n- \"list queries\""
+          "I can help you with:\n- **Revenue & P&L**: quarterly revenue, EBITDA, gross margin, net income, P&L summary\n- **Bank P&L Controls**: P&L sub-ledger balances, unreconciled breaks, VP sign-off lineage, BOFC/FOBO status\n- **Support Dashboards**: finance support backlog, SLA breaches, reopened tickets, resolution time, CSAT\n- **Process Stats**: STP rate, exception volume, cycle times, failed jobs, process health\n- **Daily Check-ups**: configurable control checks for daily reporting dashboards like Tableau or Power BI\n- **Trading**: trade volume, desk P&L, positions, market exposure\n- **Risk & Compliance**: VaR, credit risk, AML alerts, capital adequacy, regulatory reports\n- **Lending**: loan book, NPL ratio, origination pipeline\n\nExamples:\n- \"run pnl_subledger\"\n- \"show support dashboard for EU\"\n- \"run process stats dashboard\"\n- \"show daily control checkups at risk\"\n- \"compare revenue and EBITDA\"\n- \"list queries\""
         ]
       },
       "corpus": "corpus-finance.json",
@@ -34,9 +51,12 @@
     "engineering": {
       "name": "MITR Engineering",
       "description": "Error rates, performance, and infrastructure",
-      "sources": [
-        "engineering",
-        "devops"
+      "sources": ["engineering", "devops"],
+      "queries": [
+        "error_rate",
+        "performance",
+        "infrastructure_costs",
+        "incident_report"
       ],
       "apiBaseUrl": null,
       "templates": {
@@ -53,9 +73,8 @@
     "analytics": {
       "name": "MITR Analytics",
       "description": "User analytics and retention metrics",
-      "sources": [
-        "analytics"
-      ],
+      "sources": ["analytics"],
+      "queries": ["active_users", "customer_churn", "support_tickets"],
       "apiBaseUrl": null,
       "templates": {
         "greeting": [
@@ -71,8 +90,12 @@
     "hr_team": {
       "name": "MITR HR",
       "description": "Headcount, hiring pipeline, and team metrics",
-      "sources": [
-        "hr"
+      "sources": ["hr"],
+      "queries": [
+        "headcount",
+        "hiring_pipeline",
+        "employee_metrics",
+        "employee_compensation"
       ],
       "apiBaseUrl": null,
       "templates": {

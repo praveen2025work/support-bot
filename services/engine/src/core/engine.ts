@@ -41,6 +41,22 @@ const BELOW_FLOOR_TEXT =
 /** Minimal high-confidence value used when synthesizing a forced-intent classification. */
 const FORCE_INTENT_CONFIDENCE = 1.0;
 
+const KEYBOARD_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
+
+function isLikelyKeyboardNoise(text: string): boolean {
+  const tokens = text.toLowerCase().match(/[a-z]{4,}/g);
+  if (!tokens?.length) return false;
+
+  const noisyTokens = tokens.filter((token) =>
+    KEYBOARD_ROWS.some(
+      (row) =>
+        row.includes(token) || row.split("").reverse().join("").includes(token),
+    ),
+  );
+
+  return noisyTokens.length / tokens.length >= 0.6;
+}
+
 export class ChatbotEngine {
   private initialized = false;
   private recommendationEngine: RecommendationEngine;
@@ -199,6 +215,7 @@ export class ChatbotEngine {
         /^\s*(how\s+(many|much|do|does|did|long|often)|what|why|when|where|who|which|count\b|list\b|tell\s+me)\b|\?\s*$/i.test(
           processedText,
         );
+      const looksLikeKeyboardNoise = isLikelyKeyboardNoise(processedText);
 
       // Disambiguation band: NLP top score landed in [NLP_DISAMBIG_FLOOR,
       // NLP_CONFIDENCE_THRESHOLD). Short-circuit before the response generator
@@ -210,7 +227,8 @@ export class ChatbotEngine {
       if (
         classification.disambiguationCandidates?.length &&
         !looksLikeFollowUp &&
-        !looksLikeDocQuestion
+        !looksLikeDocQuestion &&
+        !looksLikeKeyboardNoise
       ) {
         const disambigResponse = await this.buildDisambiguationResponse(
           message,
@@ -236,7 +254,8 @@ export class ChatbotEngine {
       // Same exception as the disambig path above.
       if (
         classification.intent !== "None" &&
-        classification.confidence < NLP_DISAMBIG_FLOOR &&
+        (classification.confidence < NLP_DISAMBIG_FLOOR ||
+          looksLikeKeyboardNoise) &&
         !looksLikeFollowUp &&
         !looksLikeDocQuestion
       ) {

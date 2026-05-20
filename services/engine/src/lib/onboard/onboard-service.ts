@@ -3,6 +3,8 @@ import path from "path";
 import type { OnboardPayload } from "./schemas";
 import { generateCorpus, generateFaq } from "./corpus-generator";
 import { paths } from "@/lib/env-config";
+import { invalidateEngine } from "@/lib/singleton";
+import { reloadGroupConfig } from "@/config/group-config";
 
 const TRAINING_GROUPS_DIR = paths.training.groupsDir;
 const GROUPS_JSON_PATH = paths.config.groups;
@@ -63,6 +65,7 @@ export async function processOnboarding(
     name: groupInfo.name,
     description: groupInfo.description,
     sources,
+    queries: queries.map((query) => query.name),
     apiBaseUrl: null,
     templates: Object.keys(templates).length > 0 ? templates : null,
     corpus: corpusFileName,
@@ -107,10 +110,8 @@ export async function processOnboarding(
   filesWritten.push("db.json");
 
   // 6. Invalidate engine cache + reload group config
-  const { invalidateEngine } = await import("@/lib/singleton");
   await invalidateEngine(groupId);
 
-  const { reloadGroupConfig } = await import("@/config/group-config");
   reloadGroupConfig();
 
   return {

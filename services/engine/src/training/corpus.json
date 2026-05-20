@@ -234,7 +234,7 @@
       ],
       "answers": [
         "Hello! I'm MITR AI. I can help you run queries, find URLs, or provide estimations. You can also use filters like date range, region, or team. What would you like to do?",
-        "Hi there! I'm MITR AI \u2014 how can I assist you today? I can run queries (with filters), find URLs, or combine multiple data sources."
+        "Hi there! I'm MITR AI — how can I assist you today? I can run queries (with filters), find URLs, or combine multiple data sources."
       ]
     },
     {
@@ -343,7 +343,13 @@
         "group by books_open",
         "group by employee",
         "group by category",
-        "run hiring_pipeline"
+        "run hiring_pipeline",
+        "run cash_position",
+        "run aml_alerts",
+        "run order_summary",
+        "run service_reliability_report",
+        "run report_generator",
+        "run api_changelog"
       ],
       "answers": []
     },
@@ -437,7 +443,7 @@
         "what commands are available"
       ],
       "answers": [
-        "I'm MITR AI. I can help you with:\n- **Ask any question** \u2014 I'll search the knowledge base automatically!\n- Running queries against our data (with filters)\n- Data operations: group by, sort, summarize, top-N, value comparisons\n- Running multiple queries in a single request\n- Finding relevant URLs and documentation\n- Listing available queries\n\nExamples:\n- \"what is the auth flow?\" (searches all docs)\n- \"run monthly revenue for this month\"\n- \"show me active users in US\"\n- \"run ebitda\" / \"show VaR report\"\n- \"retention > 70\" (filter by value)\n- \"list queries\"\n\nJust tell me what you need!"
+        "I'm MITR AI. I can help you with:\n- **Ask any question** — I'll search the knowledge base automatically!\n- Running queries against our data (with filters)\n- Data operations: group by, sort, summarize, top-N, value comparisons\n- Running multiple queries in a single request\n- Finding relevant URLs and documentation\n- Listing available queries\n\nExamples:\n- \"what is the auth flow?\" (searches all docs)\n- \"run monthly revenue for this month\"\n- \"show me active users in US\"\n- \"run ebitda\" / \"show VaR report\"\n- \"retention > 70\" (filter by value)\n- \"list queries\"\n\nJust tell me what you need!"
       ]
     },
     {
@@ -670,7 +676,8 @@
         "calculate the sum",
         "max @column_name",
         "min @column_name",
-        "mean @column_name"
+        "mean @column_name",
+        "drill into the top group"
       ],
       "answers": []
     },
@@ -1040,7 +1047,8 @@
         "definitely",
         "please do",
         "that's right",
-        "affirmative"
+        "affirmative",
+        "ask"
       ],
       "answers": []
     },

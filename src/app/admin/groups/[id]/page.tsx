@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { csrfHeaders } from "@/lib/csrf";
@@ -226,21 +226,24 @@ export default function GroupDetailPage() {
     }
   };
 
-  const fetchQueries = async (sources: string[]) => {
-    try {
-      const sourceParam = sources.length > 0 ? sources.join(",") : "";
-      const url = sourceParam
-        ? `/api/admin/queries?source=${encodeURIComponent(sourceParam)}`
-        : "/api/admin/queries";
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        setQueries(data.queries);
+  const fetchQueries = useCallback(
+    async (sources: string[]) => {
+      try {
+        const sourceParam = sources.length > 0 ? sources.join(",") : "";
+        const params = new URLSearchParams({ groupId: id });
+        if (sourceParam) params.set("source", sourceParam);
+        const url = `/api/admin/queries?${params.toString()}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          setQueries(data.queries);
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
-    }
-  };
+    },
+    [id],
+  );
 
   useEffect(() => {
     async function load() {
@@ -271,7 +274,7 @@ export default function GroupDetailPage() {
       }
     }
     load();
-  }, [id]);
+  }, [fetchQueries, id]);
 
   const handleSave = async () => {
     setSaving(true);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { X, ChevronUp, ChevronDown, Replace } from "lucide-react";
 
 interface FindReplaceMatch {
@@ -14,7 +14,6 @@ interface FindReplaceBarProps {
   rows: Record<string, unknown>[];
   columns: string[];
   onReplace: (rowIndex: number, column: string, newValue: string) => void;
-  onReplaceAll: (matches: FindReplaceMatch[], newValue: string) => void;
   onHighlightMatch: (match: FindReplaceMatch | null) => void;
 }
 
@@ -24,7 +23,6 @@ export function FindReplaceBar({
   rows,
   columns,
   onReplace,
-  onReplaceAll,
   onHighlightMatch,
 }: FindReplaceBarProps) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -33,19 +31,40 @@ export function FindReplaceBar({
   const [currentMatchIdx, setCurrentMatchIdx] = useState(0);
   const [showReplace, setShowReplace] = useState(false);
 
-  const matches: FindReplaceMatch[] = [];
-  if (searchTerm) {
+  const matches: FindReplaceMatch[] = useMemo(() => {
+    if (!searchTerm) return [];
+
+    const found: FindReplaceMatch[] = [];
     const term = caseSensitive ? searchTerm : searchTerm.toLowerCase();
     rows.forEach((row, rowIndex) => {
       columns.forEach((col) => {
         const val = String(row[col] ?? "");
         const compare = caseSensitive ? val : val.toLowerCase();
         if (compare.includes(term)) {
-          matches.push({ rowIndex, column: col });
+          found.push({
+            rowIndex:
+              typeof row.__rowIndex === "number"
+                ? (row.__rowIndex as number)
+                : rowIndex,
+            column: col,
+          });
         }
       });
     });
-  }
+    return found;
+  }, [caseSensitive, columns, rows, searchTerm]);
+
+  const getMatchRow = useCallback(
+    (match: FindReplaceMatch) =>
+      rows.find((row, index) => {
+        const rowIndex =
+          typeof row.__rowIndex === "number"
+            ? (row.__rowIndex as number)
+            : index;
+        return rowIndex === match.rowIndex;
+      }),
+    [rows],
+  );
 
   useEffect(() => {
     if (matches.length > 0 && currentMatchIdx < matches.length) {
@@ -73,27 +92,40 @@ export function FindReplaceBar({
   const handleReplace = useCallback(() => {
     if (matches.length === 0 || !searchTerm) return;
     const match = matches[currentMatchIdx];
-    const oldVal = String(rows[match.rowIndex][match.column] ?? "");
+    const oldVal = String(getMatchRow(match)?.[match.column] ?? "");
     const regex = new RegExp(
       searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
       caseSensitive ? "g" : "gi",
     );
     const newVal = oldVal.replace(regex, replaceTerm);
     onReplace(match.rowIndex, match.column, newVal);
+    goNext();
   }, [
     matches,
     currentMatchIdx,
     searchTerm,
     replaceTerm,
     caseSensitive,
-    rows,
+    getMatchRow,
+    goNext,
     onReplace,
   ]);
 
   const handleReplaceAll = useCallback(() => {
     if (matches.length === 0 || !searchTerm) return;
-    onReplaceAll(matches, replaceTerm);
-  }, [matches, searchTerm, replaceTerm, onReplaceAll]);
+    const regex = new RegExp(
+      searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+      caseSensitive ? "g" : "gi",
+    );
+    matches.forEach((match) => {
+      const oldVal = String(getMatchRow(match)?.[match.column] ?? "");
+      onReplace(
+        match.rowIndex,
+        match.column,
+        oldVal.replace(regex, replaceTerm),
+      );
+    });
+  }, [caseSensitive, getMatchRow, matches, onReplace, replaceTerm, searchTerm]);
 
   const handleClose = useCallback(() => {
     onHighlightMatch(null);

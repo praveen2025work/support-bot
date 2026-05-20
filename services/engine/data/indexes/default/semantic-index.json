@@ -497,7 +497,102 @@
         "xlsx",
         "join"
       ]
+    },
+    {
+      "queryName": "pnl_lineage",
+      "description": "PnL sign-off lineage tracker — traces feed availability, BOFC/FOBO completion, VP sign-off, and delay classification across named PnLs, master books, feeds, and regions",
+      "terms": [
+        "pnl",
+        "lineag",
+        "pnl",
+        "sign",
+        "lineag",
+        "tracker",
+        "trace",
+        "feed",
+        "avail",
+        "bofcfobo",
+        "complet",
+        "vp",
+        "sign",
+        "delai",
+        "classif",
+        "across",
+        "name",
+        "pnl",
+        "master",
+        "book",
+        "feed",
+        "region"
+      ]
+    },
+    {
+      "queryName": "hiring_pipeline",
+      "description": "Current hiring pipeline stages by role (applicants → offers)",
+      "terms": [
+        "hire",
+        "pipelin",
+        "current",
+        "hire",
+        "pipelin",
+        "stage",
+        "role",
+        "applic",
+        "offer"
+      ]
+    },
+    {
+      "queryName": "quarterly_revenue",
+      "description": "Quarterly revenue by region with growth percentages",
+      "terms": [
+        "quarterli",
+        "revenu",
+        "quarterli",
+        "revenu",
+        "region",
+        "growth",
+        "percentag"
+      ]
+    },
+    {
+      "queryName": "revenue_by_segment",
+      "description": "Revenue split by product segment and region",
+      "terms": [
+        "revenu",
+        "segment",
+        "revenu",
+        "split",
+        "product",
+        "segment",
+        "region"
+      ]
+    },
+    {
+      "queryName": "gross_margin",
+      "description": "Gross margin trend with cost breakdown",
+      "terms": [
+        "gross",
+        "margin",
+        "gross",
+        "margin",
+        "trend",
+        "cost",
+        "breakdown"
+      ]
+    },
+    {
+      "queryName": "infrastructure_costs",
+      "description": "Cloud infrastructure costs by service and environment",
+      "terms": [
+        "infrastructur",
+        "cost",
+        "cloud",
+        "infrastructur",
+        "cost",
+        "servic",
+        "environ"
+      ]
     }
   ],
-  "updatedAt": "2026-03-20T17:22:15.627Z"
+  "updatedAt": "2026-05-13T22:35:26.626Z"
 }

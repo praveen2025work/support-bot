@@ -185,40 +185,50 @@ export function GridToolbar({
   const totalChanges = dirtyCount + deletedCount;
 
   const btnClass =
-    "px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors";
-  const btnDefault = `${btnClass} border-gray-300 text-gray-700 bg-white hover:bg-gray-50`;
+    "inline-flex h-8 items-center gap-1.5 px-2.5 text-xs font-medium rounded-lg border transition-colors whitespace-nowrap";
+  const btnDefault = `${btnClass} border-gray-300 text-gray-700 bg-white hover:bg-gray-50 dark:border-slate-600 dark:text-slate-200 dark:bg-slate-800/70 dark:hover:bg-slate-700`;
   const btnPrimary = `${btnClass} border-blue-500 text-white bg-blue-600 hover:bg-blue-700`;
-  const btnDanger = `${btnClass} border-red-400 text-red-700 bg-red-50 hover:bg-red-100`;
+  const btnDanger = `${btnClass} border-red-400 text-red-700 bg-red-50 hover:bg-red-100 dark:border-red-800 dark:text-red-300 dark:bg-red-950/40 dark:hover:bg-red-900/50`;
   const btnSuccess = `${btnClass} border-green-500 text-white bg-green-600 hover:bg-green-700`;
+  const dividerClass = "w-px h-6 bg-gray-300 dark:bg-slate-600";
+  const menuClass =
+    "absolute top-full left-0 mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg z-50";
+  const menuItemClass =
+    "rounded text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700";
 
   return (
-    <div className="flex items-center gap-2 flex-wrap py-2">
+    <div
+      data-grid-toolbar
+      className="flex items-center gap-2 flex-wrap py-2 min-w-0"
+    >
       {/* View Management */}
       <div className="relative" ref={viewMenuRef}>
         <button
           onClick={() => setShowViewMenu(!showViewMenu)}
           className={btnDefault}
         >
-          <ClipboardList size={14} className="inline mr-1" />
+          <ClipboardList size={14} />
           {activeView ? activeView.viewName : "Views"}
-          <ChevronDown size={12} className="inline ml-1 text-gray-400" />
+          <ChevronDown size={12} className="text-gray-400" />
         </button>
         {showViewMenu && (
-          <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[200px]">
-            <div className="p-2 border-b border-gray-100">
-              <p className="text-xs font-medium text-gray-500 mb-1">
+          <div className={`${menuClass} min-w-[220px]`}>
+            <div className="p-2 border-b border-gray-100 dark:border-slate-700">
+              <p className="text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">
                 Saved Views
               </p>
               {views.length === 0 && (
-                <p className="text-xs text-gray-400 italic">No saved views</p>
+                <p className="text-xs text-gray-400 dark:text-slate-500 italic">
+                  No saved views
+                </p>
               )}
               {views.map((v) => (
                 <div
                   key={v.id}
                   className={`flex items-center justify-between px-2 py-1.5 text-xs rounded cursor-pointer ${
                     activeView?.id === v.id
-                      ? "bg-blue-50 text-blue-700"
-                      : "hover:bg-gray-50"
+                      ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                      : menuItemClass
                   }`}
                 >
                   <span
@@ -243,7 +253,7 @@ export function GridToolbar({
                       e.stopPropagation();
                       onDeleteView(v.id);
                     }}
-                    className="text-red-400 hover:text-red-600 ml-2"
+                    className="text-red-400 hover:text-red-600 dark:hover:text-red-300 ml-2"
                     title="Delete view"
                   >
                     <X size={12} />
@@ -259,7 +269,7 @@ export function GridToolbar({
                       onSaveView();
                       setShowViewMenu(false);
                     }}
-                    className="block w-full text-left px-2 py-1.5 text-xs hover:bg-gray-50 rounded"
+                    className={`block w-full text-left px-2 py-1.5 text-xs ${menuItemClass}`}
                   >
                     <Save size={12} className="inline mr-1" /> Save &quot;
                     {activeView.viewName}&quot;
@@ -269,7 +279,7 @@ export function GridToolbar({
                       onClearView();
                       setShowViewMenu(false);
                     }}
-                    className="block w-full text-left px-2 py-1.5 text-xs hover:bg-gray-50 rounded"
+                    className={`block w-full text-left px-2 py-1.5 text-xs ${menuItemClass}`}
                   >
                     <X size={12} className="inline mr-1" /> Clear active view
                   </button>
@@ -278,7 +288,7 @@ export function GridToolbar({
               {!showSaveAsInput ? (
                 <button
                   onClick={() => setShowSaveAsInput(true)}
-                  className="block w-full text-left px-2 py-1.5 text-xs hover:bg-gray-50 rounded"
+                  className={`block w-full text-left px-2 py-1.5 text-xs ${menuItemClass}`}
                 >
                   <Plus size={12} className="inline mr-1" /> Save as new view...
                 </button>
@@ -288,7 +298,7 @@ export function GridToolbar({
                     value={saveAsName}
                     onChange={(e) => setSaveAsName(e.target.value)}
                     placeholder="View name"
-                    className="flex-1 text-xs border border-gray-300 rounded px-2 py-1"
+                    className="flex-1 text-xs border border-gray-300 dark:border-slate-600 rounded px-2 py-1"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && saveAsName.trim()) {
@@ -308,8 +318,8 @@ export function GridToolbar({
                     }
                     className={`px-1.5 py-1 rounded text-xs ${
                       saveAsVisibility === "public"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-500"
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                        : "bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-slate-300"
                     }`}
                     title={
                       saveAsVisibility === "public"
@@ -344,159 +354,171 @@ export function GridToolbar({
         )}
       </div>
 
-      <div className="w-px h-5 bg-gray-300" />
+      <div className={dividerClass} />
+
+      {onTogglePivot && (
+        <button
+          onClick={onTogglePivot}
+          className={pivotMode ? btnPrimary : btnDefault}
+        >
+          <Table2 size={14} /> {pivotMode ? "Data Grid" : "Pivot"}
+        </button>
+      )}
 
       {/* Column Visibility */}
-      <div className="relative" ref={colMenuRef}>
-        <button
-          onClick={() => setShowColMenu(!showColMenu)}
-          className={btnDefault}
-        >
-          <Eye size={14} className="inline mr-1" /> Columns
-          {hiddenColumns.size > 0 && (
-            <span className="ml-1 text-xs text-amber-600">
-              ({hiddenColumns.size} hidden)
-            </span>
-          )}
-        </button>
-        {showColMenu && (
-          <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto min-w-[180px]">
-            <div className="p-2 space-y-0.5">
-              {columns.map((col) => (
-                <label
-                  key={col}
-                  className="flex items-center gap-2 px-2 py-1 text-xs hover:bg-gray-50 rounded cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={!hiddenColumns.has(col)}
-                    onChange={() => onToggleColumn(col)}
-                    className="rounded border-gray-300"
-                  />
-                  <span className="truncate">{col}</span>
-                </label>
-              ))}
+      {!pivotMode && (
+        <div className="relative" ref={colMenuRef}>
+          <button
+            onClick={() => setShowColMenu(!showColMenu)}
+            className={btnDefault}
+          >
+            <Eye size={14} /> Columns
+            {hiddenColumns.size > 0 && (
+              <span className="ml-1 text-xs text-amber-600">
+                ({hiddenColumns.size} hidden)
+              </span>
+            )}
+          </button>
+          {showColMenu && (
+            <div
+              className={`${menuClass} max-h-64 overflow-y-auto min-w-[180px]`}
+            >
+              <div className="p-2 space-y-0.5">
+                {columns.map((col) => (
+                  <label
+                    key={col}
+                    className={`flex items-center gap-2 px-2 py-1 text-xs cursor-pointer ${menuItemClass}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!hiddenColumns.has(col)}
+                      onChange={() => onToggleColumn(col)}
+                      className="rounded border-gray-300"
+                    />
+                    <span className="truncate">{col}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Group By */}
-      <div className="relative" ref={groupMenuRef}>
-        <button
-          onClick={() => setShowGroupMenu(!showGroupMenu)}
-          className={btnDefault}
-        >
-          <BarChart3 size={14} className="inline mr-1" /> Group
-          {groupByColumn ? `: ${groupByColumn}` : ""}
-        </button>
-        {showGroupMenu && (
-          <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto min-w-[180px]">
-            <div className="p-2 space-y-0.5">
-              <button
-                onClick={() => {
-                  onGroupByChange(null);
-                  setShowGroupMenu(false);
-                }}
-                className={`block w-full text-left px-2 py-1.5 text-xs rounded ${!groupByColumn ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50"}`}
-              >
-                No grouping
-              </button>
-              {columns.map((col) => (
+      {!pivotMode && (
+        <div className="relative" ref={groupMenuRef}>
+          <button
+            onClick={() => setShowGroupMenu(!showGroupMenu)}
+            className={btnDefault}
+          >
+            <BarChart3 size={14} /> Group
+            {groupByColumn ? `: ${groupByColumn}` : ""}
+          </button>
+          {showGroupMenu && (
+            <div
+              className={`${menuClass} max-h-64 overflow-y-auto min-w-[180px]`}
+            >
+              <div className="p-2 space-y-0.5">
                 <button
-                  key={col}
                   onClick={() => {
-                    onGroupByChange(col);
+                    onGroupByChange(null);
                     setShowGroupMenu(false);
                   }}
-                  className={`block w-full text-left px-2 py-1.5 text-xs rounded ${groupByColumn === col ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50"}`}
+                  className={`block w-full text-left px-2 py-1.5 text-xs ${!groupByColumn ? "rounded bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" : menuItemClass}`}
                 >
-                  {col}
+                  No grouping
                 </button>
-              ))}
+                {columns.map((col) => (
+                  <button
+                    key={col}
+                    onClick={() => {
+                      onGroupByChange(col);
+                      setShowGroupMenu(false);
+                    }}
+                    className={`block w-full text-left px-2 py-1.5 text-xs ${groupByColumn === col ? "rounded bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" : menuItemClass}`}
+                  >
+                    {col}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Summary Toggle */}
-      <button
-        onClick={onToggleSummary}
-        className={showSummary ? btnPrimary : btnDefault}
-      >
-        Σ Summary
-      </button>
+      {!pivotMode && (
+        <button
+          onClick={onToggleSummary}
+          className={showSummary ? btnPrimary : btnDefault}
+        >
+          Σ Summary
+        </button>
+      )}
 
       {/* Conditional Formatting */}
-      <button
-        onClick={() => setShowFormatModal(!showFormatModal)}
-        className={btnDefault}
-      >
-        <Paintbrush size={14} className="inline mr-1" /> Format
-        {conditionalFormats.length > 0 ? ` (${conditionalFormats.length})` : ""}
-      </button>
+      {!pivotMode && (
+        <button
+          onClick={() => setShowFormatModal(!showFormatModal)}
+          className={btnDefault}
+        >
+          <Paintbrush size={14} /> Format
+          {conditionalFormats.length > 0
+            ? ` (${conditionalFormats.length})`
+            : ""}
+        </button>
+      )}
 
-      <div className="w-px h-5 bg-gray-300" />
+      {!pivotMode && <div className={dividerClass} />}
 
       {/* CRUD Actions */}
-      {!readOnly && (
+      {!pivotMode && !readOnly && (
         <>
           <button onClick={onAddRow} className={btnDefault}>
-            <Plus size={14} className="inline mr-1" /> Add Row
+            <Plus size={14} /> Add Row
           </button>
           {selectedCount > 0 && (
             <button onClick={onDeleteSelected} className={btnDanger}>
-              <Trash2 size={14} className="inline mr-1" /> Delete{" "}
-              {selectedCount}
+              <Trash2 size={14} /> Delete {selectedCount}
             </button>
           )}
           {totalChanges > 0 && (
             <>
               <button onClick={onSaveChanges} className={btnSuccess}>
-                <Save size={14} className="inline mr-1" /> Save {totalChanges}{" "}
-                change{totalChanges > 1 ? "s" : ""}
+                <Save size={14} /> Save {totalChanges} change
+                {totalChanges > 1 ? "s" : ""}
               </button>
               <button onClick={onDiscardChanges} className={btnDefault}>
-                <Undo2 size={14} className="inline mr-1" /> Discard
+                <Undo2 size={14} /> Discard
               </button>
             </>
           )}
         </>
       )}
 
-      <div className="w-px h-5 bg-gray-300" />
-
-      {/* Pivot */}
-      {onTogglePivot && (
-        <button
-          onClick={onTogglePivot}
-          className={pivotMode ? btnPrimary : btnDefault}
-        >
-          <Table2 size={14} className="inline mr-1" /> Pivot
-        </button>
-      )}
+      {!pivotMode && <div className={dividerClass} />}
 
       {/* Aggregation */}
-      {onToggleAggregation && (
+      {!pivotMode && onToggleAggregation && (
         <button
           onClick={onToggleAggregation}
           className={showAggregation ? btnPrimary : btnDefault}
         >
-          <Calculator size={14} className="inline mr-1" /> Aggregation
+          <Calculator size={14} /> Aggregation
         </button>
       )}
 
       {/* Find */}
-      {onToggleFind && (
+      {!pivotMode && onToggleFind && (
         <button onClick={onToggleFind} className={btnDefault}>
-          <Search size={14} className="inline mr-1" /> Find
+          <Search size={14} /> Find
         </button>
       )}
 
       {/* Import */}
-      {!readOnly && onToggleImport && (
+      {!pivotMode && !readOnly && onToggleImport && (
         <button onClick={onToggleImport} className={btnDefault}>
-          <Upload size={14} className="inline mr-1" /> Import
+          <Upload size={14} /> Import
         </button>
       )}
 
@@ -506,7 +528,7 @@ export function GridToolbar({
           onClick={onToggleHistory}
           className={historyOpen ? btnPrimary : btnDefault}
         >
-          <History size={14} className="inline mr-1" /> History
+          <History size={14} /> History
         </button>
       )}
 
@@ -520,7 +542,7 @@ export function GridToolbar({
 
       {/* Undo / Redo — only meaningful when there's history. Kept
           compact (icon-only) since they're the standard Ctrl+Z gesture. */}
-      {(onUndo || onRedo) && (
+      {!pivotMode && (onUndo || onRedo) && (
         <span className="inline-flex items-center gap-0.5 mr-1">
           <button
             onClick={onUndo}
@@ -528,8 +550,8 @@ export function GridToolbar({
             title="Undo (Ctrl+Z)"
             className={`px-2 py-1 text-xs rounded ${
               canUndo
-                ? "text-gray-700 hover:bg-gray-100"
-                : "text-gray-300 cursor-not-allowed"
+                ? "text-gray-700 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                : "text-gray-300 dark:text-slate-600 cursor-not-allowed"
             }`}
           >
             <Undo2 size={14} />
@@ -540,8 +562,8 @@ export function GridToolbar({
             title="Redo (Ctrl+Shift+Z)"
             className={`px-2 py-1 text-xs rounded ${
               canRedo
-                ? "text-gray-700 hover:bg-gray-100"
-                : "text-gray-300 cursor-not-allowed"
+                ? "text-gray-700 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                : "text-gray-300 dark:text-slate-600 cursor-not-allowed"
             }`}
           >
             <Redo2 size={14} />
@@ -551,7 +573,7 @@ export function GridToolbar({
 
       {/* Bulk edit — visible only when rows are selected. Drops a
           modal that sets the same value on every selected row. */}
-      {!readOnly && onBulkEdit && selectedCount > 0 && (
+      {!pivotMode && !readOnly && onBulkEdit && selectedCount > 0 && (
         <button
           onClick={onBulkEdit}
           className={btnDefault}
@@ -559,33 +581,37 @@ export function GridToolbar({
             selectedCount === 1 ? "" : "s"
           }`}
         >
-          <Edit3 size={14} className="inline mr-1" /> Bulk edit
+          <Edit3 size={14} /> Bulk edit
         </button>
       )}
 
       {/* Formula columns editor */}
-      {!readOnly && onOpenFormula && (
+      {!pivotMode && !readOnly && onOpenFormula && (
         <button
           onClick={onOpenFormula}
           className={btnDefault}
           title="Formula columns"
         >
-          <Calculator size={14} className="inline mr-1" /> Formula
+          <Calculator size={14} /> Formula
         </button>
       )}
 
       {/* Export — CSV + xlsx side by side */}
-      <button onClick={onExport} className={btnDefault} title="Export CSV">
-        <Download size={14} className="inline mr-1" /> CSV
-      </button>
-      {onExportXlsx && (
-        <button
-          onClick={onExportXlsx}
-          className={btnDefault}
-          title="Export Excel"
-        >
-          <FileSpreadsheet size={14} className="inline mr-1" /> XLSX
-        </button>
+      {!pivotMode && (
+        <>
+          <button onClick={onExport} className={btnDefault} title="Export CSV">
+            <Download size={14} /> CSV
+          </button>
+          {onExportXlsx && (
+            <button
+              onClick={onExportXlsx}
+              className={btnDefault}
+              title="Export Excel"
+            >
+              <FileSpreadsheet size={14} /> XLSX
+            </button>
+          )}
+        </>
       )}
 
       {/* Share / Shortcuts — pushed to the end so they don't compete
@@ -598,11 +624,11 @@ export function GridToolbar({
         >
           {shareCopied ? (
             <>
-              <Check size={14} className="inline mr-1" /> Copied
+              <Check size={14} /> Copied
             </>
           ) : (
             <>
-              <Link2 size={14} className="inline mr-1" /> Share
+              <Link2 size={14} /> Share
             </>
           )}
         </button>
@@ -624,10 +650,10 @@ export function GridToolbar({
           onClick={() => setShowFormatModal(false)}
         >
           <div
-            className="bg-white rounded-xl shadow-xl p-5 w-[420px] max-h-[80vh] overflow-y-auto"
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-5 w-[420px] max-h-[80vh] overflow-y-auto border border-transparent dark:border-slate-700"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-sm font-semibold text-gray-800 mb-3">
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-slate-100 mb-3">
               Conditional Formatting Rules
             </h3>
 
@@ -637,7 +663,7 @@ export function GridToolbar({
                 {conditionalFormats.map((rule) => (
                   <div
                     key={rule.id}
-                    className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg text-xs"
+                    className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-slate-900/60 rounded-lg text-xs text-gray-700 dark:text-slate-200"
                   >
                     <div className="flex items-center gap-2">
                       <span
@@ -665,13 +691,15 @@ export function GridToolbar({
             )}
 
             {/* Add new rule */}
-            <div className="space-y-2 border-t border-gray-200 pt-3">
-              <p className="text-xs font-medium text-gray-500">Add Rule</p>
+            <div className="space-y-2 border-t border-gray-200 dark:border-slate-700 pt-3">
+              <p className="text-xs font-medium text-gray-500 dark:text-slate-400">
+                Add Rule
+              </p>
               <div className="grid grid-cols-2 gap-2">
                 <select
                   value={fmtCol}
                   onChange={(e) => setFmtCol(e.target.value)}
-                  className="text-xs border border-gray-300 rounded px-2 py-1.5"
+                  className="text-xs border border-gray-300 dark:border-slate-600 rounded px-2 py-1.5"
                 >
                   <option value="">Column...</option>
                   {columns.map((c) => (
@@ -683,7 +711,7 @@ export function GridToolbar({
                 <select
                   value={fmtOp}
                   onChange={(e) => setFmtOp(e.target.value)}
-                  className="text-xs border border-gray-300 rounded px-2 py-1.5"
+                  className="text-xs border border-gray-300 dark:border-slate-600 rounded px-2 py-1.5"
                 >
                   {FILTER_OPERATORS.map((op) => (
                     <option key={op.value} value={op.value}>
@@ -697,33 +725,37 @@ export function GridToolbar({
                   value={fmtVal}
                   onChange={(e) => setFmtVal(e.target.value)}
                   placeholder="Value"
-                  className="text-xs border border-gray-300 rounded px-2 py-1.5"
+                  className="text-xs border border-gray-300 dark:border-slate-600 rounded px-2 py-1.5"
                 />
                 {fmtOp === "between" && (
                   <input
                     value={fmtVal2}
                     onChange={(e) => setFmtVal2(e.target.value)}
                     placeholder="Value 2"
-                    className="text-xs border border-gray-300 rounded px-2 py-1.5"
+                    className="text-xs border border-gray-300 dark:border-slate-600 rounded px-2 py-1.5"
                   />
                 )}
               </div>
               <div className="flex items-center gap-3">
-                <label className="text-xs text-gray-500">BG:</label>
+                <label className="text-xs text-gray-500 dark:text-slate-400">
+                  BG:
+                </label>
                 <input
                   type="color"
                   value={fmtBg}
                   onChange={(e) => setFmtBg(e.target.value)}
                   className="w-6 h-6 border rounded cursor-pointer"
                 />
-                <label className="text-xs text-gray-500">Text:</label>
+                <label className="text-xs text-gray-500 dark:text-slate-400">
+                  Text:
+                </label>
                 <input
                   type="color"
                   value={fmtColor || "#000000"}
                   onChange={(e) => setFmtColor(e.target.value)}
                   className="w-6 h-6 border rounded cursor-pointer"
                 />
-                <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
+                <label className="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={fmtBold}
@@ -759,7 +791,7 @@ export function GridToolbar({
 
             <button
               onClick={() => setShowFormatModal(false)}
-              className="mt-3 w-full text-xs px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="mt-3 w-full text-xs px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200"
             >
               Close
             </button>

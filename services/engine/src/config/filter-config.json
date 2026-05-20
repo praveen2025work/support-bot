@@ -107,9 +107,9 @@
       "label": "Fiscal Year",
       "type": "select",
       "options": [
-        { "value": "FY2024", "label": "FY2024" },
         { "value": "FY2025", "label": "FY2025" },
-        { "value": "FY2026", "label": "FY2026" }
+        { "value": "FY2026", "label": "FY2026" },
+        { "value": "FY2024", "label": "FY2024" }
       ],
       "placeholder": null
     },
@@ -146,6 +146,38 @@
       "type": "search",
       "options": [],
       "placeholder": "Search GL account...",
+      "debounceMs": 300
+    },
+    "status": {
+      "label": "Status",
+      "type": "select",
+      "options": [
+        { "value": "healthy", "label": "Healthy" },
+        { "value": "watch", "label": "Watch" },
+        { "value": "at_risk", "label": "At Risk" },
+        { "value": "open", "label": "Open" },
+        { "value": "review", "label": "Review" },
+        { "value": "signed_off", "label": "Signed Off" }
+      ],
+      "placeholder": null
+    },
+    "control_area": {
+      "label": "Control Area",
+      "type": "select",
+      "options": [
+        { "value": "P&L Close", "label": "P&L Close" },
+        { "value": "Ledger", "label": "Ledger" },
+        { "value": "Reg Reporting", "label": "Reg Reporting" },
+        { "value": "Reconciliation", "label": "Reconciliation" },
+        { "value": "Support", "label": "Support" }
+      ],
+      "placeholder": null
+    },
+    "process_name": {
+      "label": "Process",
+      "type": "search",
+      "options": [],
+      "placeholder": "Search process...",
       "debounceMs": 300
     },
     "segment": {

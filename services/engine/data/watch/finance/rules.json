@@ -1,0 +1,82 @@
+[
+  {
+    "id": "wr_fin_001",
+    "name": "Daily P&L Sub-ledger Breaks",
+    "queryName": "pnl_subledger",
+    "groupId": "finance",
+    "type": "threshold",
+    "condition": {
+      "column": "break_count",
+      "operator": "gte",
+      "value": 10
+    },
+    "cronExpression": "0 8 * * *",
+    "channels": ["in_app", "email"],
+    "recipients": ["finance-controls@company.com"],
+    "owner": "finance-admin",
+    "enabled": true,
+    "cooldownMinutes": 1440,
+    "createdAt": "2026-05-20T08:00:00Z",
+    "updatedAt": "2026-05-20T08:00:00Z"
+  },
+  {
+    "id": "wr_fin_002",
+    "name": "Finance Support SLA Breaches",
+    "queryName": "support_dashboard",
+    "groupId": "finance",
+    "type": "threshold",
+    "condition": {
+      "column": "sla_breaches",
+      "operator": "gte",
+      "value": 4
+    },
+    "cronExpression": "0 9 * * *",
+    "channels": ["in_app", "email"],
+    "recipients": ["support-leads@company.com"],
+    "owner": "finance-admin",
+    "enabled": true,
+    "cooldownMinutes": 720,
+    "createdAt": "2026-05-20T08:00:00Z",
+    "updatedAt": "2026-05-20T08:00:00Z"
+  },
+  {
+    "id": "wr_fin_003",
+    "name": "Process Exception Volume",
+    "queryName": "process_stats_dashboard",
+    "groupId": "finance",
+    "type": "threshold",
+    "condition": {
+      "column": "exceptions",
+      "operator": "gte",
+      "value": 250
+    },
+    "cronExpression": "0 10 * * *",
+    "channels": ["in_app"],
+    "recipients": ["operations-control@company.com"],
+    "owner": "finance-admin",
+    "enabled": true,
+    "cooldownMinutes": 720,
+    "createdAt": "2026-05-20T08:00:00Z",
+    "updatedAt": "2026-05-20T08:00:00Z"
+  },
+  {
+    "id": "wr_fin_004",
+    "name": "Daily Control Check-up Failures",
+    "queryName": "daily_control_checkups",
+    "groupId": "finance",
+    "type": "threshold",
+    "condition": {
+      "column": "failed",
+      "operator": "gte",
+      "value": 3
+    },
+    "cronExpression": "0 11 * * *",
+    "channels": ["in_app", "email"],
+    "recipients": ["reporting-controls@company.com"],
+    "owner": "finance-admin",
+    "enabled": true,
+    "cooldownMinutes": 720,
+    "createdAt": "2026-05-20T08:00:00Z",
+    "updatedAt": "2026-05-20T08:00:00Z"
+  }
+]

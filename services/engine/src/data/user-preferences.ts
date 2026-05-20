@@ -374,7 +374,20 @@ export class UserPreferencesStore {
 
   async createDashboard(
     userId: string,
-    input: { name: string; cards?: DashboardCard[]; layouts?: CardLayout[] },
+    input: {
+      name: string;
+      cards?: DashboardCard[];
+      layouts?: CardLayout[];
+      simpleMode?: boolean;
+      globalRefreshSec?: number;
+      tabs?: DashboardTab[];
+      activeTabId?: string;
+      sharing?: DashboardSharing;
+      filterDependencies?: FilterDependency[];
+      stompEnabled?: boolean;
+      parameters?: DashboardParameter[];
+      kpiCards?: KpiCardConfig[];
+    },
   ): Promise<Dashboard> {
     return this.withLock(userId, async () => {
       const prefs = await this.read(userId);
@@ -391,6 +404,15 @@ export class UserPreferencesStore {
         name: input.name,
         cards: input.cards || [],
         layouts: input.layouts || [],
+        simpleMode: input.simpleMode,
+        globalRefreshSec: input.globalRefreshSec,
+        tabs: input.tabs,
+        activeTabId: input.activeTabId,
+        sharing: input.sharing,
+        filterDependencies: input.filterDependencies,
+        stompEnabled: input.stompEnabled,
+        parameters: input.parameters,
+        kpiCards: input.kpiCards,
         createdAt: now,
         updatedAt: now,
       };

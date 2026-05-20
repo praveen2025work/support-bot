@@ -351,9 +351,50 @@ export async function handleQueryExecute(
     }
   }
 
-  const queryNameEntity = classification.entities.find(
+  let queryNameEntity = classification.entities.find(
     (e) => e.entity === "query_name",
   );
+  const userText = getLastUserText(context);
+
+  // Exact query-name fallback: when the user types a catalog name verbatim
+  // (especially underscore names like daily_control_checkups), the classifier
+  // may detect query.execute without emitting a query_name entity. Bind it
+  // before the missing-query branch asks the user to choose again.
+  try {
+    const allQueryNames = await queryService.getQueryNames();
+    const lowerText = userText.toLowerCase();
+    const matches = allQueryNames
+      .filter((name) => {
+        const lower = name.toLowerCase();
+        const readable = lower.replace(/_/g, " ");
+        return lowerText.includes(lower) || lowerText.includes(readable);
+      })
+      .sort((a, b) => b.length - a.length);
+
+    if (matches.length > 0) {
+      const exactMatch = matches[0];
+      if (!queryNameEntity) {
+        const start = lowerText.indexOf(exactMatch.toLowerCase());
+        queryNameEntity = {
+          entity: "query_name",
+          value: exactMatch,
+          start: start >= 0 ? start : 0,
+          end: start >= 0 ? start + exactMatch.length : userText.length,
+        };
+        classification.entities.push(queryNameEntity);
+      } else if (
+        exactMatch.toLowerCase() !== queryNameEntity.value.toLowerCase()
+      ) {
+        logger.info(
+          { nerValue: queryNameEntity.value, exactMatch },
+          "Overriding NER entity with exact query name match from user text",
+        );
+        queryNameEntity.value = exactMatch;
+      }
+    }
+  } catch {
+    /* proceed with NER value */
+  }
 
   if (!queryNameEntity) {
     if (context.lastQueryName) {
@@ -436,30 +477,7 @@ export async function handleQueryExecute(
   // --- Exact-match override: if the user text contains a query name verbatim,
   //     prefer that over the NER-resolved value (which may fuzzy-match a similar name).
   //     Pick the longest match to avoid partial collisions (e.g. "pnl" in "pnl_signoff").
-  const userText = getLastUserText(context);
-  try {
-    const allQueryNames = await queryService.getQueryNames();
-    const lowerText = userText.toLowerCase();
-    const matches = allQueryNames
-      .filter((name) => {
-        const lower = name.toLowerCase();
-        const readable = lower.replace(/_/g, " ");
-        return lowerText.includes(lower) || lowerText.includes(readable);
-      })
-      .sort((a, b) => b.length - a.length); // longest first
-    if (
-      matches.length > 0 &&
-      matches[0].toLowerCase() !== queryNameEntity.value.toLowerCase()
-    ) {
-      logger.info(
-        { nerValue: queryNameEntity.value, exactMatch: matches[0] },
-        "Overriding NER entity with exact query name match from user text",
-      );
-      queryNameEntity.value = matches[0];
-    }
-  } catch {
-    /* proceed with NER value */
-  }
+  // The exact-match override already ran before the missing-query branch.
 
   // Merge NLP-extracted filters with text-parsed filters and explicit (form) filters.
   // NLP entities provide the primary filter extraction; parseFilterFromText catches

@@ -26,7 +26,7 @@ import { logger } from "@/lib/logger";
 
 export const dataApiRouter = Router();
 
-/* ─── Parsed CSV cache (keyed by queryName+groupId) ────────────── */
+/* ─── Row-shaped query cache (keyed by queryName+groupId) ───────── */
 interface CacheEntry {
   data: CsvData;
   timestamp: number;
@@ -37,6 +37,44 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 function getCacheKey(queryName: string, groupId: string): string {
   return `${groupId}::${queryName}`;
+}
+
+function toCellValue(value: unknown): string | number {
+  if (typeof value === "number" || typeof value === "string") return value;
+  if (typeof value === "boolean") return value ? "true" : "false";
+  if (value === null || value === undefined) return "";
+  return JSON.stringify(value);
+}
+
+function rowsToCsvData(rows: Record<string, unknown>[]): CsvData {
+  const headers = Array.from(
+    rows.reduce((set, row) => {
+      Object.keys(row).forEach((key) => set.add(key));
+      return set;
+    }, new Set<string>()),
+  );
+
+  return {
+    headers,
+    rows: rows.map((row) =>
+      Object.fromEntries(
+        headers.map((header) => [header, toCellValue(row[header])]),
+      ),
+    ),
+  };
+}
+
+function cacheCsvData(key: string, queryName: string, data: CsvData): void {
+  csvCache.set(key, { data, timestamp: Date.now(), queryName });
+
+  if (csvCache.size > 50) {
+    const oldest = Array.from(csvCache.entries()).sort(
+      (a, b) => a[1].timestamp - b[1].timestamp,
+    );
+    for (let i = 0; i < Math.min(10, oldest.length); i++) {
+      csvCache.delete(oldest[i][0]);
+    }
+  }
 }
 
 async function getCsvData(
@@ -51,31 +89,31 @@ async function getCsvData(
 
   const groupConfig = getGroupConfig(groupId);
   const apiClient = new ApiClient(groupConfig.apiBaseUrl ?? undefined);
-  const queryService = new QueryService(apiClient, groupConfig.sources);
+  const queryService = new QueryService(
+    apiClient,
+    groupConfig.sources,
+    groupConfig.queries,
+  );
   const result = await queryService.executeQuery(queryName);
 
-  if (!result.csvResult) {
-    throw new Error(`Query "${queryName}" did not return CSV data`);
+  if (result.csvResult) {
+    const data: CsvData = {
+      headers: result.csvResult.headers,
+      rows: result.csvResult.rows,
+    };
+    cacheCsvData(key, queryName, data);
+    return data;
   }
 
-  const data: CsvData = {
-    headers: result.csvResult.headers,
-    rows: result.csvResult.rows,
-  };
-
-  csvCache.set(key, { data, timestamp: Date.now(), queryName });
-
-  // Evict old entries if cache grows beyond 50
-  if (csvCache.size > 50) {
-    const oldest = Array.from(csvCache.entries()).sort(
-      (a, b) => a[1].timestamp - b[1].timestamp,
+  if (result.apiResult?.data) {
+    const data = rowsToCsvData(
+      result.apiResult.data as Record<string, unknown>[],
     );
-    for (let i = 0; i < 10; i++) {
-      csvCache.delete(oldest[i][0]);
-    }
+    cacheCsvData(key, queryName, data);
+    return data;
   }
 
-  return data;
+  throw new Error(`Query "${queryName}" did not return row data`);
 }
 
 /* ─── GET /api/data/sources ───────────────────────────────────── *
@@ -92,11 +130,15 @@ dataApiRouter.get("/sources", async (req: Request, res: Response) => {
       typeof req.query.userName === "string" ? req.query.userName : "";
     const groupConfig = getGroupConfig(groupId);
     const apiClient = new ApiClient(groupConfig.apiBaseUrl ?? undefined);
-    const queryService = new QueryService(apiClient, groupConfig.sources);
+    const queryService = new QueryService(
+      apiClient,
+      groupConfig.sources,
+      groupConfig.queries,
+    );
     const queries = await queryService.getQueries();
 
-    const csvSources = queries
-      .filter((q) => q.type === "csv" || q.type === "xlsx")
+    const rowSources = queries
+      .filter((q) => q.type === "api" || q.type === "csv" || q.type === "xlsx")
       .map((q) => ({
         name: q.name,
         description: q.description ?? "",
@@ -124,7 +166,7 @@ dataApiRouter.get("/sources", async (req: Request, res: Response) => {
         }
         recentNames = new Set(counts.keys());
         if (counts.size > 0) {
-          csvSources.sort((a, b) => {
+          rowSources.sort((a, b) => {
             const ca = counts.get(a.name) ?? 0;
             const cb = counts.get(b.name) ?? 0;
             if (ca !== cb) return cb - ca;
@@ -140,7 +182,7 @@ dataApiRouter.get("/sources", async (req: Request, res: Response) => {
     const groups = Object.keys(getGroupConfigs());
 
     return res.json({
-      sources: csvSources.map((s) => ({
+      sources: rowSources.map((s) => ({
         ...s,
         ...(recentNames.has(s.name) ? { recent: true } : {}),
       })),
@@ -324,7 +366,11 @@ dataApiRouter.post("/query", async (req: Request, res: Response) => {
       // Get column config from query if available
       const groupConfig = getGroupConfig(groupId);
       const apiClient = new ApiClient(groupConfig.apiBaseUrl ?? undefined);
-      const qs = new QueryService(apiClient, groupConfig.sources);
+      const qs = new QueryService(
+        apiClient,
+        groupConfig.sources,
+        groupConfig.queries,
+      );
       const allQueries = await qs.getQueries();
       const queryDef = allQueries.find((q) => q.name === queryName);
       const colConfig: ColumnConfig | undefined = queryDef?.columnConfig;
@@ -695,7 +741,11 @@ dataApiRouter.post("/rows/:queryName", async (req: Request, res: Response) => {
 
     const groupConfig = getGroupConfig(groupId);
     const apiClient = new ApiClient(groupConfig.apiBaseUrl ?? undefined);
-    const queryService = new QueryService(apiClient, groupConfig.sources);
+    const queryService = new QueryService(
+      apiClient,
+      groupConfig.sources,
+      groupConfig.queries,
+    );
     const result = await queryService.executeQuery(queryName, filters);
 
     // Extract rows + headers regardless of source type.

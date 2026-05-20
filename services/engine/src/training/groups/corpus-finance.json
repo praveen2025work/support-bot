@@ -98,6 +98,46 @@
           "master book",
           "feed delay"
         ],
+        "pnl_subledger": [
+          "pnl subledger",
+          "P&L sub ledger",
+          "sub ledger P&L",
+          "subledger balances",
+          "ledger breaks",
+          "unreconciled P&L",
+          "bank pnl subledger",
+          "P&L breaks dashboard"
+        ],
+        "support_dashboard": [
+          "support dashboard",
+          "finance support dashboard",
+          "support backlog",
+          "SLA breaches",
+          "ticket SLA",
+          "support tickets dashboard",
+          "production support",
+          "support daily dashboard"
+        ],
+        "process_stats_dashboard": [
+          "process stats dashboard",
+          "process dashboard",
+          "STP dashboard",
+          "process statistics",
+          "exception dashboard",
+          "cycle time dashboard",
+          "operations process stats",
+          "bank process health"
+        ],
+        "daily_control_checkups": [
+          "daily control checkups",
+          "daily check ups",
+          "daily reporting controls",
+          "daily control dashboard",
+          "daily finance checks",
+          "tableau style checks",
+          "power BI checks",
+          "configurable daily checks"
+        ],
 
         "trade_volume": [
           "trade volume",
@@ -399,7 +439,13 @@
         "run the stress test results",
         "show me the Greeks report",
         "what is our credit utilization",
-        "pull up the nostro balances"
+        "pull up the nostro balances",
+        "show bank pnl subledger",
+        "run the support dashboard",
+        "show process stats dashboard",
+        "show daily control checkups",
+        "open the daily check up dashboard",
+        "show finance controls at risk"
       ],
       "answers": []
     },

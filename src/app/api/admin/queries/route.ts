@@ -4,6 +4,7 @@ import path from "path";
 import { logger } from "@/lib/logger";
 import { withDbLock, readDb } from "@/lib/db";
 import { proxyToEngine } from "@/lib/engine-proxy";
+import groupsConfig from "@/config/groups.json";
 
 interface FilterBinding {
   key: string;
@@ -64,6 +65,13 @@ interface QueryRecord {
   chartConfig?: Record<string, unknown>;
 }
 
+interface GroupConfigRecord {
+  sources?: string[];
+  queries?: string[];
+}
+
+const localGroups = groupsConfig.groups as Record<string, GroupConfigRecord>;
+
 /** Sanitize a sheet name to a valid query name suffix (snake_case). */
 function toSnakeCase(s: string): string {
   return s
@@ -119,8 +127,30 @@ async function reloadMockApi(): Promise<void> {
 export async function GET(request: NextRequest) {
   try {
     const source = request.nextUrl.searchParams.get("source");
+    const groupId = request.nextUrl.searchParams.get("groupId");
     const db = await readDb();
     let queries = (db.queries || []) as QueryRecord[];
+
+    if (groupId) {
+      let allowedNames = localGroups[groupId]?.queries;
+      try {
+        const groupRes = await proxyToEngine(
+          `/api/admin/groups/${encodeURIComponent(groupId)}`,
+        );
+        if (groupRes.ok) {
+          const group = (await groupRes.json()) as GroupConfigRecord;
+          allowedNames = group.queries || allowedNames;
+        }
+      } catch {
+        // Fall back to the UI-bundled group config when the engine is offline.
+      }
+
+      if (allowedNames?.length) {
+        const allowlist = new Set(allowedNames);
+        queries = queries.filter((q) => allowlist.has(q.name));
+      }
+    }
+
     if (source) {
       const sources = source.split(",").map((s) => s.trim());
       queries = queries.filter((q) => sources.includes(q.source));

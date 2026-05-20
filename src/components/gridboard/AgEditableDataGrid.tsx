@@ -2,12 +2,12 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import {
-  AgGrid,
-  type ColDef,
-  type GridApi,
-  type CellValueChangedEvent,
-  type CellClassParams,
-} from "@/components/shared/AgGrid";
+  WijmoGrid as AgGrid,
+  type WijmoColDef as ColDef,
+  type WijmoGridApi as GridApi,
+  type WijmoCellValueChangedEvent as CellValueChangedEvent,
+  type WijmoCellClassParams as CellClassParams,
+} from "@/components/shared/WijmoGrid";
 import type {
   GridBoardView,
   ConditionalFormatRule,
@@ -36,8 +36,7 @@ import { ImportModal } from "./ImportModal";
 import { FindReplaceBar } from "./FindReplaceBar";
 import { SparklineCell } from "./SparklineCell";
 import { Snowflake } from "lucide-react";
-import { multiPivotData } from "./grid-helpers";
-import { MultiSelectDropdown } from "./MultiSelectDropdown";
+import { WijmoPivotBoard } from "./WijmoPivotBoard";
 import { exportToCsv } from "@/components/chat/TablePagination";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -148,14 +147,17 @@ export function AgEditableDataGrid({
   const [saving, setSaving] = useState(false);
 
   // ── Pivot mode ──
-  const [pivotMode, setPivotMode] = useState(false);
+  const [pivotMode, setPivotMode] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("pivot") === "1",
+  );
   const [pivotConfig, setPivotConfig] = useState({
     rowFields: [initialColumns[0] || ""],
     colFields: [initialColumns[1] || ""],
-    valueFields:
-      initialColumns.length > 2
-        ? [initialColumns[2]]
-        : initialColumns.slice(0, 1),
+    valueFields: initialColumns.length
+      ? [initialColumns[initialColumns.length - 1]]
+      : [],
     aggregation: "sum" as "sum" | "avg" | "count" | "min" | "max",
   });
 
@@ -170,6 +172,10 @@ export function AgEditableDataGrid({
   // ── Import & Find/Replace ──
   const [showImport, setShowImport] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
+  const [highlightedFindMatch, setHighlightedFindMatch] = useState<{
+    rowIndex: number;
+    column: string;
+  } | null>(null);
   // ── Bulk-edit / formula-editor / shortcuts-help modals ──
   const [showBulkEdit, setShowBulkEdit] = useState(false);
   const [showFormulaEditor, setShowFormulaEditor] = useState(false);
@@ -189,6 +195,20 @@ export function AgEditableDataGrid({
     () => new Set(initialColumns.filter((c) => isNumericColumn(rows, c))),
     [initialColumns, rows.length], // eslint-disable-line react-hooks/exhaustive-deps
   );
+
+  useEffect(() => {
+    if (numericCols.size === 0) return;
+    setPivotConfig((current) => {
+      const validValues = current.valueFields.filter((field) =>
+        numericCols.has(field),
+      );
+      if (validValues.length > 0) return current;
+      return {
+        ...current,
+        valueFields: [Array.from(numericCols)[0]],
+      };
+    });
+  }, [numericCols]);
 
   // ── Reset when initial data changes ──
   useEffect(() => {
@@ -330,6 +350,14 @@ export function AgEditableDataGrid({
               if (rowIdx == null) return false;
               return addedRows.has(rowIdx);
             },
+            "mitr-find-match": (params: CellClassParams) => {
+              if (!highlightedFindMatch) return false;
+              const rowIdx = params.data?.__rowIndex;
+              return (
+                highlightedFindMatch.rowIndex === rowIdx &&
+                highlightedFindMatch.column === col
+              );
+            },
           },
           cellStyle: ((params: CellClassParams) => {
             if (conditionalFormats.length === 0) return null;
@@ -351,7 +379,7 @@ export function AgEditableDataGrid({
               .split(",")
               .map(Number)
               .filter((n) => !isNaN(n));
-            if (values.length === 0) return params.value;
+            if (values.length === 0) return String(params.value ?? "");
             return (
               <SparklineCell
                 values={values}
@@ -379,6 +407,7 @@ export function AgEditableDataGrid({
     readOnly,
     dirtyMap,
     addedRows,
+    highlightedFindMatch,
     conditionalFormats,
     viewConfig,
   ]);
@@ -753,62 +782,6 @@ export function AgEditableDataGrid({
     );
   }, [rowData, groupByColumn]);
 
-  // ── Pivot data for AG Grid (multi-field) ──
-  const pivotGridData = useMemo(() => {
-    if (!pivotMode) return { rowData: [], columnDefs: [], totalRow: [] };
-
-    const result = multiPivotData(rows, {
-      rowFields: pivotConfig.rowFields,
-      colFields: pivotConfig.colFields,
-      valueFields: pivotConfig.valueFields,
-      aggregation: pivotConfig.aggregation,
-    });
-
-    const numFmt = (params: { value: unknown }) => {
-      const val = Number(params.value);
-      if (isNaN(val) || val === 0) return "-";
-      return val.toLocaleString();
-    };
-
-    // Row field columns (pinned left)
-    const rowColDefs: ColDef[] = pivotConfig.rowFields.map((f, i) => ({
-      field: f,
-      headerName: f,
-      pinned: "left" as const,
-      minWidth: 120,
-      cellClass: "font-medium",
-      headerClass: i === 0 ? "font-bold" : "",
-    }));
-
-    // Pivot value columns
-    const valueColDefs: ColDef[] = result.pivotColKeys.map((ck) => ({
-      field: ck,
-      headerName: ck,
-      type: "numericColumn" as const,
-      cellClass: "text-right",
-      valueFormatter: numFmt,
-      minWidth: 100,
-    }));
-
-    // Total column
-    const totalColDef: ColDef = {
-      field: "__total",
-      headerName: "Total",
-      type: "numericColumn" as const,
-      cellClass: "text-right font-semibold",
-      cellStyle: { backgroundColor: "#eff6ff" },
-      headerClass: "font-bold",
-      valueFormatter: numFmt,
-      minWidth: 110,
-    };
-
-    return {
-      rowData: result.rows,
-      columnDefs: [...rowColDefs, ...valueColDefs, totalColDef],
-      totalRow: [result.totalsRow],
-    };
-  }, [pivotMode, rows, pivotConfig]);
-
   // ── Selection sync ──
   const onSelectionChanged = useCallback(() => {
     if (!gridApiRef.current) return;
@@ -886,72 +859,18 @@ export function AgEditableDataGrid({
     shareCopied,
   };
 
-  // ── Pivot mode — rendered via AG Grid ──
+  // ── Pivot mode — rendered via Wijmo OLAP PivotGrid ──
   if (pivotMode) {
     return (
       <div className="flex flex-col h-full">
         <GridToolbar {...toolbarProps} />
-        {/* Pivot config selectors — multi-select dropdowns */}
-        <div className="flex items-start gap-4 px-3 py-2.5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800 flex-wrap">
-          <MultiSelectDropdown
-            label="Rows"
-            options={initialColumns}
-            selected={pivotConfig.rowFields}
-            onChange={(v) => setPivotConfig((p) => ({ ...p, rowFields: v }))}
-            numericCols={numericCols}
-          />
-          <MultiSelectDropdown
-            label="Columns"
-            options={initialColumns}
-            selected={pivotConfig.colFields}
-            onChange={(v) => setPivotConfig((p) => ({ ...p, colFields: v }))}
-            numericCols={numericCols}
-          />
-          <MultiSelectDropdown
-            label="Values"
-            options={initialColumns.filter((c) => numericCols.has(c))}
-            selected={pivotConfig.valueFields}
-            onChange={(v) => setPivotConfig((p) => ({ ...p, valueFields: v }))}
-            numericCols={numericCols}
-          />
-          <MultiSelectDropdown
-            label="Aggregation"
-            options={["sum", "avg", "count", "min", "max"]}
-            selected={[pivotConfig.aggregation]}
-            onChange={(v) =>
-              setPivotConfig((p) => ({
-                ...p,
-                aggregation: (v[0] || "sum") as
-                  | "sum"
-                  | "avg"
-                  | "count"
-                  | "min"
-                  | "max",
-              }))
-            }
-            single
-          />
-        </div>
-        {/* AG Grid Pivot */}
-        <div className="flex-1 min-h-0">
-          <AgGrid
-            rowData={pivotGridData.rowData}
-            columnDefs={pivotGridData.columnDefs}
-            pinnedBottomRowData={pivotGridData.totalRow}
-            pagination={false}
-            height="100%"
-            autoSizeStrategy={{
-              type: "fitGridWidth",
-              defaultMinWidth: 100,
-            }}
-            defaultColDef={{
-              sortable: true,
-              resizable: true,
-              filter: true,
-              minWidth: 80,
-            }}
-          />
-        </div>
+        <WijmoPivotBoard
+          rows={rowData}
+          columns={[...initialColumns, ...formulaColumns.map((fc) => fc.name)]}
+          numericCols={numericCols}
+          config={pivotConfig}
+          onConfigChange={setPivotConfig}
+        />
       </div>
     );
   }
@@ -1025,18 +944,33 @@ export function AgEditableDataGrid({
       {showFindReplace && (
         <FindReplaceBar
           isOpen={showFindReplace}
-          rows={rows}
+          rows={rowData}
           columns={initialColumns}
           onReplace={(rowIdx, col, newVal) => {
-            setRows((prev) => {
-              const next = [...prev];
-              next[rowIdx] = { ...next[rowIdx], [col]: newVal };
-              return next;
-            });
+            const oldVal = formatValue(rows[rowIdx]?.[col]);
+            if (oldVal === newVal) return;
+            applyChange(rowIdx, col, oldVal, newVal);
+            setRedoStack([]);
+            setChangeHistory((prev) => [
+              ...prev,
+              {
+                id: `ch_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                timestamp: new Date().toISOString(),
+                userId: "current_user",
+                rowIndex: rowIdx,
+                column: col,
+                oldValue: oldVal,
+                newValue: newVal,
+              },
+            ]);
           }}
-          onReplaceAll={() => {}}
           onClose={() => setShowFindReplace(false)}
-          onHighlightMatch={() => {}}
+          onHighlightMatch={(match) => {
+            setHighlightedFindMatch(match);
+            if (match) {
+              gridApiRef.current?.selectCell(match.rowIndex, match.column);
+            }
+          }}
         />
       )}
 

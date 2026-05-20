@@ -768,38 +768,13 @@ export function GridBoardShell() {
         <div className="flex-1 overflow-auto px-6 py-4">
           {dataLoaded ? (
             <>
-              {/* Stitch-style tool row — anchor for AG Grid plus the
-                  data-quality chips and the insights summary pill so
-                  they don't claim their own row of vertical space. */}
               <div className="mb-3 flex items-center gap-2 flex-wrap">
-                <span className="eyebrow !text-[9.5px] mr-1">Tools</span>
-                {[
-                  { label: "Group By", icon: "⊞" },
-                  { label: "Aggregate", icon: "Σ" },
-                  { label: "Pivot", icon: "⇋" },
-                  { label: "Formula", icon: "ƒ" },
-                ].map((t) => (
-                  <span
-                    key={t.label}
-                    className="chip !py-1 !px-2.5 !text-[11px] cursor-default"
-                  >
-                    <span
-                      className="text-[var(--brand)] font-semibold mr-0.5"
-                      aria-hidden
-                    >
-                      {t.icon}
-                    </span>
-                    {t.label}
-                  </span>
-                ))}
-
                 {/* Quality chips — only renders once snapshot exists */}
                 {quality && (
                   <>
-                    <span
-                      aria-hidden
-                      className="mx-1 h-3 w-px bg-[var(--border)]"
-                    />
+                    <span className="eyebrow !text-[9.5px] mr-1">
+                      Data Quality
+                    </span>
                     <QualityChip
                       label="Dup"
                       value={quality.duplicateCount.toLocaleString()}

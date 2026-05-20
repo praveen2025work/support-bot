@@ -47,6 +47,6 @@ export default tseslint.config(
 
   // Global ignores
   {
-    ignores: [".next/", "node_modules/", "dist/", "services/engine/dist/"],
+    ignores: [".next/", "node_modules/", "dist/", "**/dist/"],
   }
 );

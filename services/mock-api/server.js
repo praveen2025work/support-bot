@@ -232,6 +232,56 @@ function handleGlTransactions(req, res) {
 server.get('/api/finance/pnl/gl-transactions', handleGlTransactions);
 server.post('/api/finance/pnl/gl-transactions', handleGlTransactions);
 
+// P&L lineage and sign-off controls
+function handlePnlLineage(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[P&L Lineage] ${req.method} /api/finance/pnl/lineage filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('pnl_lineage'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 1300) });
+}
+server.get('/api/finance/pnl/lineage', handlePnlLineage);
+server.post('/api/finance/pnl/lineage', handlePnlLineage);
+
+// Bank P&L sub-ledger reconciled balances and breaks
+function handlePnlSubledger(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[Bank Finance] ${req.method} /api/finance/pnl/subledger filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('pnl_subledger'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 1800) });
+}
+server.get('/api/finance/pnl/subledger', handlePnlSubledger);
+server.post('/api/finance/pnl/subledger', handlePnlSubledger);
+
+// Bank support dashboard for finance users
+function handleSupportDashboard(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[Bank Support] ${req.method} /api/finance/support/dashboard filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('support_dashboard'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 1200) });
+}
+server.get('/api/finance/support/dashboard', handleSupportDashboard);
+server.post('/api/finance/support/dashboard', handleSupportDashboard);
+
+// Bank operations process statistics
+function handleProcessStatsDashboard(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[Bank Process] ${req.method} /api/finance/process/stats filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('process_stats_dashboard'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 1300) });
+}
+server.get('/api/finance/process/stats', handleProcessStatsDashboard);
+server.post('/api/finance/process/stats', handleProcessStatsDashboard);
+
+// Daily reporting controls for configurable check-up dashboards
+function handleDailyControlCheckups(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  console.log(`[Bank Reporting] ${req.method} /api/finance/reporting/daily-controls filters:`, JSON.stringify(filters));
+  const data = applyFilters(getRawData('daily_control_checkups'), filters);
+  res.json({ data, rowCount: data.length, executionTime: Math.floor(Math.random() * 1100) });
+}
+server.get('/api/finance/reporting/daily-controls', handleDailyControlCheckups);
+server.post('/api/finance/reporting/daily-controls', handleDailyControlCheckups);
+
 // === Analytics endpoints ===
 
 // Query param: /analytics/users/active  (date_range as query_param)
@@ -692,8 +742,67 @@ function applyFilters(data, filters) {
       (row) => !row.gl_account || row.gl_account.toLowerCase().includes(filters.gl_account.toLowerCase())
     );
   }
+  if (filters.control_area) {
+    result = result.filter(
+      (row) => !row.control_area || row.control_area.toLowerCase() === filters.control_area.toLowerCase()
+    );
+  }
+  if (filters.process_name) {
+    result = result.filter(
+      (row) => !row.process_name || row.process_name.toLowerCase().includes(filters.process_name.toLowerCase())
+    );
+  }
+  if (filters.status) {
+    result = result.filter(
+      (row) => !row.status || row.status.toLowerCase() === filters.status.toLowerCase()
+    );
+  }
 
   return result;
+}
+
+function buildBudgetVsActualData() {
+  const baseRows = [
+    { cost_center: 'Technology', category: 'OpEx', budget: 18500000, actual: 17800000 },
+    { cost_center: 'Sales & Marketing', category: 'OpEx', budget: 12000000, actual: 12450000 },
+    { cost_center: 'Human Resources', category: 'OpEx', budget: 4200000, actual: 4100000 },
+    { cost_center: 'Legal & Compliance', category: 'OpEx', budget: 3800000, actual: 4200000 },
+    { cost_center: 'Operations', category: 'OpEx', budget: 8500000, actual: 8200000 },
+    { cost_center: 'Risk Management', category: 'OpEx', budget: 2800000, actual: 2750000 },
+    { cost_center: 'Finance', category: 'OpEx', budget: 2200000, actual: 2180000 },
+    { cost_center: 'Facilities', category: 'OpEx', budget: 5000000, actual: 5100000 },
+    { cost_center: 'Research', category: 'OpEx', budget: 6500000, actual: 6200000 },
+    { cost_center: 'Executive Office', category: 'OpEx', budget: 1500000, actual: 1480000 },
+  ];
+  const yearMultipliers = {
+    FY2024: { budget: 0.94, actual: 0.96 },
+    FY2025: { budget: 1, actual: 1 },
+    FY2026: { budget: 1.08, actual: 1.06 },
+  };
+
+  return Object.entries(yearMultipliers).flatMap(([fiscal_year, multiplier]) =>
+    baseRows.map((row) => {
+      const budget = Math.round(row.budget * multiplier.budget);
+      const actual = Math.round(row.actual * multiplier.actual);
+      const variance = budget - actual;
+      const variancePct = budget === 0 ? 0 : (variance / budget) * 100;
+      const absPct = Math.abs(variancePct);
+      return {
+        ...row,
+        fiscal_year,
+        budget,
+        actual,
+        variance,
+        variance_pct: `${variancePct.toFixed(1)}%`,
+        status:
+          absPct < 1.5
+            ? 'On Track'
+            : variance >= 0
+              ? 'Under Budget'
+              : 'Over Budget',
+      };
+    }),
+  );
 }
 
 function getRawData(queryName) {
@@ -909,18 +1018,7 @@ function getRawData(queryName) {
       ];
 
     case 'budget_vs_actual':
-      return [
-        { cost_center: 'Technology',      category: 'OpEx',     fiscal_year: 'FY2025', budget: 18500000, actual: 17800000, variance: 700000, variance_pct: '3.8%', status: 'Under Budget' },
-        { cost_center: 'Sales & Marketing',category: 'OpEx',    fiscal_year: 'FY2025', budget: 12000000, actual: 12450000, variance: -450000, variance_pct: '-3.8%', status: 'Over Budget' },
-        { cost_center: 'Human Resources', category: 'OpEx',     fiscal_year: 'FY2025', budget: 4200000, actual: 4100000, variance: 100000, variance_pct: '2.4%', status: 'Under Budget' },
-        { cost_center: 'Legal & Compliance',category: 'OpEx',   fiscal_year: 'FY2025', budget: 3800000, actual: 4200000, variance: -400000, variance_pct: '-10.5%', status: 'Over Budget' },
-        { cost_center: 'Operations',      category: 'OpEx',     fiscal_year: 'FY2025', budget: 8500000, actual: 8200000, variance: 300000, variance_pct: '3.5%', status: 'Under Budget' },
-        { cost_center: 'Risk Management', category: 'OpEx',     fiscal_year: 'FY2025', budget: 2800000, actual: 2750000, variance: 50000, variance_pct: '1.8%', status: 'Under Budget' },
-        { cost_center: 'Finance',         category: 'OpEx',     fiscal_year: 'FY2025', budget: 2200000, actual: 2180000, variance: 20000, variance_pct: '0.9%', status: 'On Track' },
-        { cost_center: 'Facilities',      category: 'OpEx',     fiscal_year: 'FY2025', budget: 5000000, actual: 5100000, variance: -100000, variance_pct: '-2.0%', status: 'Over Budget' },
-        { cost_center: 'Research',        category: 'OpEx',     fiscal_year: 'FY2025', budget: 6500000, actual: 6200000, variance: 300000, variance_pct: '4.6%', status: 'Under Budget' },
-        { cost_center: 'Executive Office',category: 'OpEx',     fiscal_year: 'FY2025', budget: 1500000, actual: 1480000, variance: 20000, variance_pct: '1.3%', status: 'On Track' },
-      ];
+      return buildBudgetVsActualData();
 
     case 'gl_transactions':
       return [
@@ -941,6 +1039,66 @@ function getRawData(queryName) {
         { journal_id: 'JE-2025-015', gl_account: '4300', posting_date: '2025-06-30', description: 'Q2 License revenue recognition', debit: 0, credit: 1200000, balance: 7100000, fiscal_year: 'FY2025' },
         { journal_id: 'JE-2025-ADJ1', gl_account: '4100', posting_date: '2025-03-31', description: 'Q1 Revenue adjustment - Deferred recognition', debit: 150000, credit: 0, balance: 1920000, fiscal_year: 'FY2025' },
         { journal_id: 'JE-2025-ADJ2', gl_account: '5200', posting_date: '2025-06-30', description: 'Q2 COGS adjustment - Vendor credit received', debit: 0, credit: 85000, balance: 7185000, fiscal_year: 'FY2025' },
+      ];
+
+    case 'pnl_lineage':
+      return [
+        { businessdate: '2026-05-20', NamedPnlName: 'Alpha Conduit Revenue', NamedPnLID: 'PNL001', MasterBookID: 'BK-RT-001', MasterBookName: 'Rates Flow Book', FeedName: 'Bloomberg B-PIPE', Region: 'NAM', SYEY_ID: 'SYEY-10001', MSBk_ID: 'BK-RT-001', businessarea: 'Rates Trading', bofc_status: 'Complete', fobo_status: 'Complete', vpsignoffby: 'John Smith', vpsignoffcount: 1, vpsignoff_bofc_hours: 7.35, sla_bofc: '10:00:00', feed_source: 'Bloomberg', feed_available_at: '2026-05-20 04:03:00', feed_sla: '05:30:00', feed_on_time: 'Y', issue_type: 'sign_off_delayed', DurationAvg: 6.88, DurationMax: 8.85, DurationMin: 6.13, delay_flag: 'Y', status: 'watch' },
+        { businessdate: '2026-05-20', NamedPnlName: 'Beta Trading Book', NamedPnLID: 'PNL002', MasterBookID: 'BK-CT-001', MasterBookName: 'Credit Flow Book', FeedName: 'Murex MX.3 EOD', Region: 'EMEA', SYEY_ID: 'SYEY-10002', MSBk_ID: 'BK-CT-001', businessarea: 'Credit Trading', bofc_status: 'Complete', fobo_status: 'Complete', vpsignoffby: 'Sarah Lee', vpsignoffcount: 1, vpsignoff_bofc_hours: 3.53, sla_bofc: '11:00:00', feed_source: 'Murex', feed_available_at: '2026-05-20 04:43:00', feed_sla: '06:00:00', feed_on_time: 'Y', issue_type: 'green', DurationAvg: 4.27, DurationMax: 6.57, DurationMin: 3.2, delay_flag: 'N', status: 'healthy' },
+        { businessdate: '2026-05-20', NamedPnlName: 'Gamma Advisory Fund', NamedPnLID: 'PNL003', MasterBookID: 'BK-EQ-001', MasterBookName: 'Equity Advisory Book', FeedName: 'Calypso Risk Feed', Region: 'APAC', SYEY_ID: 'SYEY-10003', MSBk_ID: 'BK-EQ-001', businessarea: 'Equities', bofc_status: 'Complete', fobo_status: 'Complete', vpsignoffby: 'Mike Chen', vpsignoffcount: 1, vpsignoff_bofc_hours: 5.57, sla_bofc: '10:30:00', feed_source: 'Calypso', feed_available_at: '2026-05-20 03:34:00', feed_sla: '05:00:00', feed_on_time: 'Y', issue_type: 'sign_off_delayed', DurationAvg: 7.97, DurationMax: 9.94, DurationMin: 7.54, delay_flag: 'Y', status: 'watch' },
+        { businessdate: '2026-05-20', NamedPnlName: 'Delta CMBS Portfolio', NamedPnLID: 'PNL004', MasterBookID: 'BK-SP-001', MasterBookName: 'CMBS Trading Book', FeedName: 'Intex CDOnet Feed', Region: 'NAM', SYEY_ID: 'SYEY-10004', MSBk_ID: 'BK-SP-001', businessarea: 'Securitized Products', bofc_status: 'Complete', fobo_status: 'Complete', vpsignoffby: 'Rachel Kim', vpsignoffcount: 1, vpsignoff_bofc_hours: 1.58, sla_bofc: '11:30:00', feed_source: 'Intex', feed_available_at: '2026-05-20 06:17:00', feed_sla: '06:30:00', feed_on_time: 'Y', issue_type: 'green', DurationAvg: 1.54, DurationMax: 2.09, DurationMin: 0.5, delay_flag: 'N', status: 'healthy' },
+        { businessdate: '2026-05-20', NamedPnlName: 'Epsilon RMBS Trust', NamedPnLID: 'PNL005', MasterBookID: 'BK-SP-002', MasterBookName: 'RMBS Trust Book', FeedName: 'Intex CDOnet Feed', Region: 'EMEA', SYEY_ID: 'SYEY-10005', MSBk_ID: 'BK-SP-002', businessarea: 'Securitized Products', bofc_status: 'Complete', fobo_status: 'Complete', vpsignoffby: 'David Park', vpsignoffcount: 1, vpsignoff_bofc_hours: 2.63, sla_bofc: '11:30:00', feed_source: 'Intex', feed_available_at: '2026-05-20 08:14:00', feed_sla: '06:30:00', feed_on_time: 'N', issue_type: 'feed_delayed_recovered', DurationAvg: 2.41, DurationMax: 3.61, DurationMin: 1.02, delay_flag: 'N', status: 'watch' },
+        { businessdate: '2026-05-21', NamedPnlName: 'Alpha Conduit Revenue', NamedPnLID: 'PNL001', MasterBookID: 'BK-RT-001', MasterBookName: 'Rates Flow Book', FeedName: 'Bloomberg B-PIPE', Region: 'NAM', SYEY_ID: 'SYEY-10001', MSBk_ID: 'BK-RT-001', businessarea: 'Rates Trading', bofc_status: 'Complete', fobo_status: 'Complete', vpsignoffby: 'John Smith', vpsignoffcount: 1, vpsignoff_bofc_hours: 3.93, sla_bofc: '10:00:00', feed_source: 'Bloomberg', feed_available_at: '2026-05-21 04:35:00', feed_sla: '05:30:00', feed_on_time: 'Y', issue_type: 'green', DurationAvg: 1.72, DurationMax: 4.19, DurationMin: 0.5, delay_flag: 'N', status: 'healthy' },
+        { businessdate: '2026-05-21', NamedPnlName: 'Beta Trading Book', NamedPnLID: 'PNL002', MasterBookID: 'BK-CT-001', MasterBookName: 'Credit Flow Book', FeedName: 'Bloomberg B-PIPE', Region: 'EMEA', SYEY_ID: 'SYEY-10002', MSBk_ID: 'BK-CT-001', businessarea: 'Credit Trading', bofc_status: 'Complete', fobo_status: 'Complete', vpsignoffby: 'Sarah Lee', vpsignoffcount: 1, vpsignoff_bofc_hours: 3.09, sla_bofc: '11:00:00', feed_source: 'Bloomberg', feed_available_at: '2026-05-21 06:35:00', feed_sla: '06:00:00', feed_on_time: 'N', issue_type: 'feed_delayed_recovered', DurationAvg: 2.15, DurationMax: 4.02, DurationMin: 1.17, delay_flag: 'N', status: 'watch' },
+        { businessdate: '2026-05-21', NamedPnlName: 'Theta FX Options', NamedPnLID: 'PNL006', MasterBookID: 'BK-FX-001', MasterBookName: 'FX Options Book', FeedName: 'Kondor+ EOD', Region: 'APAC', SYEY_ID: 'SYEY-10006', MSBk_ID: 'BK-FX-001', businessarea: 'FX Trading', bofc_status: 'Pending', fobo_status: 'Complete', vpsignoffby: '', vpsignoffcount: 0, vpsignoff_bofc_hours: 0, sla_bofc: '10:30:00', feed_source: 'Kondor+', feed_available_at: '2026-05-21 07:15:00', feed_sla: '05:45:00', feed_on_time: 'N', issue_type: 'bofc_pending', DurationAvg: 9.2, DurationMax: 10.7, DurationMin: 8.6, delay_flag: 'Y', status: 'at_risk' },
+      ];
+
+    case 'pnl_subledger':
+      return [
+        { business_date: '2026-05-18', sub_ledger: 'Rates FOBO', business_unit: 'Investment Banking', region: 'US', desk: 'Rates', product: 'IRS', postings: 1240, debit: 184250000, credit: 185120000, net_pnl: 870000, break_count: 6, unreconciled_amount: 425000, aging_days: 1, status: 'open' },
+        { business_date: '2026-05-18', sub_ledger: 'Credit FOBO', business_unit: 'Investment Banking', region: 'EU', desk: 'Credit', product: 'CDS', postings: 820, debit: 92300000, credit: 91450000, net_pnl: -850000, break_count: 9, unreconciled_amount: 1180000, aging_days: 2, status: 'open' },
+        { business_date: '2026-05-18', sub_ledger: 'Equities BOFC', business_unit: 'Investment Banking', region: 'APAC', desk: 'Equities', product: 'Cash Equity', postings: 2110, debit: 145900000, credit: 147250000, net_pnl: 1350000, break_count: 3, unreconciled_amount: 210000, aging_days: 1, status: 'review' },
+        { business_date: '2026-05-18', sub_ledger: 'Treasury GL', business_unit: 'Corporate', region: 'US', desk: 'Treasury', product: 'Funding', postings: 430, debit: 412500000, credit: 410700000, net_pnl: -1800000, break_count: 2, unreconciled_amount: 155000, aging_days: 0, status: 'signed_off' },
+        { business_date: '2026-05-18', sub_ledger: 'Retail Deposits', business_unit: 'Retail Banking', region: 'US', desk: 'Deposits', product: 'DDA', postings: 5260, debit: 68200000, credit: 70150000, net_pnl: 1950000, break_count: 4, unreconciled_amount: 320000, aging_days: 1, status: 'open' },
+        { business_date: '2026-05-18', sub_ledger: 'Cards Ledger', business_unit: 'Retail Banking', region: 'EU', desk: 'Cards', product: 'Credit Card', postings: 6180, debit: 50200000, credit: 49750000, net_pnl: -450000, break_count: 12, unreconciled_amount: 1640000, aging_days: 3, status: 'open' },
+        { business_date: '2026-05-19', sub_ledger: 'Rates FOBO', business_unit: 'Investment Banking', region: 'US', desk: 'Rates', product: 'IRS', postings: 1295, debit: 191700000, credit: 192840000, net_pnl: 1140000, break_count: 5, unreconciled_amount: 360000, aging_days: 1, status: 'review' },
+        { business_date: '2026-05-19', sub_ledger: 'Credit FOBO', business_unit: 'Investment Banking', region: 'EU', desk: 'Credit', product: 'CDS', postings: 845, debit: 98400000, credit: 97200000, net_pnl: -1200000, break_count: 11, unreconciled_amount: 1325000, aging_days: 2, status: 'open' },
+        { business_date: '2026-05-19', sub_ledger: 'Wealth Advisory', business_unit: 'Wealth Management', region: 'US', desk: 'Advisory', product: 'Managed Accounts', postings: 760, debit: 18200000, credit: 19450000, net_pnl: 1250000, break_count: 1, unreconciled_amount: 45000, aging_days: 0, status: 'signed_off' },
+        { business_date: '2026-05-19', sub_ledger: 'Cards Ledger', business_unit: 'Retail Banking', region: 'APAC', desk: 'Cards', product: 'Credit Card', postings: 3380, debit: 28300000, credit: 27650000, net_pnl: -650000, break_count: 7, unreconciled_amount: 720000, aging_days: 2, status: 'open' },
+      ];
+
+    case 'support_dashboard':
+      return [
+        { business_date: '2026-05-19', queue: 'P&L Production Support', business_unit: 'Investment Banking', region: 'US', priority: 'critical', opened: 7, resolved: 5, backlog: 9, sla_breaches: 2, avg_resolution_hours: 3.8, reopened: 1, csat: 4.2, status: 'at_risk' },
+        { business_date: '2026-05-19', queue: 'P&L Production Support', business_unit: 'Investment Banking', region: 'EU', priority: 'high', opened: 11, resolved: 9, backlog: 14, sla_breaches: 3, avg_resolution_hours: 5.6, reopened: 2, csat: 4.0, status: 'at_risk' },
+        { business_date: '2026-05-19', queue: 'Ledger Close Support', business_unit: 'Corporate', region: 'US', priority: 'high', opened: 6, resolved: 6, backlog: 5, sla_breaches: 0, avg_resolution_hours: 2.4, reopened: 0, csat: 4.6, status: 'healthy' },
+        { business_date: '2026-05-19', queue: 'Retail Ops Support', business_unit: 'Retail Banking', region: 'US', priority: 'medium', opened: 18, resolved: 16, backlog: 22, sla_breaches: 4, avg_resolution_hours: 8.1, reopened: 3, csat: 3.8, status: 'at_risk' },
+        { business_date: '2026-05-19', queue: 'Reg Reporting Support', business_unit: 'Corporate', region: 'EU', priority: 'critical', opened: 4, resolved: 3, backlog: 6, sla_breaches: 1, avg_resolution_hours: 4.7, reopened: 1, csat: 4.1, status: 'watch' },
+        { business_date: '2026-05-20', queue: 'P&L Production Support', business_unit: 'Investment Banking', region: 'US', priority: 'critical', opened: 5, resolved: 4, backlog: 10, sla_breaches: 2, avg_resolution_hours: 3.2, reopened: 1, csat: 4.3, status: 'watch' },
+        { business_date: '2026-05-20', queue: 'Ledger Close Support', business_unit: 'Corporate', region: 'APAC', priority: 'high', opened: 8, resolved: 7, backlog: 7, sla_breaches: 1, avg_resolution_hours: 3.6, reopened: 0, csat: 4.4, status: 'healthy' },
+        { business_date: '2026-05-20', queue: 'Retail Ops Support', business_unit: 'Retail Banking', region: 'EU', priority: 'medium', opened: 15, resolved: 12, backlog: 25, sla_breaches: 5, avg_resolution_hours: 9.4, reopened: 4, csat: 3.6, status: 'at_risk' },
+      ];
+
+    case 'process_stats_dashboard':
+      return [
+        { business_date: '2026-05-19', process_name: 'FOBO to BOFC P&L handoff', control_area: 'P&L Close', business_unit: 'Investment Banking', region: 'US', volume: 1840, completed: 1812, exceptions: 28, stp_rate: 98.5, avg_cycle_minutes: 42, p95_cycle_minutes: 76, failed_jobs: 2, status: 'watch' },
+        { business_date: '2026-05-19', process_name: 'Sub-ledger to GL posting', control_area: 'Ledger', business_unit: 'Corporate', region: 'US', volume: 6420, completed: 6398, exceptions: 22, stp_rate: 99.7, avg_cycle_minutes: 18, p95_cycle_minutes: 31, failed_jobs: 0, status: 'healthy' },
+        { business_date: '2026-05-19', process_name: 'Regulatory liquidity feed', control_area: 'Reg Reporting', business_unit: 'Corporate', region: 'EU', volume: 312, completed: 301, exceptions: 11, stp_rate: 96.5, avg_cycle_minutes: 58, p95_cycle_minutes: 104, failed_jobs: 1, status: 'watch' },
+        { business_date: '2026-05-19', process_name: 'Retail account reconciliation', control_area: 'Reconciliation', business_unit: 'Retail Banking', region: 'US', volume: 15200, completed: 14940, exceptions: 260, stp_rate: 98.3, avg_cycle_minutes: 24, p95_cycle_minutes: 62, failed_jobs: 4, status: 'at_risk' },
+        { business_date: '2026-05-20', process_name: 'FOBO to BOFC P&L handoff', control_area: 'P&L Close', business_unit: 'Investment Banking', region: 'EU', volume: 1260, completed: 1230, exceptions: 30, stp_rate: 97.6, avg_cycle_minutes: 49, p95_cycle_minutes: 88, failed_jobs: 3, status: 'at_risk' },
+        { business_date: '2026-05-20', process_name: 'Sub-ledger to GL posting', control_area: 'Ledger', business_unit: 'Corporate', region: 'APAC', volume: 2880, completed: 2872, exceptions: 8, stp_rate: 99.7, avg_cycle_minutes: 21, p95_cycle_minutes: 36, failed_jobs: 0, status: 'healthy' },
+        { business_date: '2026-05-20', process_name: 'Regulatory liquidity feed', control_area: 'Reg Reporting', business_unit: 'Corporate', region: 'US', volume: 420, completed: 415, exceptions: 5, stp_rate: 98.8, avg_cycle_minutes: 45, p95_cycle_minutes: 79, failed_jobs: 0, status: 'healthy' },
+        { business_date: '2026-05-20', process_name: 'Retail account reconciliation', control_area: 'Reconciliation', business_unit: 'Retail Banking', region: 'EU', volume: 11300, completed: 11045, exceptions: 255, stp_rate: 97.7, avg_cycle_minutes: 32, p95_cycle_minutes: 91, failed_jobs: 5, status: 'at_risk' },
+      ];
+
+    case 'daily_control_checkups':
+      return [
+        { business_date: '2026-05-20', control_area: 'P&L Close', check_name: 'FOBO completed before BOFC cutoff', owner: 'Finance Control', business_unit: 'Investment Banking', region: 'US', checks_run: 42, passed: 39, failed: 3, pass_rate: 92.9, open_exceptions: 3, severity_score: 82, status: 'watch' },
+        { business_date: '2026-05-20', control_area: 'P&L Close', check_name: 'VP sign-off received by SLA', owner: 'Finance Control', business_unit: 'Investment Banking', region: 'EU', checks_run: 38, passed: 34, failed: 4, pass_rate: 89.5, open_exceptions: 4, severity_score: 88, status: 'at_risk' },
+        { business_date: '2026-05-20', control_area: 'Ledger', check_name: 'Sub-ledger equals GL balance', owner: 'Ledger Control', business_unit: 'Corporate', region: 'US', checks_run: 56, passed: 55, failed: 1, pass_rate: 98.2, open_exceptions: 1, severity_score: 42, status: 'healthy' },
+        { business_date: '2026-05-20', control_area: 'Reg Reporting', check_name: 'Liquidity file delivered to regulator', owner: 'Reg Ops', business_unit: 'Corporate', region: 'EU', checks_run: 12, passed: 11, failed: 1, pass_rate: 91.7, open_exceptions: 1, severity_score: 76, status: 'watch' },
+        { business_date: '2026-05-20', control_area: 'Reconciliation', check_name: 'Unmatched cash breaks below threshold', owner: 'Operations Control', business_unit: 'Retail Banking', region: 'US', checks_run: 24, passed: 21, failed: 3, pass_rate: 87.5, open_exceptions: 6, severity_score: 91, status: 'at_risk' },
+        { business_date: '2026-05-20', control_area: 'Support', check_name: 'Critical tickets acknowledged inside 30 minutes', owner: 'Support Lead', business_unit: 'Retail Banking', region: 'EU', checks_run: 18, passed: 15, failed: 3, pass_rate: 83.3, open_exceptions: 5, severity_score: 94, status: 'at_risk' },
       ];
 
     // ── Cross-source join data ───────────────────────────────────────

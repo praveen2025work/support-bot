@@ -4,6 +4,7 @@ import {
   expandWithSynonyms,
   generateSynonymVariants,
 } from "./synonym-expander";
+import { readTrainingJson } from "./training-files";
 
 interface FaqEntry {
   question: string;
@@ -36,11 +37,9 @@ export class FuzzyMatcher {
 
     let data: FaqEntry[];
     if (this.faqFile) {
-      const mod = await import(`@/training/groups/${this.faqFile}`);
-      data = mod.default as FaqEntry[];
+      data = await readTrainingJson<FaqEntry[]>("groups", this.faqFile);
     } else {
-      const mod = await import("@/training/faq.json");
-      data = mod.default as FaqEntry[];
+      data = await readTrainingJson<FaqEntry[]>("faq.json");
     }
 
     this.faqData = [...data];

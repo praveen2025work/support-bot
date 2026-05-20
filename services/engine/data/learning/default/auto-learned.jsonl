@@ -18,3 +18,11 @@
 {"id":"41cd3f1a-6b1f-4987-8c34-944299cf599d","timestamp":"2026-03-28T19:17:42.864Z","utterance":"group by category","intent":"query.execute","positiveSignals":4,"source":"auto"}
 {"id":"eff597dd-e3b7-498f-abbb-ac7da9781b38","timestamp":"2026-03-28T19:17:42.866Z","utterance":"find outliers in revenue","intent":"analysis.anomaly","positiveSignals":5,"source":"auto"}
 {"id":"e8b7807d-5dce-4c6e-a201-624a84150a40","timestamp":"2026-03-28T20:10:37.988Z","utterance":"profile columns","intent":"analysis.profile","positiveSignals":4,"source":"auto"}
+{"id":"017e301e-c174-459a-b921-a2f6f8a8d133","timestamp":"2026-05-13T05:05:03.683Z","utterance":"run cash_position","intent":"query.execute","positiveSignals":4,"source":"auto"}
+{"id":"b1a3704a-62ff-41cd-b0e4-55a858ec15d3","timestamp":"2026-05-13T05:05:03.686Z","utterance":"run aml_alerts","intent":"query.execute","positiveSignals":4,"source":"auto"}
+{"id":"7a664c88-cd28-4f2c-8cbe-2770611f124e","timestamp":"2026-05-13T05:05:03.688Z","utterance":"drill into the top group","intent":"followup.aggregation","positiveSignals":5,"source":"auto"}
+{"id":"bfff0a75-137d-46c9-ad8a-d75934d0493b","timestamp":"2026-05-13T16:38:01.327Z","utterance":"run order_summary","intent":"query.execute","positiveSignals":4,"source":"auto"}
+{"id":"dea6b264-2aa1-4c87-b75e-a4f5b2251c8a","timestamp":"2026-05-13T17:05:47.697Z","utterance":"ask","intent":"confirm","positiveSignals":4,"source":"auto"}
+{"id":"e409c7d1-a9a2-4c0a-a1c0-cf6126ac18e1","timestamp":"2026-05-13T22:11:59.097Z","utterance":"run service_reliability_report","intent":"query.execute","positiveSignals":4,"source":"auto"}
+{"id":"70e377ad-4197-4e39-9a19-52ec0572e009","timestamp":"2026-05-13T22:11:59.099Z","utterance":"run report_generator","intent":"query.execute","positiveSignals":5,"source":"auto"}
+{"id":"fbde7028-4a9b-4c09-8175-bd8eba87a32d","timestamp":"2026-05-13T22:11:59.100Z","utterance":"run api_changelog","intent":"query.execute","positiveSignals":5,"source":"auto"}

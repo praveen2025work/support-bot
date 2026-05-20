@@ -29,7 +29,11 @@ queriesRouter.get("/queries/preview", async (req: Request, res: Response) => {
 
     const groupConfig = getGroupConfig(groupId);
     const apiClient = new ApiClient(groupConfig.apiBaseUrl ?? undefined);
-    const queryService = new QueryService(apiClient, groupConfig.sources);
+    const queryService = new QueryService(
+      apiClient,
+      groupConfig.sources,
+      groupConfig.queries,
+    );
     const result = await queryService.executeQuery(queryName);
 
     // Extract columns + first N rows from any result type (API, CSV, XLSX)
@@ -62,7 +66,11 @@ queriesRouter.get("/queries", async (req: Request, res: Response) => {
       typeof req.query.userName === "string" ? req.query.userName : "";
     const groupConfig = getGroupConfig(groupId);
     const apiClient = new ApiClient(groupConfig.apiBaseUrl ?? undefined);
-    const queryService = new QueryService(apiClient, groupConfig.sources);
+    const queryService = new QueryService(
+      apiClient,
+      groupConfig.sources,
+      groupConfig.queries,
+    );
     const queries = await queryService.getQueries();
 
     const shaped = queries.map((q) => ({
@@ -126,18 +134,25 @@ queriesRouter.get("/queries/search", async (req: Request, res: Response) => {
 
     const groupConfig = getGroupConfig(groupId);
     const apiClient = new ApiClient(groupConfig.apiBaseUrl ?? undefined);
-    const queryService = new QueryService(apiClient, groupConfig.sources);
+    const queryService = new QueryService(
+      apiClient,
+      groupConfig.sources,
+      groupConfig.queries,
+    );
 
+    const queries = await queryService.getQueries();
+    const allowedNames = new Set(queries.map((query) => query.name));
     const idx = getSemanticIndex(groupId);
-    if (!idx.isBuilt) {
-      const queries = await queryService.getQueries();
+    if (!idx.hasSameQueries(queries)) {
       idx.buildIndex(
         queries.map((qr) => ({ name: qr.name, description: qr.description })),
       );
       idx.save().catch(() => {});
     }
 
-    const results = idx.search(q, 10);
+    const results = idx
+      .search(q, 10)
+      .filter((result) => allowedNames.has(result.queryName));
 
     // Personalised bump — when a userName is supplied, add the user's
     // decayed click-through weight for each candidate. Modest multiplier

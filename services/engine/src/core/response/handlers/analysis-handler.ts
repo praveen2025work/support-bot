@@ -255,7 +255,7 @@ async function handleAnomaly(
   classification: ClassificationResult,
 ): Promise<BotResponse> {
   const { computeColumnStats, isIqrOutlier, zScore } =
-    await import("@/core/anomaly/numeric-utils");
+    await import("../../anomaly/numeric-utils");
   const { detectColumnTypes, parseAnyDate } =
     await import("../../api-connector/csv-analyzer");
 

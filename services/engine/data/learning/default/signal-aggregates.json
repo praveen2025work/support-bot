@@ -31,8 +31,9 @@
   },
   "group by region": {
     "intent": "query.execute",
-    "positive": 1,
-    "negative": 0
+    "positive": 3,
+    "negative": 0,
+    "lastSignalAt": "2026-05-14T02:29:48.694Z"
   },
   "search api_changelog for v250": {
     "intent": "query.execute",
@@ -51,13 +52,15 @@
   },
   "top 5 by revenue": {
     "intent": "query.execute",
-    "positive": 1,
-    "negative": 0
+    "positive": 3,
+    "negative": 0,
+    "lastSignalAt": "2026-05-14T02:29:29.601Z"
   },
   "bottom 5 by revenue": {
     "intent": "query.execute",
-    "positive": 1,
-    "negative": 0
+    "positive": 2,
+    "negative": 0,
+    "lastSignalAt": "2026-05-14T02:34:32.646Z"
   },
   "group by sla": {
     "intent": "query.execute",
@@ -106,8 +109,9 @@
   },
   "[feedback:positive]": {
     "intent": "unknown",
-    "positive": 2,
-    "negative": 0
+    "positive": 3,
+    "negative": 0,
+    "lastSignalAt": "2026-05-12T01:27:32.120Z"
   },
   "sort by totalamount desc": {
     "intent": "followup.sort",
@@ -131,11 +135,6 @@
   },
   "group by customername": {
     "intent": "followup.group_by",
-    "positive": 1,
-    "negative": 0
-  },
-  "pca analysis": {
-    "intent": "analysis.pca",
     "positive": 1,
     "negative": 0
   },
@@ -196,9 +195,9 @@
   },
   "find outliers": {
     "intent": "analysis.anomaly",
-    "positive": 6,
-    "negative": 6,
-    "lastSignalAt": "2026-03-28T20:11:07.141Z"
+    "positive": 19,
+    "negative": 7,
+    "lastSignalAt": "2026-05-13T23:02:41.798Z"
   },
   "what is sal_base_salary": {
     "intent": "followup.data_lookup",
@@ -252,8 +251,9 @@
   },
   "group by sal_employee": {
     "intent": "followup.group_by",
-    "positive": 1,
-    "negative": 0
+    "positive": 2,
+    "negative": 0,
+    "lastSignalAt": "2026-05-13T22:19:21.648Z"
   },
   "sort by sal_base_salary desc": {
     "intent": "followup.sort",
@@ -262,32 +262,21 @@
   },
   "smart summary": {
     "intent": "followup.summary",
-    "positive": 1,
-    "negative": 0
-  },
-  "forecast ahead": {
-    "intent": "analysis.forecast",
-    "positive": 3,
+    "positive": 2,
     "negative": 0,
-    "lastSignalAt": "2026-03-24T03:26:17.110Z"
-  },
-  "show correlations": {
-    "intent": "analysis.correlation",
-    "positive": 1,
-    "negative": 0,
-    "lastSignalAt": "2026-03-20T17:19:22.058Z"
+    "lastSignalAt": "2026-05-12T03:31:37.009Z"
   },
   "run employee_full_review": {
     "intent": "query.execute",
-    "positive": 2,
-    "negative": 3,
-    "lastSignalAt": "2026-03-28T22:53:09.242Z"
+    "positive": 5,
+    "negative": 12,
+    "lastSignalAt": "2026-05-13T22:29:26.267Z"
   },
   "run order_details": {
     "intent": "query.execute",
-    "positive": 1,
+    "positive": 3,
     "negative": 0,
-    "lastSignalAt": "2026-03-20T17:19:25.873Z"
+    "lastSignalAt": "2026-05-13T22:06:39.351Z"
   },
   "group by businessdate quarterly": {
     "intent": "followup.group_by",
@@ -295,23 +284,11 @@
     "negative": 0,
     "lastSignalAt": "2026-03-24T03:17:00.083Z"
   },
-  "top 5": {
-    "intent": "followup.top_n",
-    "positive": 2,
-    "negative": 0,
-    "lastSignalAt": "2026-03-28T18:53:31.853Z"
-  },
-  "summarize": {
-    "intent": "None",
-    "positive": 2,
-    "negative": 0,
-    "lastSignalAt": "2026-03-28T18:53:13.729Z"
-  },
   "run sales_data": {
     "intent": "query.execute",
-    "positive": 4,
-    "negative": 3,
-    "lastSignalAt": "2026-03-28T20:10:59.210Z"
+    "positive": 14,
+    "negative": 24,
+    "lastSignalAt": "2026-05-19T23:56:53.943Z"
   },
   "group by month": {
     "intent": "followup.group_by",
@@ -319,53 +296,17 @@
     "negative": 0,
     "lastSignalAt": "2026-03-28T18:52:15.555Z"
   },
-  "run cash_position": {
-    "intent": "query.execute",
-    "positive": 1,
-    "negative": 0,
-    "lastSignalAt": "2026-03-28T18:52:08.722Z"
-  },
-  "sort by count desc": {
-    "intent": "followup.sort",
-    "positive": 2,
-    "negative": 0,
-    "lastSignalAt": "2026-03-28T19:10:33.116Z"
-  },
-  "run service_reliability_report": {
-    "intent": "query.execute",
-    "positive": 2,
-    "negative": 0,
-    "lastSignalAt": "2026-03-28T22:13:55.427Z"
-  },
   "bottom 10 by revenue": {
     "intent": "followup.top_n",
     "positive": 2,
     "negative": 0,
     "lastSignalAt": "2026-03-28T19:10:41.264Z"
   },
-  "group by category": {
-    "intent": "followup.group_by",
-    "positive": 1,
-    "negative": 0,
-    "lastSignalAt": "2026-03-28T19:29:36.970Z"
-  },
-  "show trend": {
-    "intent": "analysis.trend",
-    "positive": 1,
-    "negative": 0,
-    "lastSignalAt": "2026-03-28T20:11:01.973Z"
-  },
   "run summarize": {
     "intent": "followup.summary",
-    "positive": 1,
+    "positive": 2,
     "negative": 0,
-    "lastSignalAt": "2026-03-28T22:10:54.115Z"
-  },
-  "run report_generator": {
-    "intent": "query.execute",
-    "positive": 1,
-    "negative": 0,
-    "lastSignalAt": "2026-03-28T22:10:59.659Z"
+    "lastSignalAt": "2026-05-12T02:26:27.386Z"
   },
   "search documents": {
     "intent": "document.ask",
@@ -373,16 +314,172 @@
     "negative": 1,
     "lastSignalAt": "2026-03-28T22:11:15.580Z"
   },
+  "run dept_metrics_compensation": {
+    "intent": "query.execute",
+    "positive": 6,
+    "negative": 2,
+    "lastSignalAt": "2026-05-13T16:47:38.655Z"
+  },
+  "summary": {
+    "intent": "followup.summary",
+    "positive": 2,
+    "negative": 0,
+    "lastSignalAt": "2026-05-12T02:25:00.302Z"
+  },
+  "help": {
+    "intent": "help",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-05-12T01:53:00.929Z"
+  },
+  "group by": {
+    "intent": "followup.group_by",
+    "positive": 3,
+    "negative": 0,
+    "lastSignalAt": "2026-05-12T01:55:29.489Z"
+  },
+  "run employee_compensation": {
+    "intent": "query.execute",
+    "positive": 2,
+    "negative": 5,
+    "lastSignalAt": "2026-05-13T22:29:49.319Z"
+  },
+  "run hr_report_bonuses": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-05-12T03:44:47.112Z"
+  },
+  "run hr_report_salaries": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-05-12T03:44:51.586Z"
+  },
+  "drill into asia pacific": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-05-13T04:56:24.758Z"
+  },
+  "execute": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-05-13T04:56:50.090Z"
+  },
+  "compare": {
+    "intent": "query.multi",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-05-13T12:59:48.811Z"
+  },
+  "top 5": {
+    "intent": "followup.top_n",
+    "positive": 2,
+    "negative": 0,
+    "lastSignalAt": "2026-05-13T22:51:00.328Z"
+  },
+  "show correlations": {
+    "intent": "analysis.correlation",
+    "positive": 3,
+    "negative": 0,
+    "lastSignalAt": "2026-05-13T22:52:12.390Z"
+  },
+  "run cash_position": {
+    "intent": "query.execute",
+    "positive": 3,
+    "negative": 1,
+    "lastSignalAt": "2026-05-13T22:17:42.494Z"
+  },
+  "run support_tickets": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 2,
+    "lastSignalAt": "2026-05-13T18:18:34.985Z"
+  },
+  "run order_summary": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-05-13T19:35:48.348Z"
+  },
+  "run all-employees": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 1,
+    "lastSignalAt": "2026-05-13T22:23:14.274Z"
+  },
+  "group by orders_date": {
+    "intent": "followup.group_by",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-05-13T22:06:18.603Z"
+  },
+  "sort by count desc": {
+    "intent": "followup.sort",
+    "positive": 3,
+    "negative": 0,
+    "lastSignalAt": "2026-05-13T22:50:58.228Z"
+  },
+  "ask": {
+    "intent": "confirm",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-05-13T22:09:09.004Z"
+  },
   "list queries": {
     "intent": "query.list",
     "positive": 1,
     "negative": 0,
-    "lastSignalAt": "2026-03-28T22:11:33.154Z"
+    "lastSignalAt": "2026-05-13T22:09:10.796Z"
   },
-  "run dept_metrics_compensation": {
+  "run aml_alerts": {
+    "intent": "query.execute",
+    "positive": 1,
+    "negative": 1,
+    "lastSignalAt": "2026-05-13T22:12:08.528Z"
+  },
+  "profile columns": {
+    "intent": "analysis.profile",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-05-13T22:51:02.761Z"
+  },
+  "pca analysis": {
+    "intent": "analysis.pca",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-05-13T22:52:08.445Z"
+  },
+  "group by product": {
     "intent": "query.execute",
     "positive": 1,
     "negative": 0,
-    "lastSignalAt": "2026-03-28T22:13:54.228Z"
+    "lastSignalAt": "2026-05-13T22:59:01.662Z"
+  },
+  "drill into the top group": {
+    "intent": "followup.aggregation",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-05-13T22:59:27.571Z"
+  },
+  "drill into apac": {
+    "intent": "query.execute",
+    "positive": 2,
+    "negative": 0,
+    "lastSignalAt": "2026-05-14T02:34:18.296Z"
+  },
+  "show trend": {
+    "intent": "analysis.trend",
+    "positive": 2,
+    "negative": 0,
+    "lastSignalAt": "2026-05-14T02:34:18.886Z"
+  },
+  "forecast ahead": {
+    "intent": "analysis.forecast",
+    "positive": 1,
+    "negative": 0,
+    "lastSignalAt": "2026-05-13T23:02:39.549Z"
   }
 }

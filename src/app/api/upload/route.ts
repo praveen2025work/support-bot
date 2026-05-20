@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const ENGINE_URL = process.env.ENGINE_URL || "http://localhost:4001";
+function getEngineUrl() {
+  return process.env.ENGINE_URL || "http://localhost:4001";
+}
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
 
-    const res = await fetch(`${ENGINE_URL}/api/upload`, {
+    const res = await fetch(`${getEngineUrl()}/api/upload`, {
       method: "POST",
       body: formData,
     });

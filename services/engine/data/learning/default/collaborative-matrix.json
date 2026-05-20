@@ -1,6 +1,18 @@
 {
   "sales_data": [
     {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
       "name": "monthly_revenue",
       "score": 1
     },
@@ -9,7 +21,15 @@
       "score": 1
     },
     {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
       "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
       "score": 1
     },
     {
@@ -17,32 +37,16 @@
       "score": 1
     },
     {
-      "name": "headcount",
+      "name": "hr_report_bonuses",
       "score": 1
-    },
-    {
-      "name": "active_users",
-      "score": 0.5
-    },
-    {
-      "name": "customer_churn",
-      "score": 0.5
-    },
-    {
-      "name": "performance",
-      "score": 0.5
-    },
-    {
-      "name": "support_tickets",
-      "score": 0.5
-    },
-    {
-      "name": "employee_compensation",
-      "score": 0.5
     }
   ],
   "active_users": [
     {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
       "name": "customer_churn",
       "score": 1
     },
@@ -51,7 +55,19 @@
       "score": 1
     },
     {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
       "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
       "score": 1
     },
     {
@@ -59,32 +75,20 @@
       "score": 1
     },
     {
+      "name": "hr_report_salaries",
+      "score": 1
+    },
+    {
       "name": "hr_report_bonuses",
       "score": 1
-    },
-    {
-      "name": "hr_report_ratings",
-      "score": 1
-    },
-    {
-      "name": "customer_churn_copy",
-      "score": 1
-    },
-    {
-      "name": "error_rate",
-      "score": 1
-    },
-    {
-      "name": "hiring_pipeline",
-      "score": 1
-    },
-    {
-      "name": "sales_data",
-      "score": 0.5
     }
   ],
   "customer_churn": [
     {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
       "name": "active_users",
       "score": 1
     },
@@ -93,7 +97,19 @@
       "score": 1
     },
     {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
       "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
       "score": 1
     },
     {
@@ -101,31 +117,19 @@
       "score": 1
     },
     {
+      "name": "hr_report_salaries",
+      "score": 1
+    },
+    {
       "name": "hr_report_bonuses",
       "score": 1
-    },
-    {
-      "name": "hr_report_ratings",
-      "score": 1
-    },
-    {
-      "name": "customer_churn_copy",
-      "score": 1
-    },
-    {
-      "name": "error_rate",
-      "score": 1
-    },
-    {
-      "name": "hiring_pipeline",
-      "score": 1
-    },
-    {
-      "name": "sales_data",
-      "score": 0.5
     }
   ],
   "performance": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
     {
       "name": "active_users",
       "score": 1
@@ -135,7 +139,19 @@
       "score": 1
     },
     {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
       "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
       "score": 1
     },
     {
@@ -143,28 +159,12 @@
       "score": 1
     },
     {
+      "name": "hr_report_salaries",
+      "score": 1
+    },
+    {
       "name": "hr_report_bonuses",
       "score": 1
-    },
-    {
-      "name": "hr_report_ratings",
-      "score": 1
-    },
-    {
-      "name": "customer_churn_copy",
-      "score": 1
-    },
-    {
-      "name": "error_rate",
-      "score": 1
-    },
-    {
-      "name": "hiring_pipeline",
-      "score": 1
-    },
-    {
-      "name": "sales_data",
-      "score": 0.5
     }
   ],
   "monthly_revenue": [
@@ -173,7 +173,23 @@
       "score": 1
     },
     {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
       "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
       "score": 1
     },
     {
@@ -181,32 +197,16 @@
       "score": 1
     },
     {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
       "name": "hr_report_salaries",
       "score": 1
     },
     {
-      "name": "headcount",
+      "name": "hr_report_bonuses",
       "score": 1
-    },
-    {
-      "name": "active_users",
-      "score": 0.5
-    },
-    {
-      "name": "customer_churn",
-      "score": 0.5
-    },
-    {
-      "name": "performance",
-      "score": 0.5
-    },
-    {
-      "name": "support_tickets",
-      "score": 0.5
-    },
-    {
-      "name": "employee_compensation",
-      "score": 0.5
     }
   ],
   "daily_orders": [
@@ -215,7 +215,23 @@
       "score": 1
     },
     {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
       "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
       "score": 1
     },
     {
@@ -223,74 +239,58 @@
       "score": 1
     },
     {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
       "name": "hr_report_salaries",
-      "score": 1
-    },
-    {
-      "name": "headcount",
-      "score": 1
-    },
-    {
-      "name": "active_users",
-      "score": 0.5
-    },
-    {
-      "name": "customer_churn",
-      "score": 0.5
-    },
-    {
-      "name": "performance",
-      "score": 0.5
-    },
-    {
-      "name": "support_tickets",
-      "score": 0.5
-    },
-    {
-      "name": "employee_compensation",
-      "score": 0.5
-    }
-  ],
-  "support_tickets": [
-    {
-      "name": "active_users",
-      "score": 1
-    },
-    {
-      "name": "customer_churn",
-      "score": 1
-    },
-    {
-      "name": "performance",
-      "score": 1
-    },
-    {
-      "name": "employee_compensation",
       "score": 1
     },
     {
       "name": "hr_report_bonuses",
       "score": 1
-    },
-    {
-      "name": "hr_report_ratings",
-      "score": 1
-    },
-    {
-      "name": "customer_churn_copy",
-      "score": 1
-    },
-    {
-      "name": "error_rate",
-      "score": 1
-    },
-    {
-      "name": "hiring_pipeline",
-      "score": 1
-    },
+    }
+  ],
+  "support_tickets": [
     {
       "name": "sales_data",
-      "score": 0.5
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    },
+    {
+      "name": "hr_report_bonuses",
+      "score": 1
     }
   ],
   "pnl_availability": [
@@ -299,6 +299,18 @@
       "score": 1
     },
     {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
       "name": "monthly_revenue",
       "score": 1
     },
@@ -307,74 +319,62 @@
       "score": 1
     },
     {
-      "name": "hr_report_salaries",
-      "score": 1
-    },
-    {
-      "name": "headcount",
-      "score": 1
-    },
-    {
-      "name": "active_users",
-      "score": 0.5
-    },
-    {
-      "name": "customer_churn",
-      "score": 0.5
-    },
-    {
-      "name": "performance",
-      "score": 0.5
-    },
-    {
       "name": "support_tickets",
-      "score": 0.5
+      "score": 1
     },
     {
       "name": "employee_compensation",
-      "score": 0.5
-    }
-  ],
-  "employee_compensation": [
-    {
-      "name": "active_users",
       "score": 1
     },
     {
-      "name": "customer_churn",
-      "score": 1
-    },
-    {
-      "name": "performance",
-      "score": 1
-    },
-    {
-      "name": "support_tickets",
+      "name": "hr_report_salaries",
       "score": 1
     },
     {
       "name": "hr_report_bonuses",
       "score": 1
-    },
-    {
-      "name": "hr_report_ratings",
-      "score": 1
-    },
-    {
-      "name": "customer_churn_copy",
-      "score": 1
-    },
-    {
-      "name": "error_rate",
-      "score": 1
-    },
-    {
-      "name": "hiring_pipeline",
-      "score": 1
-    },
+    }
+  ],
+  "employee_compensation": [
     {
       "name": "sales_data",
-      "score": 0.5
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    },
+    {
+      "name": "hr_report_bonuses",
+      "score": 1
     }
   ],
   "hr_report_salaries": [
@@ -383,6 +383,18 @@
       "score": 1
     },
     {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
       "name": "monthly_revenue",
       "score": 1
     },
@@ -391,36 +403,28 @@
       "score": 1
     },
     {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
       "name": "pnl_availability",
       "score": 1
     },
     {
-      "name": "headcount",
+      "name": "employee_compensation",
       "score": 1
     },
     {
-      "name": "active_users",
-      "score": 0.5
-    },
-    {
-      "name": "customer_churn",
-      "score": 0.5
-    },
-    {
-      "name": "performance",
-      "score": 0.5
-    },
-    {
-      "name": "support_tickets",
-      "score": 0.5
-    },
-    {
-      "name": "employee_compensation",
-      "score": 0.5
+      "name": "hr_report_bonuses",
+      "score": 1
     }
   ],
   "hr_report_bonuses": [
     {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
       "name": "active_users",
       "score": 1
     },
@@ -433,7 +437,19 @@
       "score": 1
     },
     {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
       "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
       "score": 1
     },
     {
@@ -441,28 +457,16 @@
       "score": 1
     },
     {
-      "name": "hr_report_ratings",
+      "name": "hr_report_salaries",
       "score": 1
-    },
-    {
-      "name": "customer_churn_copy",
-      "score": 1
-    },
-    {
-      "name": "error_rate",
-      "score": 1
-    },
-    {
-      "name": "hiring_pipeline",
-      "score": 1
-    },
-    {
-      "name": "sales_data",
-      "score": 0.5
     }
   ],
   "hr_report_ratings": [
     {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
       "name": "active_users",
       "score": 1
     },
@@ -475,7 +479,19 @@
       "score": 1
     },
     {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
       "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
       "score": 1
     },
     {
@@ -483,70 +499,58 @@
       "score": 1
     },
     {
-      "name": "hr_report_bonuses",
+      "name": "hr_report_salaries",
+      "score": 1
+    }
+  ],
+  "customer_churn_copy": [
+    {
+      "name": "loan_origination",
       "score": 1
     },
     {
-      "name": "customer_churn_copy",
+      "name": "revenue_by_segment",
       "score": 1
     },
     {
-      "name": "error_rate",
-      "score": 1
-    },
-    {
-      "name": "hiring_pipeline",
+      "name": "headcount_by_cost_center",
       "score": 1
     },
     {
       "name": "sales_data",
       "score": 0.5
-    }
-  ],
-  "customer_churn_copy": [
+    },
     {
       "name": "active_users",
-      "score": 1
+      "score": 0.5
     },
     {
       "name": "customer_churn",
-      "score": 1
+      "score": 0.5
     },
     {
       "name": "performance",
-      "score": 1
+      "score": 0.5
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 0.5
+    },
+    {
+      "name": "daily_orders",
+      "score": 0.5
     },
     {
       "name": "support_tickets",
-      "score": 1
-    },
-    {
-      "name": "employee_compensation",
-      "score": 1
-    },
-    {
-      "name": "hr_report_bonuses",
-      "score": 1
-    },
-    {
-      "name": "hr_report_ratings",
-      "score": 1
-    },
-    {
-      "name": "error_rate",
-      "score": 1
-    },
-    {
-      "name": "hiring_pipeline",
-      "score": 1
-    },
-    {
-      "name": "sales_data",
       "score": 0.5
     }
   ],
   "error_rate": [
     {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
       "name": "active_users",
       "score": 1
     },
@@ -559,7 +563,19 @@
       "score": 1
     },
     {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
       "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
       "score": 1
     },
     {
@@ -567,28 +583,16 @@
       "score": 1
     },
     {
-      "name": "hr_report_bonuses",
+      "name": "hr_report_salaries",
       "score": 1
-    },
-    {
-      "name": "hr_report_ratings",
-      "score": 1
-    },
-    {
-      "name": "customer_churn_copy",
-      "score": 1
-    },
-    {
-      "name": "hiring_pipeline",
-      "score": 1
-    },
-    {
-      "name": "sales_data",
-      "score": 0.5
     }
   ],
   "hiring_pipeline": [
     {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
       "name": "active_users",
       "score": 1
     },
@@ -601,7 +605,19 @@
       "score": 1
     },
     {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
       "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
       "score": 1
     },
     {
@@ -609,24 +625,8 @@
       "score": 1
     },
     {
-      "name": "hr_report_bonuses",
+      "name": "hr_report_salaries",
       "score": 1
-    },
-    {
-      "name": "hr_report_ratings",
-      "score": 1
-    },
-    {
-      "name": "customer_churn_copy",
-      "score": 1
-    },
-    {
-      "name": "error_rate",
-      "score": 1
-    },
-    {
-      "name": "sales_data",
-      "score": 0.5
     }
   ],
   "headcount": [
@@ -635,6 +635,18 @@
       "score": 1
     },
     {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
       "name": "monthly_revenue",
       "score": 1
     },
@@ -643,32 +655,20 @@
       "score": 1
     },
     {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
       "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
       "score": 1
     },
     {
       "name": "hr_report_salaries",
       "score": 1
-    },
-    {
-      "name": "active_users",
-      "score": 0.5
-    },
-    {
-      "name": "customer_churn",
-      "score": 0.5
-    },
-    {
-      "name": "performance",
-      "score": 0.5
-    },
-    {
-      "name": "support_tickets",
-      "score": 0.5
-    },
-    {
-      "name": "employee_compensation",
-      "score": 0.5
     }
   ],
   "order_details": [
@@ -685,32 +685,32 @@
       "score": 1
     },
     {
-      "name": "pnl_summary",
-      "score": 1
-    },
-    {
-      "name": "lending_book_with_pipeline",
-      "score": 1
-    },
-    {
       "name": "budget_headcount_review",
       "score": 1
     },
     {
-      "name": "service_reliability_report",
+      "name": "trading_risk_dashboard",
       "score": 1
     },
     {
-      "name": "daily_commerce_engagement",
+      "name": "pnl_signoff",
       "score": 1
     },
     {
-      "name": "budget_vs_actual",
-      "score": 1
+      "name": "sales_data",
+      "score": 0.5
     },
     {
-      "name": "employee_full_review",
-      "score": 1
+      "name": "active_users",
+      "score": 0.5
+    },
+    {
+      "name": "customer_churn",
+      "score": 0.5
+    },
+    {
+      "name": "performance",
+      "score": 0.5
     }
   ],
   "all-employees": [
@@ -727,32 +727,32 @@
       "score": 1
     },
     {
-      "name": "pnl_summary",
-      "score": 1
-    },
-    {
-      "name": "lending_book_with_pipeline",
-      "score": 1
-    },
-    {
       "name": "budget_headcount_review",
       "score": 1
     },
     {
-      "name": "service_reliability_report",
+      "name": "trading_risk_dashboard",
       "score": 1
     },
     {
-      "name": "daily_commerce_engagement",
+      "name": "pnl_signoff",
       "score": 1
     },
     {
-      "name": "budget_vs_actual",
-      "score": 1
+      "name": "sales_data",
+      "score": 0.5
     },
     {
-      "name": "employee_full_review",
-      "score": 1
+      "name": "active_users",
+      "score": 0.5
+    },
+    {
+      "name": "customer_churn",
+      "score": 0.5
+    },
+    {
+      "name": "performance",
+      "score": 0.5
     }
   ],
   "employee_directory": [
@@ -769,32 +769,32 @@
       "score": 1
     },
     {
-      "name": "pnl_summary",
-      "score": 1
-    },
-    {
-      "name": "lending_book_with_pipeline",
-      "score": 1
-    },
-    {
       "name": "budget_headcount_review",
       "score": 1
     },
     {
-      "name": "service_reliability_report",
+      "name": "trading_risk_dashboard",
       "score": 1
     },
     {
-      "name": "daily_commerce_engagement",
+      "name": "pnl_signoff",
       "score": 1
     },
     {
-      "name": "budget_vs_actual",
-      "score": 1
+      "name": "sales_data",
+      "score": 0.5
     },
     {
-      "name": "employee_full_review",
-      "score": 1
+      "name": "active_users",
+      "score": 0.5
+    },
+    {
+      "name": "customer_churn",
+      "score": 0.5
+    },
+    {
+      "name": "performance",
+      "score": 0.5
     }
   ],
   "order_summary": [
@@ -811,115 +811,115 @@
       "score": 1
     },
     {
-      "name": "pnl_summary",
-      "score": 1
-    },
-    {
-      "name": "lending_book_with_pipeline",
-      "score": 1
-    },
-    {
       "name": "budget_headcount_review",
       "score": 1
     },
     {
-      "name": "service_reliability_report",
+      "name": "trading_risk_dashboard",
       "score": 1
     },
     {
-      "name": "daily_commerce_engagement",
+      "name": "pnl_signoff",
       "score": 1
     },
     {
-      "name": "budget_vs_actual",
-      "score": 1
+      "name": "sales_data",
+      "score": 0.5
     },
     {
-      "name": "employee_full_review",
-      "score": 1
+      "name": "active_users",
+      "score": 0.5
+    },
+    {
+      "name": "customer_churn",
+      "score": 0.5
+    },
+    {
+      "name": "performance",
+      "score": 0.5
     }
   ],
   "pnl_summary": [
     {
-      "name": "order_details",
+      "name": "sales_data",
       "score": 1
     },
     {
-      "name": "all-employees",
+      "name": "active_users",
       "score": 1
     },
     {
-      "name": "employee_directory",
+      "name": "customer_churn",
       "score": 1
     },
     {
-      "name": "order_summary",
+      "name": "performance",
       "score": 1
     },
     {
-      "name": "lending_book_with_pipeline",
+      "name": "monthly_revenue",
       "score": 1
     },
     {
-      "name": "budget_headcount_review",
+      "name": "daily_orders",
       "score": 1
     },
     {
-      "name": "service_reliability_report",
+      "name": "support_tickets",
       "score": 1
     },
     {
-      "name": "daily_commerce_engagement",
+      "name": "pnl_availability",
       "score": 1
     },
     {
-      "name": "budget_vs_actual",
+      "name": "employee_compensation",
       "score": 1
     },
     {
-      "name": "employee_full_review",
+      "name": "hr_report_salaries",
       "score": 1
     }
   ],
   "lending_book_with_pipeline": [
     {
-      "name": "order_details",
+      "name": "sales_data",
       "score": 1
     },
     {
-      "name": "all-employees",
+      "name": "active_users",
       "score": 1
     },
     {
-      "name": "employee_directory",
+      "name": "customer_churn",
       "score": 1
     },
     {
-      "name": "order_summary",
+      "name": "performance",
       "score": 1
     },
     {
-      "name": "pnl_summary",
+      "name": "monthly_revenue",
       "score": 1
     },
     {
-      "name": "budget_headcount_review",
+      "name": "daily_orders",
       "score": 1
     },
     {
-      "name": "service_reliability_report",
+      "name": "support_tickets",
       "score": 1
     },
     {
-      "name": "daily_commerce_engagement",
+      "name": "pnl_availability",
       "score": 1
     },
     {
-      "name": "budget_vs_actual",
+      "name": "employee_compensation",
       "score": 1
     },
     {
-      "name": "employee_full_review",
+      "name": "hr_report_salaries",
       "score": 1
     }
   ],
@@ -941,279 +941,279 @@
       "score": 1
     },
     {
-      "name": "pnl_summary",
+      "name": "trading_risk_dashboard",
       "score": 1
     },
     {
-      "name": "lending_book_with_pipeline",
+      "name": "pnl_signoff",
       "score": 1
     },
     {
-      "name": "service_reliability_report",
-      "score": 1
+      "name": "sales_data",
+      "score": 0.5
     },
     {
-      "name": "daily_commerce_engagement",
-      "score": 1
+      "name": "active_users",
+      "score": 0.5
     },
     {
-      "name": "budget_vs_actual",
-      "score": 1
+      "name": "customer_churn",
+      "score": 0.5
     },
     {
-      "name": "employee_full_review",
-      "score": 1
+      "name": "performance",
+      "score": 0.5
     }
   ],
   "service_reliability_report": [
     {
-      "name": "order_details",
+      "name": "sales_data",
       "score": 1
     },
     {
-      "name": "all-employees",
+      "name": "active_users",
       "score": 1
     },
     {
-      "name": "employee_directory",
+      "name": "customer_churn",
       "score": 1
     },
     {
-      "name": "order_summary",
+      "name": "performance",
       "score": 1
     },
     {
-      "name": "pnl_summary",
+      "name": "monthly_revenue",
       "score": 1
     },
     {
-      "name": "lending_book_with_pipeline",
+      "name": "daily_orders",
       "score": 1
     },
     {
-      "name": "budget_headcount_review",
+      "name": "support_tickets",
       "score": 1
     },
     {
-      "name": "daily_commerce_engagement",
+      "name": "pnl_availability",
       "score": 1
     },
     {
-      "name": "budget_vs_actual",
+      "name": "employee_compensation",
       "score": 1
     },
     {
-      "name": "employee_full_review",
+      "name": "hr_report_salaries",
       "score": 1
     }
   ],
   "daily_commerce_engagement": [
     {
-      "name": "order_details",
+      "name": "sales_data",
       "score": 1
     },
     {
-      "name": "all-employees",
+      "name": "active_users",
       "score": 1
     },
     {
-      "name": "employee_directory",
+      "name": "customer_churn",
       "score": 1
     },
     {
-      "name": "order_summary",
+      "name": "performance",
       "score": 1
     },
     {
-      "name": "pnl_summary",
+      "name": "monthly_revenue",
       "score": 1
     },
     {
-      "name": "lending_book_with_pipeline",
+      "name": "daily_orders",
       "score": 1
     },
     {
-      "name": "budget_headcount_review",
+      "name": "support_tickets",
       "score": 1
     },
     {
-      "name": "service_reliability_report",
+      "name": "pnl_availability",
       "score": 1
     },
     {
-      "name": "budget_vs_actual",
+      "name": "employee_compensation",
       "score": 1
     },
     {
-      "name": "employee_full_review",
+      "name": "hr_report_salaries",
       "score": 1
     }
   ],
   "budget_vs_actual": [
     {
-      "name": "order_details",
+      "name": "sales_data",
       "score": 1
     },
     {
-      "name": "all-employees",
+      "name": "active_users",
       "score": 1
     },
     {
-      "name": "employee_directory",
+      "name": "customer_churn",
       "score": 1
     },
     {
-      "name": "order_summary",
+      "name": "performance",
       "score": 1
     },
     {
-      "name": "pnl_summary",
+      "name": "monthly_revenue",
       "score": 1
     },
     {
-      "name": "lending_book_with_pipeline",
+      "name": "daily_orders",
       "score": 1
     },
     {
-      "name": "budget_headcount_review",
+      "name": "support_tickets",
       "score": 1
     },
     {
-      "name": "service_reliability_report",
+      "name": "pnl_availability",
       "score": 1
     },
     {
-      "name": "daily_commerce_engagement",
+      "name": "employee_compensation",
       "score": 1
     },
     {
-      "name": "employee_full_review",
+      "name": "hr_report_salaries",
       "score": 1
     }
   ],
   "employee_full_review": [
     {
-      "name": "order_details",
+      "name": "sales_data",
       "score": 1
     },
     {
-      "name": "all-employees",
+      "name": "active_users",
       "score": 1
     },
     {
-      "name": "employee_directory",
+      "name": "customer_churn",
       "score": 1
     },
     {
-      "name": "order_summary",
+      "name": "performance",
       "score": 1
     },
     {
-      "name": "pnl_summary",
+      "name": "monthly_revenue",
       "score": 1
     },
     {
-      "name": "lending_book_with_pipeline",
+      "name": "daily_orders",
       "score": 1
     },
     {
-      "name": "budget_headcount_review",
+      "name": "support_tickets",
       "score": 1
     },
     {
-      "name": "service_reliability_report",
+      "name": "pnl_availability",
       "score": 1
     },
     {
-      "name": "daily_commerce_engagement",
+      "name": "employee_compensation",
       "score": 1
     },
     {
-      "name": "budget_vs_actual",
+      "name": "hr_report_salaries",
       "score": 1
     }
   ],
   "regional_sales_support": [
     {
-      "name": "order_details",
+      "name": "sales_data",
       "score": 1
     },
     {
-      "name": "all-employees",
+      "name": "active_users",
       "score": 1
     },
     {
-      "name": "employee_directory",
+      "name": "customer_churn",
       "score": 1
     },
     {
-      "name": "order_summary",
+      "name": "performance",
       "score": 1
     },
     {
-      "name": "pnl_summary",
+      "name": "monthly_revenue",
       "score": 1
     },
     {
-      "name": "lending_book_with_pipeline",
+      "name": "daily_orders",
       "score": 1
     },
     {
-      "name": "budget_headcount_review",
+      "name": "support_tickets",
       "score": 1
     },
     {
-      "name": "service_reliability_report",
+      "name": "pnl_availability",
       "score": 1
     },
     {
-      "name": "daily_commerce_engagement",
+      "name": "employee_compensation",
       "score": 1
     },
     {
-      "name": "budget_vs_actual",
+      "name": "hr_report_salaries",
       "score": 1
     }
   ],
   "dept_metrics_compensation": [
     {
-      "name": "order_details",
+      "name": "sales_data",
       "score": 1
     },
     {
-      "name": "all-employees",
+      "name": "active_users",
       "score": 1
     },
     {
-      "name": "employee_directory",
+      "name": "customer_churn",
       "score": 1
     },
     {
-      "name": "order_summary",
+      "name": "performance",
       "score": 1
     },
     {
-      "name": "pnl_summary",
+      "name": "monthly_revenue",
       "score": 1
     },
     {
-      "name": "lending_book_with_pipeline",
+      "name": "daily_orders",
       "score": 1
     },
     {
-      "name": "budget_headcount_review",
+      "name": "support_tickets",
       "score": 1
     },
     {
-      "name": "service_reliability_report",
+      "name": "pnl_availability",
       "score": 1
     },
     {
-      "name": "daily_commerce_engagement",
+      "name": "employee_compensation",
       "score": 1
     },
     {
-      "name": "budget_vs_actual",
+      "name": "hr_report_salaries",
       "score": 1
     }
   ],
@@ -1235,11 +1235,87 @@
       "score": 1
     },
     {
-      "name": "pnl_summary",
+      "name": "budget_headcount_review",
       "score": 1
     },
     {
-      "name": "lending_book_with_pipeline",
+      "name": "pnl_signoff",
+      "score": 1
+    },
+    {
+      "name": "sales_data",
+      "score": 0.5
+    },
+    {
+      "name": "active_users",
+      "score": 0.5
+    },
+    {
+      "name": "customer_churn",
+      "score": 0.5
+    },
+    {
+      "name": "performance",
+      "score": 0.5
+    }
+  ],
+  "trading_desk_pnl": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    }
+  ],
+  "pnl_signoff": [
+    {
+      "name": "order_details",
+      "score": 1
+    },
+    {
+      "name": "all-employees",
+      "score": 1
+    },
+    {
+      "name": "employee_directory",
+      "score": 1
+    },
+    {
+      "name": "order_summary",
       "score": 1
     },
     {
@@ -1247,16 +1323,402 @@
       "score": 1
     },
     {
-      "name": "service_reliability_report",
+      "name": "trading_risk_dashboard",
       "score": 1
     },
     {
-      "name": "daily_commerce_engagement",
+      "name": "sales_data",
+      "score": 0.5
+    },
+    {
+      "name": "active_users",
+      "score": 0.5
+    },
+    {
+      "name": "customer_churn",
+      "score": 0.5
+    },
+    {
+      "name": "performance",
+      "score": 0.5
+    }
+  ],
+  "pnl_lineage": [
+    {
+      "name": "sales_data",
       "score": 1
     },
     {
-      "name": "budget_vs_actual",
+      "name": "active_users",
       "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    }
+  ],
+  "employee_metrics": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    }
+  ],
+  "loan_portfolio": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    }
+  ],
+  "gross_margin": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    }
+  ],
+  "incident_report": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    }
+  ],
+  "trading_desk_risk": [
+    {
+      "name": "sales_data",
+      "score": 1
+    },
+    {
+      "name": "active_users",
+      "score": 1
+    },
+    {
+      "name": "customer_churn",
+      "score": 1
+    },
+    {
+      "name": "performance",
+      "score": 1
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 1
+    },
+    {
+      "name": "daily_orders",
+      "score": 1
+    },
+    {
+      "name": "support_tickets",
+      "score": 1
+    },
+    {
+      "name": "pnl_availability",
+      "score": 1
+    },
+    {
+      "name": "employee_compensation",
+      "score": 1
+    },
+    {
+      "name": "hr_report_salaries",
+      "score": 1
+    }
+  ],
+  "loan_origination": [
+    {
+      "name": "customer_churn_copy",
+      "score": 1
+    },
+    {
+      "name": "revenue_by_segment",
+      "score": 1
+    },
+    {
+      "name": "headcount_by_cost_center",
+      "score": 1
+    },
+    {
+      "name": "sales_data",
+      "score": 0.5
+    },
+    {
+      "name": "active_users",
+      "score": 0.5
+    },
+    {
+      "name": "customer_churn",
+      "score": 0.5
+    },
+    {
+      "name": "performance",
+      "score": 0.5
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 0.5
+    },
+    {
+      "name": "daily_orders",
+      "score": 0.5
+    },
+    {
+      "name": "support_tickets",
+      "score": 0.5
+    }
+  ],
+  "revenue_by_segment": [
+    {
+      "name": "customer_churn_copy",
+      "score": 1
+    },
+    {
+      "name": "loan_origination",
+      "score": 1
+    },
+    {
+      "name": "headcount_by_cost_center",
+      "score": 1
+    },
+    {
+      "name": "sales_data",
+      "score": 0.5
+    },
+    {
+      "name": "active_users",
+      "score": 0.5
+    },
+    {
+      "name": "customer_churn",
+      "score": 0.5
+    },
+    {
+      "name": "performance",
+      "score": 0.5
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 0.5
+    },
+    {
+      "name": "daily_orders",
+      "score": 0.5
+    },
+    {
+      "name": "support_tickets",
+      "score": 0.5
+    }
+  ],
+  "headcount_by_cost_center": [
+    {
+      "name": "customer_churn_copy",
+      "score": 1
+    },
+    {
+      "name": "loan_origination",
+      "score": 1
+    },
+    {
+      "name": "revenue_by_segment",
+      "score": 1
+    },
+    {
+      "name": "sales_data",
+      "score": 0.5
+    },
+    {
+      "name": "active_users",
+      "score": 0.5
+    },
+    {
+      "name": "customer_churn",
+      "score": 0.5
+    },
+    {
+      "name": "performance",
+      "score": 0.5
+    },
+    {
+      "name": "monthly_revenue",
+      "score": 0.5
+    },
+    {
+      "name": "daily_orders",
+      "score": 0.5
+    },
+    {
+      "name": "support_tickets",
+      "score": 0.5
     }
   ]
 }
