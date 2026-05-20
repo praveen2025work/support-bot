@@ -127,7 +127,7 @@ export class MssqlConnector implements IDatabaseConnector {
     const result = await request.query(sqlText);
     const executionMs = Date.now() - start;
 
-    const rawRows = result.recordset || [];
+    const rawRows = (result.recordset || []) as Record<string, unknown>[];
     const columns = rawRows.length > 0 ? Object.keys(rawRows[0]) : [];
     const limit = maxRows ?? this.config.maxRows ?? 10000;
     const { rows, truncated, totalRowsBeforeTruncation } = enforceRowLimit(

@@ -1,15 +1,19 @@
-FROM node:18-alpine AS deps
+FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev
+RUN npm ci
 
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
+ARG ENGINE_URL=http://engine:4001
+ARG NEXT_PUBLIC_WIJMO_LICENSE_KEY=
+ENV ENGINE_URL=${ENGINE_URL}
+ENV NEXT_PUBLIC_WIJMO_LICENSE_KEY=${NEXT_PUBLIC_WIJMO_LICENSE_KEY}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+RUN npm run build:ui
 
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3001
@@ -19,8 +23,6 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/data ./data
-COPY --from=builder /app/src/config ./src/config
-COPY --from=builder /app/src/training ./src/training
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 

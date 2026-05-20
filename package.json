@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "description": "",
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=20.0.0"
   },
   "scripts": {
-    "build": "npm run lint:all && next build && cd services/engine && npm run build",
-    "build:prod": "NODE_ENV=production next build && cd services/engine && npm run build",
+    "build": "npm run lint:all && npm run build:ui && npm run build:engine",
+    "build:dev": "npm run build:ui && npm run build:engine && npm run build:connectors && node scripts/build/prepare-out.mjs",
+    "build:ui": "next build",
+    "build:prod": "NODE_ENV=production npm run build:ui && npm run build:engine",
     "start": "next start",
     "start:all": "concurrently -n mock,engine,ui -c yellow,blue,green \"npm run svc:mock-api\" \"cd services/engine && npm start\" \"npx next start -p 3001\"",
     "analyze": "ANALYZE=true next build",
@@ -20,7 +22,7 @@
     "validate:demo": "node scripts/demo/validate.mjs",
     "validate:demo:quick": "node scripts/demo/validate.mjs --quick",
     "dev:mock": "dotenv -e .env.mock -- concurrently --restart-tries 3 --restart-after 2000 -n mock,engine,ui -c yellow,blue,green \"npm run svc:mock-api\" \"cd services/engine && npm run dev\" \"npx next dev -p 3001\"",
-    "dev:mock:3svc": "dotenv -e .env.mock -- concurrently --restart-tries 3 --restart-after 2000 -n mock,engine,ui -c yellow,blue,green \"npm run svc:mock-api\" \"cd services/engine && npm run dev\" \"npx next dev -p 3001\"",
+    "dev:mock:3svc": "npm run dev:mock",
     "dev": "dotenv -e .env.dev -- concurrently --restart-tries 3 --restart-after 2000 -n engine,ui -c blue,green \"cd services/engine && npm run dev\" \"npx next dev -p 3001\"",
     "dev:mssql": "dotenv -e .env.dev -- concurrently --restart-tries 3 --restart-after 2000 -n engine,mssql,ui -c blue,cyan,green \"cd services/engine && npm run dev\" \"cd services/mssql-connector && npm run dev\" \"npx next dev -p 3001\"",
     "dev:oracle": "dotenv -e .env.dev -- concurrently --restart-tries 3 --restart-after 2000 -n engine,oracle,ui -c blue,magenta,green \"cd services/engine && npm run dev\" \"cd services/oracle-connector && npm run dev\" \"npx next dev -p 3001\"",
@@ -37,8 +39,10 @@
     "svc:csv": "cd services/csv-xlsx-connector && npm run dev",
     "svc:ui": "npx next dev -p 3001",
     "build:engine": "cd services/engine && npm run build",
+    "build:connectors": "npm run build:mssql && npm run build:oracle && npm run build:csv",
     "build:mssql": "cd services/mssql-connector && npm run build",
     "build:oracle": "cd services/oracle-connector && npm run build",
+    "build:csv": "cd services/csv-xlsx-connector && npm run build",
     "db:up": "docker compose -f docker-compose.sample-db.yml up -d",
     "db:down": "docker compose -f docker-compose.sample-db.yml down",
     "db:logs": "docker compose -f docker-compose.sample-db.yml logs -f",
@@ -48,6 +52,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@mescius/wijmo.olap": "^5.20261.50",
+    "@mescius/wijmo.react.grid": "^5.20261.50",
+    "@mescius/wijmo.react.grid.filter": "^5.20261.50",
+    "@mescius/wijmo.react.olap": "^5.20261.50",
+    "@mescius/wijmo.styles": "^5.20261.50",
     "@nlpjs/core": "^4.26.1",
     "@nlpjs/lang-en": "^4.26.1",
     "@nlpjs/nlp": "^4.27.0",

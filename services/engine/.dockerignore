@@ -1,0 +1,12 @@
+node_modules
+dist
+coverage
+*.tsbuildinfo
+npm-debug.log*
+data/logs
+data/audit
+data/sessions
+data/preferences
+data/schema
+data/views
+data/**/*.jsonl

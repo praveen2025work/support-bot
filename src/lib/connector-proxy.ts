@@ -3,20 +3,24 @@
  * Similar to engine-proxy.ts but targets connector service URLs.
  */
 
-const MSSQL_CONNECTOR_URL =
-  process.env.MSSQL_CONNECTOR_URL || "http://localhost:4002";
-const ORACLE_CONNECTOR_URL =
-  process.env.ORACLE_CONNECTOR_URL || "http://localhost:4003";
-const CSV_XLSX_CONNECTOR_URL =
-  process.env.CSV_XLSX_CONNECTOR_URL || "http://localhost:4004";
-const CONNECTOR_TIMEOUT_MS = Number(process.env.CONNECTOR_TIMEOUT_MS) || 30000;
-
 export type ConnectorType = "mssql" | "oracle" | "csv-xlsx";
 
 function getBaseUrl(type: ConnectorType): string {
-  if (type === "mssql") return MSSQL_CONNECTOR_URL;
-  if (type === "oracle") return ORACLE_CONNECTOR_URL;
-  return CSV_XLSX_CONNECTOR_URL;
+  if (type === "mssql") {
+    return process.env.MSSQL_CONNECTOR_URL || "http://localhost:4002";
+  }
+  if (type === "oracle") {
+    return process.env.ORACLE_CONNECTOR_URL || "http://localhost:4003";
+  }
+  return process.env.CSV_XLSX_CONNECTOR_URL || "http://localhost:4004";
+}
+
+function getConnectorApiKey(type: ConnectorType): string | undefined {
+  const commonKey = process.env.CONNECTOR_API_KEY;
+  if (type === "mssql") return process.env.MSSQL_CONNECTOR_API_KEY || commonKey;
+  if (type === "oracle")
+    return process.env.ORACLE_CONNECTOR_API_KEY || commonKey;
+  return process.env.CSV_XLSX_CONNECTOR_API_KEY || commonKey;
 }
 
 export async function proxyToConnector(
@@ -37,12 +41,7 @@ export async function proxyToConnector(
   };
 
   // Forward connector API key if set
-  const apiKeyMap: Record<ConnectorType, string | undefined> = {
-    mssql: process.env.MSSQL_CONNECTOR_API_KEY,
-    oracle: process.env.ORACLE_CONNECTOR_API_KEY,
-    "csv-xlsx": process.env.CSV_XLSX_CONNECTOR_API_KEY,
-  };
-  const apiKey = apiKeyMap[type];
+  const apiKey = getConnectorApiKey(type);
   if (apiKey) {
     headers["x-api-key"] = apiKey;
   }
@@ -50,7 +49,7 @@ export async function proxyToConnector(
   const controller = new AbortController();
   const timeout = setTimeout(
     () => controller.abort(),
-    options.timeoutMs ?? CONNECTOR_TIMEOUT_MS,
+    options.timeoutMs ?? (Number(process.env.CONNECTOR_TIMEOUT_MS) || 30000),
   );
 
   try {

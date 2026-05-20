@@ -30,9 +30,9 @@ npm run dev:mock
 # 3. Open http://localhost:3001 — try "run pnl_lineage" → "break it down by region"
 ```
 
-For Docker, real APIs, SQL connectors, or production deployment,
-see **[docs/SETUP.md](./docs/SETUP.md)** (1300+ lines, every
-environment covered).
+For Docker, IIS + NSSM, real APIs, SQL connectors, or production deployment,
+start with **[docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)**. The longer
+operator reference remains in **[docs/SETUP.md](./docs/SETUP.md)**.
 
 ---
 
