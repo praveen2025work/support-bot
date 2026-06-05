@@ -103,8 +103,9 @@ export class WatchExecutor {
   private async evaluateRule(groupId: string, rule: WatchRule): Promise<void> {
     const now = new Date().toISOString();
 
-    // Update lastCheckedAt regardless of trigger
-    this.ruleService.updateRule(groupId, rule.id, { lastCheckedAt: now });
+    // Update lastCheckedAt regardless of trigger — runtime state only, so
+    // this does not rewrite the version-controlled rules.json.
+    this.ruleService.recordCheck(groupId, rule.id, { lastCheckedAt: now });
 
     let result: {
       triggered: boolean;
@@ -161,7 +162,7 @@ export class WatchExecutor {
     };
 
     this.ruleService.addAlert(groupId, alert);
-    this.ruleService.updateRule(groupId, rule.id, { lastTriggeredAt: now });
+    this.ruleService.recordCheck(groupId, rule.id, { lastTriggeredAt: now });
 
     logger.info(
       { ruleId: rule.id, ruleName: rule.name, severity: result.severity },

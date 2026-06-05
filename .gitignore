@@ -59,8 +59,13 @@ services/engine/data/anomaly/**/snapshots.jsonl
 services/engine/data/anomaly/**/baselines.json
 services/engine/data/anomaly/**/seasonal-baselines.json
 services/engine/data/watch/**/alerts.jsonl
+# Watch rule volatile state (lastCheckedAt/lastTriggeredAt) — split out of
+# rules.json so committed rule definitions don't churn on every cron tick.
+services/engine/data/watch/**/rules-state.json
 # Schema-drift baselines — regenerated on first query against each (group, query)
 services/engine/data/schema/
+# Search indexes — derived embeddings, rebuilt on init
+services/engine/data/indexes/**/semantic-index.json
 # Shareable view snapshots — runtime user-generated state
 services/engine/data/views/
 # Data Explorer saved dashboards — per-user/group runtime state (file-based DB)

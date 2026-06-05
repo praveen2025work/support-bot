@@ -11,8 +11,13 @@
       "value": 10
     },
     "cronExpression": "0 8 * * *",
-    "channels": ["in_app", "email"],
-    "recipients": ["finance-controls@company.com"],
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "recipients": [
+      "finance-controls@company.com"
+    ],
     "owner": "finance-admin",
     "enabled": true,
     "cooldownMinutes": 1440,
@@ -31,8 +36,13 @@
       "value": 4
     },
     "cronExpression": "0 9 * * *",
-    "channels": ["in_app", "email"],
-    "recipients": ["support-leads@company.com"],
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "recipients": [
+      "support-leads@company.com"
+    ],
     "owner": "finance-admin",
     "enabled": true,
     "cooldownMinutes": 720,
@@ -51,8 +61,12 @@
       "value": 250
     },
     "cronExpression": "0 10 * * *",
-    "channels": ["in_app"],
-    "recipients": ["operations-control@company.com"],
+    "channels": [
+      "in_app"
+    ],
+    "recipients": [
+      "operations-control@company.com"
+    ],
     "owner": "finance-admin",
     "enabled": true,
     "cooldownMinutes": 720,
@@ -71,8 +85,13 @@
       "value": 3
     },
     "cronExpression": "0 11 * * *",
-    "channels": ["in_app", "email"],
-    "recipients": ["reporting-controls@company.com"],
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "recipients": [
+      "reporting-controls@company.com"
+    ],
     "owner": "finance-admin",
     "enabled": true,
     "cooldownMinutes": 720,

@@ -99,4 +99,96 @@ describe("WatchRuleService", () => {
     const alerts = service.getAlerts("default", 20);
     expect(alerts[0].read).toBe(true);
   });
+
+  describe("runtime state (rules-state.json split)", () => {
+    function createRule() {
+      return service.createRule("default", {
+        name: "Checked Rule",
+        queryName: "test",
+        type: "threshold",
+        condition: { column: "val", operator: "gt", value: 1 },
+        cronExpression: "*/30 * * * *",
+        channels: ["in_app"],
+        owner: "jdoe",
+      });
+    }
+
+    const rulesFile = path.join(testDir, "watch", "default", "rules.json");
+    const stateFile = path.join(
+      testDir,
+      "watch",
+      "default",
+      "rules-state.json",
+    );
+
+    test("recordCheck persists runtime state and listRules merges it back", () => {
+      const rule = createRule();
+      service.recordCheck("default", rule.id, {
+        lastCheckedAt: "2026-06-05T10:00:00.000Z",
+        lastTriggeredAt: "2026-06-05T09:00:00.000Z",
+      });
+
+      const merged = service.listRules("default")[0];
+      expect(merged.lastCheckedAt).toBe("2026-06-05T10:00:00.000Z");
+      expect(merged.lastTriggeredAt).toBe("2026-06-05T09:00:00.000Z");
+    });
+
+    test("recordCheck merges successive partial updates", () => {
+      const rule = createRule();
+      service.recordCheck("default", rule.id, {
+        lastCheckedAt: "2026-06-05T10:00:00.000Z",
+      });
+      service.recordCheck("default", rule.id, {
+        lastTriggeredAt: "2026-06-05T11:00:00.000Z",
+      });
+      const merged = service.listRules("default")[0];
+      expect(merged.lastCheckedAt).toBe("2026-06-05T10:00:00.000Z");
+      expect(merged.lastTriggeredAt).toBe("2026-06-05T11:00:00.000Z");
+    });
+
+    test("recordCheck writes rules-state.json and never touches rules.json", () => {
+      const rule = createRule();
+      const rulesBefore = fs.readFileSync(rulesFile, "utf-8");
+
+      service.recordCheck("default", rule.id, {
+        lastCheckedAt: "2026-06-05T10:00:00.000Z",
+      });
+
+      // rules.json is byte-for-byte unchanged...
+      expect(fs.readFileSync(rulesFile, "utf-8")).toBe(rulesBefore);
+      // ...and never contains volatile fields.
+      expect(rulesBefore).not.toContain("lastCheckedAt");
+      // ...while the state file holds the timestamp.
+      expect(fs.existsSync(stateFile)).toBe(true);
+      const state = JSON.parse(fs.readFileSync(stateFile, "utf-8"));
+      expect(state[rule.id].lastCheckedAt).toBe("2026-06-05T10:00:00.000Z");
+    });
+
+    test("saveRules strips volatile fields even when a merged rule is re-saved", () => {
+      const rule = createRule();
+      service.recordCheck("default", rule.id, {
+        lastCheckedAt: "2026-06-05T10:00:00.000Z",
+      });
+      // updateRule reads a merged rule (with lastCheckedAt) and writes it back.
+      service.updateRule("default", rule.id, { enabled: false });
+
+      const rulesRaw = fs.readFileSync(rulesFile, "utf-8");
+      expect(rulesRaw).not.toContain("lastCheckedAt");
+      // Runtime state survives the config write and still merges in.
+      expect(service.listRules("default")[0].lastCheckedAt).toBe(
+        "2026-06-05T10:00:00.000Z",
+      );
+      expect(service.listRules("default")[0].enabled).toBe(false);
+    });
+
+    test("deleteRule clears the rule's runtime state", () => {
+      const rule = createRule();
+      service.recordCheck("default", rule.id, {
+        lastCheckedAt: "2026-06-05T10:00:00.000Z",
+      });
+      service.deleteRule("default", rule.id);
+      const state = JSON.parse(fs.readFileSync(stateFile, "utf-8"));
+      expect(state[rule.id]).toBeUndefined();
+    });
+  });
 });

@@ -11,14 +11,18 @@
       "value": 5
     },
     "cronExpression": "*/30 * * * *",
-    "channels": ["in_app", "email"],
-    "recipients": ["ops-team@company.com"],
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "recipients": [
+      "ops-team@company.com"
+    ],
     "owner": "jdoe",
     "enabled": true,
     "cooldownMinutes": 60,
     "createdAt": "2026-03-28T09:00:00Z",
-    "updatedAt": "2026-05-19T23:54:54.085Z",
-    "lastCheckedAt": "2026-05-19T23:54:54.085Z"
+    "updatedAt": "2026-05-19T23:54:54.085Z"
   },
   {
     "id": "wr_seed_002",
@@ -32,14 +36,14 @@
       "lookbackPoints": 7
     },
     "cronExpression": "0 */6 * * *",
-    "channels": ["in_app"],
+    "channels": [
+      "in_app"
+    ],
     "owner": "jdoe",
     "enabled": true,
     "cooldownMinutes": 360,
     "createdAt": "2026-03-28T10:00:00Z",
-    "updatedAt": "2026-05-19T23:54:54.096Z",
-    "lastCheckedAt": "2026-05-19T23:54:54.096Z",
-    "lastTriggeredAt": "2026-05-11T23:55:32.467Z"
+    "updatedAt": "2026-05-19T23:54:54.096Z"
   },
   {
     "id": "wr_seed_003",
@@ -51,15 +55,18 @@
       "maxStaleMinutes": 120
     },
     "cronExpression": "*/15 * * * *",
-    "channels": ["in_app", "email"],
-    "recipients": ["data-eng@company.com"],
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "recipients": [
+      "data-eng@company.com"
+    ],
     "owner": "admin",
     "enabled": true,
     "cooldownMinutes": 60,
     "createdAt": "2026-03-29T08:00:00Z",
-    "updatedAt": "2026-05-19T23:54:54.097Z",
-    "lastCheckedAt": "2026-05-19T23:54:54.096Z",
-    "lastTriggeredAt": "2026-05-19T23:54:54.096Z"
+    "updatedAt": "2026-05-19T23:54:54.097Z"
   },
   {
     "id": "wr_seed_004",
@@ -72,13 +79,14 @@
       "zScoreThreshold": 3
     },
     "cronExpression": "0 * * * *",
-    "channels": ["in_app"],
+    "channels": [
+      "in_app"
+    ],
     "owner": "jdoe",
     "enabled": true,
     "cooldownMinutes": 120,
     "createdAt": "2026-03-29T11:00:00Z",
-    "updatedAt": "2026-05-19T23:54:54.107Z",
-    "lastCheckedAt": "2026-05-19T23:54:54.106Z"
+    "updatedAt": "2026-05-19T23:54:54.107Z"
   },
   {
     "id": "wr_seed_005",
@@ -92,8 +100,13 @@
       "value": 10
     },
     "cronExpression": "0 9 * * *",
-    "channels": ["in_app", "email"],
-    "recipients": ["product-team@company.com"],
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "recipients": [
+      "product-team@company.com"
+    ],
     "owner": "admin",
     "enabled": false,
     "cooldownMinutes": 1440,

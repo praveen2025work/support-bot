@@ -48,6 +48,16 @@ export interface CreateRuleInput {
   cooldownMinutes?: number;
 }
 
+/**
+ * Volatile per-rule runtime state. Persisted separately from the rule
+ * definition (rules.json) so the cron evaluator's frequent timestamp writes
+ * never churn the version-controlled config file. See rules-state.json.
+ */
+interface RuleRuntimeState {
+  lastCheckedAt?: string;
+  lastTriggeredAt?: string;
+}
+
 export class WatchRuleService {
   private readonly dataDir: string;
 
@@ -58,7 +68,29 @@ export class WatchRuleService {
   listRules(groupId: string): WatchRule[] {
     const filePath = this.rulesPath(groupId);
     if (!fs.existsSync(filePath)) return [];
-    return JSON.parse(fs.readFileSync(filePath, "utf-8")) as WatchRule[];
+    const rules = JSON.parse(fs.readFileSync(filePath, "utf-8")) as WatchRule[];
+    // Merge volatile runtime state (last checked/triggered) back onto each
+    // rule so consumers see a complete WatchRule despite the split storage.
+    const state = this.loadState(groupId);
+    return rules.map((rule) => {
+      const runtime = state[rule.id];
+      return runtime ? { ...rule, ...runtime } : rule;
+    });
+  }
+
+  /**
+   * Persist volatile runtime state (lastCheckedAt / lastTriggeredAt) for a
+   * rule WITHOUT rewriting rules.json. Called by the cron evaluator on every
+   * tick; routing it here keeps the config file stable in git.
+   */
+  recordCheck(
+    groupId: string,
+    ruleId: string,
+    runtime: RuleRuntimeState,
+  ): void {
+    const state = this.loadState(groupId);
+    state[ruleId] = { ...state[ruleId], ...runtime };
+    this.saveState(groupId, state);
   }
 
   createRule(groupId: string, input: CreateRuleInput): WatchRule {
@@ -109,6 +141,12 @@ export class WatchRuleService {
       groupId,
       rules.filter((r) => r.id !== ruleId),
     );
+    // Drop any orphaned runtime state for the removed rule.
+    const state = this.loadState(groupId);
+    if (state[ruleId]) {
+      delete state[ruleId];
+      this.saveState(groupId, state);
+    }
   }
 
   addAlert(groupId: string, alert: WatchAlert): void {
@@ -183,15 +221,53 @@ export class WatchRuleService {
     return path.join(this.dataDir, "watch", groupId, "rules.json");
   }
 
+  private rulesStatePath(groupId: string): string {
+    return path.join(this.dataDir, "watch", groupId, "rules-state.json");
+  }
+
   private alertsPath(groupId: string): string {
     return path.join(this.dataDir, "watch", groupId, "alerts.jsonl");
   }
 
   private saveRules(groupId: string, rules: WatchRule[]): void {
     this.ensureDir(groupId);
+    // Strip volatile runtime fields — rules.json is config only; runtime
+    // state lives in rules-state.json. Guards against a merged WatchRule
+    // (from listRules) leaking timestamps back into the committed file.
+    const configOnly = rules.map((rule) => {
+      const copy: WatchRule = { ...rule };
+      delete copy.lastCheckedAt;
+      delete copy.lastTriggeredAt;
+      return copy;
+    });
     fs.writeFileSync(
       this.rulesPath(groupId),
-      JSON.stringify(rules, null, 2),
+      JSON.stringify(configOnly, null, 2),
+      "utf-8",
+    );
+  }
+
+  private loadState(groupId: string): Record<string, RuleRuntimeState> {
+    const filePath = this.rulesStatePath(groupId);
+    if (!fs.existsSync(filePath)) return {};
+    try {
+      return JSON.parse(fs.readFileSync(filePath, "utf-8")) as Record<
+        string,
+        RuleRuntimeState
+      >;
+    } catch {
+      return {};
+    }
+  }
+
+  private saveState(
+    groupId: string,
+    state: Record<string, RuleRuntimeState>,
+  ): void {
+    this.ensureDir(groupId);
+    fs.writeFileSync(
+      this.rulesStatePath(groupId),
+      JSON.stringify(state, null, 2),
       "utf-8",
     );
   }
