@@ -16,6 +16,18 @@
  *       node scripts/demo/validate.mjs --json    (machine-readable)
  *       node scripts/demo/validate.mjs --quick   (skip slow chat tests)
  *       node scripts/demo/validate.mjs --no-write (skip mutation tests)
+ *
+ * KNOWN PRE-EXISTING FAILURES (tracked debt — the harness job is non-blocking):
+ *   This harness was historically SKIPPED in CI (it `needs:` the engine-test
+ *   job, which was red on the catalog test), so its checks were never exercised
+ *   until that job went green. Newly-surfaced, pre-existing app/NLP behaviour:
+ *     - chat-followup: loose / natural-language group-by / sort / summary
+ *       phrasings sometimes misclassify ("split by region", "per <col>",
+ *       "for each <col>", "rank by <col>", "summarize") — NLP intent tuning.
+ *     - chat-drill: drill / expand / "rows for" / "details for" may return no
+ *       rows on the mock dataset.
+ *   These are application behaviour, not harness bugs. A section that throws now
+ *   records a failure instead of aborting the whole run (see main()).
  */
 
 import { writeFile } from "node:fs/promises";
@@ -2462,49 +2474,66 @@ function buildReport() {
 }
 
 async function main() {
-  await testHealth();
-  await testAdminApi();
-  await testAdminPages();
-  await testChatBasic();
-  await testFloorAndDisambig();
-  await testGroups();
-  await testQueryAndFollowups();
-  await testFilters();
-  await testForceIntent();
-  await testExportUndo();
-  await testAnalysis();
-  await testDrillDown();
-  await testPiiMasking();
-  await testSchemaDrift();
-  await testErrorEnvelope();
-  await testQueryCache();
-  await testOpenApiSpec();
-  await testMetricsEndpoint();
-  await testSecurityHeaders();
-  await testRequestTooLarge();
-  await testSourceHealth();
-  await testReadinessProbe();
-  await testConcurrentRetrain();
-  await testRotatingJsonl();
-  await testSnapshots();
-  await testEdgeCases();
-  await testGroupIsolation();
-  await testUserInfo();
-  await testAutocomplete();
-  await testSearchPersonalisation();
-  await testAutoInsights();
-  await testRootCause();
-  await testActiveDocumentQA();
-  await testDataExplorerInsights();
-  await testDataQuality();
-  await testForecastEndpoint();
-  await testGridBoardRowsEndpoint();
-  await testGridBoardQueryReorder();
-  await testGridBoardViews();
-  await testSourceReorder();
-  await testGlossaryCrud();
-  await testSynonymCrud();
-  await testLearningRetrain();
+  const sections = [
+    testHealth,
+    testAdminApi,
+    testAdminPages,
+    testChatBasic,
+    testFloorAndDisambig,
+    testGroups,
+    testQueryAndFollowups,
+    testFilters,
+    testForceIntent,
+    testExportUndo,
+    testAnalysis,
+    testDrillDown,
+    testPiiMasking,
+    testSchemaDrift,
+    testErrorEnvelope,
+    testQueryCache,
+    testOpenApiSpec,
+    testMetricsEndpoint,
+    testSecurityHeaders,
+    testRequestTooLarge,
+    testSourceHealth,
+    testReadinessProbe,
+    testConcurrentRetrain,
+    testRotatingJsonl,
+    testSnapshots,
+    testEdgeCases,
+    testGroupIsolation,
+    testUserInfo,
+    testAutocomplete,
+    testSearchPersonalisation,
+    testAutoInsights,
+    testRootCause,
+    testActiveDocumentQA,
+    testDataExplorerInsights,
+    testDataQuality,
+    testForecastEndpoint,
+    testGridBoardRowsEndpoint,
+    testGridBoardQueryReorder,
+    testGridBoardViews,
+    testSourceReorder,
+    testGlossaryCrud,
+    testSynonymCrud,
+    testLearningRetrain,
+  ];
+  // Run each section in isolation: a section that throws records a failure
+  // instead of aborting the whole harness, so the report still covers every
+  // other section and the exit code reflects real check failures, not a crash.
+  for (const fn of sections) {
+    try {
+      await fn();
+    } catch (e) {
+      record(
+        "harness",
+        `${fn.name} crashed`,
+        false,
+        String((e && e.stack) || (e && e.message) || e),
+      );
+    }
+  }
 
   const report = buildReport();
   await writeFile("docs/DEMO-VALIDATION.md", report, "utf-8");
