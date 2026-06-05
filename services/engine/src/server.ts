@@ -9,7 +9,7 @@ import {
   ErrorCodes,
 } from "./lib/error-envelope";
 import { config } from "./lib/config";
-import { getGroupConfigs } from "./config/group-config";
+import { getGroupConfigs, initGroupConfig } from "./config/group-config";
 import {
   startHealthMonitor,
   stopHealthMonitor,
@@ -182,6 +182,12 @@ registerGauge(
 // from lib/error-envelope.ts ({error, code, requestId, retryable}).
 app.use(notFoundHandler());
 app.use(errorHandler());
+
+// Seed in-memory group config from the runtime CONFIG_DIR file before serving.
+// dist bundles a build-time groups.json snapshot; the live config lives on the
+// CONFIG_DIR volume. Without this, restarts revert reads to the stale snapshot
+// and admin-created groups 404 on edit. See config/group-config.ts.
+initGroupConfig();
 
 const server = app.listen(PORT, () => {
   logger.info(`Engine server running at http://localhost:${PORT}`);
