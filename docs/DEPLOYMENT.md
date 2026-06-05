@@ -84,6 +84,103 @@ DATA_DIR=/app/data
 UI_ORIGIN=https://chatbot.your-org.example.com
 ```
 
+## Configuration and Shared Storage (multi-instance)
+
+The engine keeps **all admin configuration in JSON files** (no database). Config
+and runtime state are read from the directories below, each overridable by an
+env var. When you run **more than one engine instance**, point every instance at
+the **same shared volume** (NAS/NFS, or a `ReadWriteMany` Kubernetes PVC) so they
+share one source of truth.
+
+### Storage env vars
+
+| Var            | Holds                                                                                                 | Default (relative to the engine working dir) |
+| -------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `CONFIG_DIR`   | `groups.json`, `settings.json`, `users.json`, `filter-config.json`, `data-roles.json`                 | `src/config`                                 |
+| `DATA_DIR`     | per-group query files (`queries/<group>.json`), learning, indexes, audit, logs, sessions, saved views | `data`                                       |
+| `DB_JSON_PATH` | query-definition store the admin **Queries** page reads/writes                                        | `../mock-api/db.json`                        |
+| `TRAINING_DIR` | NLP corpus/FAQ (`corpus.json`, `groups/corpus-*.json`, `groups/faq-*.json`)                           | `src/training`                               |
+| `INSTANCE_ID`  | unique id per instance (tracing + file-lock owner)                                                    | `engine-<pid>`                               |
+
+> The engine bundles a build-time copy of `groups.json` into `dist`, but at
+> runtime it reads `CONFIG_DIR/groups.json` and re-reads it whenever the file
+> changes. If `CONFIG_DIR` is not seeded it falls back to the bundled demo
+> groups — always seed it.
+
+### Seed the shared volume (one time)
+
+| Repo source                                             | Copy to                                                 |
+| ------------------------------------------------------- | ------------------------------------------------------- |
+| `services/engine/src/config/*.json`                     | `$CONFIG_DIR/`                                          |
+| `services/mock-api/db.json`                             | `$DB_JSON_PATH`                                         |
+| `services/engine/src/training/` (corpus/faq, `groups/`) | `$TRAINING_DIR/` (only if you use per-group corpus/FAQ) |
+
+```bash
+VOL=/mnt/nas/chatbot                       # your shared volume root
+mkdir -p "$VOL"/{config,data,training}
+cp services/engine/src/config/*.json   "$VOL/config/"
+cp services/mock-api/db.json           "$VOL/config/db.json"
+cp -r services/engine/src/training/*   "$VOL/training/"     # if used
+```
+
+### Generate the per-group query files (one time)
+
+The query catalog is served from `DATA_DIR/queries/<group>.json`, derived from
+`db.json` + `groups.json`. Generate them once against the volume:
+
+```bash
+cd services/engine
+CONFIG_DIR=$VOL/config DATA_DIR=$VOL/data DB_JSON_PATH=$VOL/config/db.json \
+  npx tsx src/scripts/migrate-queries-to-per-group.ts
+# → "Wrote per-group query files for N group(s): ..."
+```
+
+> The script uses `tsx` (a dev dependency). Run it from the engine build
+> image / CI / a one-off maintenance job (or a Kubernetes init job) where
+> `devDependencies` are installed, targeting the mounted volume. Admin query
+> edits made through the UI keep these files in sync automatically; only re-run
+> the script if you edit `db.json` directly.
+
+### Per-instance env (example)
+
+Set the **same** storage paths on every engine instance; vary only
+`INSTANCE_ID`:
+
+```ini
+NODE_ENV=production
+ENGINE_PORT=4001
+CONFIG_DIR=/mnt/nas/chatbot/config
+DATA_DIR=/mnt/nas/chatbot/data
+DB_JSON_PATH=/mnt/nas/chatbot/config/db.json
+TRAINING_DIR=/mnt/nas/chatbot/training
+INSTANCE_ID=engine-pod-1                              # unique per instance (e.g. pod/host name)
+API_BASE_URL=https://your-data-api.example.com/api   # real data source (query EXECUTION)
+```
+
+On the **UI** service, set `ENGINE_URL` to the engine service address.
+
+### Multi-instance behaviour (what to expect)
+
+- **Live config propagation, no restart:** a group or query created/edited on
+  one instance is picked up by every other instance on its next read (a UI
+  refresh) — reads re-load the shared file when its modified-time (mtime)
+  changes.
+- **Concurrent-write safety:** admin writes are atomic (temp file + rename) and
+  serialized with an advisory file lock, so simultaneous edits across instances
+  do not corrupt or lose data.
+- **Volume requirements:** use a `ReadWriteMany` volume (NFS/CephFS/EFS/Azure
+  Files) so all instances can read and write. On NFS-style mounts a change can
+  take a few seconds to become visible on other instances (client attribute
+  cache) — this is expected.
+
+### Verify after deploy
+
+1. `curl http://<engine>:4001/api/health` → `ok`.
+2. **Admin → Groups** shows your real groups (not the demo set).
+3. In chat, send `list queries` — the group's queries are listed.
+4. Create/edit a group on one instance, refresh the UI (served by another
+   instance) — the change appears with no restart.
+
 ## Docker
 
 Demo mode with mock data:
