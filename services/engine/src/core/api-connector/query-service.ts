@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { ApiClient } from "./api-client";
 import { QuerySchema, QueryResultSchema } from "./types";
+import { getGroupQueries } from "@/core/catalog/query-registry";
 import { fetchBamToken } from "./bam-auth";
 import { FILE_BASE_DIR } from "@/lib/env-config";
 import { QueryNotFoundError, FileReadError } from "@/lib/errors";
@@ -69,6 +70,7 @@ export class QueryService {
     private apiClient: ApiClient,
     sources?: string[],
     queryAllowlist?: string[],
+    private groupId: string = "default",
   ) {
     this.sources = sources ?? [];
     this.queryAllowlist = new Set(
@@ -77,26 +79,9 @@ export class QueryService {
   }
 
   async getQueries(): Promise<Query[]> {
-    const raw = await this.apiClient.get<unknown[]>("queries", {
-      cacheTtl: 60_000,
-    });
-    let queries = raw.map((q) => QuerySchema.parse(q));
-
-    if (this.queryAllowlist.size > 0) {
-      queries = queries.filter((q) =>
-        this.queryAllowlist.has(q.name.toLowerCase()),
-      );
-    } else if (this.sources.length > 0) {
-      queries = queries.filter(
-        (q) =>
-          (q.source && this.sources.includes(q.source)) ||
-          (q.type === "combined" &&
-            q.source &&
-            this.sources.includes(q.source)),
-      );
-    }
-
-    return queries;
+    // Registry is file-driven and already group-scoped (one file per group),
+    // so the legacy source/allowlist filtering is no longer needed here.
+    return getGroupQueries(this.groupId);
   }
 
   /** Clear the API client's LRU cache so queries are re-fetched from the store. */
