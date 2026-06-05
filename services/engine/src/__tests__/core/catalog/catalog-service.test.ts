@@ -137,10 +137,20 @@ describe("CatalogService", () => {
       .mockImplementation(async () => mockQueries);
 
     await service.listQueries("default", "http://api.test", ["finance"]);
-    expect(spy).toHaveBeenCalledWith("http://api.test", ["finance"]);
+    expect(spy).toHaveBeenCalledWith(
+      "default",
+      "http://api.test",
+      ["finance"],
+      undefined,
+    );
 
     await service.search("default", "sales", "http://api.test", ["ops"]);
-    expect(spy).toHaveBeenLastCalledWith("http://api.test", ["ops"]);
+    expect(spy).toHaveBeenLastCalledWith(
+      "default",
+      "http://api.test",
+      ["ops"],
+      undefined,
+    );
   });
 
   test("queries from other groups (different signal aggregates file) do not leak usage stats across groups", async () => {
