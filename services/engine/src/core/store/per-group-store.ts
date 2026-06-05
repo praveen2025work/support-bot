@@ -8,12 +8,31 @@ import {
   writeFileSync,
 } from "fs";
 import { basename, dirname } from "path";
+import { randomBytes } from "crypto";
 import type { ZodType } from "zod";
 import { logger } from "@/lib/logger";
 
 interface CacheEntry<T> {
   mtimeMs: number;
   value: T;
+}
+
+let writeCounter = 0;
+
+/**
+ * Unique temp-file path for an atomic write (temp + rename).
+ *
+ * Must be unique ACROSS instances sharing a volume: container PID namespaces
+ * make `process.pid` identical (often 1) in every pod, so a random component is
+ * the real uniqueness guarantee; pid + counter are included for traceability
+ * and intra-process distinctness. This prevents two replicas that overwrite the
+ * same group file (e.g. the admin bridge's rebuildAllGroupFiles) from colliding
+ * on the temp path and corrupting it. Exported for tests.
+ */
+export function tempPathFor(file: string): string {
+  return `${file}.tmp.${process.pid}.${++writeCounter}.${randomBytes(
+    4,
+  ).toString("hex")}`;
 }
 
 export interface PerGroupStoreOptions<T> {
@@ -69,7 +88,7 @@ export class PerGroupStore<T> {
     const validated = this.opts.schema.parse(value);
     const file = this.opts.fileFor(groupId);
     mkdirSync(dirname(file), { recursive: true });
-    const tmp = `${file}.tmp.${process.pid}`;
+    const tmp = tempPathFor(file);
     writeFileSync(tmp, JSON.stringify(validated, null, 2) + "\n", "utf-8");
     renameSync(tmp, file);
     this.cache.set(file, { mtimeMs: statSync(file).mtimeMs, value: validated });
