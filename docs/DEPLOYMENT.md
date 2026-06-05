@@ -141,6 +141,46 @@ CONFIG_DIR=$VOL/config DATA_DIR=$VOL/data DB_JSON_PATH=$VOL/config/db.json \
 > edits made through the UI keep these files in sync automatically; only re-run
 > the script if you edit `db.json` directly.
 
+### Migrating from an existing deployment (source → destination)
+
+Three buckets. Paths shown are the engine **defaults** — substitute your current
+deployment's `CONFIG_DIR` / `DATA_DIR` / `DB_JSON_PATH` if you already override
+them (admin edits are written back to those same paths).
+
+**1. Copy — admin-authored config and content (carry these over):**
+
+| What                                         | Source (existing setup)                                                | Destination (shared volume)  |
+| -------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------- |
+| Groups, settings, users, filters, data-roles | `services/engine/src/config/*.json`                                    | `$CONFIG_DIR/`               |
+| Query definitions                            | `services/mock-api/db.json`                                            | `$DB_JSON_PATH`              |
+| NLP corpus / FAQ                             | `services/engine/src/training/` (`corpus.json`, `faq.json`, `groups/`) | `$TRAINING_DIR/`             |
+| Glossary (metric definitions)                | `…/data/glossary/*.json`                                               | `$DATA_DIR/glossary/`        |
+| Watch **rules**                              | `…/data/watch/<group>/rules.json`                                      | `$DATA_DIR/watch/<group>/`   |
+| Workflows                                    | `…/data/workflows/*.json`                                              | `$DATA_DIR/workflows/`       |
+| Saved GridBoard views                        | `…/data/gridboard-views/*.json`                                        | `$DATA_DIR/gridboard-views/` |
+| Uploaded knowledge docs                      | `…/data/knowledge/`                                                    | `$DATA_DIR/knowledge/`       |
+
+**2. Generate — do NOT copy; produce on the volume:**
+
+| What                                           | How                                                                                                 |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Per-group query files (`queries/<group>.json`) | run the migration script (previous step)                                                            |
+| Search indexes (`indexes/…`)                   | rebuilt from corpus/knowledge on engine init; copy `…/data/indexes/` only to skip the first rebuild |
+
+**3. Leave as-is — transactional runtime state. Do NOT copy; the engine
+recreates it. Copy only if you specifically want to preserve history:**
+
+`data/learning/` (interactions, review-queue, user-interactions, search-picks,
+signal-aggregates, synonyms, co-occurrence, …), `data/audit/`, `data/logs/`,
+`data/sessions/`, `data/preferences/`, `data/schema/`, `data/anomaly/`,
+`data/watch/<group>/alerts.jsonl`, `data/views/`.
+
+> Rule of thumb: anything an **admin authored** (config, glossary, watch rules,
+> workflows, queries, corpus/FAQ) is bucket 1 or 2 and must be carried or
+> regenerated; anything the **app accumulated at runtime** (logs, sessions,
+> learning signals, audit, indexes, anomaly baselines) is bucket 3 and is safe
+> to start empty.
+
 ### Per-instance env (example)
 
 Set the **same** storage paths on every engine instance; vary only
