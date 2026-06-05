@@ -1,7 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { ApiClient } from "./api-client";
-import { QuerySchema, QueryResultSchema } from "./types";
+import { QueryResultSchema } from "./types";
 import { getGroupQueries } from "@/core/catalog/query-registry";
 import { fetchBamToken } from "./bam-auth";
 import { FILE_BASE_DIR } from "@/lib/env-config";
