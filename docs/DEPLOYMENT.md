@@ -84,6 +84,140 @@ DATA_DIR=/app/data
 UI_ORIGIN=https://chatbot.your-org.example.com
 ```
 
+## Configuration and Shared Storage (multi-instance)
+
+The engine keeps **all admin configuration in JSON files** (no database). Config
+and runtime state are read from the directories below, each overridable by an
+env var. When you run **more than one engine instance**, point every instance at
+the **same shared volume** (NAS/NFS, or a `ReadWriteMany` Kubernetes PVC) so they
+share one source of truth.
+
+### Storage env vars
+
+| Var            | Holds                                                                                                 | Default (relative to the engine working dir) |
+| -------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `CONFIG_DIR`   | `groups.json`, `settings.json`, `users.json`, `filter-config.json`, `data-roles.json`                 | `src/config`                                 |
+| `DATA_DIR`     | per-group query files (`queries/<group>.json`), learning, indexes, audit, logs, sessions, saved views | `data`                                       |
+| `DB_JSON_PATH` | query-definition store the admin **Queries** page reads/writes                                        | `../mock-api/db.json`                        |
+| `TRAINING_DIR` | NLP corpus/FAQ (`corpus.json`, `groups/corpus-*.json`, `groups/faq-*.json`)                           | `src/training`                               |
+| `INSTANCE_ID`  | unique id per instance (tracing + file-lock owner)                                                    | `engine-<pid>`                               |
+
+> The engine bundles a build-time copy of `groups.json` into `dist`, but at
+> runtime it reads `CONFIG_DIR/groups.json` and re-reads it whenever the file
+> changes. If `CONFIG_DIR` is not seeded it falls back to the bundled demo
+> groups — always seed it.
+
+### Seed the shared volume (one time)
+
+| Repo source                                             | Copy to                                                 |
+| ------------------------------------------------------- | ------------------------------------------------------- |
+| `services/engine/src/config/*.json`                     | `$CONFIG_DIR/`                                          |
+| `services/mock-api/db.json`                             | `$DB_JSON_PATH`                                         |
+| `services/engine/data/queries/*.json`                   | `$DATA_DIR/queries/` (pre-generated, shipped in repo)   |
+| `services/engine/src/training/` (corpus/faq, `groups/`) | `$TRAINING_DIR/` (only if you use per-group corpus/FAQ) |
+
+```bash
+VOL=/mnt/nas/chatbot                       # your shared volume root
+mkdir -p "$VOL"/{config,data/queries,training}
+cp services/engine/src/config/*.json   "$VOL/config/"
+cp services/mock-api/db.json           "$VOL/config/db.json"
+cp services/engine/data/queries/*.json "$VOL/data/queries/"   # pre-generated, shipped in repo
+cp -r services/engine/src/training/*   "$VOL/training/"     # if used
+```
+
+### Per-group query files (shipped as seed — no script to run)
+
+The query catalog is served from `DATA_DIR/queries/<group>.json`. These files
+are **committed in the repo** at `services/engine/data/queries/*.json`
+(pre-generated from `db.json` + `groups.json`), so they are copied with the rest
+of the seed above — **there is no migration step to run at deploy time.** Once
+the engine is running, admin query edits keep them in sync automatically.
+
+> Optional: `services/engine/src/scripts/migrate-queries-to-per-group.ts`
+> regenerates these files. You only need it if you change `db.json` or
+> `groups.json` **directly in the repo** (not via the admin UI); run it with
+> `npx tsx` where `devDependencies` are installed.
+
+### Migrating from an existing deployment (source → destination)
+
+Three buckets. Paths shown are the engine **defaults** — substitute your current
+deployment's `CONFIG_DIR` / `DATA_DIR` / `DB_JSON_PATH` if you already override
+them (admin edits are written back to those same paths).
+
+**1. Copy — admin-authored config and content (carry these over):**
+
+| What                                         | Source (existing setup)                                                | Destination (shared volume)  |
+| -------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------- |
+| Groups, settings, users, filters, data-roles | `services/engine/src/config/*.json`                                    | `$CONFIG_DIR/`               |
+| Query definitions                            | `services/mock-api/db.json`                                            | `$DB_JSON_PATH`              |
+| NLP corpus / FAQ                             | `services/engine/src/training/` (`corpus.json`, `faq.json`, `groups/`) | `$TRAINING_DIR/`             |
+| Glossary (metric definitions)                | `…/data/glossary/*.json`                                               | `$DATA_DIR/glossary/`        |
+| Watch **rules**                              | `…/data/watch/<group>/rules.json`                                      | `$DATA_DIR/watch/<group>/`   |
+| Workflows                                    | `…/data/workflows/*.json`                                              | `$DATA_DIR/workflows/`       |
+| Saved GridBoard views                        | `…/data/gridboard-views/*.json`                                        | `$DATA_DIR/gridboard-views/` |
+| Uploaded knowledge docs                      | `…/data/knowledge/`                                                    | `$DATA_DIR/knowledge/`       |
+
+**2. Provided as seed / built automatically — no script to run:**
+
+| What                                           | How                                                                                                                                   |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Per-group query files (`queries/<group>.json`) | shipped as seed — copy from `services/engine/data/queries/` (above); admin edits keep them in sync. No script.                        |
+| Search indexes (`indexes/…`)                   | built from corpus/knowledge automatically on engine init (NLP train). No script. Copy `…/data/indexes/` only to skip the first build. |
+
+**3. Leave as-is — transactional runtime state. Do NOT copy; the engine
+recreates it. Copy only if you specifically want to preserve history:**
+
+`data/learning/` (interactions, review-queue, user-interactions, search-picks,
+signal-aggregates, synonyms, co-occurrence, …), `data/audit/`, `data/logs/`,
+`data/sessions/`, `data/preferences/`, `data/schema/`, `data/anomaly/`,
+`data/watch/<group>/alerts.jsonl`, `data/views/`.
+
+> Rule of thumb: anything an **admin authored** (config, glossary, watch rules,
+> workflows, queries, corpus/FAQ) is bucket 1 or 2 and must be carried or
+> regenerated; anything the **app accumulated at runtime** (logs, sessions,
+> learning signals, audit, indexes, anomaly baselines) is bucket 3 and is safe
+> to start empty.
+
+### Per-instance env (example)
+
+Set the **same** storage paths on every engine instance; vary only
+`INSTANCE_ID`:
+
+```ini
+NODE_ENV=production
+ENGINE_PORT=4001
+CONFIG_DIR=/mnt/nas/chatbot/config
+DATA_DIR=/mnt/nas/chatbot/data
+DB_JSON_PATH=/mnt/nas/chatbot/config/db.json
+TRAINING_DIR=/mnt/nas/chatbot/training
+INSTANCE_ID=engine-pod-1                              # unique per instance (e.g. pod/host name)
+API_BASE_URL=https://your-data-api.example.com/api   # real data source (query EXECUTION)
+```
+
+On the **UI** service, set `ENGINE_URL` to the engine service address.
+
+### Multi-instance behaviour (what to expect)
+
+- **Live config propagation, no restart:** a group or query created/edited on
+  one instance is picked up by every other instance on its next read (a UI
+  refresh) — reads re-load the shared file when its modified-time (mtime)
+  changes.
+- **Concurrent-write safety:** admin writes are atomic (temp file + rename) and
+  serialized with an advisory file lock, so simultaneous edits across instances
+  do not corrupt or lose data.
+- **Volume requirements:** use a `ReadWriteMany` volume (NFS/CephFS/EFS/Azure
+  Files) so all instances can read and write. On NFS-style mounts a change can
+  take a few seconds to become visible on other instances (client attribute
+  cache) — this is expected.
+
+### Verify after deploy
+
+1. `curl http://<engine>:4001/api/health` → `ok`.
+2. **Admin → Groups** shows your real groups (not the demo set).
+3. In chat, send `list queries` — the group's queries are listed.
+4. Create/edit a group on one instance, refresh the UI (served by another
+   instance) — the change appears with no restart.
+
 ## Docker
 
 Demo mode with mock data:

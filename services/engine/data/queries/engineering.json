@@ -1,0 +1,111 @@
+{
+  "queries": [
+    {
+      "id": "q3",
+      "name": "error_rate",
+      "description": "Application error rates by service, endpoint, and severity",
+      "estimatedDuration": 800,
+      "url": "https://confluence.example.com/wiki/engineering/error-rate-monitoring",
+      "source": "engineering",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "environment",
+          "binding": "path"
+        }
+      ],
+      "type": "api",
+      "filePath": "",
+      "endpoint": "/monitoring/{environment}/errors",
+      "baseUrl": "",
+      "authType": "none",
+      "bamTokenUrl": "",
+      "chartConfig": {
+        "defaultType": "bar",
+        "labelKey": "service",
+        "valueKeys": ["error_count", "error_rate"],
+        "showLegend": true
+      },
+      "columnConfig": {
+        "idColumns": ["serviceid"],
+        "labelColumns": ["service"],
+        "valueColumns": ["error_count", "error_rate", "errors"]
+      },
+      "drillDown": [
+        {
+          "sourceColumn": "service",
+          "targetQuery": "service_logs",
+          "targetFilter": "service",
+          "label": "View Service Logs"
+        }
+      ]
+    },
+    {
+      "id": "q4",
+      "name": "performance",
+      "description": "API latency percentiles (p50, p95, p99) and throughput metrics",
+      "estimatedDuration": 2100,
+      "url": "https://confluence.example.com/wiki/engineering/api-performance-sla",
+      "source": "engineering",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "environment",
+          "binding": "query_param"
+        }
+      ],
+      "type": "api",
+      "endpoint": "/monitoring/performance",
+      "authType": "none"
+    },
+    {
+      "id": "q15",
+      "name": "incident_report",
+      "description": "Post-incident report for the March 2026 payment gateway outage",
+      "estimatedDuration": 0,
+      "url": "https://confluence.example.com/wiki/engineering/incident-2026-03-payment-outage",
+      "source": "engineering",
+      "filters": [],
+      "type": "document",
+      "filePath": "data/knowledge/incident-report-2026-03.md",
+      "authType": "none"
+    },
+    {
+      "id": "q102",
+      "name": "infrastructure_costs",
+      "description": "Cloud infrastructure costs by service and environment",
+      "estimatedDuration": 2100,
+      "url": "https://confluence.example.com/wiki/engineering/infrastructure-costs",
+      "source": "engineering",
+      "filters": [
+        {
+          "key": "environment",
+          "binding": "body"
+        }
+      ],
+      "type": "api",
+      "filePath": "",
+      "endpoint": "/engineering/infrastructure-costs",
+      "baseUrl": "",
+      "authType": "none",
+      "bamTokenUrl": "",
+      "chartConfig": {
+        "defaultType": "bar",
+        "labelKey": "service",
+        "valueKeys": ["monthly_cost"],
+        "showLegend": true
+      },
+      "columnConfig": {
+        "labelColumns": ["service", "environment"],
+        "valueColumns": ["monthly_cost"]
+      },
+      "drillDown": []
+    }
+  ]
+}

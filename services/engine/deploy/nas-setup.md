@@ -17,6 +17,9 @@
 │   │   │   ├── co-occurrence.json
 │   │   │   └── auto-faqs.json
 │   │   └── {groupId}/
+│   ├── queries/                       # Per-group query catalog (seed; one JSON per group)
+│   │   ├── default.json
+│   │   └── {groupId}.json
 │   ├── indexes/                       # TF-IDF search indexes
 │   │   ├── default/
 │   │   │   ├── tfidf-index.json
@@ -31,7 +34,9 @@
 │   ├── groups.json
 │   ├── settings.json
 │   ├── users.json
-│   └── filter-config.json
+│   ├── filter-config.json
+│   ├── data-roles.json
+│   └── db.json                        # query definitions (DB_JSON_PATH)
 └── training/
     ├── corpus.json
     └── groups/
@@ -48,7 +53,9 @@ net use Z: \\NAS-SERVER\chatbot /persistent:yes /user:DOMAIN\svc_chatbot
 # In .env file:
 DATA_DIR=Z:\data
 CONFIG_DIR=Z:\config
+DB_JSON_PATH=Z:\config\db.json
 TRAINING_DIR=Z:\training
+INSTANCE_ID=engine-server-a            # unique per server
 ```
 
 ## Linux Mount (fstab)
@@ -60,7 +67,9 @@ TRAINING_DIR=Z:\training
 # In .env file:
 DATA_DIR=/mnt/nas/chatbot/data
 CONFIG_DIR=/mnt/nas/chatbot/config
+DB_JSON_PATH=/mnt/nas/chatbot/config/db.json
 TRAINING_DIR=/mnt/nas/chatbot/training
+INSTANCE_ID=engine-server-a            # unique per server
 ```
 
 ## Initial Setup
@@ -69,8 +78,9 @@ TRAINING_DIR=/mnt/nas/chatbot/training
 2. Copy current local data to NAS:
    ```bash
    # From the engine directory on one server
-   cp -r data/* /mnt/nas/chatbot/data/
-   cp src/config/groups.json src/config/settings.json src/config/users.json src/config/filter-config.json /mnt/nas/chatbot/config/
+   cp -r data/* /mnt/nas/chatbot/data/                    # includes data/queries/ (per-group query catalog)
+   cp src/config/*.json /mnt/nas/chatbot/config/          # groups, settings, users, filter-config, data-roles
+   cp ../mock-api/db.json /mnt/nas/chatbot/config/db.json # query definitions
    cp -r src/training/* /mnt/nas/chatbot/training/
    ```
 3. Set permissions (system account must have read+write)
@@ -80,6 +90,7 @@ TRAINING_DIR=/mnt/nas/chatbot/training
 ## Permissions
 
 The system account running the engine service needs:
+
 - **Read + Write** on `data/` (logs, learning, audit)
 - **Read + Write** on `config/` (admin changes settings)
 - **Read + Write** on `training/` (auto-learn modifies corpus)
@@ -87,6 +98,7 @@ The system account running the engine service needs:
 ## Health Check
 
 After starting, verify both instances see the NAS:
+
 ```bash
 curl http://server-a:4001/api/health/ready
 curl http://server-b:4001/api/health/ready
