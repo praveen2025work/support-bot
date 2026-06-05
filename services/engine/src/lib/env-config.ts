@@ -176,7 +176,10 @@ export const paths = {
         `{ queries: Query[] }`. Source of truth for the query catalog
         (list/search/NLP). Execution still hits the data API per query. */
     queriesDir: join(DATA_DIR, "queries"),
-    queries: (groupId: string) => join(DATA_DIR, "queries", `${groupId}.json`),
+    queries: (groupId: string) => {
+      const safe = groupId.replace(/[^a-zA-Z0-9_\-]/g, "_");
+      return join(DATA_DIR, "queries", `${safe}.json`);
+    },
 
     /** Anomaly detection */
     anomalyDir: (groupId: string) => join(DATA_DIR, "anomaly", groupId),
