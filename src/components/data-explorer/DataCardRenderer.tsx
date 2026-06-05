@@ -10,8 +10,14 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
+  Sparkles,
 } from "lucide-react";
-import type { DataCard, DataQueryResponse, DataQuality } from "./types";
+import type {
+  DataAggregateResponse,
+  DataCard,
+  DataQueryResponse,
+  DataQuality,
+} from "./types";
 import { ExplorerDataTable } from "./ExplorerDataTable";
 import { ExplorerKpis } from "./ExplorerKpis";
 // Chart + lineage components are large but the data-explorer page is
@@ -222,6 +228,9 @@ export function DataCardRenderer({
   globalGroupBy,
 }: DataCardRendererProps) {
   const [data, setData] = useState<DataQueryResponse | null>(null);
+  const [aggregate, setAggregate] = useState<DataAggregateResponse | null>(
+    null,
+  );
   const [allRows, setAllRows] = useState<Record<string, string | number>[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -301,6 +310,7 @@ export function DataCardRenderer({
       const filtered = filterRowsLocally(cachedAllRows, activeFilters);
       const headers =
         cachedAllRows.length > 0 ? Object.keys(cachedAllRows[0]) : [];
+      setAggregate(null);
       setData({
         headers,
         rows: filtered,
@@ -320,6 +330,46 @@ export function DataCardRenderer({
     setLoading(true);
     setError(null);
     try {
+      if (card.type === "kpi" || card.type === "summary") {
+        const aggregateColumns =
+          card.type === "kpi" && card.kpiConfig?.column
+            ? [card.kpiConfig.column]
+            : card.summaryConfig?.columns;
+        const aggregateBody: Record<string, unknown> = {
+          queryName: effectiveSource,
+          groupId,
+        };
+        if (Object.keys(activeFilters).length > 0) {
+          aggregateBody.filters = activeFilters;
+        }
+        if (aggregateColumns?.length) {
+          aggregateBody.columns = aggregateColumns;
+        }
+
+        const aggregateRes = await fetch("/api/data/aggregate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(aggregateBody),
+        });
+        if (!aggregateRes.ok) throw new Error(`HTTP ${aggregateRes.status}`);
+        const aggregateResult =
+          (await aggregateRes.json()) as DataAggregateResponse;
+        setAggregate(aggregateResult);
+        setData({
+          headers: Object.keys(aggregateResult.columns),
+          rows: [],
+          totalRows: aggregateResult.totalRows,
+          page: 1,
+          pageSize: 0,
+          totalPages: 1,
+          schema: aggregateResult.schema,
+          durationMs: aggregateResult.durationMs,
+        });
+        setAllRows([]);
+        return;
+      }
+
+      setAggregate(null);
       const body: Record<string, unknown> = {
         queryName: effectiveSource,
         groupId,
@@ -429,6 +479,16 @@ export function DataCardRenderer({
         <span className="text-[9px] text-[var(--text-muted)] uppercase">
           {card.type}
         </span>
+        {card.minedInsight && (
+          <span
+            className="inline-flex items-center text-[var(--brand)]"
+            title={`${card.minedInsight.reason} Confidence: ${Math.round(
+              card.minedInsight.confidence * 100,
+            )}%`}
+          >
+            <Sparkles size={11} />
+          </span>
+        )}
       </div>
       <div className="flex items-center gap-0.5 shrink-0">
         {loading && (
@@ -536,7 +596,9 @@ export function DataCardRenderer({
   switch (card.type) {
     case "kpi": {
       const kpi = card.kpiConfig;
-      if (!kpi || !allRows.length) {
+      const serverMetric = kpi ? aggregate?.columns[kpi.column] : undefined;
+      const hasServerCount = kpi?.operation === "count" && aggregate;
+      if (!kpi || (!serverMetric && !hasServerCount && !allRows.length)) {
         body = loading ? (
           <div className="flex-1 flex items-center justify-center text-[var(--text-muted)] text-xs animate-pulse">
             Loading…
@@ -544,32 +606,55 @@ export function DataCardRenderer({
         ) : null;
         break;
       }
-      const vals = allRows
-        .map((r) => {
-          const v = r[kpi.column];
-          return typeof v === "number" ? v : parseFloat(String(v));
-        })
-        .filter((v) => !isNaN(v));
 
       let result = 0;
-      switch (kpi.operation) {
-        case "sum":
-          result = vals.reduce((a, b) => a + b, 0);
-          break;
-        case "avg":
-          result = vals.length
-            ? vals.reduce((a, b) => a + b, 0) / vals.length
-            : 0;
-          break;
-        case "min":
-          result = vals.length ? Math.min(...vals) : 0;
-          break;
-        case "max":
-          result = vals.length ? Math.max(...vals) : 0;
-          break;
-        case "count":
-          result = allRows.length;
-          break;
+      if (hasServerCount) {
+        result = aggregate.totalRows;
+      } else if (serverMetric) {
+        switch (kpi.operation) {
+          case "sum":
+            result = serverMetric.sum;
+            break;
+          case "avg":
+            result = serverMetric.avg;
+            break;
+          case "min":
+            result = serverMetric.min;
+            break;
+          case "max":
+            result = serverMetric.max;
+            break;
+          case "count":
+            result = aggregate?.totalRows ?? 0;
+            break;
+        }
+      } else {
+        const vals = allRows
+          .map((r) => {
+            const v = r[kpi.column];
+            return typeof v === "number" ? v : parseFloat(String(v));
+          })
+          .filter((v) => !isNaN(v));
+
+        switch (kpi.operation) {
+          case "sum":
+            result = vals.reduce((a, b) => a + b, 0);
+            break;
+          case "avg":
+            result = vals.length
+              ? vals.reduce((a, b) => a + b, 0) / vals.length
+              : 0;
+            break;
+          case "min":
+            result = vals.length ? Math.min(...vals) : 0;
+            break;
+          case "max":
+            result = vals.length ? Math.max(...vals) : 0;
+            break;
+          case "count":
+            result = allRows.length;
+            break;
+        }
       }
 
       const thresholdColor = kpi.thresholds
@@ -935,6 +1020,7 @@ export function DataCardRenderer({
             rows={allRows}
             schema={data?.schema ?? []}
             summaryConfig={card.summaryConfig}
+            aggregate={aggregate}
           />
         </div>
       );

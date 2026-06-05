@@ -63,6 +63,8 @@ services/engine/data/watch/**/alerts.jsonl
 services/engine/data/schema/
 # Shareable view snapshots — runtime user-generated state
 services/engine/data/views/
+# Data Explorer saved dashboards — per-user/group runtime state (file-based DB)
+services/engine/data/data-explorer-views/
 
 # tool artifacts (per-user, not project)
 .playwright-mcp/

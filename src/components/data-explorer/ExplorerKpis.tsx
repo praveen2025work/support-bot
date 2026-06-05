@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { ColumnSchema } from "./types";
+import type { ColumnSchema, DataAggregateResponse } from "./types";
 
 interface SummaryConfig {
   columns?: string[];
@@ -12,15 +12,19 @@ interface ExplorerKpisProps {
   rows: Record<string, string | number>[];
   schema: ColumnSchema[];
   summaryConfig?: SummaryConfig;
+  aggregate?: DataAggregateResponse | null;
 }
 
-export function ExplorerKpis({ rows, schema, summaryConfig }: ExplorerKpisProps) {
+export function ExplorerKpis({
+  rows,
+  schema,
+  summaryConfig,
+  aggregate,
+}: ExplorerKpisProps) {
   const showMinMax = summaryConfig?.showMinMax ?? true;
   const allowedColumns = summaryConfig?.columns;
 
   const kpis = useMemo(() => {
-    if (rows.length === 0) return [];
-
     let numCols = schema.filter(
       (c) =>
         c.type === "numeric" || c.type === "integer" || c.type === "decimal",
@@ -41,26 +45,36 @@ export function ExplorerKpis({ rows, schema, summaryConfig }: ExplorerKpisProps)
     }> = [
       {
         label: "Total Records",
-        value: rows.length.toLocaleString(),
+        value: (aggregate?.totalRows ?? rows.length).toLocaleString(),
         sub: "",
         color: "border-[var(--brand)]",
       },
     ];
 
     for (const col of numCols) {
-      const vals = rows
-        .map((r) => {
-          const v = r[col.name];
-          return typeof v === "number" ? v : parseFloat(String(v));
-        })
-        .filter((v) => !isNaN(v));
+      const serverMetric = aggregate?.columns[col.name];
+      let avg: number;
+      let sub = "";
+      if (serverMetric) {
+        if (serverMetric.count === 0) continue;
+        avg = serverMetric.avg;
+        sub = showMinMax
+          ? `min: ${serverMetric.min.toFixed(1)}, max: ${serverMetric.max.toFixed(1)}`
+          : "";
+      } else {
+        const vals = rows
+          .map((r) => {
+            const v = r[col.name];
+            return typeof v === "number" ? v : parseFloat(String(v));
+          })
+          .filter((v) => !isNaN(v));
 
-      if (vals.length === 0) continue;
-
-      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-      const sub = showMinMax
-        ? `min: ${Math.min(...vals).toFixed(1)}, max: ${Math.max(...vals).toFixed(1)}`
-        : "";
+        if (vals.length === 0) continue;
+        avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+        sub = showMinMax
+          ? `min: ${Math.min(...vals).toFixed(1)}, max: ${Math.max(...vals).toFixed(1)}`
+          : "";
+      }
 
       results.push({
         label: `Avg ${col.name}`,
@@ -71,7 +85,7 @@ export function ExplorerKpis({ rows, schema, summaryConfig }: ExplorerKpisProps)
     }
 
     return results;
-  }, [rows, schema, allowedColumns, showMinMax]);
+  }, [rows, schema, allowedColumns, showMinMax, aggregate]);
 
   if (kpis.length === 0) return null;
 
@@ -89,7 +103,9 @@ export function ExplorerKpis({ rows, schema, summaryConfig }: ExplorerKpisProps)
             {k.value}
           </div>
           {k.sub && (
-            <div className="text-[9px] text-[var(--text-muted)] mt-0.5">{k.sub}</div>
+            <div className="text-[9px] text-[var(--text-muted)] mt-0.5">
+              {k.sub}
+            </div>
           )}
         </div>
       ))}

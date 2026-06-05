@@ -50,6 +50,18 @@ export interface DataQueryResponse {
   insights?: DataInsight[];
 }
 
+export interface DataAggregateResponse {
+  queryName: string;
+  groupId: string;
+  totalRows: number;
+  columns: Record<
+    string,
+    { count: number; sum: number; avg: number; min: number; max: number }
+  >;
+  schema: ColumnSchema[];
+  durationMs: number;
+}
+
 export interface SchemaResponse {
   queryName: string;
   rowCount: number;
@@ -105,6 +117,11 @@ export interface DataCard {
   id: string;
   type: DataCardType;
   label: string;
+  minedInsight?: {
+    confidence: number;
+    reason: string;
+    generatedBy: "engine" | "ui";
+  };
   source?: string; // override global source
   kpiConfig?: {
     column: string;

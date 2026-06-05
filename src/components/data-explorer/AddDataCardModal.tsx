@@ -1,15 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  X,
-  BarChart3,
-  Table2,
-  Layers,
-  Hash,
-  List,
-  ShieldCheck,
-} from "lucide-react";
+import { X, BarChart3, Table2, Hash, List, ShieldCheck } from "lucide-react";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import type {
   DataCard,
@@ -48,12 +40,6 @@ const CARD_TYPES: {
     label: "Data Table",
     icon: <Table2 size={16} />,
     desc: "Sortable paginated table",
-  },
-  {
-    type: "lineage",
-    label: "Lineage Flow",
-    icon: <Layers size={16} />,
-    desc: "PnL lineage flow diagram",
   },
   {
     type: "summary",
@@ -113,10 +99,6 @@ export function AddDataCardModal({
         c.type === "integer" || c.type === "decimal" || c.type === "number",
     ) ?? [];
 
-  const hasLineage =
-    schema?.schema.some((c) => c.name === "NamedPnlName") &&
-    schema?.schema.some((c) => c.name === "MasterBookID");
-
   const handleAdd = () => {
     const id = genId();
     const card: DataCard = {
@@ -157,11 +139,6 @@ export function AddDataCardModal({
         card.tableConfig = { pageSize: tablePageSize };
         card.label = label || "Data Table";
         layout = { i: id, x: 0, y: 100, w: 12, h: 6, minW: 6, minH: 4 };
-        break;
-      case "lineage":
-        card.lineageConfig = {};
-        card.label = label || "Lineage Flow";
-        layout = { i: id, x: 0, y: 100, w: 12, h: 6, minW: 8, minH: 4 };
         break;
       case "summary":
         card.label = label || "Summary Metrics";
@@ -214,25 +191,23 @@ export function AddDataCardModal({
               Card Type
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {CARD_TYPES.filter((t) => t.type !== "lineage" || hasLineage).map(
-                (t) => (
-                  <button
-                    key={t.type}
-                    onClick={() => setCardType(t.type)}
-                    className={`flex items-center gap-2 p-3 rounded-lg border text-left transition-colors ${
-                      cardType === t.type
-                        ? "border-[var(--brand)] bg-[var(--brand-subtle)] text-[var(--brand)]"
-                        : "border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--border)]"
-                    }`}
-                  >
-                    {t.icon}
-                    <div>
-                      <div className="text-xs font-semibold">{t.label}</div>
-                      <div className="text-[10px] opacity-60">{t.desc}</div>
-                    </div>
-                  </button>
-                ),
-              )}
+              {CARD_TYPES.map((t) => (
+                <button
+                  key={t.type}
+                  onClick={() => setCardType(t.type)}
+                  className={`flex items-center gap-2 p-3 rounded-lg border text-left transition-colors ${
+                    cardType === t.type
+                      ? "border-[var(--brand)] bg-[var(--brand-subtle)] text-[var(--brand)]"
+                      : "border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--border)]"
+                  }`}
+                >
+                  {t.icon}
+                  <div>
+                    <div className="text-xs font-semibold">{t.label}</div>
+                    <div className="text-[10px] opacity-60">{t.desc}</div>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
 

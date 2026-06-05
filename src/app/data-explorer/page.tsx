@@ -160,7 +160,11 @@ export default function DataExplorerPage() {
       body: JSON.stringify({ groupId, userName, queryName: name }),
     }).catch(() => {});
   };
-  const dashboard = useDataDashboard(explorer.selectedSource ?? "", groupId);
+  const dashboard = useDataDashboard(
+    explorer.selectedSource ?? "",
+    groupId,
+    userName || "anonymous",
+  );
   const { config: dashboardConfig, initDashboard } = dashboard;
 
   // Initialize dashboard when schema loads
