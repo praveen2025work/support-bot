@@ -124,6 +124,7 @@ async function createAndInitEngine(groupId: string): Promise<ChatbotEngine> {
     apiClient,
     groupConfig.sources,
     groupConfig.queries,
+    groupId,
   );
   const responseGenerator = new ResponseGenerator(
     queryService,

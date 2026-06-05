@@ -46,6 +46,7 @@ export class CatalogService {
     queryAllowlist?: string[],
   ): Promise<CatalogEntry[]> {
     const queries = await this.fetchQueries(
+      groupId,
       apiBaseUrl,
       sources,
       queryAllowlist,
@@ -104,6 +105,7 @@ export class CatalogService {
     queryAllowlist?: string[],
   ): Promise<CatalogDetail | null> {
     const queries = await this.fetchQueries(
+      groupId,
       apiBaseUrl,
       sources,
       queryAllowlist,
@@ -162,12 +164,18 @@ export class CatalogService {
   }
 
   private async fetchQueries(
+    groupId: string,
     apiBaseUrl?: string,
     sources?: string[],
     queryAllowlist?: string[],
   ): Promise<Query[]> {
     const apiClient = new ApiClient(apiBaseUrl);
-    const queryService = new QueryService(apiClient, sources, queryAllowlist);
+    const queryService = new QueryService(
+      apiClient,
+      sources,
+      queryAllowlist,
+      groupId,
+    );
     return queryService.getQueries();
   }
 

@@ -33,6 +33,16 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
+// Stub the file-based query registry so execution tests can seed queries
+// without file I/O. getGroupQueries is called by QueryService.getQueries().
+vi.mock("@/core/catalog/query-registry", () => ({
+  getGroupQueries: vi.fn(() => []),
+  upsertQuery: vi.fn(),
+  deleteQuery: vi.fn(),
+  invalidateQueryRegistry: vi.fn(),
+  rebuildAllGroupFiles: vi.fn(),
+}));
+
 // Force a deterministic apiBaseUrl (no env leakage) and disable apiToken so
 // we don't accidentally assert on a Bearer header that production sets.
 vi.mock("@/lib/config", () => ({
@@ -48,6 +58,8 @@ vi.mock("@/lib/config", () => ({
 
 import { ApiClient } from "../../../core/api-connector/api-client";
 import { QueryService } from "../../../core/api-connector/query-service";
+import { getGroupQueries } from "@/core/catalog/query-registry";
+import type { Query } from "../../../core/api-connector/types";
 import {
   CircuitBreaker,
   CircuitState,
@@ -228,6 +240,11 @@ describe("QueryService — query execution pipeline", () => {
   beforeEach(() => {
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
+    // Seed the file-based registry mock with the test catalog so
+    // QueryService.getQueries() returns the expected queries without HTTP.
+    vi.mocked(getGroupQueries).mockReturnValue(
+      makeQueryCatalog() as unknown as Query[],
+    );
   });
 
   afterEach(() => {
@@ -242,10 +259,7 @@ describe("QueryService — query execution pipeline", () => {
 
   describe("catalog lookup", () => {
     it("getQueries() returns parsed queries from the catalog", async () => {
-      fetchMock.mockResolvedValue(
-        makeMockResponse({ jsonBody: makeQueryCatalog() }),
-      );
-
+      // Catalog is now file-based; no fetch needed.
       const client = new ApiClient("http://test-host/api");
       resetSharedBreaker(client, "http://test-host/api/");
       const service = new QueryService(client);
@@ -257,10 +271,7 @@ describe("QueryService — query execution pipeline", () => {
     });
 
     it("executeQuery throws QueryNotFoundError for unknown query name", async () => {
-      fetchMock.mockResolvedValue(
-        makeMockResponse({ jsonBody: makeQueryCatalog() }),
-      );
-
+      // Catalog is file-based; fetch mock not needed for catalog.
       const client = new ApiClient("http://test-host/api");
       resetSharedBreaker(client, "http://test-host/api/");
       const service = new QueryService(client);
@@ -271,11 +282,8 @@ describe("QueryService — query execution pipeline", () => {
     });
 
     it("query lookup is case-insensitive (executeQuery accepts mixed case)", async () => {
-      // Catalog fetch + execute fetch + (best-effort) recordStat fetch
+      // Execute fetch + (best-effort) recordStat fetch
       fetchMock
-        .mockResolvedValueOnce(
-          makeMockResponse({ jsonBody: makeQueryCatalog() }),
-        )
         .mockResolvedValueOnce(
           makeMockResponse({
             jsonBody: { data: [{ region: "US", amount: 10 }], rowCount: 1 },
@@ -300,9 +308,6 @@ describe("QueryService — query execution pipeline", () => {
   describe("parameter binding", () => {
     it("binds 'body' filters into the JSON request body under filters key", async () => {
       fetchMock
-        .mockResolvedValueOnce(
-          makeMockResponse({ jsonBody: makeQueryCatalog() }),
-        )
         .mockResolvedValueOnce(
           makeMockResponse({
             jsonBody: { data: [], rowCount: 0, executionTime: 0 },
@@ -329,9 +334,6 @@ describe("QueryService — query execution pipeline", () => {
     it("binds 'query_param' filters into the URL query string", async () => {
       fetchMock
         .mockResolvedValueOnce(
-          makeMockResponse({ jsonBody: makeQueryCatalog() }),
-        )
-        .mockResolvedValueOnce(
           makeMockResponse({
             jsonBody: { data: [], rowCount: 0, executionTime: 0 },
           }),
@@ -354,9 +356,6 @@ describe("QueryService — query execution pipeline", () => {
 
     it("substitutes path-bound filters into the URL path (e.g. {userId})", async () => {
       fetchMock
-        .mockResolvedValueOnce(
-          makeMockResponse({ jsonBody: makeQueryCatalog() }),
-        )
         .mockResolvedValueOnce(
           makeMockResponse({
             jsonBody: { data: [{ id: "u-42", name: "Jane" }], rowCount: 1 },
@@ -382,9 +381,6 @@ describe("QueryService — query execution pipeline", () => {
 
     it("URL-encodes path-substituted values that contain special chars", async () => {
       fetchMock
-        .mockResolvedValueOnce(
-          makeMockResponse({ jsonBody: makeQueryCatalog() }),
-        )
         .mockResolvedValueOnce(
           makeMockResponse({ jsonBody: { data: [], rowCount: 0 } }),
         )
@@ -412,9 +408,6 @@ describe("QueryService — query execution pipeline", () => {
   describe("response shape", () => {
     it("normalizes API responses into { data, rowCount, executionTime }", async () => {
       fetchMock
-        .mockResolvedValueOnce(
-          makeMockResponse({ jsonBody: makeQueryCatalog() }),
-        )
         .mockResolvedValueOnce(
           makeMockResponse({
             jsonBody: {
@@ -453,9 +446,6 @@ describe("QueryService — query execution pipeline", () => {
     it("wraps raw arrays into a normalized result", async () => {
       fetchMock
         .mockResolvedValueOnce(
-          makeMockResponse({ jsonBody: makeQueryCatalog() }),
-        )
-        .mockResolvedValueOnce(
           makeMockResponse({
             jsonBody: [
               { id: 1, name: "a" },
@@ -478,16 +468,12 @@ describe("QueryService — query execution pipeline", () => {
     });
 
     it("query-handler produces richContent.type='query_result' with data/rowCount/executionMs", async () => {
-      fetchMock
-        .mockResolvedValueOnce(
-          makeMockResponse({ jsonBody: makeQueryCatalog() }),
-        )
-        // First handleQueryExecute call: catalog refresh + execute + lookup
-        .mockResolvedValue(
-          makeMockResponse({
-            jsonBody: { data: [{ a: 1 }], rowCount: 1, executionTime: 5 },
-          }),
-        );
+      // Catalog is file-based; fetch only needed for the execute call.
+      fetchMock.mockResolvedValue(
+        makeMockResponse({
+          jsonBody: { data: [{ a: 1 }], rowCount: 1, executionTime: 5 },
+        }),
+      );
 
       const client = new ApiClient("http://test-host/api");
       resetSharedBreaker(client, "http://test-host/api/");
@@ -523,18 +509,14 @@ describe("QueryService — query execution pipeline", () => {
 
   describe("error paths", () => {
     it("tenant API 500 → ApiConnectionError (not raw HTTP error)", async () => {
-      fetchMock
-        .mockResolvedValueOnce(
-          makeMockResponse({ jsonBody: makeQueryCatalog() }),
-        )
-        // 5xx is retryable; ApiClient retries 3 times then throws
-        .mockResolvedValue(
-          makeMockResponse({
-            ok: false,
-            status: 500,
-            statusText: "Internal Server Error",
-          }),
-        );
+      // 5xx is retryable; ApiClient retries 3 times then throws
+      fetchMock.mockResolvedValue(
+        makeMockResponse({
+          ok: false,
+          status: 500,
+          statusText: "Internal Server Error",
+        }),
+      );
 
       const client = new ApiClient("http://test-host/api", {
         maxRetries: 0, // skip retries to keep test fast
@@ -553,17 +535,13 @@ describe("QueryService — query execution pipeline", () => {
       // Timeouts in ApiClient happen via AbortSignal.timeout(this.timeoutMs),
       // which causes fetch to reject with an AbortError. We simulate that
       // directly to keep the test deterministic.
-      fetchMock
-        .mockResolvedValueOnce(
-          makeMockResponse({ jsonBody: makeQueryCatalog() }),
-        )
-        .mockImplementation(async () => {
-          const err = new Error("The operation was aborted") as Error & {
-            name: string;
-          };
-          err.name = "AbortError";
-          throw err;
-        });
+      fetchMock.mockImplementation(async () => {
+        const err = new Error("The operation was aborted") as Error & {
+          name: string;
+        };
+        err.name = "AbortError";
+        throw err;
+      });
 
       const client = new ApiClient("http://test-host/api", {
         timeoutMs: 50,
@@ -580,11 +558,7 @@ describe("QueryService — query execution pipeline", () => {
     });
 
     it("malformed JSON in tenant response → ApiConnectionError", async () => {
-      fetchMock
-        .mockResolvedValueOnce(
-          makeMockResponse({ jsonBody: makeQueryCatalog() }),
-        )
-        .mockResolvedValue(makeMockResponse({ malformedJson: true }));
+      fetchMock.mockResolvedValue(makeMockResponse({ malformedJson: true }));
 
       const client = new ApiClient("http://test-host/api", {
         maxRetries: 0,
@@ -646,10 +620,7 @@ describe("QueryService — query execution pipeline", () => {
       // entries, etc.). handleQueryExecute should return an actionable
       // hint pointing to `list queries`, not the generic "try again later"
       // which implies a transient outage.
-      fetchMock.mockResolvedValueOnce(
-        makeMockResponse({ jsonBody: makeQueryCatalog() }),
-      );
-
+      // Catalog is file-based; no fetch mock needed for catalog.
       const client = new ApiClient("http://test-host/api", {
         maxRetries: 0,
         retryBaseDelayMs: 1,
@@ -681,15 +652,11 @@ describe("QueryService — query execution pipeline", () => {
 
   describe("auth pass-through", () => {
     it("authType='windows' forwards Authorization and Cookie headers", async () => {
-      fetchMock
-        .mockResolvedValueOnce(
-          makeMockResponse({ jsonBody: makeQueryCatalog() }),
-        )
-        .mockResolvedValue(
-          makeMockResponse({
-            jsonBody: { data: [{ x: 1 }], rowCount: 1, executionTime: 0 },
-          }),
-        );
+      fetchMock.mockResolvedValue(
+        makeMockResponse({
+          jsonBody: { data: [{ x: 1 }], rowCount: 1, executionTime: 0 },
+        }),
+      );
 
       const client = new ApiClient("http://test-host/api");
       resetSharedBreaker(client, "http://test-host/api/");
@@ -713,11 +680,9 @@ describe("QueryService — query execution pipeline", () => {
     });
 
     it("authType='bam' fetches a token and sets X-BAM-Token on the data request", async () => {
-      // Sequence: catalog → BAM token → data
+      // Sequence: BAM token → data (catalog is now file-based)
       fetchMock.mockImplementation(async (url) => {
         const u = String(url);
-        if (u.includes("/api/queries"))
-          return makeMockResponse({ jsonBody: makeQueryCatalog() });
         if (u.includes("bam.test/token"))
           return makeMockResponse({
             jsonBody: {
@@ -758,21 +723,13 @@ describe("QueryService — query execution pipeline", () => {
 
   describe("api-client cache", () => {
     it("two identical GET requests result in one network call", async () => {
-      // The catalog fetch itself is GET 'queries'. We deliberately use a
-      // separate ApiClient for this test so its cache is empty at start.
-      const responses = new Map<string, MockResponseInit>([
-        ["http://test-host/api/queries", { jsonBody: makeQueryCatalog() }],
-        [
-          "http://test-host/api/cacheable",
-          { jsonBody: { data: [{ k: 1 }], rowCount: 1, executionTime: 0 } },
-        ],
-      ]);
-
+      // Catalog is file-based; only the cacheable data endpoint hits the network.
       fetchMock.mockImplementation(async (url) => {
         const u = String(url);
-        for (const [key, init] of responses) {
-          if (u === key) return makeMockResponse(init);
-        }
+        if (u === "http://test-host/api/cacheable")
+          return makeMockResponse({
+            jsonBody: { data: [{ k: 1 }], rowCount: 1, executionTime: 0 },
+          });
         return makeMockResponse({ jsonBody: {} });
       });
 
@@ -780,7 +737,7 @@ describe("QueryService — query execution pipeline", () => {
       resetSharedBreaker(client, "http://test-host/api/");
       const service = new QueryService(client);
 
-      // First execute: catalog GET + cacheable GET.
+      // First execute: cacheable GET.
       const r1 = await service.executeQuery("cached_query");
       expect(r1.apiResult?.rowCount).toBe(1);
 
@@ -790,11 +747,7 @@ describe("QueryService — query execution pipeline", () => {
       ).length;
       expect(before).toBe(1);
 
-      // Clear catalog cache so executeQuery flow re-runs cleanly. The
-      // cacheable endpoint cache should still have the prior result.
-      // Note: clearCache() clears ALL entries — we instead re-execute and
-      // verify the second call did NOT hit /cacheable again because GET
-      // dedups in the LRUCache.
+      // Second execute: cacheable GET should be served from LRU cache.
       const r2 = await service.executeQuery("cached_query");
       expect(r2.apiResult?.rowCount).toBe(1);
 
@@ -808,8 +761,6 @@ describe("QueryService — query execution pipeline", () => {
     it("clearCache invalidates the cached entry", async () => {
       fetchMock.mockImplementation(async (url) => {
         const u = String(url);
-        if (u === "http://test-host/api/queries")
-          return makeMockResponse({ jsonBody: makeQueryCatalog() });
         if (u === "http://test-host/api/cacheable")
           return makeMockResponse({
             jsonBody: { data: [{ k: 1 }], rowCount: 1, executionTime: 0 },
