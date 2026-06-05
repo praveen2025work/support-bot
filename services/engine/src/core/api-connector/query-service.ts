@@ -23,7 +23,7 @@ import {
   type AggregationResult,
   type GroupByResult,
 } from "./csv-analyzer";
-import filterConfig from "@/config/filter-config.json";
+import { getFilterConfig } from "@/config/filter-config-loader";
 import type { Query, QueryResult, QueryFilters, FilterBinding } from "./types";
 import { joinDatasets, prefixColumns, extractDataArray } from "./join-engine";
 
@@ -542,7 +542,7 @@ export class QueryService {
   }
 
   private getDateFormat(): string {
-    const cfg = (filterConfig as Record<string, unknown>).filters as
+    const cfg = (getFilterConfig() as Record<string, unknown>).filters as
       | Record<string, Record<string, unknown>>
       | undefined;
     const dateRangeCfg = cfg?.date_range;
