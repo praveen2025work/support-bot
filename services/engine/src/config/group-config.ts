@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { paths } from "@/lib/env-config";
 import groupsData from "./groups.json";
 
@@ -46,4 +46,28 @@ export function reloadGroupConfig(): void {
   const filePath = paths.config.groups;
   const raw = JSON.parse(readFileSync(filePath, "utf-8"));
   parsed = GroupsFileSchema.parse(raw);
+}
+
+/**
+ * Seed the in-memory group config from the runtime CONFIG_DIR file at startup.
+ *
+ * `parsed` is initialized from the build-time *bundled* groups.json (esbuild
+ * inlines the static import above). In production CONFIG_DIR is a persistent
+ * volume whose groups.json holds the groups created/edited via the admin UI.
+ * Without this call, every restart silently reverts reads to the stale bundled
+ * snapshot, so volume-only groups vanish from the list and 404 on GET /:id
+ * ("Group not found") even though writes still target the volume file.
+ *
+ * Resilient by design: if the volume file is missing (first boot) or
+ * unparseable, keep the bundled defaults instead of crashing the engine.
+ * Call once during server startup, before accepting requests.
+ */
+export function initGroupConfig(): void {
+  const filePath = paths.config.groups;
+  if (!existsSync(filePath)) return;
+  try {
+    reloadGroupConfig();
+  } catch {
+    // Corrupt/partial volume file — keep the last good in-memory config.
+  }
 }
