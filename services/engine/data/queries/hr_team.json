@@ -1,0 +1,88 @@
+{
+  "queries": [
+    {
+      "id": "q8",
+      "name": "headcount",
+      "description": "Current headcount by department and location",
+      "estimatedDuration": 2000,
+      "url": "https://confluence.example.com/wiki/hr/headcount-reporting",
+      "source": "hr",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        },
+        {
+          "key": "team",
+          "binding": "query_param"
+        }
+      ],
+      "type": "api",
+      "endpoint": "/hr/headcount",
+      "authType": "none",
+      "drillDown": [
+        {
+          "sourceColumn": "team",
+          "targetQuery": "hiring_pipeline",
+          "targetFilter": "team",
+          "label": "View Hiring Pipeline"
+        }
+      ]
+    },
+    {
+      "id": "q18",
+      "name": "employee_metrics",
+      "description": "Employee data with department, salary, performance, and tenure",
+      "estimatedDuration": 0,
+      "url": "https://confluence.example.com/wiki/hr/employee-metrics-data-dictionary",
+      "source": "hr",
+      "filters": [],
+      "type": "csv",
+      "filePath": "data/employee-metrics.csv",
+      "authType": "none"
+    },
+    {
+      "id": "q22",
+      "name": "employee_compensation",
+      "description": "Employee compensation data with salary, bonus, and ratings by department",
+      "estimatedDuration": 0,
+      "source": "hr_team",
+      "filters": [],
+      "type": "xlsx",
+      "filePath": "data/employee-compensation.xlsx",
+      "endpoint": "",
+      "baseUrl": "",
+      "authType": "none",
+      "bamTokenUrl": "",
+      "columnConfig": {
+        "dateColumns": ["start_date"]
+      }
+    },
+    {
+      "id": "q94",
+      "name": "hiring_pipeline",
+      "description": "Current hiring pipeline stages by role (applicants → offers)",
+      "estimatedDuration": 2200,
+      "url": "https://confluence.example.com/wiki/hr/hiring-pipeline",
+      "source": "hr",
+      "filters": [],
+      "type": "api",
+      "filePath": "",
+      "endpoint": "/hr/hiring/pipeline",
+      "baseUrl": "",
+      "authType": "none",
+      "bamTokenUrl": "",
+      "chartConfig": {
+        "defaultType": "bar",
+        "labelKey": "role",
+        "valueKeys": ["applicants", "screened", "interviewed", "offers"],
+        "showLegend": true
+      },
+      "columnConfig": {
+        "labelColumns": ["role"],
+        "valueColumns": ["applicants", "screened", "interviewed", "offers"]
+      },
+      "drillDown": []
+    }
+  ]
+}

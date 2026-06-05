@@ -1,0 +1,63 @@
+{
+  "queries": [
+    {
+      "id": "q2",
+      "name": "active_users",
+      "description": "Daily and monthly active user counts with retention metrics",
+      "estimatedDuration": 1500,
+      "url": "https://confluence.example.com/wiki/analytics/active-users-metrics",
+      "source": "analytics",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "query_param"
+        }
+      ],
+      "type": "api",
+      "endpoint": "/analytics/users/active",
+      "authType": "none",
+      "chartConfig": {
+        "defaultType": "area",
+        "labelKey": "date",
+        "valueKeys": ["dau", "mau"],
+        "showLegend": true
+      }
+    },
+    {
+      "id": "q6",
+      "name": "customer_churn",
+      "description": "Customer churn rate analysis with cohort breakdown",
+      "estimatedDuration": 4500,
+      "url": "https://confluence.example.com/wiki/analytics/customer-churn-analysis",
+      "source": "analytics",
+      "filters": [
+        {
+          "key": "date_range",
+          "binding": "body"
+        }
+      ],
+      "type": "api",
+      "endpoint": "/analytics/churn",
+      "authType": "none"
+    },
+    {
+      "id": "q17",
+      "name": "support_tickets",
+      "description": "Support ticket data with priority, status, and resolution times",
+      "estimatedDuration": 0,
+      "url": "https://confluence.example.com/wiki/analytics/support-tickets-guide",
+      "source": "analytics",
+      "filters": [],
+      "type": "csv",
+      "filePath": "data/support-tickets.csv",
+      "endpoint": "",
+      "baseUrl": "",
+      "authType": "none",
+      "bamTokenUrl": "",
+      "columnConfig": {
+        "idColumns": ["ticket_id"],
+        "dateColumns": ["created_date", "resolved_date"]
+      }
+    }
+  ]
+}

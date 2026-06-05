@@ -117,29 +117,25 @@ share one source of truth.
 
 ```bash
 VOL=/mnt/nas/chatbot                       # your shared volume root
-mkdir -p "$VOL"/{config,data,training}
+mkdir -p "$VOL"/{config,data/queries,training}
 cp services/engine/src/config/*.json   "$VOL/config/"
 cp services/mock-api/db.json           "$VOL/config/db.json"
+cp services/engine/data/queries/*.json "$VOL/data/queries/"   # pre-generated, shipped in repo
 cp -r services/engine/src/training/*   "$VOL/training/"     # if used
 ```
 
-### Generate the per-group query files (one time)
+### Per-group query files (shipped as seed — no script to run)
 
-The query catalog is served from `DATA_DIR/queries/<group>.json`, derived from
-`db.json` + `groups.json`. Generate them once against the volume:
+The query catalog is served from `DATA_DIR/queries/<group>.json`. These files
+are **committed in the repo** at `services/engine/data/queries/*.json`
+(pre-generated from `db.json` + `groups.json`), so they are copied with the rest
+of the seed above — **there is no migration step to run at deploy time.** Once
+the engine is running, admin query edits keep them in sync automatically.
 
-```bash
-cd services/engine
-CONFIG_DIR=$VOL/config DATA_DIR=$VOL/data DB_JSON_PATH=$VOL/config/db.json \
-  npx tsx src/scripts/migrate-queries-to-per-group.ts
-# → "Wrote per-group query files for N group(s): ..."
-```
-
-> The script uses `tsx` (a dev dependency). Run it from the engine build
-> image / CI / a one-off maintenance job (or a Kubernetes init job) where
-> `devDependencies` are installed, targeting the mounted volume. Admin query
-> edits made through the UI keep these files in sync automatically; only re-run
-> the script if you edit `db.json` directly.
+> Optional: `services/engine/src/scripts/migrate-queries-to-per-group.ts`
+> regenerates these files. You only need it if you change `db.json` or
+> `groups.json` **directly in the repo** (not via the admin UI); run it with
+> `npx tsx` where `devDependencies` are installed.
 
 ### Migrating from an existing deployment (source → destination)
 
@@ -160,12 +156,12 @@ them (admin edits are written back to those same paths).
 | Saved GridBoard views                        | `…/data/gridboard-views/*.json`                                        | `$DATA_DIR/gridboard-views/` |
 | Uploaded knowledge docs                      | `…/data/knowledge/`                                                    | `$DATA_DIR/knowledge/`       |
 
-**2. Generate — do NOT copy; produce on the volume:**
+**2. Provided as seed / built automatically — no script to run:**
 
-| What                                           | How                                                                                                 |
-| ---------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Per-group query files (`queries/<group>.json`) | run the migration script (previous step)                                                            |
-| Search indexes (`indexes/…`)                   | rebuilt from corpus/knowledge on engine init; copy `…/data/indexes/` only to skip the first rebuild |
+| What                                           | How                                                                                                                                   |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Per-group query files (`queries/<group>.json`) | shipped as seed — copy from `services/engine/data/queries/` (above); admin edits keep them in sync. No script.                        |
+| Search indexes (`indexes/…`)                   | built from corpus/knowledge automatically on engine init (NLP train). No script. Copy `…/data/indexes/` only to skip the first build. |
 
 **3. Leave as-is — transactional runtime state. Do NOT copy; the engine
 recreates it. Copy only if you specifically want to preserve history:**
