@@ -33,6 +33,7 @@ queriesRouter.get("/queries/preview", async (req: Request, res: Response) => {
       apiClient,
       groupConfig.sources,
       groupConfig.queries,
+      groupId,
     );
     const result = await queryService.executeQuery(queryName);
 
@@ -70,6 +71,7 @@ queriesRouter.get("/queries", async (req: Request, res: Response) => {
       apiClient,
       groupConfig.sources,
       groupConfig.queries,
+      groupId,
     );
     const queries = await queryService.getQueries();
 
@@ -138,6 +140,7 @@ queriesRouter.get("/queries/search", async (req: Request, res: Response) => {
       apiClient,
       groupConfig.sources,
       groupConfig.queries,
+      groupId,
     );
 
     const queries = await queryService.getQueries();
