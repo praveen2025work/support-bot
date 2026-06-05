@@ -1,11 +1,12 @@
 import { Router, Request, Response } from "express";
-import { promises as fsPromises } from "fs";
+import { promises as fsPromises, readFileSync } from "fs";
 import { logger } from "@/lib/logger";
 import { logAudit } from "@/lib/audit-logger";
 import { requirePermission } from "@/middleware/rbac";
 import { paths } from "@/lib/env-config";
 import { clearQueryCaches, invalidateQueryData } from "@/lib/singleton";
 import { config } from "@/lib/config";
+import { rebuildAllGroupFiles } from "@/core/catalog/query-registry";
 
 const router = Router();
 
@@ -31,6 +32,22 @@ async function reloadMockApi(): Promise<void> {
     logger.info("Mock API db.json reloaded");
   } catch {
     // Mock API may not be running (production) — non-critical
+  }
+}
+
+/**
+ * Keep the per-group query files (the read source of truth) consistent with
+ * db.json after an admin write. Bridge until the full per-group write path
+ * (Plan 2) makes db.json unnecessary.
+ */
+function syncGroupQueryFiles(db: Record<string, unknown>): void {
+  try {
+    const groupsFile = JSON.parse(
+      readFileSync(paths.config.groups, "utf-8"),
+    ) as { groups: Record<string, { sources?: string[]; queries?: string[] }> };
+    rebuildAllGroupFiles((db.queries as unknown[]) ?? [], groupsFile.groups);
+  } catch (error) {
+    logger.error({ error }, "Failed to sync per-group query files");
   }
 }
 
@@ -139,6 +156,7 @@ router.post(
         queries[existingIdx] = updated;
         db.queries = queries;
         await writeDb(db);
+        syncGroupQueryFiles(db);
         invalidateQueryData();
         await reloadMockApi();
         await logAudit({
@@ -159,6 +177,7 @@ router.post(
       queries.push(newQuery);
       db.queries = queries;
       await writeDb(db);
+      syncGroupQueryFiles(db);
       invalidateQueryData();
       await reloadMockApi();
       await logAudit({
@@ -199,6 +218,7 @@ router.patch(
       queries[idx] = query;
       db.queries = queries;
       await writeDb(db);
+      syncGroupQueryFiles(db);
       invalidateQueryData();
       await reloadMockApi();
       await logAudit({
@@ -231,6 +251,7 @@ router.delete(
       queries.splice(idx, 1);
       db.queries = queries;
       await writeDb(db);
+      syncGroupQueryFiles(db);
       invalidateQueryData();
       await reloadMockApi();
       await logAudit({
