@@ -113,6 +113,7 @@ share one source of truth.
 | ------------------------------------------------------- | ------------------------------------------------------- |
 | `services/engine/src/config/*.json`                     | `$CONFIG_DIR/`                                          |
 | `services/mock-api/db.json`                             | `$DB_JSON_PATH`                                         |
+| `services/engine/data/queries/*.json`                   | `$DATA_DIR/queries/` (pre-generated, shipped in repo)   |
 | `services/engine/src/training/` (corpus/faq, `groups/`) | `$TRAINING_DIR/` (only if you use per-group corpus/FAQ) |
 
 ```bash
