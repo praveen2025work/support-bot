@@ -69,4 +69,87 @@ describe("query-registry", () => {
       "errors",
     ]);
   });
+
+  it("saveQuery assigns a fresh q<N> id to a new query", async () => {
+    const reg = await import("@/core/catalog/query-registry");
+    const q = reg.saveQuery("finance", {
+      name: "revenue",
+      source: "finance",
+      type: "api",
+      endpoint: "/revenue",
+    });
+    expect(q.id).toBe("q1");
+    expect(reg.getGroupQueries("finance").map((x) => x.name)).toEqual([
+      "revenue",
+    ]);
+  });
+
+  it("saveQuery increments ids for new names and upserts by name (preserving id)", async () => {
+    const reg = await import("@/core/catalog/query-registry");
+    reg.saveQuery("finance", {
+      name: "revenue",
+      source: "finance",
+      type: "api",
+      endpoint: "/revenue",
+    });
+    const second = reg.saveQuery("finance", {
+      name: "costs",
+      source: "finance",
+      type: "api",
+      endpoint: "/costs",
+    });
+    expect(second.id).toBe("q2");
+    // same name -> upsert: keeps id "q1", updates the field, no new row
+    const upd = reg.saveQuery("finance", {
+      name: "revenue",
+      description: "Total revenue",
+      type: "api",
+      endpoint: "/revenue",
+    });
+    expect(upd.id).toBe("q1");
+    expect(upd.description).toBe("Total revenue");
+    expect(reg.getGroupQueries("finance")).toHaveLength(2);
+  });
+
+  it("updateGroupQuery updates by id and returns null for an unknown id", async () => {
+    const reg = await import("@/core/catalog/query-registry");
+    const created = reg.saveQuery("finance", {
+      name: "revenue",
+      source: "finance",
+      type: "api",
+      endpoint: "/revenue",
+    });
+    const updated = reg.updateGroupQuery("finance", created.id, {
+      description: "x",
+    });
+    expect(updated?.description).toBe("x");
+    expect(
+      reg.updateGroupQuery("finance", "does-not-exist", { description: "y" }),
+    ).toBeNull();
+  });
+
+  it("getAllQueries merges queries across configured groups with a groupId", async () => {
+    const reg = await import("@/core/catalog/query-registry");
+    // "default" is always a configured group (bundled groups.json)
+    reg.saveQuery("default", {
+      name: "revenue",
+      source: "finance",
+      type: "api",
+      endpoint: "/revenue",
+    });
+    const mine = reg.getAllQueries().find((q) => q.name === "revenue");
+    expect(mine?.groupId).toBe("default");
+  });
+
+  it("save/get works with no db.json anywhere (file-based, env-agnostic)", async () => {
+    const reg = await import("@/core/catalog/query-registry");
+    expect(() =>
+      reg.saveQuery("default", {
+        name: "q",
+        source: "s",
+        type: "api",
+        endpoint: "/q",
+      }),
+    ).not.toThrow();
+  });
 });

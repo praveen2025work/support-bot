@@ -1,84 +1,73 @@
 import { Router, Request, Response } from "express";
-import { promises as fsPromises, readFileSync } from "fs";
-import { randomBytes } from "crypto";
 import { logger } from "@/lib/logger";
 import { logAudit } from "@/lib/audit-logger";
 import { requirePermission } from "@/middleware/rbac";
 import { paths } from "@/lib/env-config";
 import { invalidateQueryData } from "@/lib/singleton";
-import { config } from "@/lib/config";
-import { rebuildAllGroupFiles } from "@/core/catalog/query-registry";
+import {
+  getGroupQueries,
+  getAllQueries,
+  saveQuery,
+  updateGroupQuery,
+  deleteQuery,
+  invalidateQueryRegistry,
+} from "@/core/catalog/query-registry";
 import { withFileLock } from "@/lib/file-lock";
 
 const router = Router();
 
-const DB_JSON_PATH = paths.mockApi.dbJson;
+/**
+ * Per-group query CRUD backed by the file-based per-group store
+ * (DATA_DIR/queries/<group>.json) — the single source of truth for query
+ * definitions. No db.json: the mock-api fixture is data-only, so this works
+ * identically in dev/uat/demo/prod. The UI proxies here; the engine is the
+ * single writer.
+ */
 
-async function readDb(): Promise<Record<string, unknown>> {
-  const raw = await fsPromises.readFile(DB_JSON_PATH, "utf-8");
-  return JSON.parse(raw);
-}
-
-// Atomic write (temp + rename) so a concurrent reader never sees a partially
-// written db.json. The temp name carries a random suffix because process.pid is
-// not unique across PID-namespaced containers sharing a volume.
-async function writeDb(data: Record<string, unknown>): Promise<void> {
-  const tmp = `${DB_JSON_PATH}.tmp.${process.pid}.${randomBytes(4).toString("hex")}`;
-  await fsPromises.writeFile(tmp, JSON.stringify(data, null, 2), "utf-8");
-  await fsPromises.rename(tmp, DB_JSON_PATH);
-}
-
-/** Tell the Mock API (json-server) to reload db.json from disk into memory. */
-async function reloadMockApi(): Promise<void> {
-  try {
-    const mockApiUrl = config.apiBaseUrl.replace(/\/api\/?$/, "");
-    await fetch(`${mockApiUrl}/api/reload`, { method: "POST" });
-    logger.info("Mock API db.json reloaded");
-  } catch {
-    // Mock API may not be running (production) — non-critical
-  }
+/**
+ * Serialize read-modify-write on a group's query file so two concurrent admin
+ * writes can't lose an update. Lock is keyed on the group's file path.
+ */
+function withGroupLock<T>(groupId: string, fn: () => Promise<T>): Promise<T> {
+  return withFileLock(paths.data.queries(groupId), fn);
 }
 
 /**
- * Keep the per-group query files (the read source of truth) consistent with
- * db.json after an admin write. Bridge until the full per-group write path
- * (Plan 2) makes db.json unnecessary.
+ * Group ids address per-group files; constrain to the safe charset at the
+ * boundary so a raw value never reaches a path, cache key, or audit log.
  */
-function syncGroupQueryFiles(db: Record<string, unknown>): void {
-  try {
-    const groupsFile = JSON.parse(
-      readFileSync(paths.config.groups, "utf-8"),
-    ) as { groups: Record<string, { sources?: string[]; queries?: string[] }> };
-    rebuildAllGroupFiles((db.queries as unknown[]) ?? [], groupsFile.groups);
-  } catch (error) {
-    logger.error({ error }, "Failed to sync per-group query files");
+function sanitizeGroupId(raw: unknown): string | null {
+  if (!raw || typeof raw !== "string") return null;
+  const clean = raw.replace(/[^a-zA-Z0-9_\-]/g, "_");
+  return clean.length > 0 ? clean : null;
+}
+
+/** Resolve a sanitized groupId from query string or body; 400s when absent. */
+function requireGroupId(req: Request, res: Response): string | null {
+  const groupId = sanitizeGroupId(
+    (req.query.groupId as string | undefined) ?? req.body?.groupId,
+  );
+  if (!groupId) {
+    res.status(400).json({ error: "groupId is required" });
+    return null;
   }
+  return groupId;
 }
 
-/**
- * Serialize a db.json read-modify-write across engine instances sharing a
- * volume. Without this, two replicas can both read db.json, both mutate, and
- * the second write silently drops the first (lost update). The advisory lock
- * (mkdir-based, NFS/SMB-safe, auto-breaks after 30s) admits one writer at a
- * time; the per-group regen runs inside it so it always reflects the committed
- * db.json. Reads (GET) need no lock — writeDb is atomic, so a reader sees the
- * old or new file, never a partial one.
- */
-function withDbLock<T>(fn: () => Promise<T>): Promise<T> {
-  return withFileLock(DB_JSON_PATH, fn);
-}
-
+// GET /?groupId=&source= — list a group's queries (or all groups' when no id)
 router.get(
   "/",
   requirePermission("queries.read"),
-  async (req: Request, res: Response) => {
+  (req: Request, res: Response) => {
     try {
+      const groupId = sanitizeGroupId(req.query.groupId) ?? undefined;
       const source = req.query.source as string | undefined;
-      const db = await readDb();
-      let queries = (db.queries || []) as Array<Record<string, unknown>>;
+      let queries: Array<{ source?: string }> = groupId
+        ? getGroupQueries(groupId)
+        : getAllQueries();
       if (source) {
         const sources = source.split(",").map((s) => s.trim());
-        queries = queries.filter((q) => sources.includes(q.source as string));
+        queries = queries.filter((q) => q.source && sources.includes(q.source));
       }
       return res.json({ queries });
     } catch (error) {
@@ -88,125 +77,68 @@ router.get(
   },
 );
 
+// POST / — create (or update-by-name) a query within a group
 router.post(
   "/",
   requirePermission("queries.create"),
   async (req: Request, res: Response) => {
+    const groupId = requireGroupId(req, res);
+    if (!groupId) return;
     try {
-      return await withDbLock(async () => {
-        const body = req.body;
-        const {
-          name,
-          description,
-          tags,
-          owner,
-          source,
-          url,
-          filters,
-          estimatedDuration,
-        } = body;
-        const queryType = body.type || "api";
-        if (!name) return res.status(400).json({ error: "name is required" });
-        if (queryType !== "combined" && !source)
-          return res.status(400).json({ error: "source is required" });
+      // Client-supplied id is ignored on create — the store assigns it.
+      const { groupId: _gid, id: _id, ...input } = req.body ?? {};
+      void _gid;
+      void _id;
+      if (!input.name)
+        return res.status(400).json({ error: "name is required" });
 
-        const db = await readDb();
-        const queries = (db.queries || []) as Array<Record<string, unknown>>;
-
-        if (queryType === "url" && !url)
-          return res
-            .status(400)
-            .json({ error: "URL-type queries require a url" });
-        if ((queryType === "document" || queryType === "csv") && !body.filePath)
-          return res
-            .status(400)
-            .json({ error: "Document/CSV-type queries require a filePath" });
-        if (queryType === "api" && !body.endpoint)
-          return res
-            .status(400)
-            .json({ error: "API-type queries require an endpoint" });
-        if (
-          queryType === "combined" &&
-          (!body.combinedConfig ||
-            !body.combinedConfig.subQueries ||
-            body.combinedConfig.subQueries.length < 2)
-        ) {
-          return res.status(400).json({
-            error:
-              "Combined queries require at least 2 sub-queries in combinedConfig",
-          });
-        }
-
-        // Build the full query record with all optional fields
-        const baseRecord: Record<string, unknown> = {
-          name,
-          description: description || "",
-          tags: tags || [],
-          owner: owner || "",
-          estimatedDuration: estimatedDuration || 2000,
-          url: url || "",
-          source: source || "",
-          filters: filters || [],
-          type: queryType,
-          filePath: body.filePath || "",
-          endpoint: body.endpoint || "",
-        };
-        // Preserve optional fields (baseUrl, method, columnConfig, chartConfig, authType, etc.)
-        for (const key of [
-          "baseUrl",
-          "method",
-          "authType",
-          "bamTokenUrl",
-          "columnConfig",
-          "chartConfig",
-          "drillDown",
-          "combinedConfig",
-          "fileBaseDir",
-        ]) {
-          if (body[key] !== undefined) baseRecord[key] = body[key];
-        }
-
-        // Upsert: if query with same name exists, update it; otherwise create new
-        const existingIdx = queries.findIndex((q) => q.name === name);
-        if (existingIdx !== -1) {
-          const existing = queries[existingIdx];
-          const updated = { ...existing, ...baseRecord };
-          queries[existingIdx] = updated;
-          db.queries = queries;
-          await writeDb(db);
-          syncGroupQueryFiles(db);
-          invalidateQueryData();
-          await reloadMockApi();
-          await logAudit({
-            action: "update",
-            resource: "query",
-            resourceId: existing.id as string,
-            details: { name, source, type: queryType },
-            ip: req.ip,
-          });
-          return res.json(updated);
-        }
-
-        const maxNum = queries
-          .map((q) => parseInt((q.id as string).replace("q", ""), 10))
-          .filter((n) => !isNaN(n))
-          .reduce((max, n) => Math.max(max, n), 0);
-        const newQuery = { id: `q${maxNum + 1}`, ...baseRecord };
-        queries.push(newQuery);
-        db.queries = queries;
-        await writeDb(db);
-        syncGroupQueryFiles(db);
-        invalidateQueryData();
-        await reloadMockApi();
-        await logAudit({
-          action: "create",
-          resource: "query",
-          resourceId: newQuery.id as string,
-          details: { name, source, type: queryType },
-          ip: req.ip,
+      const queryType = input.type || "api";
+      if (queryType === "url" && !input.url)
+        return res
+          .status(400)
+          .json({ error: "URL-type queries require a url" });
+      if (
+        (queryType === "document" ||
+          queryType === "csv" ||
+          queryType === "xlsx") &&
+        !input.filePath
+      )
+        return res
+          .status(400)
+          .json({ error: "Document/CSV/XLSX-type queries require a filePath" });
+      if (queryType === "api" && !input.endpoint)
+        return res
+          .status(400)
+          .json({ error: "API-type queries require an endpoint" });
+      const combinedConfig = input.combinedConfig as
+        | { subQueries?: unknown[] }
+        | undefined;
+      if (
+        queryType === "combined" &&
+        (!combinedConfig?.subQueries || combinedConfig.subQueries.length < 2)
+      )
+        return res.status(400).json({
+          error:
+            "Combined queries require at least 2 sub-queries in combinedConfig",
         });
-        return res.status(201).json(newQuery);
+
+      // Distinguish create (201) from name-based upsert (200), inside the lock.
+      const { saved, created } = await withGroupLock(groupId, async () => {
+        const existed = getGroupQueries(groupId).some(
+          (q) => q.name === input.name,
+        );
+        return { saved: saveQuery(groupId, input), created: !existed };
       });
+      invalidateQueryRegistry(groupId);
+      invalidateQueryData();
+      await logAudit({
+        action: created ? "create" : "update",
+        resource: "query",
+        resourceId: saved.id,
+        details: { name: saved.name, groupId, type: saved.type },
+        ip: req.ip,
+      });
+      return res.status(created ? 201 : 200).json(saved);
     } catch (error) {
       logger.error({ error }, "Failed to create query");
       return res.status(500).json({ error: "Failed to create query" });
@@ -214,43 +146,31 @@ router.post(
   },
 );
 
+// PATCH / — update a query (by id) within a group
 router.patch(
   "/",
   requirePermission("queries.update"),
   async (req: Request, res: Response) => {
+    const groupId = requireGroupId(req, res);
+    if (!groupId) return;
     try {
-      return await withDbLock(async () => {
-        const { id, ...updates } = req.body;
-        if (!id) return res.status(400).json({ error: "id is required" });
-        const db = await readDb();
-        const queries = (db.queries || []) as Array<Record<string, unknown>>;
-        const idx = queries.findIndex((q) => q.id === id);
-        if (idx === -1)
-          return res.status(404).json({ error: "Query not found" });
-
-        const query = queries[idx];
-        for (const [k, v] of Object.entries(updates)) {
-          query[k] = v;
-        }
-        if (req.body.description !== undefined)
-          query.description = req.body.description;
-        if (req.body.tags !== undefined) query.tags = req.body.tags;
-        if (req.body.owner !== undefined) query.owner = req.body.owner;
-        queries[idx] = query;
-        db.queries = queries;
-        await writeDb(db);
-        syncGroupQueryFiles(db);
-        invalidateQueryData();
-        await reloadMockApi();
-        await logAudit({
-          action: "update",
-          resource: "query",
-          resourceId: id,
-          details: updates,
-          ip: req.ip,
-        });
-        return res.json(query);
+      const { id, groupId: _gid, ...updates } = req.body ?? {};
+      void _gid;
+      if (!id) return res.status(400).json({ error: "id is required" });
+      const updated = await withGroupLock(groupId, async () =>
+        updateGroupQuery(groupId, id, updates),
+      );
+      if (!updated) return res.status(404).json({ error: "Query not found" });
+      invalidateQueryRegistry(groupId);
+      invalidateQueryData();
+      await logAudit({
+        action: "update",
+        resource: "query",
+        resourceId: id,
+        details: { groupId },
+        ip: req.ip,
       });
+      return res.json(updated);
     } catch (error) {
       logger.error({ error }, "Failed to update query");
       return res.status(500).json({ error: "Failed to update query" });
@@ -258,34 +178,31 @@ router.patch(
   },
 );
 
+// DELETE /?groupId=&id= — remove a query (by id) within a group
 router.delete(
   "/",
   requirePermission("queries.delete"),
   async (req: Request, res: Response) => {
+    const groupId = requireGroupId(req, res);
+    if (!groupId) return;
     try {
-      return await withDbLock(async () => {
-        const id = req.query.id as string;
-        if (!id)
-          return res.status(400).json({ error: "id query param is required" });
-        const db = await readDb();
-        const queries = (db.queries || []) as Array<Record<string, unknown>>;
-        const idx = queries.findIndex((q) => q.id === id);
-        if (idx === -1)
-          return res.status(404).json({ error: "Query not found" });
-        queries.splice(idx, 1);
-        db.queries = queries;
-        await writeDb(db);
-        syncGroupQueryFiles(db);
-        invalidateQueryData();
-        await reloadMockApi();
-        await logAudit({
-          action: "delete",
-          resource: "query",
-          resourceId: id,
-          ip: req.ip,
-        });
-        return res.json({ success: true, deletedQueryId: id });
+      const id = req.query.id as string;
+      if (!id)
+        return res.status(400).json({ error: "id query param is required" });
+      const removed = await withGroupLock(groupId, async () =>
+        deleteQuery(groupId, id),
+      );
+      if (!removed) return res.status(404).json({ error: "Query not found" });
+      invalidateQueryRegistry(groupId);
+      invalidateQueryData();
+      await logAudit({
+        action: "delete",
+        resource: "query",
+        resourceId: id,
+        details: { groupId },
+        ip: req.ip,
       });
+      return res.json({ success: true, deletedQueryId: id });
     } catch (error) {
       logger.error({ error }, "Failed to delete query");
       return res.status(500).json({ error: "Failed to delete query" });
@@ -293,8 +210,9 @@ router.delete(
   },
 );
 
-// POST /cache/clear — clear the in-memory query cache (called by Next.js after db.json writes)
+// POST /cache/clear — clear the in-memory query caches (called after writes)
 router.post("/cache/clear", (_req: Request, res: Response) => {
+  invalidateQueryRegistry();
   invalidateQueryData();
   logger.info("Query caches cleared and engines invalidated via admin API");
   return res.json({ success: true });

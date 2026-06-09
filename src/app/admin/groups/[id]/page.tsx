@@ -845,7 +845,7 @@ export default function GroupDetailPage() {
         const res = await fetch("/api/admin/queries", {
           method: "PATCH",
           headers: { "Content-Type": "application/json", ...csrfHeaders() },
-          body: JSON.stringify({ id: editingQueryId, ...payload }),
+          body: JSON.stringify({ id: editingQueryId, groupId: id, ...payload }),
         });
         if (!res.ok) {
           const data = await res.json();
@@ -856,7 +856,7 @@ export default function GroupDetailPage() {
         const res = await fetch("/api/admin/queries", {
           method: "POST",
           headers: { "Content-Type": "application/json", ...csrfHeaders() },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ ...payload, groupId: id }),
         });
         if (!res.ok) {
           const data = await res.json();
@@ -887,10 +887,13 @@ export default function GroupDetailPage() {
 
   const handleDeleteQuery = async (queryId: string) => {
     try {
-      const res = await fetch(`/api/admin/queries?id=${queryId}`, {
-        method: "DELETE",
-        headers: { ...csrfHeaders() },
-      });
+      const res = await fetch(
+        `/api/admin/queries?id=${queryId}&groupId=${id}`,
+        {
+          method: "DELETE",
+          headers: { ...csrfHeaders() },
+        },
+      );
       if (res.ok && group) {
         await fetchQueries(group.sources);
         if (selectedQueryId === queryId) {

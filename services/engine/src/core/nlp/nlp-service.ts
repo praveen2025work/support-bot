@@ -12,6 +12,7 @@ import { correctTypos, addToDictionary } from "./typo-corrector";
 import { PatternMatcher } from "./pattern-matcher";
 import { TfIdfIntentScorer } from "./tfidf-intent-scorer";
 import { readTrainingJson } from "./training-files";
+import { getGroupQueries } from "@/core/catalog/query-registry";
 import type {
   ClassificationResult,
   DisambiguationCandidate,
@@ -48,8 +49,6 @@ export class NlpService {
   private initialized = false;
   private corpusFile: string | null;
   private cachedOverlaps: IntentOverlap[] = [];
-  private sources: string[];
-  private queryAllowlist: Set<string>;
   // Classification cache — avoids re-running NLP for identical user texts.
   // At 1500 req/min, many users ask similar/identical questions (e.g. "help",
   // "list queries"). Cache saves ~50ms per hit. 2000 entries × 2min TTL.
@@ -63,17 +62,11 @@ export class NlpService {
   constructor(
     fuzzyMatcher: FuzzyMatcher,
     corpusFile?: string | null,
-    sources?: string[],
     groupId?: string,
-    queryAllowlist?: string[],
   ) {
     this.fuzzyMatcher = fuzzyMatcher;
     this.corpusFile = corpusFile ?? null;
-    this.sources = sources ?? [];
     this.groupId = groupId ?? "default";
-    this.queryAllowlist = new Set(
-      (queryAllowlist ?? []).map((name) => name.toLowerCase()),
-    );
   }
 
   async initialize(): Promise<void> {
@@ -600,8 +593,8 @@ export class NlpService {
   }
 
   /**
-   * Fetch all query names from the data store (mock-api/db.json via the API)
-   * and register any that are not already in the corpus as `query_name` entity
+   * Fetch all query names from the file-based per-group store and register any
+   * that are not already in the corpus as `query_name` entity
    * options. This ensures newly added queries are recognized by the NLP without
    * needing manual corpus.json edits.
    */
@@ -619,29 +612,10 @@ export class NlpService {
         }
       }
 
-      // Read directly from db.json (bypasses mock API in-memory cache staleness)
-      const dbPath = paths.mockApi.dbJson;
-      const raw = await fsPromises.readFile(dbPath, "utf-8");
-      const dbData = JSON.parse(raw);
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const allQueries: any[] = dbData.queries || [];
-
-      // Filter by explicit group query allowlist first, then by sources.
-      let queries = allQueries;
-      if (this.queryAllowlist.size > 0) {
-        queries = allQueries.filter((q) =>
-          this.queryAllowlist.has(String(q.name ?? "").toLowerCase()),
-        );
-      } else if (this.sources.length > 0) {
-        queries = allQueries.filter(
-          (q) =>
-            (q.source && this.sources.includes(q.source)) ||
-            (q.type === "combined" &&
-              q.source &&
-              this.sources.includes(q.source)),
-        );
-      }
+      // Query definitions come from the file-based per-group store — the
+      // group's own file already holds exactly its queries (environment-
+      // agnostic, no db.json, no allowlist/source re-filtering needed).
+      const queries = getGroupQueries(this.groupId);
 
       let addedCount = 0;
       for (const q of queries) {
@@ -678,14 +652,14 @@ export class NlpService {
       if (addedCount > 0) {
         logger.info(
           { addedCount, total: queries.length },
-          "Synced dynamic query_name entities from db.json",
+          "Synced dynamic query_name entities from the per-group store",
         );
       }
     } catch (error) {
-      // Non-critical: if we can't read db.json, the corpus entities still work
+      // Non-critical: if the per-group file is unreadable, corpus entities still work
       logger.warn(
         { error },
-        "Could not sync dynamic query entities from db.json — using corpus entities only",
+        "Could not sync dynamic query entities from the per-group store — using corpus entities only",
       );
     }
   }

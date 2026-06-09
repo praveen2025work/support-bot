@@ -2,75 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import { logger } from "@/lib/logger";
-import { withDbLock, readDb } from "@/lib/db";
 import { proxyToEngine } from "@/lib/engine-proxy";
-import groupsConfig from "@/config/groups.json";
 
-interface FilterBinding {
-  key: string;
-  binding: "body" | "query_param" | "path" | "column";
-}
-
-interface ColumnConfig {
-  idColumns?: string[];
-  dateColumns?: string[];
-  labelColumns?: string[];
-  valueColumns?: string[];
-  ignoreColumns?: string[];
-}
-
-interface ActionConfig {
-  url: string;
-  label?: string;
-  contextFields?: string[];
-  metadata?: Record<string, string>;
-}
-
-interface CombinedConfig {
-  subQueries: Array<{
-    queryName: string;
-    prefix?: string;
-    filters?: Record<string, string>;
-    maxRows?: number;
-  }>;
-  joinType: "inner" | "left" | "right" | "full";
-  joinKeys: { left: string; right: string };
-  additionalJoins?: Array<{
-    joinType: "inner" | "left" | "right" | "full";
-    leftKey: string;
-    rightKey: string;
-  }>;
-}
-
-interface QueryRecord {
-  id: string;
-  name: string;
-  description: string;
-  estimatedDuration: number;
-  url: string;
-  source: string;
-  filters: FilterBinding[];
-  type: "api" | "url" | "document" | "csv" | "xlsx" | "combined";
-  filePath?: string;
-  fileBaseDir?: string;
-  sheetName?: string;
-  endpoint?: string;
-  baseUrl?: string;
-  method?: "GET" | "POST" | "PUT" | "DELETE";
-  authType?: "none" | "bearer" | "windows" | "bam";
-  bamTokenUrl?: string;
-  columnConfig?: ColumnConfig;
-  actionConfig?: ActionConfig;
-  combinedConfig?: CombinedConfig;
-  chartConfig?: Record<string, unknown>;
-}
-
-interface GroupConfigRecord {
-  sources?: string[];
-  queries?: string[];
-}
-
-const localGroups = groupsConfig.groups as Record<string, GroupConfigRecord>;
+/**
+ * Admin query CRUD — a thin proxy to the engine, which owns the file-based
+ * per-group query store (DATA_DIR/queries/<group>.json). No db.json here: the
+ * mock-api fixture is data-only, so this works identically in every
+ * environment. Every request is group-scoped via `groupId`.
+ */
 
 /** Sanitize a sheet name to a valid query name suffix (snake_case). */
 function toSnakeCase(s: string): string {
@@ -80,15 +19,18 @@ function toSnakeCase(s: string): string {
     .replace(/^_|_$/g, "");
 }
 
-/** Read xlsx sheet names from an engine data file. Returns empty array for non-xlsx files. */
+/**
+ * Best-effort xlsx sheet-name read for multi-sheet auto-registration. Returns
+ * [] when the file can't be read (e.g. the UI runs in a container without the
+ * data files) — callers then fall back to a single query.
+ */
 async function getXlsxSheetNames(
   filePath: string,
   queryFileBaseDir?: string,
 ): Promise<string[]> {
-  const ext = path.extname(filePath).toLowerCase();
+  const ext = path.extname(filePath || "").toLowerCase();
   if (ext !== ".xlsx" && ext !== ".xls") return [];
   try {
-    // Priority: per-query fileBaseDir → global FILE_BASE_DIR → services/engine
     const externalBase = queryFileBaseDir || process.env.FILE_BASE_DIR || "";
     const baseDir =
       externalBase || path.resolve(process.cwd(), "services/engine");
@@ -103,218 +45,81 @@ async function getXlsxSheetNames(
   }
 }
 
-/** Notify the engine to clear its in-memory query cache after db.json changes. */
-async function notifyEngineCacheClear(): Promise<void> {
+/** Parse an engine Response body as JSON, tolerating empty bodies. */
+async function engineJson(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  if (!text) return {};
   try {
-    await proxyToEngine("/api/admin/queries/cache/clear", { method: "POST" });
+    return JSON.parse(text);
   } catch {
-    // Engine may not be running — non-critical
+    return {};
   }
 }
 
-/** Tell the Mock API (json-server) to reload db.json from disk into memory. */
-async function reloadMockApi(): Promise<void> {
-  try {
-    const mockApiUrl = process.env.API_BASE_URL || "http://localhost:8080/api";
-    const baseUrl = mockApiUrl.replace(/\/api\/?$/, "");
-    await fetch(`${baseUrl}/api/reload`, { method: "POST" });
-  } catch {
-    // Mock API may not be running — non-critical
-  }
-}
-
-// GET: List all queries, optionally filtered by source
+// GET: list a group's queries (proxied; engine returns them group-scoped)
 export async function GET(request: NextRequest) {
   try {
-    const source = request.nextUrl.searchParams.get("source");
-    const groupId = request.nextUrl.searchParams.get("groupId");
-    const db = await readDb();
-    let queries = (db.queries || []) as QueryRecord[];
-
-    if (groupId) {
-      let allowedNames = localGroups[groupId]?.queries;
-      try {
-        const groupRes = await proxyToEngine(
-          `/api/admin/groups/${encodeURIComponent(groupId)}`,
-        );
-        if (groupRes.ok) {
-          const group = (await groupRes.json()) as GroupConfigRecord;
-          allowedNames = group.queries || allowedNames;
-        }
-      } catch {
-        // Fall back to the UI-bundled group config when the engine is offline.
-      }
-
-      if (allowedNames?.length) {
-        const allowlist = new Set(allowedNames);
-        queries = queries.filter((q) => allowlist.has(q.name));
-      }
-    }
-
-    if (source) {
-      const sources = source.split(",").map((s) => s.trim());
-      queries = queries.filter((q) => sources.includes(q.source));
-    }
-    return NextResponse.json({ queries });
+    const qs = request.nextUrl.searchParams.toString();
+    const res = await proxyToEngine(`/api/admin/queries${qs ? `?${qs}` : ""}`);
+    const data = await engineJson(res);
+    return NextResponse.json(data, { status: res.status });
   } catch (error) {
-    logger.error({ error }, "Failed to read queries");
-    return NextResponse.json({ queries: [] }, { status: 500 });
+    logger.error({ error }, "Failed to read queries — engine unreachable");
+    return NextResponse.json({ queries: [] }, { status: 502 });
   }
 }
 
-// POST: Add a new query
+// POST: create a query in a group (expands multi-sheet xlsx into N queries)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, source, url, filters, estimatedDuration } = body;
-
-    if (!name || !source) {
+    const groupId = body.groupId;
+    if (!groupId) {
       return NextResponse.json(
-        { error: "name and source are required" },
+        { error: "groupId is required" },
         { status: 400 },
       );
+    }
+    if (!body.name) {
+      return NextResponse.json({ error: "name is required" }, { status: 400 });
     }
 
     const queryType = body.type || "api";
-    if (queryType === "url" && !url) {
-      return NextResponse.json(
-        { error: "URL-type queries require a url" },
-        { status: 400 },
-      );
-    }
-    if (
-      (queryType === "document" ||
-        queryType === "csv" ||
-        queryType === "xlsx") &&
-      !body.filePath
-    ) {
-      return NextResponse.json(
-        { error: "Document/CSV/XLSX-type queries require a filePath" },
-        { status: 400 },
-      );
-    }
-    if (queryType === "api" && !body.endpoint) {
-      return NextResponse.json(
-        { error: "API-type queries require an endpoint" },
-        { status: 400 },
-      );
-    }
-
-    // For xlsx files with multiple sheets, auto-register each sheet as a separate query
     const sheetNames =
       queryType === "csv" || queryType === "xlsx"
         ? await getXlsxSheetNames(body.filePath, body.fileBaseDir)
         : [];
     const isMultiSheet = sheetNames.length > 1;
 
-    const createdQueries = await withDbLock<QueryRecord[]>(async (db) => {
-      const queries = (db.queries || []) as QueryRecord[];
+    const payloads = isMultiSheet
+      ? sheetNames.map((sheet) => ({
+          ...body,
+          name: `${body.name}_${toSnakeCase(sheet)}`,
+          sheetName: sheet,
+          description: `${body.description || body.name} — sheet "${sheet}"`,
+        }))
+      : [body];
 
-      // Generate next ID
-      let maxNum = queries
-        .map((q) => parseInt(q.id.replace("q", ""), 10))
-        .filter((n) => !isNaN(n))
-        .reduce((max, n) => Math.max(max, n), 0);
-
-      const newQueries: QueryRecord[] = [];
-
-      if (isMultiSheet) {
-        // Create one query per sheet
-        for (const sheet of sheetNames) {
-          const sheetSuffix = toSnakeCase(sheet);
-          const queryName = `${name}_${sheetSuffix}`;
-
-          if (queries.some((q) => q.name === queryName)) {
-            continue; // skip duplicates
-          }
-
-          maxNum++;
-          const query: QueryRecord = {
-            id: `q${maxNum}`,
-            name: queryName,
-            description: `${description || name} — sheet "${sheet}"`,
-            estimatedDuration: estimatedDuration || 2000,
-            url: url || "",
-            source,
-            filters: filters || [],
-            type: queryType,
-            filePath: body.filePath || "",
-            ...(body.fileBaseDir && { fileBaseDir: body.fileBaseDir }),
-            sheetName: sheet,
-            endpoint: body.endpoint || "",
-            baseUrl: body.baseUrl || "",
-            method: body.method || "",
-            authType: body.authType || "none",
-            bamTokenUrl: body.bamTokenUrl || "",
-            ...(body.columnConfig && { columnConfig: body.columnConfig }),
-          };
-
-          queries.push(query);
-          newQueries.push(query);
-        }
-
-        if (newQueries.length === 0) {
-          throw new Error(
-            `DUPLICATE:All sheet queries for "${name}" already exist`,
-          );
-        }
-      } else {
-        // Single sheet or non-xlsx — upsert: update if exists, create if not
-        const existingIdx = queries.findIndex((q) => q.name === name);
-
-        const record: QueryRecord = {
-          id: existingIdx !== -1 ? queries[existingIdx].id : `q${maxNum + 1}`,
-          name,
-          description: description || "",
-          estimatedDuration: estimatedDuration || 2000,
-          url: url || "",
-          source,
-          filters: filters || [],
-          type: queryType,
-          filePath: body.filePath || "",
-          ...(body.fileBaseDir && { fileBaseDir: body.fileBaseDir }),
-          ...(body.sheetName && { sheetName: body.sheetName }),
-          endpoint: body.endpoint || "",
-          baseUrl: body.baseUrl || "",
-          method: body.method || "",
-          authType: body.authType || "none",
-          bamTokenUrl: body.bamTokenUrl || "",
-          ...(body.columnConfig && { columnConfig: body.columnConfig }),
-          ...(body.chartConfig && { chartConfig: body.chartConfig }),
-          ...(body.actionConfig && { actionConfig: body.actionConfig }),
-          ...(body.combinedConfig && { combinedConfig: body.combinedConfig }),
-        };
-
-        if (existingIdx !== -1) {
-          queries[existingIdx] = { ...queries[existingIdx], ...record };
-          newQueries.push(queries[existingIdx]);
-        } else {
-          queries.push(record);
-          newQueries.push(record);
-        }
+    const created: unknown[] = [];
+    for (const payload of payloads) {
+      const res = await proxyToEngine("/api/admin/queries", {
+        method: "POST",
+        body: { ...payload, groupId },
+      });
+      const data = await engineJson(res);
+      if (!res.ok) {
+        return NextResponse.json(data, { status: res.status });
       }
-
-      db.queries = queries;
-      return { result: newQueries, save: true };
-    });
-
-    // Notify engine to clear query cache + reload mock API in-memory db
-    await Promise.all([notifyEngineCacheClear(), reloadMockApi()]);
+      created.push(data);
+    }
 
     return NextResponse.json(
       isMultiSheet
-        ? { queries: createdQueries, sheetsRegistered: sheetNames.length }
-        : createdQueries[0],
+        ? { queries: created, sheetsRegistered: created.length }
+        : created[0],
       { status: 201 },
     );
   } catch (error) {
-    const msg = (error as Error).message || "";
-    if (msg.startsWith("DUPLICATE:")) {
-      return NextResponse.json(
-        { error: msg.replace("DUPLICATE:", "") },
-        { status: 409 },
-      );
-    }
     logger.error({ error }, "Failed to create query");
     return NextResponse.json(
       { error: "Failed to create query" },
@@ -323,67 +128,25 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PATCH: Update an existing query by id (passed in body)
+// PATCH: update a query by id within a group (proxied)
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, ...updates } = body;
-
-    if (!id) {
+    if (!body.id) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
-
-    const updated = await withDbLock<QueryRecord | null>(async (db) => {
-      const queries = (db.queries || []) as QueryRecord[];
-      const idx = queries.findIndex((q) => q.id === id);
-
-      if (idx === -1) {
-        return { result: null, save: false };
-      }
-
-      const query = queries[idx];
-      if (updates.name !== undefined) query.name = updates.name;
-      if (updates.description !== undefined)
-        query.description = updates.description;
-      if (updates.source !== undefined) query.source = updates.source;
-      if (updates.url !== undefined) query.url = updates.url;
-      if (updates.filters !== undefined) query.filters = updates.filters;
-      if (updates.estimatedDuration !== undefined)
-        query.estimatedDuration = updates.estimatedDuration;
-      if (updates.type !== undefined) query.type = updates.type;
-      if (updates.filePath !== undefined) query.filePath = updates.filePath;
-      if (updates.fileBaseDir !== undefined)
-        query.fileBaseDir = updates.fileBaseDir || undefined;
-      if (updates.sheetName !== undefined)
-        query.sheetName = updates.sheetName || undefined;
-      if (updates.endpoint !== undefined) query.endpoint = updates.endpoint;
-      if (updates.baseUrl !== undefined) query.baseUrl = updates.baseUrl;
-      if (updates.method !== undefined) query.method = updates.method;
-      if (updates.authType !== undefined) query.authType = updates.authType;
-      if (updates.bamTokenUrl !== undefined)
-        query.bamTokenUrl = updates.bamTokenUrl;
-      if (updates.columnConfig !== undefined)
-        query.columnConfig = updates.columnConfig || undefined;
-      if (updates.actionConfig !== undefined)
-        query.actionConfig = updates.actionConfig || undefined;
-      if (updates.combinedConfig !== undefined)
-        query.combinedConfig = updates.combinedConfig || undefined;
-      if (updates.chartConfig !== undefined)
-        query.chartConfig = updates.chartConfig || undefined;
-
-      queries[idx] = query;
-      db.queries = queries;
-      return { result: query, save: true };
-    });
-
-    if (!updated) {
-      return NextResponse.json({ error: "Query not found" }, { status: 404 });
+    if (!body.groupId) {
+      return NextResponse.json(
+        { error: "groupId is required" },
+        { status: 400 },
+      );
     }
-
-    // Notify engine to clear query cache + reload mock API in-memory db
-    await Promise.all([notifyEngineCacheClear(), reloadMockApi()]);
-
-    return NextResponse.json(updated);
+    const res = await proxyToEngine("/api/admin/queries", {
+      method: "PATCH",
+      body,
+    });
+    const data = await engineJson(res);
+    return NextResponse.json(data, { status: res.status });
   } catch (error) {
     logger.error({ error }, "Failed to update query");
     return NextResponse.json(
@@ -393,38 +156,29 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// DELETE: Remove a query by id (passed as query param)
+// DELETE: remove a query by id within a group (proxied)
 export async function DELETE(request: NextRequest) {
   try {
     const id = request.nextUrl.searchParams.get("id");
+    const groupId = request.nextUrl.searchParams.get("groupId");
     if (!id) {
       return NextResponse.json(
         { error: "id query param is required" },
         { status: 400 },
       );
     }
-
-    const deleted = await withDbLock<boolean>(async (db) => {
-      const queries = (db.queries || []) as QueryRecord[];
-      const idx = queries.findIndex((q) => q.id === id);
-
-      if (idx === -1) {
-        return { result: false, save: false };
-      }
-
-      queries.splice(idx, 1);
-      db.queries = queries;
-      return { result: true, save: true };
-    });
-
-    if (!deleted) {
-      return NextResponse.json({ error: "Query not found" }, { status: 404 });
+    if (!groupId) {
+      return NextResponse.json(
+        { error: "groupId query param is required" },
+        { status: 400 },
+      );
     }
-
-    // Notify engine to clear query cache + reload mock API in-memory db
-    await Promise.all([notifyEngineCacheClear(), reloadMockApi()]);
-
-    return NextResponse.json({ success: true, deletedQueryId: id });
+    const res = await proxyToEngine(
+      `/api/admin/queries?id=${encodeURIComponent(id)}&groupId=${encodeURIComponent(groupId)}`,
+      { method: "DELETE" },
+    );
+    const data = await engineJson(res);
+    return NextResponse.json(data, { status: res.status });
   } catch (error) {
     logger.error({ error }, "Failed to delete query");
     return NextResponse.json(

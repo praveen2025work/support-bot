@@ -3,12 +3,15 @@ import path from "path";
 import type { OnboardPayload } from "./schemas";
 import { generateCorpus, generateFaq } from "./corpus-generator";
 import { paths } from "@/lib/env-config";
-import { invalidateEngine } from "@/lib/singleton";
+import { invalidateEngine, invalidateQueryData } from "@/lib/singleton";
 import { reloadGroupConfig } from "@/config/group-config";
+import {
+  saveQuery,
+  invalidateQueryRegistry,
+} from "@/core/catalog/query-registry";
 
 const TRAINING_GROUPS_DIR = paths.training.groupsDir;
 const GROUPS_JSON_PATH = paths.config.groups;
-const DB_JSON_PATH = paths.mockApi.dbJson;
 
 export interface OnboardResult {
   success: boolean;
@@ -78,15 +81,9 @@ export async function processOnboarding(
   );
   filesWritten.push("groups.json");
 
-  // 5. Update mock-api/db.json with new queries
-  const dbRaw = await fs.readFile(DB_JSON_PATH, "utf-8");
-  const dbData = JSON.parse(dbRaw);
-  const maxIdNum = dbData.queries
-    .map((q: { id: string }) => parseInt(q.id.replace("q", ""), 10))
-    .filter((n: number) => !isNaN(n))
-    .reduce((max: number, n: number) => Math.max(max, n), 0);
-
-  let nextId = maxIdNum + 1;
+  // 5. Write the group's query definitions to its per-group file — the
+  //    file-based source of truth. No db.json: the mock-api fixture is
+  //    data-only, so onboarding works identically in dev/uat/demo/prod.
   for (const query of queries) {
     const filterKeys = query.filters
       ? query.filters
@@ -94,22 +91,20 @@ export async function processOnboarding(
           .map((f) => f.trim())
           .filter(Boolean)
       : [];
-    const filters = filterKeys.map((key) => ({ key, binding: "body" }));
-
-    dbData.queries.push({
-      id: `q${nextId++}`,
+    saveQuery(groupId, {
       name: query.name,
       description: query.description,
       estimatedDuration: query.estimated_duration,
       url: query.url,
       source: query.source,
-      filters,
+      filters: filterKeys.map((key) => ({ key, binding: "body" as const })),
     });
   }
-  await fs.writeFile(DB_JSON_PATH, JSON.stringify(dbData, null, 2), "utf-8");
-  filesWritten.push("db.json");
+  filesWritten.push(`queries/${groupId}.json`);
 
-  // 6. Invalidate engine cache + reload group config
+  // 6. Invalidate query + engine caches and reload group config
+  invalidateQueryRegistry(groupId);
+  invalidateQueryData();
   await invalidateEngine(groupId);
 
   reloadGroupConfig();

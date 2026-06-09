@@ -112,13 +112,7 @@ async function createAndInitEngine(groupId: string): Promise<ChatbotEngine> {
   const groupConfig = getGroupConfig(groupId);
 
   const fuzzyMatcher = new FuzzyMatcher(groupConfig.faq, groupId);
-  const nlpService = new NlpService(
-    fuzzyMatcher,
-    groupConfig.corpus,
-    groupConfig.sources,
-    groupId,
-    groupConfig.queries,
-  );
+  const nlpService = new NlpService(fuzzyMatcher, groupConfig.corpus, groupId);
   const apiClient = new ApiClient(groupConfig.apiBaseUrl ?? undefined);
   const queryService = new QueryService(
     apiClient,

@@ -10,6 +10,7 @@ import {
 } from "./lib/error-envelope";
 import { config } from "./lib/config";
 import { getGroupConfigs, initGroupConfig } from "./config/group-config";
+import { migrateQueriesFromDbJson } from "./core/catalog/query-registry";
 import {
   startHealthMonitor,
   stopHealthMonitor,
@@ -188,6 +189,12 @@ app.use(errorHandler());
 // CONFIG_DIR volume. Without this, restarts revert reads to the stale snapshot
 // and admin-created groups 404 on edit. See config/group-config.ts.
 initGroupConfig();
+
+// One-time, idempotent: if this deployment still carries a legacy mock-api
+// db.json and has no per-group query files yet, seed the file-based store from
+// it. No-op in steady state (per-group files present) and in db.json-free
+// deployments. See core/catalog/query-registry.ts.
+migrateQueriesFromDbJson(getGroupConfigs());
 
 const server = app.listen(PORT, () => {
   logger.info(`Engine server running at http://localhost:${PORT}`);
