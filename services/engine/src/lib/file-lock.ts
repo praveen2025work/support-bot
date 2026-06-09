@@ -16,13 +16,13 @@
  * Stale locks (older than STALE_MS) are automatically broken.
  */
 
-import { promises as fs } from 'fs';
-import { dirname, basename } from 'path';
-import { logger } from './logger';
-import { INSTANCE_ID } from './env-config';
+import { promises as fs } from "fs";
+import { dirname, basename } from "path";
+import { logger } from "./logger";
+import { INSTANCE_ID } from "./env-config";
 
 const STALE_MS = 30_000; // 30 s — break stale locks
-const RETRY_MS = 50;     // retry interval
+const RETRY_MS = 50; // retry interval
 const MAX_WAIT_MS = 10_000; // give up after 10 s
 
 function lockDir(filePath: string): string {
@@ -35,6 +35,11 @@ function lockDir(filePath: string): string {
  */
 async function acquireLock(filePath: string): Promise<() => Promise<void>> {
   const lock = lockDir(filePath);
+  // Ensure the lock's parent directory exists. The target file may not have
+  // been created yet (e.g. the first write to a new per-group query file), and
+  // the lock `mkdir` below is intentionally non-recursive to preserve mutual
+  // exclusion — so the parent must exist first.
+  await fs.mkdir(dirname(lock), { recursive: true });
   const start = Date.now();
 
   while (Date.now() - start < MAX_WAIT_MS) {
@@ -45,8 +50,12 @@ async function acquireLock(filePath: string): Promise<() => Promise<void>> {
       // Write instance + timestamp so stale detection works
       await fs.writeFile(
         `${lock}/owner`,
-        JSON.stringify({ instance: INSTANCE_ID, pid: process.pid, ts: Date.now() }),
-        'utf-8'
+        JSON.stringify({
+          instance: INSTANCE_ID,
+          pid: process.pid,
+          ts: Date.now(),
+        }),
+        "utf-8",
       );
 
       return async () => {
@@ -58,13 +67,16 @@ async function acquireLock(filePath: string): Promise<() => Promise<void>> {
       };
     } catch (err: unknown) {
       const error = err as NodeJS.ErrnoException;
-      if (error.code === 'EEXIST') {
+      if (error.code === "EEXIST") {
         // Lock already held — check if stale
         try {
-          const raw = await fs.readFile(`${lock}/owner`, 'utf-8');
+          const raw = await fs.readFile(`${lock}/owner`, "utf-8");
           const { ts } = JSON.parse(raw);
           if (Date.now() - ts > STALE_MS) {
-            logger.warn({ lock, age: Date.now() - ts }, 'Breaking stale file lock');
+            logger.warn(
+              { lock, age: Date.now() - ts },
+              "Breaking stale file lock",
+            );
             await fs.rm(lock, { recursive: true, force: true });
             continue; // retry immediately
           }
@@ -91,7 +103,7 @@ async function acquireLock(filePath: string): Promise<() => Promise<void>> {
  */
 export async function withFileLock<T>(
   filePath: string,
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
 ): Promise<T> {
   const release = await acquireLock(filePath);
   try {

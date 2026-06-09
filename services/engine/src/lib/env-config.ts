@@ -181,6 +181,11 @@ export const paths = {
       return join(DATA_DIR, "queries", `${safe}.json`);
     },
 
+    /** Draft file-source queries (Data Explorer builder state), keyed by
+        sourceId. Flat JSON, shape `{ queries: [] }`. File-based so it is
+        environment-agnostic — never the mock-api db.json. */
+    fileSourceQueries: join(DATA_DIR, "file-source-queries.json"),
+
     /** Anomaly detection */
     anomalyDir: (groupId: string) => join(DATA_DIR, "anomaly", groupId),
     anomalySnapshots: (groupId: string) =>

@@ -16,6 +16,8 @@ storybook-static/
 .env.local
 .env.mock
 .env.dev
+.env.demo
+.env.uat
 .env.prod
 .env.development.local
 .env.test.local

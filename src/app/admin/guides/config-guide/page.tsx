@@ -544,7 +544,10 @@ npm run start:prod     # Production build, real APIs`}</pre>
           </p>
 
           <div className="text-xs text-gray-500 mb-2">
-            Config file: <FileRef path="mock-api/db.json" /> (queries array)
+            Query definitions are file-based per group at{" "}
+            <FileRef path="data/queries/<group>.json" /> &mdash; create and edit
+            them entirely through the admin Queries UI (no file editing needed).
+            The shape below is for reference only.
           </div>
 
           <div className="bg-gray-50 rounded-lg p-4 mb-3">
@@ -1809,7 +1812,7 @@ Bot:  "The department from user_profile is: Engineering"`}</pre>
           </p>
 
           <div className="bg-gray-50 rounded-lg p-4 mb-3">
-            <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap">{`// In query definition (db.json or connector config)
+            <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap">{`// In the query definition (edit via the admin Queries UI, or connector config)
 {
   "name": "pnl_summary",
   "actionConfig": {

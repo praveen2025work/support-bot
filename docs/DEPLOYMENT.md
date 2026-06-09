@@ -50,7 +50,9 @@ Copy `.env.example` to the target environment file:
 
 ```bash
 cp .env.example .env.mock
+cp .env.example .env.demo
 cp .env.example .env.dev
+cp .env.example .env.uat
 cp .env.example .env.prod
 ```
 
@@ -98,7 +100,6 @@ share one source of truth.
 | -------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------- |
 | `CONFIG_DIR`   | `groups.json`, `settings.json`, `users.json`, `filter-config.json`, `data-roles.json`                 | `src/config`                                 |
 | `DATA_DIR`     | per-group query files (`queries/<group>.json`), learning, indexes, audit, logs, sessions, saved views | `data`                                       |
-| `DB_JSON_PATH` | query-definition store the admin **Queries** page reads/writes                                        | `../mock-api/db.json`                        |
 | `TRAINING_DIR` | NLP corpus/FAQ (`corpus.json`, `groups/corpus-*.json`, `groups/faq-*.json`)                           | `src/training`                               |
 | `INSTANCE_ID`  | unique id per instance (tracing + file-lock owner)                                                    | `engine-<pid>`                               |
 
@@ -109,47 +110,48 @@ share one source of truth.
 
 ### Seed the shared volume (one time)
 
-| Repo source                                             | Copy to                                                 |
-| ------------------------------------------------------- | ------------------------------------------------------- |
-| `services/engine/src/config/*.json`                     | `$CONFIG_DIR/`                                          |
-| `services/mock-api/db.json`                             | `$DB_JSON_PATH`                                         |
-| `services/engine/data/queries/*.json`                   | `$DATA_DIR/queries/` (pre-generated, shipped in repo)   |
-| `services/engine/src/training/` (corpus/faq, `groups/`) | `$TRAINING_DIR/` (only if you use per-group corpus/FAQ) |
+| Repo source                                             | Copy to                                                          |
+| ------------------------------------------------------- | ---------------------------------------------------------------- |
+| `services/engine/src/config/*.json`                     | `$CONFIG_DIR/`                                                   |
+| `services/engine/data/queries/*.json`                   | `$DATA_DIR/queries/` (file-based query catalog, shipped in repo) |
+| `services/engine/src/training/` (corpus/faq, `groups/`) | `$TRAINING_DIR/` (only if you use per-group corpus/FAQ)          |
 
 ```bash
 VOL=/mnt/nas/chatbot                       # your shared volume root
 mkdir -p "$VOL"/{config,data/queries,training}
 cp services/engine/src/config/*.json   "$VOL/config/"
-cp services/mock-api/db.json           "$VOL/config/db.json"
-cp services/engine/data/queries/*.json "$VOL/data/queries/"   # pre-generated, shipped in repo
+cp services/engine/data/queries/*.json "$VOL/data/queries/"   # file-based query catalog, shipped in repo
 cp -r services/engine/src/training/*   "$VOL/training/"     # if used
 ```
 
 ### Per-group query files (shipped as seed — no script to run)
 
-The query catalog is served from `DATA_DIR/queries/<group>.json`. These files
-are **committed in the repo** at `services/engine/data/queries/*.json`
-(pre-generated from `db.json` + `groups.json`), so they are copied with the rest
-of the seed above — **there is no migration step to run at deploy time.** Once
-the engine is running, admin query edits keep them in sync automatically.
+The query catalog is the **file-based source of truth** at
+`DATA_DIR/queries/<group>.json`. These files are **committed in the repo** at
+`services/engine/data/queries/*.json`, so they are copied with the rest of the
+seed above — **there is no migration step to run at deploy time.** The admin
+**Queries** UI writes straight to these files (the engine is the single writer),
+so edits persist with no mock-api involved.
 
-> Optional: `services/engine/src/scripts/migrate-queries-to-per-group.ts`
-> regenerates these files. You only need it if you change `db.json` or
-> `groups.json` **directly in the repo** (not via the admin UI); run it with
-> `npx tsx` where `devDependencies` are installed.
+> Migrating from an older deployment that still has a mock `db.json`? Drop it in
+> place and the engine **idempotently seeds** `DATA_DIR/queries/<group>.json`
+> from it on first boot (a no-op once per-group files exist) — see
+> `migrateQueriesFromDbJson` in `core/catalog/query-registry.ts`. The legacy
+> `services/engine/src/scripts/migrate-queries-to-per-group.ts` remains for
+> manual repo regeneration.
 
 ### Migrating from an existing deployment (source → destination)
 
 Three buckets. Paths shown are the engine **defaults** — substitute your current
-deployment's `CONFIG_DIR` / `DATA_DIR` / `DB_JSON_PATH` if you already override
-them (admin edits are written back to those same paths).
+deployment's `CONFIG_DIR` / `DATA_DIR` if you already override them (admin edits
+are written back to those same paths).
 
 **1. Copy — admin-authored config and content (carry these over):**
 
 | What                                         | Source (existing setup)                                                | Destination (shared volume)  |
 | -------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------- |
 | Groups, settings, users, filters, data-roles | `services/engine/src/config/*.json`                                    | `$CONFIG_DIR/`               |
-| Query definitions                            | `services/mock-api/db.json`                                            | `$DB_JSON_PATH`              |
+| Query definitions (per-group files)          | `…/data/queries/*.json` (existing deployment)                          | `$DATA_DIR/queries/`         |
 | NLP corpus / FAQ                             | `services/engine/src/training/` (`corpus.json`, `faq.json`, `groups/`) | `$TRAINING_DIR/`             |
 | Glossary (metric definitions)                | `…/data/glossary/*.json`                                               | `$DATA_DIR/glossary/`        |
 | Watch **rules**                              | `…/data/watch/<group>/rules.json`                                      | `$DATA_DIR/watch/<group>/`   |
@@ -188,7 +190,6 @@ NODE_ENV=production
 ENGINE_PORT=4001
 CONFIG_DIR=/mnt/nas/chatbot/config
 DATA_DIR=/mnt/nas/chatbot/data
-DB_JSON_PATH=/mnt/nas/chatbot/config/db.json
 TRAINING_DIR=/mnt/nas/chatbot/training
 INSTANCE_ID=engine-pod-1                              # unique per instance (e.g. pod/host name)
 API_BASE_URL=https://your-data-api.example.com/api   # real data source (query EXECUTION)
@@ -224,6 +225,14 @@ Demo mode with mock data:
 
 ```bash
 docker compose up --build
+```
+
+UAT mode (prod mirror with real UAT-tenant APIs — fill placeholders in `.env.uat`):
+
+```bash
+docker compose -f docker-compose.uat.yml up --build -d
+docker compose -f docker-compose.uat.yml ps
+docker compose -f docker-compose.uat.yml logs -f engine ui mssql-connector oracle-connector
 ```
 
 Production mode:

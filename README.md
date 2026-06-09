@@ -133,14 +133,15 @@ cd services/engine && npm test
 
 ## Docker
 
-Four compose files for four scenarios:
+Five compose files for five scenarios:
 
-| File                           | Scenario                                   |
-| ------------------------------ | ------------------------------------------ |
-| `docker-compose.yml`           | Demo / mock data — `docker compose up`     |
-| `docker-compose.dev.yml`       | Dev with real REST APIs — needs `.env.dev` |
-| `docker-compose.prod.yml`      | Production — hardened, env-driven          |
-| `docker-compose.sample-db.yml` | Sample SQL DB for connector testing        |
+| File                           | Scenario                                     |
+| ------------------------------ | -------------------------------------------- |
+| `docker-compose.yml`           | Demo / mock data — `docker compose up`       |
+| `docker-compose.dev.yml`       | Dev with real REST APIs — needs `.env.dev`   |
+| `docker-compose.uat.yml`       | UAT — prod mirror, real UAT APIs, `.env.uat` |
+| `docker-compose.prod.yml`      | Production — hardened, env-driven            |
+| `docker-compose.sample-db.yml` | Sample SQL DB for connector testing          |
 
 Full env-var reference, persistence layout, and post-deploy smoke
 recipe at **`/admin/guides/docker-setup`** in the running app, or

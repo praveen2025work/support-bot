@@ -1,48 +1,61 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
-import { proxyToEngine } from '@/lib/engine-proxy';
-import { readDb } from '@/lib/db';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from "next/server";
+import { promises as fs } from "fs";
+import path from "path";
+import { proxyToEngine } from "@/lib/engine-proxy";
+import { logger } from "@/lib/logger";
 
 /**
  * Read columns directly from a csv/xlsx file on disk.
  * Used as a fallback when engine query execution doesn't return columns.
  */
-async function readColumnsFromFile(filePath: string, sheetName?: string, queryFileBaseDir?: string): Promise<string[]> {
+async function readColumnsFromFile(
+  filePath: string,
+  sheetName?: string,
+  queryFileBaseDir?: string,
+): Promise<string[]> {
   try {
     // Priority: per-query fileBaseDir → global FILE_BASE_DIR → services/engine
-    const externalBase = queryFileBaseDir || process.env.FILE_BASE_DIR || '';
-    const baseDir = externalBase || path.resolve(process.cwd(), 'services/engine');
+    const externalBase = queryFileBaseDir || process.env.FILE_BASE_DIR || "";
+    const baseDir =
+      externalBase || path.resolve(process.cwd(), "services/engine");
     const resolved = path.resolve(baseDir, filePath);
     const ext = path.extname(filePath).toLowerCase();
-    logger.info({ resolved, ext }, 'Column discovery: reading file directly');
+    logger.info({ resolved, ext }, "Column discovery: reading file directly");
 
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const XLSX = require('xlsx');
+    const XLSX = require("xlsx");
 
     let wb;
-    if (ext === '.xlsx' || ext === '.xls') {
+    if (ext === ".xlsx" || ext === ".xls") {
       const buffer = await fs.readFile(resolved);
-      wb = XLSX.read(buffer, { type: 'buffer' });
+      wb = XLSX.read(buffer, { type: "buffer" });
     } else {
       // CSV/TSV — read as buffer to let SheetJS auto-detect encoding & delimiter
       const buffer = await fs.readFile(resolved);
-      wb = XLSX.read(buffer, { type: 'buffer' });
+      wb = XLSX.read(buffer, { type: "buffer" });
     }
 
     const targetSheet = sheetName ?? wb.SheetNames[0];
     if (!targetSheet || !wb.Sheets[targetSheet]) {
-      logger.warn({ filePath, sheetName, sheets: wb.SheetNames }, 'Column discovery: no matching sheet');
+      logger.warn(
+        { filePath, sheetName, sheets: wb.SheetNames },
+        "Column discovery: no matching sheet",
+      );
       return [];
     }
 
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[targetSheet]) as Record<string, unknown>[];
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[targetSheet]) as Record<
+      string,
+      unknown
+    >[];
     const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
-    logger.info({ filePath, columnCount: columns.length, columns }, 'Column discovery: found columns');
+    logger.info(
+      { filePath, columnCount: columns.length, columns },
+      "Column discovery: found columns",
+    );
     return columns;
   } catch (error) {
-    logger.error({ error, filePath }, 'Column discovery: failed to read file');
+    logger.error({ error, filePath }, "Column discovery: failed to read file");
     return [];
   }
 }
@@ -57,14 +70,17 @@ export async function POST(request: NextRequest) {
   try {
     const { queryName, groupId } = await request.json();
     if (!queryName) {
-      return NextResponse.json({ error: 'queryName is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "queryName is required" },
+        { status: 400 },
+      );
     }
 
     // Try engine query execution first
     let columns: string[] = [];
     try {
-      const engineRes = await proxyToEngine('/api/chat', {
-        method: 'POST',
+      const engineRes = await proxyToEngine("/api/chat", {
+        method: "POST",
         body: {
           text: `run ${queryName}`,
           sessionId: `admin-column-discovery-${Date.now()}`,
@@ -76,13 +92,25 @@ export async function POST(request: NextRequest) {
         const data = await engineRes.json();
         const richContent = data.richContent;
 
-        if (richContent?.type === 'query_result' && richContent.data?.data?.length > 0) {
+        if (
+          richContent?.type === "query_result" &&
+          richContent.data?.data?.length > 0
+        ) {
           columns = Object.keys(richContent.data.data[0]);
-        } else if (richContent?.type === 'csv_table' && richContent.data?.headers?.length > 0) {
+        } else if (
+          richContent?.type === "csv_table" &&
+          richContent.data?.headers?.length > 0
+        ) {
           columns = richContent.data.headers;
-        } else if (richContent?.type === 'csv_group_by' && richContent.data?.groups?.length > 0) {
+        } else if (
+          richContent?.type === "csv_group_by" &&
+          richContent.data?.groups?.length > 0
+        ) {
           const group = richContent.data.groups[0];
-          columns = [richContent.data.groupColumn, ...Object.keys(group.aggregations || {})];
+          columns = [
+            richContent.data.groupColumn,
+            ...Object.keys(group.aggregations || {}),
+          ];
         } else if (richContent?.data?.data?.length > 0) {
           columns = Object.keys(richContent.data.data[0]);
         }
@@ -91,14 +119,35 @@ export async function POST(request: NextRequest) {
       // Engine may not be available — fall through to file-based fallback
     }
 
-    // Fallback: read columns directly from the file for csv/xlsx queries
-    if (columns.length === 0) {
+    // Fallback: read columns directly from the file for csv/xlsx queries.
+    // Resolve the query definition from the engine's file-based per-group store
+    // (no db.json). Only meaningful where the UI can reach the file (dev).
+    if (columns.length === 0 && groupId) {
       try {
-        const db = await readDb();
-        const queries = (db.queries || []) as { name: string; type?: string; filePath?: string; fileBaseDir?: string; sheetName?: string }[];
-        const query = queries.find((q) => q.name === queryName);
-        if (query?.filePath && (query.type === 'csv' || query.type === 'xlsx' || !query.type)) {
-          columns = await readColumnsFromFile(query.filePath, query.sheetName, query.fileBaseDir);
+        const qRes = await proxyToEngine(
+          `/api/admin/queries?groupId=${encodeURIComponent(groupId)}`,
+        );
+        if (qRes.ok) {
+          const { queries } = (await qRes.json()) as {
+            queries: {
+              name: string;
+              type?: string;
+              filePath?: string;
+              fileBaseDir?: string;
+              sheetName?: string;
+            }[];
+          };
+          const query = queries?.find((q) => q.name === queryName);
+          if (
+            query?.filePath &&
+            (query.type === "csv" || query.type === "xlsx" || !query.type)
+          ) {
+            columns = await readColumnsFromFile(
+              query.filePath,
+              query.sheetName,
+              query.fileBaseDir,
+            );
+          }
         }
       } catch {
         // Fallback failed — return empty
@@ -107,7 +156,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ columns });
   } catch (error) {
-    logger.error({ error }, 'Column discovery failed');
-    return NextResponse.json({ error: 'Column discovery failed' }, { status: 500 });
+    logger.error({ error }, "Column discovery failed");
+    return NextResponse.json(
+      { error: "Column discovery failed" },
+      { status: 500 },
+    );
   }
 }

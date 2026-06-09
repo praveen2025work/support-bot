@@ -30,15 +30,17 @@ npm run build            # builds the UI (.next) and the engine (dist/server.js)
 VOL=/mnt/nas/chatbot
 mkdir -p "$VOL"/{config,data/queries,training}
 cp services/engine/src/config/*.json    "$VOL/config/"          # groups, settings, users, filter-config, data-roles
-cp services/mock-api/db.json             "$VOL/config/db.json"  # query definitions (admin Queries page reads/writes this)
-cp services/engine/data/queries/*.json   "$VOL/data/queries/"   # per-group query catalog (pre-generated, shipped in repo)
+cp services/engine/data/queries/*.json   "$VOL/data/queries/"   # per-group query catalog (file-based, admin Queries page reads/writes these)
 cp -r services/engine/src/training/*     "$VOL/training/"       # NLP corpus/FAQ (only if used)
 ```
 
 > Migrating an **existing** deployment? Use the source → destination table in
 > `docs/DEPLOYMENT.md` to see exactly what to carry over (config, glossary, watch
 > rules, workflows, saved views, knowledge uploads) vs. what to leave (learning,
-> audit, logs, sessions — recreated at runtime).
+> audit, logs, sessions — recreated at runtime). Coming from a legacy `db.json`
+> for query definitions? Drop it in the config dir and the engine seeds the
+> per-group `data/queries/<group>.json` files from it on first boot (idempotent);
+> after that, the file-based catalog is the source of truth.
 
 ## 4. Set environment (same storage paths on EVERY engine instance; unique `INSTANCE_ID`)
 
@@ -47,7 +49,6 @@ NODE_ENV=production
 ENGINE_PORT=4001
 CONFIG_DIR=/mnt/nas/chatbot/config
 DATA_DIR=/mnt/nas/chatbot/data
-DB_JSON_PATH=/mnt/nas/chatbot/config/db.json
 TRAINING_DIR=/mnt/nas/chatbot/training
 INSTANCE_ID=engine-pod-1                              # unique per instance (pod/host name)
 API_BASE_URL=https://your-data-api.example.com/api   # real data source (query EXECUTION)

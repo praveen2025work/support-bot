@@ -1,26 +1,62 @@
 import { Router, Request, Response } from "express";
 import { promises as fs } from "fs";
-import { join, extname } from "path";
+import { join, extname, dirname } from "path";
 import {
   parseCsv,
   executePipeline,
 } from "../../core/api-connector/csv-analyzer";
 import { logAudit } from "@/lib/audit-logger";
 import { paths } from "@/lib/env-config";
+import {
+  getAllQueries,
+  saveQuery,
+  invalidateQueryRegistry,
+} from "@/core/catalog/query-registry";
+import { invalidateQueryData } from "@/lib/singleton";
+import { withFileLock } from "@/lib/file-lock";
 
 const router = Router();
 
-// Helper: read db.json
-async function readDb(): Promise<Record<string, unknown>> {
-  const raw = await fs.readFile(paths.mockApi.dbJson, "utf-8");
-  return JSON.parse(raw);
+// File sources are file-type query definitions (csv/xlsx/document) drawn from
+// the file-based per-group store — never db.json. Draft "builder" queries live
+// in their own JSON file (paths.data.fileSourceQueries). Both are
+// environment-agnostic: the mock-api db.json is data-only.
+
+const FILE_SOURCE_TYPES = new Set(["csv", "xlsx", "document"]);
+
+type FileSource = ReturnType<typeof getAllQueries>[number];
+
+/** All file-type query definitions across every group. */
+function listFileSources(): FileSource[] {
+  return getAllQueries().filter((q) => FILE_SOURCE_TYPES.has(q.type));
 }
 
-// Helper: write db.json
-async function writeDb(data: Record<string, unknown>): Promise<void> {
+/** Find a file source by id or name across all groups. */
+function findFileSource(idOrName: string): FileSource | null {
+  return (
+    listFileSources().find((q) => q.id === idOrName || q.name === idOrName) ??
+    null
+  );
+}
+
+// ── Draft file-source queries (flat JSON store, keyed by sourceId) ──
+async function readDraftQueries(): Promise<Array<Record<string, unknown>>> {
+  try {
+    const raw = await fs.readFile(paths.data.fileSourceQueries, "utf-8");
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.queries) ? parsed.queries : [];
+  } catch {
+    return []; // missing file → no drafts yet
+  }
+}
+
+async function writeDraftQueries(
+  queries: Array<Record<string, unknown>>,
+): Promise<void> {
+  await fs.mkdir(dirname(paths.data.fileSourceQueries), { recursive: true });
   await fs.writeFile(
-    paths.mockApi.dbJson,
-    JSON.stringify(data, null, 2),
+    paths.data.fileSourceQueries,
+    JSON.stringify({ queries }, null, 2),
     "utf-8",
   );
 }
@@ -42,15 +78,11 @@ async function loadFileData(
   return parseCsv(content, sheetName);
 }
 
-// ── GET / — List all file sources (queries with type csv/xlsx) ──
+// ── GET / — List all file sources (file-type queries across groups) ──
 router.get("/", async (_req: Request, res: Response) => {
   try {
-    const db = await readDb();
-    const queries = (db.queries as Array<Record<string, unknown>>) ?? [];
-    const fileSources = queries.filter(
-      (q) => q.type === "csv" || q.type === "xlsx" || q.type === "file",
-    );
-    return res.json({ sources: fileSources, total: fileSources.length });
+    const sources = listFileSources();
+    return res.json({ sources, total: sources.length });
   } catch (err) {
     return res.status(500).json({ error: String(err) });
   }
@@ -59,11 +91,7 @@ router.get("/", async (_req: Request, res: Response) => {
 // ── GET /:id — Get single file source ──
 router.get("/:id", async (req: Request, res: Response) => {
   try {
-    const db = await readDb();
-    const queries = (db.queries as Array<Record<string, unknown>>) ?? [];
-    const source = queries.find(
-      (q) => q.id === req.params.id || q.name === req.params.id,
-    );
+    const source = findFileSource(req.params.id);
     if (!source) return res.status(404).json({ error: "Source not found" });
     return res.json(source);
   } catch (err) {
@@ -74,11 +102,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 // ── POST /:id/validate — Validate file exists and is parseable ──
 router.post("/:id/validate", async (req: Request, res: Response) => {
   try {
-    const db = await readDb();
-    const queries = (db.queries as Array<Record<string, unknown>>) ?? [];
-    const source = queries.find(
-      (q) => q.id === req.params.id || q.name === req.params.id,
-    );
+    const source = findFileSource(req.params.id);
     if (!source) return res.status(404).json({ error: "Source not found" });
 
     const filePath = source.filePath as string;
@@ -115,11 +139,7 @@ router.post("/:id/validate", async (req: Request, res: Response) => {
 // ── POST /:id/schema — Get column schema with stats ──
 router.post("/:id/schema", async (req: Request, res: Response) => {
   try {
-    const db = await readDb();
-    const queries = (db.queries as Array<Record<string, unknown>>) ?? [];
-    const source = queries.find(
-      (q) => q.id === req.params.id || q.name === req.params.id,
-    );
+    const source = findFileSource(req.params.id);
     if (!source) return res.status(404).json({ error: "Source not found" });
 
     const data = await loadFileData(
@@ -158,11 +178,7 @@ router.post("/:id/schema", async (req: Request, res: Response) => {
 // ── POST /:id/preview — Execute a query pipeline ──
 router.post("/:id/preview", async (req: Request, res: Response) => {
   try {
-    const db = await readDb();
-    const queries = (db.queries as Array<Record<string, unknown>>) ?? [];
-    const source = queries.find(
-      (q) => q.id === req.params.id || q.name === req.params.id,
-    );
+    const source = findFileSource(req.params.id);
     if (!source) return res.status(404).json({ error: "Source not found" });
 
     const pipeline = req.body.pipeline;
@@ -190,30 +206,21 @@ router.post("/:id/preview", async (req: Request, res: Response) => {
   }
 });
 
-// ── GET /:id/queries — List saved queries for this source ──
+// ── GET /:id/queries — List saved (draft) queries for this source ──
 router.get("/:id/queries", async (req: Request, res: Response) => {
   try {
-    const db = await readDb();
-    const savedQueries =
-      ((db as Record<string, unknown>).fileSourceQueries as Array<
-        Record<string, unknown>
-      >) ?? [];
-    const sourceQueries = savedQueries.filter(
-      (q) => q.sourceId === req.params.id,
-    );
+    const drafts = await readDraftQueries();
+    const sourceQueries = drafts.filter((q) => q.sourceId === req.params.id);
     return res.json({ queries: sourceQueries });
   } catch (err) {
     return res.status(500).json({ error: String(err) });
   }
 });
 
-// ── POST /:id/queries — Save a new query ──
+// ── POST /:id/queries — Save a new draft query ──
 router.post("/:id/queries", async (req: Request, res: Response) => {
   try {
-    const db = (await readDb()) as Record<string, unknown>;
-    if (!db.fileSourceQueries) db.fileSourceQueries = [];
-    const savedQueries = db.fileSourceQueries as Array<Record<string, unknown>>;
-
+    const drafts = await readDraftQueries();
     const id = `fsq-${Date.now()}`;
     const newQuery = {
       id,
@@ -223,8 +230,7 @@ router.post("/:id/queries", async (req: Request, res: Response) => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    savedQueries.push(newQuery);
-    await writeDb(db);
+    await writeDraftQueries([...drafts, newQuery]);
 
     logAudit({
       action: "create",
@@ -238,21 +244,21 @@ router.post("/:id/queries", async (req: Request, res: Response) => {
   }
 });
 
-// ── PUT /:id/queries/:qid — Update saved query ──
+// ── PUT /:id/queries/:qid — Update saved draft query ──
 router.put("/:id/queries/:qid", async (req: Request, res: Response) => {
   try {
-    const db = (await readDb()) as Record<string, unknown>;
-    const savedQueries =
-      (db.fileSourceQueries as Array<Record<string, unknown>>) ?? [];
-    const idx = savedQueries.findIndex((q) => q.id === req.params.qid);
+    const drafts = await readDraftQueries();
+    const idx = drafts.findIndex((q) => q.id === req.params.qid);
     if (idx === -1) return res.status(404).json({ error: "Query not found" });
 
-    savedQueries[idx] = {
-      ...savedQueries[idx],
+    const updated = {
+      ...drafts[idx],
       ...req.body,
       updatedAt: new Date().toISOString(),
     };
-    await writeDb(db);
+    const next = [...drafts];
+    next[idx] = updated;
+    await writeDraftQueries(next);
 
     logAudit({
       action: "update",
@@ -260,24 +266,20 @@ router.put("/:id/queries/:qid", async (req: Request, res: Response) => {
       resourceId: req.params.qid,
       ip: req.ip,
     });
-    return res.json(savedQueries[idx]);
+    return res.json(updated);
   } catch (err) {
     return res.status(500).json({ error: String(err) });
   }
 });
 
-// ── DELETE /:id/queries/:qid — Delete saved query ──
+// ── DELETE /:id/queries/:qid — Delete saved draft query ──
 router.delete("/:id/queries/:qid", async (req: Request, res: Response) => {
   try {
-    const db = (await readDb()) as Record<string, unknown>;
-    const savedQueries =
-      (db.fileSourceQueries as Array<Record<string, unknown>>) ?? [];
-    const idx = savedQueries.findIndex((q) => q.id === req.params.qid);
+    const drafts = await readDraftQueries();
+    const idx = drafts.findIndex((q) => q.id === req.params.qid);
     if (idx === -1) return res.status(404).json({ error: "Query not found" });
 
-    savedQueries.splice(idx, 1);
-    db.fileSourceQueries = savedQueries;
-    await writeDb(db);
+    await writeDraftQueries(drafts.filter((q) => q.id !== req.params.qid));
 
     logAudit({
       action: "delete",
@@ -291,66 +293,54 @@ router.delete("/:id/queries/:qid", async (req: Request, res: Response) => {
   }
 });
 
-// ── POST /:id/queries/:qid/publish — Publish query to engine ──
+// ── POST /:id/queries/:qid/publish — Publish draft query to the catalog ──
 router.post(
   "/:id/queries/:qid/publish",
   async (req: Request, res: Response) => {
     try {
-      const db = (await readDb()) as Record<string, unknown>;
-      const savedQueries =
-        (db.fileSourceQueries as Array<Record<string, unknown>>) ?? [];
-      const savedQuery = savedQueries.find((q) => q.id === req.params.qid);
-      if (!savedQuery)
+      const drafts = await readDraftQueries();
+      const draftIdx = drafts.findIndex((q) => q.id === req.params.qid);
+      if (draftIdx === -1)
         return res.status(404).json({ error: "Query not found" });
+      const draft = drafts[draftIdx];
 
-      const queries = (db.queries as Array<Record<string, unknown>>) ?? [];
-      const source = queries.find(
-        (q) => q.id === req.params.id || q.name === req.params.id,
-      );
+      const source = findFileSource(req.params.id);
       if (!source) return res.status(404).json({ error: "Source not found" });
 
-      // Create or update a query entry in the main queries array
-      const queryName = savedQuery.name as string;
-      const existingIdx = queries.findIndex((q) => q.name === queryName);
+      // Publish into the source's group per-group file (file-based catalog),
+      // under the per-group write lock so concurrent publishes can't clobber
+      // each other. Note: `pipeline` is a transient execution param (sent per
+      // request to /preview), not a stored catalog field — QuerySchema omits
+      // it, so it is intentionally not persisted here.
+      const published = await withFileLock(
+        paths.data.queries(source.groupId),
+        async () =>
+          saveQuery(source.groupId, {
+            name: draft.name as string,
+            description: (draft.description as string) ?? "",
+            type: source.type,
+            filePath: source.filePath,
+            fileBaseDir: source.fileBaseDir,
+            sheetName: source.sheetName,
+            source:
+              (draft.displayGroup as string) ?? source.source ?? "default",
+            filters: (
+              (draft.filterParams as Array<Record<string, unknown>>) ?? []
+            ).map((fp) => ({
+              key: fp.column as string,
+              binding: (fp.binding as string) ?? "column",
+            })),
+            chartConfig: draft.chartConfig,
+            columnConfig: source.columnConfig,
+            drillDown: draft.drillDown,
+          }),
+      );
 
-      const publishedQuery = {
-        id:
-          existingIdx >= 0 ? queries[existingIdx].id : `q${queries.length + 1}`,
-        name: queryName,
-        description: savedQuery.description ?? "",
-        type: source.type,
-        filePath: source.filePath,
-        fileBaseDir: source.fileBaseDir,
-        sheetName: source.sheetName,
-        source:
-          savedQuery.displayGroup ??
-          (source as Record<string, unknown>).source ??
-          "default",
-        filters: (
-          (savedQuery.filterParams as Array<Record<string, unknown>>) ?? []
-        ).map((fp) => ({
-          key: fp.column,
-          binding: fp.binding ?? "column",
-        })),
-        chartConfig: savedQuery.chartConfig ?? {},
-        columnConfig: (source as Record<string, unknown>).columnConfig ?? {},
-        drillDown: savedQuery.drillDown ?? [],
-        pipeline: savedQuery.pipeline,
-      };
-
-      if (existingIdx >= 0) {
-        queries[existingIdx] = { ...queries[existingIdx], ...publishedQuery };
-      } else {
-        queries.push(publishedQuery);
-      }
-
-      // Update saved query status
-      const sqIdx = savedQueries.findIndex((q) => q.id === req.params.qid);
-      if (sqIdx >= 0) savedQueries[sqIdx].status = "published";
-
-      db.queries = queries;
-      db.fileSourceQueries = savedQueries;
-      await writeDb(db);
+      const next = [...drafts];
+      next[draftIdx] = { ...draft, status: "published" };
+      await writeDraftQueries(next);
+      invalidateQueryRegistry(source.groupId);
+      invalidateQueryData();
 
       logAudit({
         action: "publish",
@@ -358,7 +348,7 @@ router.post(
         resourceId: req.params.qid,
         ip: req.ip,
       });
-      return res.json({ success: true, query: publishedQuery });
+      return res.json({ success: true, query: published });
     } catch (err) {
       return res.status(500).json({ error: String(err) });
     }
