@@ -224,7 +224,7 @@ Chatbot/
 │   │
 │   ├── mock-api/                     # Mock data API (json-server)
 │   │   ├── server.js                 # Custom Express server with mock data
-│   │   ├── db.json                   # Query definitions & sample data
+│   │   ├── db.json                   # Sample row data (dev/demo). Query definitions live in DATA_DIR/queries/<group>.json
 │   │   └── package.json
 │   │
 │   ├── mssql-connector/              # SQL Server database connector
@@ -285,7 +285,9 @@ Chatbot/
 │
 ├── .env.example                      # Environment variable template
 ├── .env.mock                         # Mock environment config
+├── .env.demo                         # Demo environment config (showcase, mock data)
 ├── .env.dev                          # Dev environment config (real APIs)
+├── .env.uat                          # UAT environment config (prod mirror, real UAT APIs)
 ├── .env.prod                         # Production config
 ├── .husky/pre-commit                 # Git pre-commit hook (lint-staged)
 ├── package.json                      # Root scripts & dependencies
@@ -296,6 +298,7 @@ Chatbot/
 ├── Dockerfile                        # UI Docker image
 ├── docker-compose.yml                # Demo: mock-api + engine + UI
 ├── docker-compose.dev.yml            # Dev: engine + UI (real APIs)
+├── docker-compose.uat.yml            # UAT: engine + UI (prod mirror, real UAT APIs)
 └── docker-compose.prod.yml           # Prod: engine + UI
 ```
 
@@ -486,6 +489,32 @@ npm run start:all
 
 ---
 
+### Mode 4: UAT (Prod Mirror)
+
+Mirrors production against the UAT tenant: real UAT-tenant APIs, `ENGINE_API_KEY`,
+real/UAT SSO, and connectors. Fill the placeholders in `.env.uat`.
+
+**Env file**: `.env.uat`
+
+```env
+NODE_ENV=production
+ENGINE_URL=http://engine:4001
+ENGINE_API_KEY=your-secure-key
+USER_INFO_URL=https://sso-uat.yourcompany.com/api/userinfo
+API_BASE_URL=https://api-uat.yourcompany.com/api
+API_TOKEN=your-uat-token
+```
+
+**Build & start**:
+
+```bash
+docker compose -f docker-compose.uat.yml up
+# or
+npm run start:uat
+```
+
+---
+
 ## Per-Group Tenant API Configuration
 
 API configuration lives at the **group level** and **query level** — not just globally.
@@ -527,7 +556,7 @@ Each query can use a different auth mechanism:
 | `windows`  | Forwards user's AD/SSO headers               | Query definition                       |
 | `bam`      | Fetches short-lived token from `bamTokenUrl` | Query definition + `bamTokenUrl` field |
 
-**Query definition** (in `services/mock-api/db.json` or real data store):
+**Query definition** (file-based per-group in `DATA_DIR/queries/<group>.json`, created/edited via the admin Queries UI; queries execute against the mock API or a real data store):
 
 ```json
 {
@@ -564,37 +593,38 @@ Request (groupId=finance)
 
 ### File: `package.json` (root)
 
-| Script                    | What it does                                                  |
-| ------------------------- | ------------------------------------------------------------- |
-| `npm run dev:mock`        | Start mock-api + engine + UI (uses `.env.mock`)               |
-| `npm run dev:mock:3svc`   | Same as `dev:mock`                                            |
-| `npm run dev`             | Start engine + UI with real APIs (uses `.env.dev`)            |
-| `npm run start:demo`      | Production build with mock-api                                |
-| `npm run start:prod`      | Production build with real APIs (uses `.env.prod`)            |
-| `npm run build:prod`      | Production build: Next.js + Engine (esbuild)                  |
-| `npm run start:all`       | Start mock-api + engine + UI from production builds           |
-| `npm run svc:mock-api`    | Start mock-api only (`services/mock-api/server.js`)           |
-| `npm run svc:engine`      | Start engine only (`services/engine/src/server.ts`)           |
-| `npm run dev:sql`         | Start mock + engine + MSSQL + Oracle + UI (all 5 services)    |
-| `npm run dev:mssql`       | Start engine + MSSQL connector + UI                           |
-| `npm run dev:oracle`      | Start engine + Oracle connector + UI                          |
-| `npm run svc:mssql`       | Start MSSQL connector only                                    |
-| `npm run svc:oracle`      | Start Oracle connector only                                   |
-| `npm run svc:ui`          | Start UI only (Next.js dev)                                   |
-| `npm run build`           | Build Next.js for production                                  |
-| `npm run build:engine`    | Compile engine TypeScript to `services/engine/dist/`          |
-| `npm run build:mssql`     | Compile MSSQL connector to `services/mssql-connector/dist/`   |
-| `npm run build:oracle`    | Compile Oracle connector to `services/oracle-connector/dist/` |
-| `npm run db:up`           | Start sample databases via Docker Compose                     |
-| `npm run db:down`         | Stop sample databases                                         |
-| `npm run db:logs`         | Tail sample database logs                                     |
-| `npm run train`           | Train NLP model (`src/training/scripts/train.ts`)             |
-| `npm run evaluate`        | Evaluate NLP model accuracy                                   |
-| `npm test`                | Run Jest tests                                                |
-| `npm run lint`            | Run ESLint                                                    |
-| `npm run analyze`         | Bundle analysis (opens interactive treemap)                   |
-| `npm run storybook`       | Start Storybook dev server (port 6006)                        |
-| `npm run build:storybook` | Build static Storybook site to `storybook-static/`            |
+| Script                    | What it does                                                       |
+| ------------------------- | ------------------------------------------------------------------ |
+| `npm run dev:mock`        | Start mock-api + engine + UI (uses `.env.mock`)                    |
+| `npm run dev:mock:3svc`   | Same as `dev:mock`                                                 |
+| `npm run dev`             | Start engine + UI with real APIs (uses `.env.dev`)                 |
+| `npm run start:demo`      | Production build with mock-api (uses `.env.demo`)                  |
+| `npm run start:uat`       | Production build, prod mirror with real UAT APIs (uses `.env.uat`) |
+| `npm run start:prod`      | Production build with real APIs (uses `.env.prod`)                 |
+| `npm run build:prod`      | Production build: Next.js + Engine (esbuild)                       |
+| `npm run start:all`       | Start mock-api + engine + UI from production builds                |
+| `npm run svc:mock-api`    | Start mock-api only (`services/mock-api/server.js`)                |
+| `npm run svc:engine`      | Start engine only (`services/engine/src/server.ts`)                |
+| `npm run dev:sql`         | Start mock + engine + MSSQL + Oracle + UI (all 5 services)         |
+| `npm run dev:mssql`       | Start engine + MSSQL connector + UI                                |
+| `npm run dev:oracle`      | Start engine + Oracle connector + UI                               |
+| `npm run svc:mssql`       | Start MSSQL connector only                                         |
+| `npm run svc:oracle`      | Start Oracle connector only                                        |
+| `npm run svc:ui`          | Start UI only (Next.js dev)                                        |
+| `npm run build`           | Build Next.js for production                                       |
+| `npm run build:engine`    | Compile engine TypeScript to `services/engine/dist/`               |
+| `npm run build:mssql`     | Compile MSSQL connector to `services/mssql-connector/dist/`        |
+| `npm run build:oracle`    | Compile Oracle connector to `services/oracle-connector/dist/`      |
+| `npm run db:up`           | Start sample databases via Docker Compose                          |
+| `npm run db:down`         | Stop sample databases                                              |
+| `npm run db:logs`         | Tail sample database logs                                          |
+| `npm run train`           | Train NLP model (`src/training/scripts/train.ts`)                  |
+| `npm run evaluate`        | Evaluate NLP model accuracy                                        |
+| `npm test`                | Run Jest tests                                                     |
+| `npm run lint`            | Run ESLint                                                         |
+| `npm run analyze`         | Bundle analysis (opens interactive treemap)                        |
+| `npm run storybook`       | Start Storybook dev server (port 6006)                             |
+| `npm run build:storybook` | Build static Storybook site to `storybook-static/`                 |
 
 ### File: `services/engine/package.json`
 
@@ -610,29 +640,32 @@ Request (groupId=finance)
 
 ## Key Configuration Files
 
-| File                                                        | Purpose                                                   |
-| ----------------------------------------------------------- | --------------------------------------------------------- |
-| `.env.example`                                              | Environment variable template                             |
-| `.env.mock`                                                 | Mock environment (local dev with sample data)             |
-| `.env.dev`                                                  | Dev environment (real APIs)                               |
-| `.env.prod`                                                 | Production environment                                    |
-| `next.config.mjs`                                           | Next.js config (proxy rewrites to engine)                 |
-| `services/engine/src/config/groups.json`                    | Group definitions (per-group API URL, sources, templates) |
-| `services/engine/src/config/settings.json`                  | Runtime settings (NLP thresholds, cache TTL)              |
-| `services/engine/src/config/group-config.ts`                | Group config loader & Zod validator                       |
-| `services/engine/src/lib/config.ts`                         | Engine env config (`API_BASE_URL`, `API_TOKEN`, etc.)     |
-| `services/engine/src/middleware/tenant-context.ts`          | Per-request tenant context (groupId, requestId)           |
-| `services/engine/src/lib/singleton.ts`                      | Engine instance cache (one per group)                     |
-| `services/mock-api/db.json`                                 | Query definitions with auth config                        |
-| `services/engine/esbuild.config.mjs`                        | esbuild bundler config (replaces tsc)                     |
-| `services/mock-api/server.js`                               | Mock API endpoints and sample data                        |
-| `services/mssql-connector/data/queries/queries.json`        | MSSQL saved query definitions                             |
-| `services/mssql-connector/data/connectors/connectors.json`  | MSSQL connector configurations                            |
-| `services/oracle-connector/data/connectors/connectors.json` | Oracle connector configurations                           |
-| `.storybook/main.ts`                                        | Storybook framework, addons, stories glob                 |
-| `.storybook/preview.ts`                                     | Storybook global decorators and backgrounds               |
-| `src/lib/engine-proxy.ts`                                   | Next.js → Engine proxy utility                            |
-| `public/widget/chatbot-widget.js`                           | Embeddable widget script                                  |
+| File                                                        | Purpose                                                                                             |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `.env.example`                                              | Environment variable template                                                                       |
+| `.env.mock`                                                 | Mock environment (local dev with sample data)                                                       |
+| `.env.demo`                                                 | Demo environment (self-contained showcase, mock data)                                               |
+| `.env.dev`                                                  | Dev environment (real APIs)                                                                         |
+| `.env.uat`                                                  | UAT environment (prod mirror, real UAT APIs)                                                        |
+| `.env.prod`                                                 | Production environment                                                                              |
+| `next.config.mjs`                                           | Next.js config (proxy rewrites to engine)                                                           |
+| `services/engine/src/config/groups.json`                    | Group definitions (per-group API URL, sources, templates)                                           |
+| `services/engine/src/config/settings.json`                  | Runtime settings (NLP thresholds, cache TTL)                                                        |
+| `services/engine/src/config/group-config.ts`                | Group config loader & Zod validator                                                                 |
+| `services/engine/src/lib/config.ts`                         | Engine env config (`API_BASE_URL`, `API_TOKEN`, etc.)                                               |
+| `services/engine/src/middleware/tenant-context.ts`          | Per-request tenant context (groupId, requestId)                                                     |
+| `services/engine/src/lib/singleton.ts`                      | Engine instance cache (one per group)                                                               |
+| `DATA_DIR/queries/<group>.json`                             | Per-group query definitions with auth config (engine source of truth, written via admin Queries UI) |
+| `services/mock-api/db.json`                                 | Sample row data queries execute against (dev/demo)                                                  |
+| `services/engine/esbuild.config.mjs`                        | esbuild bundler config (replaces tsc)                                                               |
+| `services/mock-api/server.js`                               | Mock API endpoints and sample data                                                                  |
+| `services/mssql-connector/data/queries/queries.json`        | MSSQL saved query definitions                                                                       |
+| `services/mssql-connector/data/connectors/connectors.json`  | MSSQL connector configurations                                                                      |
+| `services/oracle-connector/data/connectors/connectors.json` | Oracle connector configurations                                                                     |
+| `.storybook/main.ts`                                        | Storybook framework, addons, stories glob                                                           |
+| `.storybook/preview.ts`                                     | Storybook global decorators and backgrounds                                                         |
+| `src/lib/engine-proxy.ts`                                   | Next.js → Engine proxy utility                                                                      |
+| `public/widget/chatbot-widget.js`                           | Embeddable widget script                                                                            |
 
 ---
 
@@ -691,7 +724,7 @@ Widget supports 3 states: **open** → **minimized** (collapsed bar) → **close
 
 ### Adding a New Query
 
-1. Add the query definition to `services/mock-api/db.json`
+1. Add the query definition via the admin Queries UI (persisted to `DATA_DIR/queries/<group>.json`, the engine's source of truth)
 2. Add mock data in `getRawData()` in `services/mock-api/server.js`
 3. Add NLP entity synonyms in `src/training/corpus.json`
 4. Retrain: `npm run train`
@@ -750,12 +783,13 @@ docker build -t chatbot-engine -f services/engine/Dockerfile services/engine/
 
 ### Docker Compose
 
-| File                           | Services                                    | Use case           |
-| ------------------------------ | ------------------------------------------- | ------------------ |
-| `docker-compose.yml`           | mock-api (8080) + engine (4001) + ui (3001) | Demo               |
-| `docker-compose.dev.yml`       | engine (4001) + ui (3001)                   | Dev with real APIs |
-| `docker-compose.prod.yml`      | engine (4001) + ui (3001)                   | Production         |
-| `docker-compose.sample-db.yml` | SQL Server + Oracle XE sample databases     | Local DB testing   |
+| File                           | Services                                    | Use case                         |
+| ------------------------------ | ------------------------------------------- | -------------------------------- |
+| `docker-compose.yml`           | mock-api (8080) + engine (4001) + ui (3001) | Demo                             |
+| `docker-compose.dev.yml`       | engine (4001) + ui (3001)                   | Dev with real APIs               |
+| `docker-compose.uat.yml`       | engine (4001) + ui (3001)                   | UAT (prod mirror, real UAT APIs) |
+| `docker-compose.prod.yml`      | engine (4001) + ui (3001)                   | Production                       |
+| `docker-compose.sample-db.yml` | SQL Server + Oracle XE sample databases     | Local DB testing                 |
 
 ```bash
 # Demo mode
@@ -763,6 +797,9 @@ docker-compose up -d
 
 # Dev mode
 docker-compose -f docker-compose.dev.yml up -d
+
+# UAT (prod mirror)
+docker-compose -f docker-compose.uat.yml up -d
 
 # Production
 docker-compose -f docker-compose.prod.yml up -d

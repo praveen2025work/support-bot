@@ -35,8 +35,9 @@
 │   ├── settings.json
 │   ├── users.json
 │   ├── filter-config.json
-│   ├── data-roles.json
-│   └── db.json                        # query definitions (DB_JSON_PATH)
+│   └── data-roles.json
+├── queries/                           # file-based query catalog (per group)
+│   └── {groupId}.json                 # query definitions (under DATA_DIR/queries)
 └── training/
     ├── corpus.json
     └── groups/
@@ -53,7 +54,6 @@ net use Z: \\NAS-SERVER\chatbot /persistent:yes /user:DOMAIN\svc_chatbot
 # In .env file:
 DATA_DIR=Z:\data
 CONFIG_DIR=Z:\config
-DB_JSON_PATH=Z:\config\db.json
 TRAINING_DIR=Z:\training
 INSTANCE_ID=engine-server-a            # unique per server
 ```
@@ -67,7 +67,6 @@ INSTANCE_ID=engine-server-a            # unique per server
 # In .env file:
 DATA_DIR=/mnt/nas/chatbot/data
 CONFIG_DIR=/mnt/nas/chatbot/config
-DB_JSON_PATH=/mnt/nas/chatbot/config/db.json
 TRAINING_DIR=/mnt/nas/chatbot/training
 INSTANCE_ID=engine-server-a            # unique per server
 ```

@@ -9,6 +9,7 @@ services:
     build: .
     ports:
       - "3001:3001"
+    env_file: .env.demo
     environment:
       - NODE_ENV=production
       - ENGINE_URL=http://engine:4001
@@ -30,6 +31,7 @@ services:
     build: ./services/engine
     ports:
       - "4001:4001"
+    env_file: .env.demo
     environment:
       - NODE_ENV=production
       - ENGINE_PORT=4001
@@ -37,10 +39,14 @@ services:
       - UI_ORIGIN=http://ui:3001
       # No USER_INFO_URL → mock user fallback
       # No ENGINE_API_KEY → open admin access (demo only)
+      # File-based config on the persistent volume so admin group/query
+      # edits work and survive restarts. db.json is mock row-data only.
+      - CONFIG_DIR=/app/data/config
+      - TRAINING_DIR=/app/data/training
     depends_on:
       - mock-api
     volumes:
-      - engine-data:/app/data
+      - demo-engine-data:/app/data
     healthcheck:
       test:
         [
@@ -66,7 +72,7 @@ services:
   #     - CONNECTOR_PORT=4002
   #     - CONNECTOR_API_KEY=change-me
   #   volumes:
-  #     - mssql-connector-data:/app/data
+  #     - demo-mssql-connector-data:/app/data
   #   restart: unless-stopped
 
   # ── Optional: Oracle Connector (no-code SQL APIs) ──
@@ -83,7 +89,7 @@ services:
   #     - CONNECTOR_PORT=4003
   #     - CONNECTOR_API_KEY=change-me
   #   volumes:
-  #     - oracle-connector-data:/app/data
+  #     - demo-oracle-connector-data:/app/data
   #   restart: unless-stopped
 
   # ── Optional: CSV/XLSX Connector (file and Excel data sources) ──
@@ -100,7 +106,7 @@ services:
   #     - CONNECTOR_PORT=4004
   #     - CONNECTOR_API_KEY=change-me
   #   volumes:
-  #     - csv-xlsx-connector-data:/app/data
+  #     - demo-csv-xlsx-connector-data:/app/data
   #   restart: unless-stopped
 
   # ── Service 3: Mock API (sample data — demo only) ──
@@ -115,7 +121,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  engine-data:
-  mssql-connector-data:
-  oracle-connector-data:
-  csv-xlsx-connector-data:
+  demo-engine-data:
+  demo-mssql-connector-data:
+  demo-oracle-connector-data:
+  demo-csv-xlsx-connector-data:

@@ -64,7 +64,7 @@ The chatbot connects to REST APIs to fetch data. To add your application's API:
 
 ### Step 1: Define Your Queries
 
-Edit `mock-api/db.json` (for testing) or configure your production API to return queries in this format:
+Add queries via the admin Queries UI (persisted per-group to `DATA_DIR/queries/<group>.json`, the engine's source of truth). Each query definition follows this format:
 
 ```
 GET /api/queries
@@ -430,7 +430,7 @@ npm run dev:mock
 
 ### Add Your Queries to Mock Data
 
-Edit `mock-api/db.json` to add your queries, then add mock responses in `mock-api/server.js` in the `generateMockData()` function:
+Define your queries via the admin Queries UI (persisted per-group to `DATA_DIR/queries/<group>.json`), then add matching mock responses in `mock-api/server.js` in the `generateMockData()` function:
 
 ```javascript
 case 'your_query_name':

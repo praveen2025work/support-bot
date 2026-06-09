@@ -1,5 +1,3 @@
-version: "3.8"
-
 # ═══════════════════════════════════════════════════════
 # DEV MODE — UI + Engine (no Mock API)
 # Real tenant APIs provide data endpoints.
@@ -30,6 +28,12 @@ services:
     env_file: .env.dev
     environment:
       - UI_ORIGIN=http://ui:3001
+      # File-based config on a persistent, writable volume so admin group/query
+      # edits work and survive restarts. db.json is not used by the engine.
+      - CONFIG_DIR=/app/data/config
+      - TRAINING_DIR=/app/data/training
+    volumes:
+      - dev-engine-data:/app/data
     restart: unless-stopped
 
   # ── Optional: MSSQL Connector (no-code SQL APIs) ──
@@ -53,3 +57,6 @@ services:
   #     - ORACLE_PORT=4003
   #     - ENCRYPTION_SECRET=change-me
   #   restart: unless-stopped
+
+volumes:
+  dev-engine-data:
