@@ -21,6 +21,9 @@ export async function POST(request: NextRequest) {
     // header is absent.
     const role = request.headers.get("x-user-role");
     if (role) forwardHeaders["x-user-role"] = role;
+    // BAM token minted in the browser via Windows auth — forward to the engine.
+    const bamToken = request.headers.get("x-bam-token");
+    if (bamToken) forwardHeaders["x-bam-token"] = bamToken;
 
     const engineRes = await proxyToEngine("/api/chat", {
       method: "POST",

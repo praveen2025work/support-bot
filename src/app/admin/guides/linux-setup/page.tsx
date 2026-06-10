@@ -840,7 +840,7 @@ sudo firewall-cmd --reload`}</CmdBlock>
                   {
                     type: "bam",
                     color: "red",
-                    how: "Calls BAM URL → token → X-BAM-Token header",
+                    how: "Calls BAM URL → token → Authorization: Bearer header",
                     setup: "Set bamTokenUrl per query in Admin",
                   },
                 ].map((row) => (

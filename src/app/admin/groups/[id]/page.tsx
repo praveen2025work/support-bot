@@ -25,6 +25,10 @@ interface GroupDetail {
 interface FilterBinding {
   key: string;
   binding: "body" | "query_param" | "path" | "column";
+  /** Optional default value pre-filled when the filter is unset. */
+  defaultValue?: string;
+  /** When true, the filter must be supplied before the query runs. */
+  required?: boolean;
 }
 
 interface FilterConfig {
@@ -592,6 +596,30 @@ export default function GroupDetailPage() {
   ) => {
     setQFilterBindings((prev) =>
       prev.map((f) => (f.key === key ? { ...f, binding } : f)),
+    );
+  };
+
+  const updateFilterDefaultValue = (key: string, defaultValue: string) => {
+    setQFilterBindings((prev) =>
+      prev.map((f) => {
+        if (f.key !== key) return f;
+        const next = { ...f };
+        if (defaultValue) next.defaultValue = defaultValue;
+        else delete next.defaultValue;
+        return next;
+      }),
+    );
+  };
+
+  const updateFilterRequired = (key: string, required: boolean) => {
+    setQFilterBindings((prev) =>
+      prev.map((f) => {
+        if (f.key !== key) return f;
+        const next = { ...f };
+        if (required) next.required = true;
+        else delete next.required;
+        return next;
+      }),
     );
   };
 
@@ -2004,23 +2032,56 @@ export default function GroupDetailPage() {
                                   </span>
                                 </span>
                                 {selected && (
-                                  <select
-                                    value={selected.binding}
-                                    onChange={(e) =>
-                                      updateBinding(
-                                        key,
-                                        e.target
-                                          .value as FilterBinding["binding"],
-                                      )
-                                    }
-                                    className="text-xs border border-gray-300 rounded px-1.5 py-0.5 bg-white"
-                                  >
-                                    <option value="body">Body</option>
-                                    <option value="query_param">
-                                      Query Param
-                                    </option>
-                                    <option value="path">Path Variable</option>
-                                  </select>
+                                  <>
+                                    <select
+                                      value={selected.binding}
+                                      onChange={(e) =>
+                                        updateBinding(
+                                          key,
+                                          e.target
+                                            .value as FilterBinding["binding"],
+                                        )
+                                      }
+                                      className="text-xs border border-gray-300 rounded px-1.5 py-0.5 bg-white"
+                                    >
+                                      <option value="body">Body</option>
+                                      <option value="query_param">
+                                        Query Param
+                                      </option>
+                                      <option value="path">
+                                        Path Variable
+                                      </option>
+                                    </select>
+                                    <input
+                                      value={selected.defaultValue ?? ""}
+                                      onChange={(e) =>
+                                        updateFilterDefaultValue(
+                                          key,
+                                          e.target.value,
+                                        )
+                                      }
+                                      placeholder="Default value"
+                                      title="Default value applied when the user does not supply this filter"
+                                      className="text-xs border border-gray-300 rounded px-1.5 py-0.5 w-[120px] bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    />
+                                    <label
+                                      className="flex items-center gap-1 text-[11px] text-gray-600"
+                                      title="Require this filter before the query runs"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={!!selected.required}
+                                        onChange={(e) =>
+                                          updateFilterRequired(
+                                            key,
+                                            e.target.checked,
+                                          )
+                                        }
+                                        className="accent-blue-600"
+                                      />
+                                      Required
+                                    </label>
+                                  </>
                                 )}
                               </div>
                             );
@@ -2059,6 +2120,29 @@ export default function GroupDetailPage() {
                               <option value="query_param">Query Param</option>
                               <option value="path">Path Variable</option>
                             </select>
+                            <input
+                              value={f.defaultValue ?? ""}
+                              onChange={(e) =>
+                                updateFilterDefaultValue(f.key, e.target.value)
+                              }
+                              placeholder="Default value"
+                              title="Default value applied when the user does not supply this filter"
+                              className="text-xs border border-gray-300 rounded px-1.5 py-0.5 w-[120px] bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                            <label
+                              className="flex items-center gap-1 text-[11px] text-gray-600"
+                              title="Require this filter before the query runs"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={!!f.required}
+                                onChange={(e) =>
+                                  updateFilterRequired(f.key, e.target.checked)
+                                }
+                                className="accent-blue-600"
+                              />
+                              Required
+                            </label>
                             <button
                               onClick={() => removeFilter(f.key)}
                               className="text-xs text-red-400 hover:text-red-600"

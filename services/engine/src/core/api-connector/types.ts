@@ -5,11 +5,19 @@ export type FilterBindingType = "body" | "query_param" | "path" | "column";
 export interface FilterBinding {
   key: string;
   binding: FilterBindingType;
+  // Value used when the caller does not supply this filter. May itself be a
+  // date preset (e.g. "last_7_days") and will flow through date resolution.
+  defaultValue?: string;
+  // When true, the request must not be sent unless this filter has a value
+  // (caller-supplied or from defaultValue). Enforced in executeApiQuery.
+  required?: boolean;
 }
 
 const FilterBindingSchema = z.object({
   key: z.string(),
   binding: z.enum(["body", "query_param", "path", "column"]),
+  defaultValue: z.string().optional(),
+  required: z.boolean().optional(),
 });
 
 // Accept both old string[] and new FilterBinding[] formats

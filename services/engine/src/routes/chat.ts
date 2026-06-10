@@ -180,6 +180,10 @@ chatRouter.post("/", async (req: Request, res: Response) => {
     if (req.headers["cookie"]) {
       incomingHeaders["cookie"] = req.headers["cookie"] as string;
     }
+    // BAM token minted by the browser (Windows handshake happens client-side).
+    if (req.headers["x-bam-token"]) {
+      incomingHeaders["x-bam-token"] = req.headers["x-bam-token"] as string;
+    }
     // Role header — drives PII clear-text view permission downstream.
     // Default to "viewer" when missing so masking is the safe default;
     // privileged callers (admin) explicitly opt in via the header.

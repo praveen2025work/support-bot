@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { timingSafeEqual } from 'crypto';
-import { logger } from '@/lib/logger';
+import { Request, Response, NextFunction } from "express";
+import { timingSafeEqual } from "crypto";
+import { logger } from "@/lib/logger";
 
 /**
  * Authentication types supported per-query or per-group:
@@ -8,7 +8,7 @@ import { logger } from '@/lib/logger';
  * "none"          — No authentication (demo/development)
  * "bearer"        — Authorization: Bearer <token> (uses global API_TOKEN)
  * "windows"       — Windows Authentication — forwards user's AD cookies/headers
- * "bam"           — BAM token: fetches token from bamTokenUrl, sends as X-BAM-Token
+ * "bam"           — BAM token: fetches token from bamTokenUrl, sends as Authorization: Bearer
  * "bam_token"     — (legacy alias for "bam")
  * "ip_whitelist"  — IP-based access control
  *
@@ -20,7 +20,13 @@ import { logger } from '@/lib/logger';
  * }
  */
 
-export type AuthType = 'none' | 'bearer' | 'windows' | 'bam' | 'bam_token' | 'ip_whitelist';
+export type AuthType =
+  | "none"
+  | "bearer"
+  | "windows"
+  | "bam"
+  | "bam_token"
+  | "ip_whitelist";
 
 export interface AuthConfig {
   authType: AuthType;
@@ -41,7 +47,11 @@ export interface AuthConfig {
  * This validates that the caller (the UI service) is authorized.
  * In demo mode, this is a passthrough.
  */
-export function engineAuthMiddleware(req: Request, res: Response, next: NextFunction) {
+export function engineAuthMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const engineApiKey = process.env.ENGINE_API_KEY;
 
   // No API key configured = demo mode, allow all
@@ -49,15 +59,22 @@ export function engineAuthMiddleware(req: Request, res: Response, next: NextFunc
     return next();
   }
 
-  const provided = req.headers['x-engine-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
+  const provided =
+    req.headers["x-engine-api-key"] ||
+    req.headers["authorization"]?.replace("Bearer ", "");
 
-  const providedBuf = Buffer.from(String(provided || ''));
+  const providedBuf = Buffer.from(String(provided || ""));
   const expectedBuf = Buffer.from(engineApiKey);
-  const isValid = providedBuf.length === expectedBuf.length && timingSafeEqual(providedBuf, expectedBuf);
+  const isValid =
+    providedBuf.length === expectedBuf.length &&
+    timingSafeEqual(providedBuf, expectedBuf);
 
   if (!isValid) {
-    logger.warn({ ip: req.ip, url: req.url }, 'Unauthorized Engine API request');
-    return res.status(401).json({ error: 'Unauthorized' });
+    logger.warn(
+      { ip: req.ip, url: req.url },
+      "Unauthorized Engine API request",
+    );
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   return next();
@@ -67,26 +84,31 @@ export function engineAuthMiddleware(req: Request, res: Response, next: NextFunc
  * Build HTTP headers for outbound requests to tenant APIs.
  * Used by the ApiClient when calling real tenant endpoints.
  */
-export function buildTenantAuthHeaders(config?: AuthConfig): Record<string, string> {
-  if (!config || config.authType === 'none') {
+export function buildTenantAuthHeaders(
+  config?: AuthConfig,
+): Record<string, string> {
+  if (!config || config.authType === "none") {
     return {};
   }
 
   switch (config.authType) {
-    case 'bearer':
+    case "bearer":
       return config.token ? { Authorization: `Bearer ${config.token}` } : {};
 
-    case 'bam':
-    case 'bam_token':
-      return config.bamToken ? { 'X-BAM-Token': config.bamToken } : {};
+    case "bam":
+    case "bam_token":
+      // The data API expects the BAM token as a Bearer credential.
+      return config.bamToken
+        ? { Authorization: `Bearer ${config.bamToken}` }
+        : {};
 
-    case 'windows':
+    case "windows":
       // Windows auth (NTLM/Kerberos) is handled at the HTTP client level,
       // not via headers. This returns empty headers; the ApiClient should
       // use httpntlm or node-sspi when authType === 'windows'.
       return {};
 
-    case 'ip_whitelist':
+    case "ip_whitelist":
       // IP whitelisting is configured on the tenant's firewall.
       // No special headers needed from our side.
       return {};
@@ -102,14 +124,14 @@ export function buildTenantAuthHeaders(config?: AuthConfig): Record<string, stri
  */
 export function ipWhitelistMiddleware(allowedIps: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const clientIp = req.ip || req.socket.remoteAddress || '';
-    const normalized = clientIp.replace(/^::ffff:/, '');
+    const clientIp = req.ip || req.socket.remoteAddress || "";
+    const normalized = clientIp.replace(/^::ffff:/, "");
 
-    if (allowedIps.includes(normalized) || allowedIps.includes('*')) {
+    if (allowedIps.includes(normalized) || allowedIps.includes("*")) {
       return next();
     }
 
-    logger.warn({ clientIp: normalized, url: req.url }, 'IP not whitelisted');
-    return res.status(403).json({ error: 'Forbidden — IP not whitelisted' });
+    logger.warn({ clientIp: normalized, url: req.url }, "IP not whitelisted");
+    return res.status(403).json({ error: "Forbidden — IP not whitelisted" });
   };
 }

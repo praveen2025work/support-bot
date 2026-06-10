@@ -5,7 +5,11 @@ import { QueryResultSchema } from "./types";
 import { getGroupQueries } from "@/core/catalog/query-registry";
 import { fetchBamToken } from "./bam-auth";
 import { FILE_BASE_DIR } from "@/lib/env-config";
-import { QueryNotFoundError, FileReadError } from "@/lib/errors";
+import {
+  QueryNotFoundError,
+  FileReadError,
+  MissingRequiredFilterError,
+} from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { resolveDateRange, isDatePreset } from "@/lib/date-resolver";
 import {
@@ -188,7 +192,23 @@ export class QueryService {
     incomingHeaders?: Record<string, string>,
   ): Promise<QueryExecutionResult> {
     const filterBindings: FilterBinding[] = query.filters ?? [];
-    const resolved = filters ? this.resolveFilters(filters) : undefined;
+
+    // Overlay caller-supplied filters on top of per-binding defaults so a query
+    // can declare fallback values (e.g. a default region or date range). User
+    // values always win. Defaults may themselves be date presets, so the merged
+    // map flows through resolveFilters() just like caller input.
+    const defaults: QueryFilters = {};
+    for (const binding of filterBindings) {
+      if (binding.defaultValue !== undefined) {
+        defaults[binding.key] = binding.defaultValue;
+      }
+    }
+    const effective: QueryFilters = { ...defaults, ...(filters ?? {}) };
+
+    const resolved =
+      Object.keys(effective).length > 0
+        ? this.resolveFilters(effective)
+        : undefined;
     const bodyFilters: Record<string, string> = {};
     const paramFilters: Record<string, string> = {};
     let urlPath = query.endpoint
@@ -212,6 +232,28 @@ export class QueryService {
           bodyFilters[key] = value;
         }
       }
+    }
+
+    // Fail fast (input-validation rule): never send a broken request.
+    // 1. Any unsubstituted path placeholder left in the URL means a `path`
+    //    binding had no value/default — sending it would hit a literal `{key}`.
+    // 2. Any binding marked required:true with no resolved value and no default
+    //    is a hard error. `resolved` already includes defaults via `effective`.
+    const missingKeys = new Set<string>();
+    const placeholderMatches = urlPath.match(/\{([^}]+)\}/g);
+    if (placeholderMatches) {
+      for (const match of placeholderMatches) {
+        missingKeys.add(match.slice(1, -1));
+      }
+    }
+    for (const binding of filterBindings) {
+      if (!binding.required) continue;
+      const hasValue =
+        effective[binding.key] !== undefined && effective[binding.key] !== "";
+      if (!hasValue) missingKeys.add(binding.key);
+    }
+    if (missingKeys.size > 0) {
+      throw new MissingRequiredFilterError(query.name, [...missingKeys]);
     }
 
     // Build per-query auth headers based on authType
@@ -443,7 +485,9 @@ export class QueryService {
    *
    * - none/bearer: No extra headers (uses global API_TOKEN from env)
    * - windows: Forward the user's Authorization/Cookie headers (pass-through)
-   * - bam: Fetch a BAM token first, then add X-BAM-Token header
+   * - bam: Use the BAM token the browser minted (forwarded as `x-bam-token`),
+   *        or fetch one server-side as a fallback, then send it as
+   *        `Authorization: Bearer <bamToken>`
    */
   private async resolveQueryAuth(
     query: Query,
@@ -453,7 +497,23 @@ export class QueryService {
 
     switch (authType) {
       case "windows": {
-        // Forward the user's Windows auth headers (Authorization, Cookie)
+        // True per-user Integrated Windows Auth (NTLM/Kerberos) can only be
+        // performed in the browser — only it holds the user's Windows identity.
+        // So the browser does the handshake and mints a token, forwarding it to
+        // us as `x-bam-token`; prefer it when present. Server-side header
+        // forwarding (Authorization/Cookie below) only works if the user's
+        // bearer/cookie is already present on the request — it cannot itself
+        // mint a Windows credential.
+        const clientToken = incomingHeaders?.["x-bam-token"];
+        if (clientToken) {
+          logger.debug(
+            { query: query.name },
+            "Windows auth: using client-minted token",
+          );
+          return { Authorization: `Bearer ${clientToken}` };
+        }
+
+        // Fallback: forward the user's Windows auth headers (Authorization, Cookie)
         if (!incomingHeaders) {
           logger.warn(
             { query: query.name },
@@ -480,11 +540,23 @@ export class QueryService {
       }
 
       case "bam": {
-        // Step 1: Fetch BAM token
+        // The Windows handshake can only happen in the browser, so the client
+        // mints the BAM token and forwards it to us as `x-bam-token`. Prefer it.
+        const clientBamToken = incomingHeaders?.["x-bam-token"];
+        if (clientBamToken) {
+          logger.debug(
+            { query: query.name },
+            "BAM auth: using client-supplied token",
+          );
+          return { Authorization: `Bearer ${clientBamToken}` };
+        }
+
+        // Fallback: fetch the token server-side. This only works when the
+        // bamTokenUrl does NOT require Windows auth (e.g. a service account).
         if (!query.bamTokenUrl) {
           logger.error(
             { query: query.name },
-            "BAM auth query missing bamTokenUrl",
+            "BAM auth query missing bamTokenUrl and no client-supplied token",
           );
           return undefined;
         }
@@ -508,8 +580,8 @@ export class QueryService {
           "BAM auth: token acquired",
         );
 
-        // Step 2: Use bamToken as X-BAM-Token header
-        return { "X-BAM-Token": bamResponse.bamToken };
+        // The data API expects the token as a Bearer credential.
+        return { Authorization: `Bearer ${bamResponse.bamToken}` };
       }
 
       case "bearer":

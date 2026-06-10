@@ -1,14 +1,14 @@
-import { LRUCache } from 'lru-cache';
-import { logger } from '@/lib/logger';
-import { ApiConnectionError } from '@/lib/errors';
-import { timeoutSignal } from '@/lib/generate-id';
+import { LRUCache } from "lru-cache";
+import { logger } from "@/lib/logger";
+import { ApiConnectionError } from "@/lib/errors";
+import { timeoutSignal } from "@/lib/generate-id";
 
 /**
  * BAM (Business Application Module) Authentication
  *
  * BAM auth is a two-step process:
  * 1. Call the BAM token URL to get a short-lived token
- * 2. Use that token (X-BAM-Token header) when calling the actual data API
+ * 2. Use that token (Authorization: Bearer <bamToken>) when calling the data API
  *
  * The BAM token response also includes a `redirectURL` which can optionally
  * override the query's configured endpoint.
@@ -37,22 +37,22 @@ const bamTokenCache = new LRUCache<string, BamTokenResponse>({
  */
 export async function fetchBamToken(
   bamTokenUrl: string,
-  forwardHeaders?: Record<string, string>
+  forwardHeaders?: Record<string, string>,
 ): Promise<BamTokenResponse> {
   // Check cache first
   const cached = bamTokenCache.get(bamTokenUrl);
   if (cached) {
-    logger.debug({ bamTokenUrl }, 'BAM token cache hit');
+    logger.debug({ bamTokenUrl }, "BAM token cache hit");
     return cached;
   }
 
-  logger.info({ bamTokenUrl }, 'Fetching BAM token');
+  logger.info({ bamTokenUrl }, "Fetching BAM token");
 
   try {
     const response = await fetch(bamTokenUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...forwardHeaders,
       },
       body: JSON.stringify({}),
@@ -60,28 +60,39 @@ export async function fetchBamToken(
     });
 
     if (!response.ok) {
-      throw new Error(`BAM token request failed: HTTP ${response.status} ${response.statusText}`);
+      throw new Error(
+        `BAM token request failed: HTTP ${response.status} ${response.statusText}`,
+      );
     }
 
-    const data = await response.json() as BamTokenResponse;
+    const data = (await response.json()) as BamTokenResponse;
 
     // Validate response shape
     if (!data.bamToken) {
-      throw new Error('BAM token response missing bamToken field');
+      throw new Error("BAM token response missing bamToken field");
     }
 
-    if (data.code !== 'success') {
-      throw new Error(`BAM token request returned code: ${data.code}, message: ${data.message}`);
+    // BAM returns an uppercase "SUCCESS"; compare case-insensitively so a
+    // valid token isn't rejected (real responses use "SUCCESS", not "success").
+    if (data.code?.toLowerCase() !== "success") {
+      throw new Error(
+        `BAM token request returned code: ${data.code}, message: ${data.message}`,
+      );
     }
 
     // Cache the token
     bamTokenCache.set(bamTokenUrl, data);
-    logger.info({ bamTokenUrl, hasRedirectURL: !!data.redirectURL }, 'BAM token acquired');
+    logger.info(
+      { bamTokenUrl, hasRedirectURL: !!data.redirectURL },
+      "BAM token acquired",
+    );
 
     return data;
   } catch (error) {
-    logger.error({ error, bamTokenUrl }, 'BAM token fetch failed');
-    throw new ApiConnectionError(`Failed to fetch BAM token from ${bamTokenUrl}`);
+    logger.error({ error, bamTokenUrl }, "BAM token fetch failed");
+    throw new ApiConnectionError(
+      `Failed to fetch BAM token from ${bamTokenUrl}`,
+    );
   }
 }
 
