@@ -1132,7 +1132,8 @@ New-NetFirewallRule -DisplayName "Chatbot HTTPS" \\
                     <Badge color="red">bam</Badge>
                   </td>
                   <td className="px-3 py-2">
-                    Calls BAM URL &rarr; token &rarr; X-BAM-Token header
+                    Calls BAM URL &rarr; token &rarr; Authorization: Bearer
+                    header
                   </td>
                   <td className="px-3 py-2">
                     Set <Code>bamTokenUrl</Code> per query in Admin

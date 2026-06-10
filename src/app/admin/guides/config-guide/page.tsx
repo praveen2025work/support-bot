@@ -663,8 +663,8 @@ npm run start:prod     # Production build, real APIs`}</pre>
                   <td className="px-3 py-2 font-mono">bam</td>
                   <td className="px-3 py-2">
                     Two-step: (1) POST to <Code>bamTokenUrl</Code> to get a BAM
-                    token, (2) use the token as <Code>X-BAM-Token</Code> header
-                    on the actual data API call. Tokens are cached for 5 min.
+                    token, (2) send it as <Code>Authorization: Bearer</Code> on
+                    the actual data API call. Tokens are cached for 5 min.
                   </td>
                   <td className="px-3 py-2">
                     <Code>bamTokenUrl</Code> (required)

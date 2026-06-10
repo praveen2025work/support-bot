@@ -80,6 +80,10 @@ queriesRouter.get("/queries", async (req: Request, res: Response) => {
       description: q.description,
       filters: q.filters || [],
       type: q.type ?? "api",
+      // Auth metadata the browser needs to decide when/where to mint a token
+      // before calling the engine. Only these two non-secret fields are exposed.
+      authType: q.authType ?? "none",
+      ...(q.bamTokenUrl ? { bamTokenUrl: q.bamTokenUrl } : {}),
       ...(q.drillDown ? { drillDown: q.drillDown } : {}),
       ...(q.combinedConfig ? { combinedConfig: q.combinedConfig } : {}),
       ...(q.actionConfig ? { actionConfig: q.actionConfig } : {}),

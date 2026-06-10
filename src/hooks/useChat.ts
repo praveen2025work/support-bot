@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { generateId } from "@/lib/generate-id";
+import { getBamToken, clearBamToken } from "@/lib/bam-token";
 
 export interface Message {
   id: string;
@@ -111,6 +112,29 @@ interface QueryMeta {
   description?: string;
   filters: Array<string | { key: string; binding: string }>;
   type?: "api" | "url" | "document" | "csv";
+  /**
+   * Per-query auth type. Windows/BAM auth must be minted in the browser,
+   * so the UI inspects this to decide whether to attach an X-BAM-Token.
+   */
+  authType?: "none" | "bearer" | "windows" | "bam";
+  /** Single token URL per application — minted once and reused. */
+  bamTokenUrl?: string;
+}
+
+/**
+ * Resolve the BAM token URL for a group from its queries. There is ONE
+ * token URL per application, so we return the first non-empty `bamTokenUrl`
+ * on a query whose `authType` is `bam` or `windows`. Returns null when the
+ * group has no Windows/BAM-authenticated query.
+ */
+function resolveBamTokenUrl(queries: QueryMeta[]): string | null {
+  for (const q of queries) {
+    if (q.authType === "bam" || q.authType === "windows") {
+      const url = q.bamTokenUrl?.trim();
+      if (url) return url;
+    }
+  }
+  return null;
 }
 
 /** Regex that matches "run <queryName>" with optional trailing whitespace */
@@ -218,6 +242,7 @@ export function useChat(
   const queriesCacheRef = useRef<{
     groupId: string;
     queries: QueryMeta[];
+    bamTokenUrl: string | null;
   } | null>(null);
   const bypassFilterFormRef = useRef(false);
   const lastBotConfidenceRef = useRef<number>(1);
@@ -262,12 +287,31 @@ export function useChat(
       if (!res.ok) return [];
       const data = await res.json();
       const queries = data.queries as QueryMeta[];
-      queriesCacheRef.current = { groupId: gid, queries };
+      queriesCacheRef.current = {
+        groupId: gid,
+        queries,
+        bamTokenUrl: resolveBamTokenUrl(queries),
+      };
       return queries;
     } catch {
       return [];
     }
   }, [groupId]);
+
+  /**
+   * Resolve (and cache) the group's BAM token URL. Loads the group's
+   * queries on first use so we know whether any query needs Windows/BAM
+   * auth. Returns null when the group has no such query — chat then sends
+   * no token header (unchanged behaviour for non-auth groups).
+   */
+  const getBamTokenUrl = useCallback(async (): Promise<string | null> => {
+    const gid = groupId || "default";
+    if (queriesCacheRef.current?.groupId === gid) {
+      return queriesCacheRef.current.bamTokenUrl;
+    }
+    await fetchQueries();
+    return queriesCacheRef.current?.bamTokenUrl ?? null;
+  }, [groupId, fetchQueries]);
 
   const callChatApi = useCallback(
     async (
@@ -315,11 +359,46 @@ export function useChat(
         payload.forceIntent = forceIntent;
       }
 
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      // Windows/BAM auth: when the group has a query needing browser-minted
+      // auth, mint a token (cached + de-duped per URL) and attach it as the
+      // X-BAM-Token header. Non-auth groups resolve to null and send no
+      // header, preserving existing behaviour.
+      const bamTokenUrl = await getBamTokenUrl();
+      const body = JSON.stringify(payload);
+
+      const postChat = async (token: string | null): Promise<Response> => {
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (token) headers["X-BAM-Token"] = token;
+        return fetch("/api/chat", { method: "POST", headers, body });
+      };
+
+      let token: string | null = null;
+      if (bamTokenUrl) {
+        try {
+          token = await getBamToken(bamTokenUrl);
+        } catch {
+          // Token mint failed — proceed without it. The engine returns a
+          // structured auth error the user sees, rather than silently
+          // hanging the chat send.
+          token = null;
+        }
+      }
+
+      let res = await postChat(token);
+
+      // On a 401 from a BAM/Windows group, the cached token may be stale —
+      // clear it, re-mint once, and retry the request a single time.
+      if (res.status === 401 && bamTokenUrl) {
+        clearBamToken(bamTokenUrl);
+        try {
+          const freshToken = await getBamToken(bamTokenUrl);
+          res = await postChat(freshToken);
+        } catch {
+          // Re-mint failed — fall through with the original 401 response.
+        }
+      }
 
       if (!res.ok) {
         // Engine returns a structured envelope on 4xx/5xx —
@@ -347,7 +426,7 @@ export function useChat(
       const data = await res.json();
       return { data };
     },
-    [platform, groupId, userName],
+    [platform, groupId, userName, getBamTokenUrl],
   );
 
   const sendMessage = useCallback(

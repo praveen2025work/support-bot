@@ -7,7 +7,7 @@
  *   - Response normalization (api → QueryResult shape: data / rowCount / executionTime)
  *   - End-to-end response shape via the query-handler (richContent.type === 'query_result')
  *   - Error paths (5xx → ApiConnectionError, timeout, malformed JSON)
- *   - Auth pass-through (windows headers forwarded; bam fetches token then sets X-BAM-Token)
+ *   - Auth pass-through (windows headers forwarded; bam token sent as Authorization: Bearer)
  *   - Circuit breaker (opens after N consecutive failures; subsequent calls fail fast)
  *   - LRUCache on api-client (identical GET requests dedup at network boundary)
  *
@@ -64,7 +64,11 @@ import {
   CircuitBreaker,
   CircuitState,
 } from "../../../core/api-connector/circuit-breaker";
-import { CircuitOpenError, QueryNotFoundError } from "@/lib/errors";
+import {
+  CircuitOpenError,
+  QueryNotFoundError,
+  MissingRequiredFilterError,
+} from "@/lib/errors";
 import { handleQueryExecute } from "../../../core/response/handlers/query-handler";
 import type {
   ClassificationResult,
@@ -177,6 +181,30 @@ function makeQueryCatalog(): unknown[] {
       endpoint: "/cacheable",
       filters: [],
     },
+    {
+      id: "q-defaults",
+      name: "defaults_query",
+      description: "Query exercising per-binding defaults",
+      type: "api",
+      authType: "none",
+      method: "POST",
+      endpoint: "/regions/{region}/report",
+      filters: [
+        { key: "region", binding: "path", defaultValue: "EU" },
+        { key: "team", binding: "query_param", defaultValue: "alpha" },
+        { key: "currency", binding: "body", defaultValue: "USD" },
+      ],
+    },
+    {
+      id: "q-required",
+      name: "required_query",
+      description: "Query with a required filter and no default",
+      type: "api",
+      authType: "none",
+      method: "POST",
+      endpoint: "/secure/report",
+      filters: [{ key: "accountId", binding: "body", required: true }],
+    },
   ];
 }
 
@@ -266,7 +294,7 @@ describe("QueryService — query execution pipeline", () => {
 
       const queries = await service.getQueries();
 
-      expect(queries).toHaveLength(5);
+      expect(queries).toHaveLength(7);
       expect(queries.map((q) => q.name)).toContain("sales_report");
     });
 
@@ -398,6 +426,153 @@ describe("QueryService — query execution pipeline", () => {
       const url = String(exec![0]);
       // encodeURIComponent → "a%2Fb%20c"
       expect(url).toContain("a%2Fb%20c");
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 2b. Filter defaults + required validation
+  // -------------------------------------------------------------------------
+
+  describe("filter defaults + required validation", () => {
+    it("path default fills {region} when caller omits it", async () => {
+      fetchMock
+        .mockResolvedValueOnce(
+          makeMockResponse({
+            jsonBody: { data: [], rowCount: 0, executionTime: 0 },
+          }),
+        )
+        .mockResolvedValue(makeMockResponse({ jsonBody: {} }));
+
+      const client = new ApiClient("http://test-host/api");
+      resetSharedBreaker(client, "http://test-host/api/");
+      const service = new QueryService(client);
+
+      await service.executeQuery("defaults_query");
+
+      const exec = fetchMock.mock.calls.find(([url]) =>
+        String(url).includes("/regions/"),
+      );
+      expect(exec).toBeDefined();
+      const url = String(exec![0]);
+      expect(url).toContain("/regions/EU/report");
+      expect(url).not.toContain("{region}");
+    });
+
+    it("query_param default is applied when caller omits it", async () => {
+      fetchMock
+        .mockResolvedValueOnce(
+          makeMockResponse({
+            jsonBody: { data: [], rowCount: 0, executionTime: 0 },
+          }),
+        )
+        .mockResolvedValue(makeMockResponse({ jsonBody: {} }));
+
+      const client = new ApiClient("http://test-host/api");
+      resetSharedBreaker(client, "http://test-host/api/");
+      const service = new QueryService(client);
+
+      await service.executeQuery("defaults_query");
+
+      const exec = fetchMock.mock.calls.find(([url]) =>
+        String(url).includes("/regions/"),
+      );
+      const url = String(exec![0]);
+      expect(url).toContain("team=alpha");
+    });
+
+    it("body default is applied when caller omits it", async () => {
+      fetchMock
+        .mockResolvedValueOnce(
+          makeMockResponse({
+            jsonBody: { data: [], rowCount: 0, executionTime: 0 },
+          }),
+        )
+        .mockResolvedValue(makeMockResponse({ jsonBody: {} }));
+
+      const client = new ApiClient("http://test-host/api");
+      resetSharedBreaker(client, "http://test-host/api/");
+      const service = new QueryService(client);
+
+      await service.executeQuery("defaults_query");
+
+      const exec = fetchMock.mock.calls.find(([url]) =>
+        String(url).includes("/regions/"),
+      );
+      const init = exec![1] as RequestInit;
+      const body = JSON.parse(init.body as string);
+      expect(body).toEqual({ filters: { currency: "USD" } });
+    });
+
+    it("caller-supplied value overrides the binding default", async () => {
+      fetchMock
+        .mockResolvedValueOnce(
+          makeMockResponse({
+            jsonBody: { data: [], rowCount: 0, executionTime: 0 },
+          }),
+        )
+        .mockResolvedValue(makeMockResponse({ jsonBody: {} }));
+
+      const client = new ApiClient("http://test-host/api");
+      resetSharedBreaker(client, "http://test-host/api/");
+      const service = new QueryService(client);
+
+      await service.executeQuery("defaults_query", {
+        region: "US",
+        team: "bravo",
+        currency: "EUR",
+      });
+
+      const exec = fetchMock.mock.calls.find(([url]) =>
+        String(url).includes("/regions/"),
+      );
+      const url = String(exec![0]);
+      expect(url).toContain("/regions/US/report");
+      expect(url).toContain("team=bravo");
+      const init = exec![1] as RequestInit;
+      const body = JSON.parse(init.body as string);
+      expect(body).toEqual({ filters: { currency: "EUR" } });
+    });
+
+    it("required filter missing with no default throws MissingRequiredFilterError", async () => {
+      // No data fetch should occur — the request must be blocked before send.
+      fetchMock.mockResolvedValue(makeMockResponse({ jsonBody: {} }));
+
+      const client = new ApiClient("http://test-host/api");
+      resetSharedBreaker(client, "http://test-host/api/");
+      const service = new QueryService(client);
+
+      await expect(service.executeQuery("required_query")).rejects.toThrow(
+        MissingRequiredFilterError,
+      );
+
+      const dataCall = fetchMock.mock.calls.find(([url]) =>
+        String(url).includes("/secure/report"),
+      );
+      expect(dataCall).toBeUndefined();
+    });
+
+    it("required filter satisfied by caller value sends the request", async () => {
+      fetchMock
+        .mockResolvedValueOnce(
+          makeMockResponse({
+            jsonBody: { data: [{ ok: 1 }], rowCount: 1, executionTime: 0 },
+          }),
+        )
+        .mockResolvedValue(makeMockResponse({ jsonBody: {} }));
+
+      const client = new ApiClient("http://test-host/api");
+      resetSharedBreaker(client, "http://test-host/api/");
+      const service = new QueryService(client);
+
+      const result = await service.executeQuery("required_query", {
+        accountId: "acc-1",
+      });
+      expect(result.apiResult?.rowCount).toBe(1);
+
+      const dataCall = fetchMock.mock.calls.find(([url]) =>
+        String(url).includes("/secure/report"),
+      );
+      expect(dataCall).toBeDefined();
     });
   });
 
@@ -679,15 +854,48 @@ describe("QueryService — query execution pipeline", () => {
       expect(headers).toHaveProperty("Cookie");
     });
 
-    it("authType='bam' fetches a token and sets X-BAM-Token on the data request", async () => {
-      // Sequence: BAM token → data (catalog is now file-based)
+    it("authType='windows' with x-bam-token sends Authorization: Bearer", async () => {
+      // The browser does the IWA handshake and mints a token, forwarding it as
+      // x-bam-token; the engine must prefer it over header forwarding.
+      fetchMock.mockResolvedValue(
+        makeMockResponse({
+          jsonBody: { data: [{ x: 1 }], rowCount: 1, executionTime: 0 },
+        }),
+      );
+
+      const client = new ApiClient("http://test-host/api");
+      resetSharedBreaker(client, "http://test-host/api/");
+      const service = new QueryService(client);
+
+      await service.executeQuery("windows_query", undefined, undefined, {
+        "x-bam-token": "WIN-TOKEN-789",
+        authorization: "Negotiate should-be-ignored",
+        cookie: "SID=ignored",
+      });
+
+      const exec = fetchMock.mock.calls.find(([url]) =>
+        String(url).includes("/windows/data"),
+      );
+      expect(exec).toBeDefined();
+      const headers = (exec![1] as RequestInit).headers as Record<
+        string,
+        string
+      >;
+      expect(headers).toHaveProperty("Authorization", "Bearer WIN-TOKEN-789");
+      // The minted token wins — raw forwarded headers must not leak through.
+      expect(headers).not.toHaveProperty("Cookie");
+    });
+
+    it("authType='bam' fetches a token (case-insensitive code) and sets Authorization: Bearer", async () => {
+      // Sequence: BAM token → data (catalog is now file-based).
+      // Real BAM returns an UPPERCASE "SUCCESS" code — assert we accept it.
       fetchMock.mockImplementation(async (url) => {
         const u = String(url);
         if (u.includes("bam.test/token"))
           return makeMockResponse({
             jsonBody: {
-              code: "success",
-              message: "ok",
+              code: "SUCCESS",
+              message: "SUCCESS",
               bamToken: "BAM-TOKEN-123",
               redirectURL: "",
             },
@@ -713,7 +921,44 @@ describe("QueryService — query execution pipeline", () => {
         string,
         string
       >;
-      expect(headers).toHaveProperty("X-BAM-Token");
+      expect(headers).toHaveProperty("Authorization", "Bearer BAM-TOKEN-123");
+    });
+
+    it("authType='bam' uses the client-supplied token without re-fetching", async () => {
+      // Browser does the Windows handshake and forwards x-bam-token; the engine
+      // must NOT call the BAM token endpoint again.
+      fetchMock.mockImplementation(async (url) => {
+        const u = String(url);
+        if (u.includes("/bam/data"))
+          return makeMockResponse({
+            jsonBody: { data: [{ y: 2 }], rowCount: 1, executionTime: 0 },
+          });
+        return makeMockResponse({ jsonBody: {} });
+      });
+
+      const client = new ApiClient("http://test-host/api");
+      resetSharedBreaker(client, "http://test-host/api/");
+      const service = new QueryService(client);
+
+      await service.executeQuery("bam_query", undefined, undefined, {
+        "x-bam-token": "CLIENT-BAM-456",
+      });
+
+      const dataCall = fetchMock.mock.calls.find(([url]) =>
+        String(url).includes("/bam/data"),
+      );
+      expect(dataCall).toBeDefined();
+      const headers = (dataCall![1] as RequestInit).headers as Record<
+        string,
+        string
+      >;
+      expect(headers).toHaveProperty("Authorization", "Bearer CLIENT-BAM-456");
+
+      // No server-side token fetch should occur when the client supplies one.
+      const tokenCall = fetchMock.mock.calls.find(([url]) =>
+        String(url).includes("bam.test/token"),
+      );
+      expect(tokenCall).toBeUndefined();
     });
   });
 
