@@ -27,6 +27,8 @@
  */
 
 import { join } from "path";
+import { hostname } from "os";
+import { randomBytes } from "crypto";
 
 // ─── Base directories ────────────────────────────────────────────────────────
 
@@ -69,7 +71,13 @@ export const DB_JSON_PATH =
 
 // ─── Instance identity ──────────────────────────────────────────────────────
 
-export const INSTANCE_ID = process.env.INSTANCE_ID || `engine-${process.pid}`;
+// Auto-generated unique id when INSTANCE_ID is not set. `process.pid` alone is
+// useless in containers (PID is always 1, so every pod would be "engine-1"), so
+// we combine the hostname (the unique pod name in Kubernetes) with the pid and a
+// short random suffix — unique per process, even across restarts on the same host.
+export const INSTANCE_ID =
+  process.env.INSTANCE_ID ||
+  `engine-${hostname()}-${process.pid}-${randomBytes(3).toString("hex")}`;
 
 // ─── Derived paths — data ────────────────────────────────────────────────────
 

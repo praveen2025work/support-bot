@@ -98,9 +98,13 @@ export class SessionManager {
 
     const stored = file.sessions[key];
     if (stored) {
-      // Touch last-accessed time (extends TTL)
-      stored.lastAccessedAt = Date.now();
-      await this.writeUserFile(file);
+      // Deliberately do NOT refresh lastAccessedAt on reads. Persisting it would
+      // take the per-user write lock on the hot read path — a major source of
+      // lock contention — and `file` here is a throwaway parse that is never
+      // written back, so an in-memory touch would have no effect anyway.
+      // saveContext() stamps the timestamp after each message, so the
+      // SESSION_TTL_MS sweep effectively measures time since the last message;
+      // for a chat turn (read context -> save) that equals time since last use.
       this.contextCache.set(key, {
         context: stored.context,
         ts: Date.now(),
