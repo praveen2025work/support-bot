@@ -275,7 +275,10 @@ describe("B-2.0 NLP ensemble calibration", () => {
 
   beforeAll(async () => {
     const fuzzy = new FuzzyMatcher(null);
-    nlp = new NlpService(fuzzy, null, []);
+    // NlpService(fuzzyMatcher, corpusFile?, groupId?) — omit groupId so it
+    // defaults to "default". (Previously passed `[]`, a stale call that made
+    // this.groupId an array and crashed path joining in applyAutoLearned.)
+    nlp = new NlpService(fuzzy, null);
     await nlp.initialize();
   });
 
