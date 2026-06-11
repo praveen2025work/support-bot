@@ -18,6 +18,7 @@ import {
   bucketDateColumn,
   computePeriodOverPeriod,
   getNumericColumns,
+  isIdLikeColumn,
   type CsvData,
   type ColumnConfig,
 } from "../../api-connector/csv-analyzer";
@@ -844,6 +845,14 @@ function isDurationColumn(
 function parseAggregation(
   text: string,
 ): { op: string; columnHint: string | null } | null {
+  // Distinct / unique count first — "count distinct X", "distinct count of X",
+  // "count unique X", "number of distinct X", "distinct X", "unique X" — because
+  // these phrases contain "count" and must not be misread as a plain count.
+  const distinct = text.match(
+    /\b(?:count\s+(?:of\s+)?(?:distinct|unique)|(?:distinct|unique)\s+count|number\s+of\s+(?:distinct|unique)|distinct|unique)\b(?:\s+(?:values?\s+)?(?:of\s+|in\s+)?([\w_]+))?/i,
+  );
+  if (distinct) return { op: "distinct", columnHint: distinct[1] ?? null };
+
   const m = text.match(
     /\b(?:calculate\s+)?(avg|average|sum|total|min|max|mean|minimum|maximum|count)\b(?:\s+(?:of\s+)?([\w_]+))?/i,
   );
@@ -881,13 +890,23 @@ export function handleAggregationFollowUp(
   const csvData = extractCsvDataFromContext(context);
   if (!csvData) return null;
 
+  const colConfig = context.lastColumnConfig as ColumnConfig | undefined;
+  const numericOp =
+    parsed.op === "sum" ||
+    parsed.op === "avg" ||
+    parsed.op === "min" ||
+    parsed.op === "max";
+
   // For count without a column, return row count
   if (parsed.op === "count" && !parsed.columnHint) {
     return {
       text: `**Count** of rows in "${context.lastQueryName}": **${csvData.rows.length}**`,
       suggestions: [
         "summarize",
-        ...csvData.headers.slice(0, 3).map((h) => `avg ${h}`),
+        // Suggest aggregations on real measures only — never on ID columns.
+        ...getNumericColumns(csvData, colConfig)
+          .slice(0, 3)
+          .map((h) => `avg ${h}`),
       ],
       sessionId: context.sessionId,
       intent: "followup.aggregation",
@@ -914,16 +933,81 @@ export function handleAggregationFollowUp(
   }
 
   if (!column) {
-    const numericHeaders = csvData.headers.filter((h) => {
-      const val = csvData.rows[0]?.[h];
-      return (
-        typeof val === "number" ||
-        (typeof val === "string" && !isNaN(parseFloat(val)))
-      );
-    });
+    // For sum/avg/min/max offer only true measures (getNumericColumns already
+    // excludes ID and date columns). count/distinct apply to any column.
+    const candidates = numericOp
+      ? getNumericColumns(csvData, colConfig)
+      : csvData.headers;
+    const label = numericOp ? "numeric columns" : "columns";
+    const suggest = (h: string) =>
+      parsed.op === "distinct" ? `count distinct ${h}` : `${parsed.op} ${h}`;
     return {
-      text: `Which column should I calculate the ${parsed.op} of? Available numeric columns: **${numericHeaders.join(", ")}**`,
-      suggestions: numericHeaders.slice(0, 4).map((h) => `${parsed.op} ${h}`),
+      text: `Which column should I calculate the ${parsed.op} of? Available ${label}: **${candidates.join(", ")}**`,
+      suggestions: candidates.slice(0, 4).map(suggest),
+      sessionId: context.sessionId,
+      intent: "followup.aggregation",
+      confidence: 1,
+    };
+  }
+
+  // ID-like columns (unique id, system id, entity id, codes/keys) are not
+  // measures — sum/avg/min/max of an identifier is meaningless. Steer the user
+  // to count / count-of-distinct instead of returning a nonsense number.
+  if (numericOp && isIdLikeColumn(column, csvData.rows, colConfig)) {
+    return {
+      text: `**${column}** looks like an identifier, so **${parsed.op}** isn't meaningful for it. For ID columns I can give you a **count** of rows or a **count of distinct values**.`,
+      suggestions: [`count distinct ${column}`, `count ${column}`, "summarize"],
+      sessionId: context.sessionId,
+      intent: "followup.aggregation",
+      confidence: 1,
+    };
+  }
+
+  // Distinct count — works on any column type (the meaningful metric for IDs).
+  if (parsed.op === "distinct") {
+    const seen = new Set<string>();
+    for (const r of csvData.rows) {
+      const raw = r[column];
+      if (raw === undefined || raw === null || String(raw).trim() === "")
+        continue;
+      seen.add(String(raw).trim());
+    }
+    logger.info(
+      {
+        query: context.lastQueryName,
+        op: "distinct",
+        column,
+        result: seen.size,
+      },
+      "Aggregation follow-up",
+    );
+    return {
+      text: `**Distinct count** of **${column}** in "${context.lastQueryName}": **${seen.size}** unique value${seen.size === 1 ? "" : "s"}`,
+      suggestions: [`count ${column}`, "summarize", `sort by ${column} desc`],
+      sessionId: context.sessionId,
+      intent: "followup.aggregation",
+      confidence: 1,
+    };
+  }
+
+  // Count of a specific column — non-empty values of any type (so it works for
+  // string IDs/codes too, where the numeric path below would find nothing).
+  if (parsed.op === "count") {
+    const n = csvData.rows.filter((r) => {
+      const raw = r[column!];
+      return raw !== undefined && raw !== null && String(raw).trim() !== "";
+    }).length;
+    logger.info(
+      { query: context.lastQueryName, op: "count", column, result: n },
+      "Aggregation follow-up",
+    );
+    return {
+      text: `**Count** of non-empty **${column}** values in "${context.lastQueryName}": **${n}**`,
+      suggestions: [
+        `count distinct ${column}`,
+        "summarize",
+        `sort by ${column} desc`,
+      ],
       sessionId: context.sessionId,
       intent: "followup.aggregation",
       confidence: 1,
@@ -946,14 +1030,20 @@ export function handleAggregationFollowUp(
 
   if (values.length === 0) {
     return {
-      text: `Column **${column}** has no numeric values to aggregate.`,
-      suggestions: csvData.headers.slice(0, 4).map((h) => `${parsed.op} ${h}`),
+      text: `Column **${column}** has no numeric values to aggregate. If it is an identifier, try **count distinct ${column}**.`,
+      suggestions: [
+        `count distinct ${column}`,
+        ...getNumericColumns(csvData, colConfig)
+          .slice(0, 3)
+          .map((h) => `${parsed.op} ${h}`),
+      ],
       sessionId: context.sessionId,
       intent: "followup.aggregation",
       confidence: 1,
     };
   }
 
+  // Only sum/avg/min/max reach here — count and distinct returned earlier.
   let result: number;
   let opLabel: string;
   switch (parsed.op) {
@@ -973,23 +1063,16 @@ export function handleAggregationFollowUp(
       result = Math.max(...values);
       opLabel = "Max";
       break;
-    case "count":
-      result = values.length;
-      opLabel = "Count";
-      break;
     default:
       return null;
   }
 
   // Format result: use duration format for duration columns, numeric otherwise
-  const formatted =
-    parsed.op === "count"
+  const formatted = hasDurations
+    ? `${formatDuration(result)} (${result.toFixed(2)} hrs)`
+    : Number.isInteger(result)
       ? result.toString()
-      : hasDurations
-        ? `${formatDuration(result)} (${result.toFixed(2)} hrs)`
-        : Number.isInteger(result)
-          ? result.toString()
-          : result.toFixed(2);
+      : result.toFixed(2);
   logger.info(
     { query: context.lastQueryName, op: parsed.op, column, result },
     "Aggregation follow-up",

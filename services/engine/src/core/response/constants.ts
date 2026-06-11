@@ -102,9 +102,10 @@ export const TOP_BOTTOM_PATTERN = /\b(top|bottom)\s+(\d+)\b/i;
 export const VALUE_COMPARE_PATTERN =
   /\b(\w+)\s+(?:(?:greater\s+than\s+(?:or\s+)?equal(?:\s+to)?|>=|=>)|(?:less\s+than\s+(?:or\s+)?equal(?:\s+to)?|<=|=<)|(?:greater\s+than|more\s+than|above|over|>)|(?:less\s+than|below|under|<)|(?:equal\s+to|equals|=))\s*(\d+\.?\d*)%?/i;
 
-// Aggregation follow-up pattern: "avg resolution_hours", "calculate avg resolution_hours", "sum of revenue", "max priority"
+// Aggregation follow-up pattern: "avg resolution_hours", "calculate avg resolution_hours",
+// "sum of revenue", "max priority", "count distinct customer_id", "unique statuses"
 export const AGGREGATION_PATTERN =
-  /\b(?:calculate\s+)?(?:avg|average|sum|total|min|max|mean|minimum|maximum|count)\b(?:\s+(?:of\s+)?[\w_]+)?/i;
+  /\b(?:calculate\s+)?(?:avg|average|sum|total|min|max|mean|minimum|maximum|count|distinct|unique)\b(?:\s+(?:of\s+)?[\w_]+)?/i;
 
 // Computed column: date diff or arithmetic between two columns
 // Matches: "diff between X and Y", "diff X and Y", "subtract X from Y", etc.

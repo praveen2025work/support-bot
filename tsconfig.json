@@ -33,6 +33,8 @@
     ".next",
     "dist",
     "**/*.stories.ts",
-    "**/*.stories.tsx"
+    "**/*.stories.tsx",
+    "tests/nlp",
+    "tests/learning"
   ]
 }

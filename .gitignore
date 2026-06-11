@@ -76,3 +76,4 @@ services/engine/data/data-explorer-views/
 # tool artifacts (per-user, not project)
 .playwright-mcp/
 .superpowers/
+graphify-out/

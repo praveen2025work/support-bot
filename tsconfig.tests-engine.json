@@ -1,0 +1,33 @@
+{
+  // Typecheck the engine-integration tests that live under root `tests/` but
+  // import engine source (`services/engine/src/**`). Those engine files use the
+  // `@/*` alias meaning the ENGINE tree, so the root tsconfig (which maps
+  // `@/* -> src/*` and therefore excludes these dirs) cannot check them, and the
+  // engine tsconfig only covers `services/engine/src`. Without this config they
+  // are typechecked by nothing — which is how `new NlpService(fuzzy, null, [])`
+  // (an array where a `groupId?: string` was expected) slipped through.
+  //
+  // Run: `npm run typecheck:tests-engine` (needs root + engine deps installed).
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020", "DOM"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./services/engine/src/*"]
+    },
+    "types": ["node", "jest"]
+  },
+  "include": [
+    "tests/nlp/**/*.ts",
+    "tests/learning/**/*.ts",
+    // Ambient declarations for the untyped @nlpjs/* packages the engine uses.
+    "services/engine/src/types/nlpjs.d.ts"
+  ]
+}

@@ -60,6 +60,29 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm test
 
+  # ── Typecheck engine-integration tests ───────────────────────────────────
+  # tests/nlp and tests/learning import engine source (which uses the engine's
+  # `@/*` alias) and are therefore excluded from both the root and engine
+  # tsconfigs. This job typechecks them with `@/* -> services/engine/src` so
+  # type errors in those tests (e.g. a wrong constructor arg) can't hide.
+  # Needs root deps (@types/jest) AND engine deps (ml-matrix, natural, …).
+  engine-tests-typecheck:
+    name: Engine-integration tests tsc
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Install root deps
+        run: npm ci
+      - name: Install engine deps
+        working-directory: services/engine
+        run: npm ci
+      - name: Typecheck engine-integration tests
+        run: npm run typecheck:tests-engine
+
   # ── End-to-end validation harness ────────────────────────────────────────
   # Boots mock-api + engine + Next.js, then runs the 125-check
   # validation suite that lives in scripts/demo/validate.mjs. Any
