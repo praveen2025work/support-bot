@@ -13,7 +13,7 @@ export interface CsvData {
 }
 
 export interface AggregationRequest {
-  operation: "sum" | "avg" | "min" | "max" | "count" | "top";
+  operation: "sum" | "avg" | "min" | "max" | "count" | "distinct" | "top";
   column: string;
   limit?: number;
 }
@@ -79,6 +79,19 @@ export function computeAggregation(
       column: column || "*",
       result: data.rows.length,
     };
+  }
+
+  // Count of distinct (unique) non-empty values — the meaningful metric for
+  // ID/identifier columns, where sum/avg/min/max are not.
+  if (operation === "distinct") {
+    const seen = new Set<string>();
+    for (const row of data.rows) {
+      const raw = row[column];
+      if (raw === undefined || raw === null || String(raw).trim() === "")
+        continue;
+      seen.add(String(raw).trim());
+    }
+    return { operation: "distinct", column: column || "*", result: seen.size };
   }
 
   if (operation === "top") {
@@ -392,12 +405,18 @@ export interface GroupRow {
  * Patterns that identify ID/key columns — numeric but not meaningful to sum/aggregate.
  * These are excluded from numeric aggregation (group-by sums, chart value columns, etc.)
  */
-// Matches: stageid, stage_id, substageid, workflowprocessid, user_key, etc.
+// Matches: stageid, stage_id, substageid, workflowprocessid, user_key, account_no,
+// invoice_number, cheque_no, txn_num, customer_uuid, etc.
 const ID_COLUMN_PATTERN =
-  /(?:_|^)(id|key|code|index|seq|sequence|ref|reference|pk|fk)$|id$|key$/i;
+  /(?:_|^)(id|key|code|index|seq|sequence|ref|reference|pk|fk|no|num|number|uuid|guid)$|id$|key$|number$|uuid$|guid$/i;
 // Matches: businessdate, business_date, created_at, timestamp, effective_date, etc.
 const DATE_COLUMN_PATTERN =
   /(?:_|^)(date|time|timestamp|datetime|created|updated|modified|period|asof|effective)$|date$|time$/i;
+// Column names that denote a measure/metric — these are aggregatable even when
+// their values happen to look like unique integers, so value-based ID detection
+// must skip them.
+const MEASURE_NAME_PATTERN =
+  /(?:_|^)(count|total|sum|avg|average|amount|balance|revenue|sales|active|volume|rate|ratio|score|pct|percent|quantity|qty|profit|loss|cost|price|fee|salary|wage|income|expense|debit|credit|deposit|withdrawal|interest|tax|principal)/i;
 
 /** Column role configuration — explicit overrides for auto-detection */
 export interface ColumnConfig {
@@ -439,8 +458,6 @@ function isIdentityColumn(
 
   // Value-based detection: if all values are unique integers, likely an ID
   // But skip if the column name suggests it's a measure/metric
-  const MEASURE_NAME_PATTERN =
-    /(?:_|^)(count|total|sum|avg|average|amount|balance|revenue|sales|active|volume|rate|ratio|score|pct|percent|quantity|qty|profit|loss|cost|price|fee|salary|wage|income|expense)/i;
   if (rows.length >= 3 && !MEASURE_NAME_PATTERN.test(header)) {
     const values = rows
       .map((r) => r[header])
@@ -452,6 +469,54 @@ function isIdentityColumn(
     });
     // If >95% unique and all integers, treat as ID column
     if (allIntegers && uniqueRatio > 0.95 && values.length > 5) return true;
+  }
+
+  return false;
+}
+
+/**
+ * Check if a column is an *identifier* (unique id, system id, entity id, code,
+ * key) as opposed to a measure or a date.
+ *
+ * Unlike {@link isIdentityColumn}, this intentionally excludes date columns:
+ * min/max of a date is meaningful (earliest/latest), but sum/avg/min/max of an
+ * identifier is not. Callers use this to steer aggregation on such columns
+ * toward count / count-of-distinct instead of numeric reductions.
+ */
+export function isIdLikeColumn(
+  header: string,
+  rows: Record<string, string | number>[],
+  columnConfig?: ColumnConfig,
+): boolean {
+  const lowerHeader = header.toLowerCase();
+  if (columnConfig) {
+    if (columnConfig.idColumns?.some((c) => c.toLowerCase() === lowerHeader))
+      return true;
+    // An explicit value column or date column is, by definition, not an ID.
+    if (columnConfig.valueColumns?.some((c) => c.toLowerCase() === lowerHeader))
+      return false;
+    if (columnConfig.dateColumns?.some((c) => c.toLowerCase() === lowerHeader))
+      return false;
+  }
+
+  // A date column is not an identifier — its extremes carry meaning.
+  if (DATE_COLUMN_PATTERN.test(header)) return false;
+  // Name-based: ...id, ..._id, ...key, ...code, ...ref, etc.
+  if (ID_COLUMN_PATTERN.test(header)) return true;
+
+  // Value-based: mostly-unique integers whose name doesn't denote a measure.
+  if (rows.length > 5 && !MEASURE_NAME_PATTERN.test(header)) {
+    const values = rows
+      .map((r) => r[header])
+      .filter((v) => v !== undefined && v !== null && v !== "");
+    if (values.length > 5) {
+      const uniqueRatio = new Set(values.map(String)).size / values.length;
+      const allIntegers = values.every((v) => {
+        const n = typeof v === "number" ? v : parseFloat(String(v));
+        return !isNaN(n) && Number.isInteger(n);
+      });
+      if (allIntegers && uniqueRatio > 0.95) return true;
+    }
   }
 
   return false;
