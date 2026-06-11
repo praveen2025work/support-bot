@@ -424,7 +424,10 @@ async function testFilters() {
     }),
   );
   const skipData = skip.result?.data;
-  const rowCount = skipData?.richContent?.data?.rows?.length;
+  // query_result richContent carries rows under .data with a .rowCount sibling.
+  const rowCount =
+    skipData?.richContent?.data?.rowCount ??
+    skipData?.richContent?.data?.data?.length;
   record(
     "chat-filters",
     'skip filters ({}) — full result',
@@ -1379,31 +1382,41 @@ async function testDrillDown() {
   }
   const sid = `validation-drill-${Date.now()}`;
 
-  // Set up: load + group by region (3 groups: NAM 37, EMEA 37, APAC 19)
-  await postChat("run pnl_lineage", sid, "finance", { explicitFilters: {} });
+  // Set up: load the full result, then group by region. Derive the expected
+  // drill counts from the actual loaded data (region distribution) so the test
+  // tracks the seed instead of hard-coding totals that drift when mock data
+  // changes — the real invariant is "drill returns all rows for that region".
+  const loaded = await postChat("run pnl_lineage", sid, "finance", {
+    explicitFilters: {},
+  });
+  const loadedRows = loaded.data?.richContent?.data?.data || [];
+  const regionCount = (region) =>
+    loadedRows.filter(
+      (r) => String(r.region ?? r.Region ?? r.REGION).toUpperCase() === region,
+    ).length;
   await postChat("group by region", sid, "finance");
 
   const cases = [
-    { name: '"drill into NAM"', text: "drill into NAM", expectedRows: 37 },
-    {
-      name: '"show rows for EMEA"',
-      text: "show rows for EMEA",
-      expectedRows: 37,
-    },
-    { name: '"details for APAC"', text: "details for APAC", expectedRows: 19 },
-    { name: '"expand NAM"', text: "expand NAM", expectedRows: 37 },
+    { name: '"drill into NAM"', text: "drill into NAM", region: "NAM" },
+    { name: '"show rows for EMEA"', text: "show rows for EMEA", region: "EMEA" },
+    { name: '"details for APAC"', text: "details for APAC", region: "APAC" },
+    { name: '"expand NAM"', text: "expand NAM", region: "NAM" },
   ];
 
   for (const c of cases) {
+    const expectedRows = regionCount(c.region);
     const t = await timed(() => postChat(c.text, sid, "finance"));
     const d = t.result?.data;
     const rows = d?.richContent?.data?.rows?.length;
-    const ok = d?.intent === "followup.drill_down" && rows === c.expectedRows;
+    const ok =
+      d?.intent === "followup.drill_down" &&
+      expectedRows > 0 &&
+      rows === expectedRows;
     record(
       "chat-drill",
       c.name,
       ok,
-      `intent=${d?.intent} rows=${rows} expected=${c.expectedRows}`,
+      `intent=${d?.intent} rows=${rows} expected=${expectedRows}`,
       t.durationMs,
     );
   }
@@ -1438,7 +1451,9 @@ async function testGroupIsolation() {
   const load = await timed(() =>
     postChat("run pnl_lineage", sid, "finance", { explicitFilters: {} }),
   );
-  const rows = load.result?.data?.richContent?.data?.rows?.length;
+  const rows =
+    load.result?.data?.richContent?.data?.rowCount ??
+    load.result?.data?.richContent?.data?.data?.length;
   record(
     "security",
     "load pnl_lineage in finance",
@@ -1535,7 +1550,8 @@ async function testSearchPersonalisation() {
     return;
   }
   const userName = `validation-bumper-${Date.now()}`;
-  const target = "pnl_summary";
+  // Must be a query that actually exists in the finance group and matches "pnl".
+  const target = "pnl_subledger";
   const q = "pnl";
 
   // Step 1 — anonymous baseline ranking
