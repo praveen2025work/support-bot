@@ -1,0 +1,26 @@
+# ═══════════════════════════════════════════════════════════════════════
+# Overlay: pin UI + engine to 500m CPU / 1 GB each — reproduces the cloud
+# constraint locally so the 29K-record Data Explorer failure is observable.
+#
+#   docker compose -f docker-compose.ui-engine.yml -f docker-compose.constrained.yml up -d --build
+#
+# Then reproduce (open Data Explorer → pick the 29K API source) and watch:
+#   docker stats                                                   # RSS vs the 1 GB cap; OOMKilled?
+#   docker compose -f docker-compose.ui-engine.yml logs -f engine  # AbortError / "Retrying request" / circuit breaker
+#   docker inspect chatbot-engine-1 --format '{{.State.OOMKilled}} {{.RestartCount}}'
+# ═══════════════════════════════════════════════════════════════════════
+services:
+  engine:
+    # Keep V8's heap under the 1 GB cgroup so a large fetch/parse GCs instead of OOMKilling.
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=640
+    cpus: 0.5
+    mem_limit: 1g
+    memswap_limit: 1g # disallow swap so OOM is honest (matches a cloud pod)
+
+  ui:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=640
+    cpus: 0.5
+    mem_limit: 1g
+    memswap_limit: 1g
