@@ -1357,8 +1357,44 @@ export async function handleQueryExecute(
           out.queryName = queryNameEntity.value;
           if (Object.keys(extraConfig).length > 0)
             Object.assign(out, extraConfig);
+          // Surface cache provenance to the client (parity with the CSV path).
+          if (cacheStatus)
+            out.cacheStatus = servedStale
+              ? { ...cacheStatus, staleFallback: true }
+              : cacheStatus;
           return out;
         })();
+        const cachedNote =
+          cacheStatus?.status === "cached"
+            ? ` _(cached ${Math.round(cacheStatus.ageMs / 1000)}s ago)_`
+            : "";
+        // Empty result: surface a clear "no rows" message + next step instead
+        // of "Here are the results:" over a blank table (parity with the CSV
+        // path). richContent is kept so the UI still gets the empty-state schema.
+        const apiRowCount =
+          typeof apiData.rowCount === "number"
+            ? apiData.rowCount
+            : Array.isArray(apiData.data)
+              ? apiData.data.length
+              : 0;
+        if (apiRowCount === 0) {
+          return {
+            text:
+              `No rows returned from "${queryNameEntity.value}"${filterLabel}. Try broadening your filters or running \`list queries\` to see what else is available.` +
+              cachedNote,
+            richContent: { type: "query_result", data: apiData },
+            suggestions: ["List queries", `Run ${queryNameEntity.value}`],
+            sessionId: context.sessionId,
+            intent: classification.intent,
+            confidence: classification.confidence,
+            executionMs: execMs,
+            referenceUrl,
+            queryName: queryNameEntity.value,
+            sourceName,
+            sourceType: (sourceType ?? "api") as BotResponse["sourceType"],
+            anomalies,
+          };
+        }
         return {
           text: totalRowCount
             ? `Here are the results for "${queryNameEntity.value}"${filterLabel} (showing first ${displayedRows} of ${totalRowCount} rows):`

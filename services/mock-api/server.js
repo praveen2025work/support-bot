@@ -647,9 +647,18 @@ function applyFilters(data, filters) {
   let result = data;
 
   if (filters.region) {
-    result = result.filter(
-      (row) => !row.region || row.region.toLowerCase() === filters.region.toLowerCase()
-    );
+    // Region field casing varies across datasets (region / Region / REGION);
+    // look it up case-insensitively so filtering actually applies (previously a
+    // no-op for datasets using "Region", which left every row unfiltered).
+    result = result.filter((row) => {
+      const rv = row.region ?? row.Region ?? row.REGION;
+      return (
+        rv === undefined ||
+        rv === null ||
+        rv === '' ||
+        String(rv).toLowerCase() === filters.region.toLowerCase()
+      );
+    });
   }
   if (filters.team) {
     result = result.filter(
