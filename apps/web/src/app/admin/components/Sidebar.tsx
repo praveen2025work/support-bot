@@ -20,6 +20,7 @@ import {
   FileSpreadsheet,
   SlidersHorizontal,
   Users,
+  ShieldCheck,
   Settings,
   BookOpen,
   Wrench,
@@ -173,6 +174,12 @@ const NAV_SECTIONS: NavSection[] = [
         label: "Users",
         icon: Users,
         match: (p: string) => p.startsWith("/admin/users"),
+      },
+      {
+        href: "/admin/data-roles",
+        label: "Data Roles",
+        icon: ShieldCheck,
+        match: (p: string) => p.startsWith("/admin/data-roles"),
       },
       {
         href: "/admin/settings",

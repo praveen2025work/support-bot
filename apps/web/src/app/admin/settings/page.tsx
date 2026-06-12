@@ -17,6 +17,16 @@ interface PlatformConfig {
   stompEnabled: boolean;
 }
 
+interface AuditEntry {
+  id: string;
+  timestamp: string;
+  action: string;
+  user: string;
+  resource: string;
+  resourceType: string;
+  details?: string;
+}
+
 export default function SettingsPage() {
   const [config, setConfig] = useState<PlatformConfig>({
     nlpConfidenceThreshold: 0.65,
@@ -32,6 +42,8 @@ export default function SettingsPage() {
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [recentAudit, setRecentAudit] = useState<AuditEntry[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   // Read initial section from URL query param (e.g. ?section=stomp)
   const [activeSection, setActiveSection] = useState(() => {
@@ -103,11 +115,23 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  // Lazily load recent audit entries when the Recent Activity tab is opened.
+  useEffect(() => {
+    if (activeSection !== "audit") return;
+    setAuditLoading(true);
+    fetch("/api/admin/audit")
+      .then((r) => (r.ok ? r.json() : { entries: [] }))
+      .then((d) => setRecentAudit((d.entries || []).slice(0, 10)))
+      .catch(() => setRecentAudit([]))
+      .finally(() => setAuditLoading(false));
+  }, [activeSection]);
+
   const sections = [
     { id: "nlp", label: "NLP Pipeline" },
     { id: "api", label: "API & Cache" },
     { id: "stomp", label: "STOMP / Live" },
     { id: "platforms", label: "Platforms" },
+    { id: "audit", label: "Recent Activity" },
     { id: "about", label: "About" },
   ];
 
@@ -473,6 +497,63 @@ export default function SettingsPage() {
             </div>
           )}
 
+          {activeSection === "audit" && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold text-gray-700">
+                  Recent Activity
+                </h2>
+                <a
+                  href="/admin/audit"
+                  className="text-xs font-medium text-blue-600 hover:underline"
+                >
+                  View full audit trail →
+                </a>
+              </div>
+              {auditLoading ? (
+                <p className="text-sm text-gray-500">Loading…</p>
+              ) : recentAudit.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  No administrative activity recorded yet.
+                </p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-xs text-gray-500 uppercase tracking-wider">
+                      <th className="text-left py-2 font-medium">When</th>
+                      <th className="text-left py-2 font-medium">Action</th>
+                      <th className="text-left py-2 font-medium">Actor</th>
+                      <th className="text-left py-2 font-medium">Resource</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentAudit.map((e) => (
+                      <tr
+                        key={e.id}
+                        className="border-b border-gray-100 last:border-0"
+                      >
+                        <td className="py-1.5 text-xs text-gray-500 font-mono whitespace-nowrap">
+                          {new Date(e.timestamp).toLocaleString()}
+                        </td>
+                        <td className="py-1.5">
+                          <span className="inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-gray-100 text-gray-700">
+                            {e.action}
+                          </span>
+                        </td>
+                        <td className="py-1.5 text-xs text-gray-600 font-mono">
+                          {e.user}
+                        </td>
+                        <td className="py-1.5 text-xs text-gray-700 font-mono">
+                          {e.resourceType}/{e.resource}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+
           {activeSection === "about" && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-sm font-semibold text-gray-700 mb-4">
@@ -517,7 +598,7 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {activeSection !== "about" && (
+          {activeSection !== "about" && activeSection !== "audit" && (
             <div className="mt-4 flex items-center gap-3">
               <button
                 onClick={handleSave}
