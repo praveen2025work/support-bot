@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import type { HomeFeedData } from "@/types/home-feed";
 import type { CatalogEntry } from "@/types/catalog";
+import { LANDING_CHIPS } from "@/config/landing-chips";
 
 interface ChatWelcomeProps {
   groupId: string;
@@ -50,17 +51,6 @@ const TYPE_COLORS: Record<string, string> = {
   document: "bg-purple-100 text-purple-700",
   combined: "bg-indigo-100 text-indigo-700",
 };
-
-const HELP_ITEMS = [
-  { label: "List queries", command: "list queries", icon: Database },
-  { label: "Run a query", command: "run monthly_revenue", icon: Sparkles },
-  {
-    label: "Search docs",
-    command: "search docs for...",
-    icon: Search,
-  },
-  { label: "Get help", command: "help", icon: HelpCircle },
-];
 
 export function ChatWelcome({
   groupId,
@@ -198,7 +188,7 @@ export function ChatWelcome({
             <span className="eyebrow">Quick actions</span>
           </div>
           <div className="grid grid-cols-2 gap-2.5">
-            {HELP_ITEMS.map((item) => {
+            {LANDING_CHIPS.map((item) => {
               const Icon = item.icon;
               return (
                 <button

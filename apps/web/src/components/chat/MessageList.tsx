@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { MessageBubble } from "./MessageBubble";
 import type { DisambiguationCandidate, Message } from "@/hooks/useChat";
+import { LANDING_CHIPS } from "@/config/landing-chips";
 
 function formatDateSeparator(date: Date): string {
   const today = new Date();
@@ -17,35 +18,6 @@ function formatDateSeparator(date: Date): string {
     year: "numeric",
   });
 }
-
-interface StarterCard {
-  label: string;
-  description: string;
-  action: string;
-}
-
-const STARTER_CARDS: StarterCard[] = [
-  {
-    label: "List queries",
-    description: "See all available queries you can run",
-    action: "list queries",
-  },
-  {
-    label: "Get help",
-    description: "Learn what I can do and see examples",
-    action: "help",
-  },
-  {
-    label: "Run a query",
-    description: "Execute a query and see live results",
-    action: "run monthly_revenue",
-  },
-  {
-    label: "Find URLs",
-    description: "Search for relevant links and docs",
-    action: "find urls for monthly_revenue",
-  },
-];
 
 export function MessageList({
   messages,
@@ -120,10 +92,10 @@ export function MessageList({
             Ask about your data, run queries, or explore insights
           </p>
           <div className="grid grid-cols-2 gap-3 w-full max-w-md">
-            {STARTER_CARDS.map((card) => (
+            {LANDING_CHIPS.map((card) => (
               <button
-                key={card.action}
-                onClick={() => onAction?.(card.action)}
+                key={card.command}
+                onClick={() => onAction?.(card.command)}
                 className="flex flex-col items-start text-left bg-[var(--bg-primary)] border border-[var(--border)] rounded-[var(--radius-lg)] px-4 py-3 hover:border-[var(--brand)] hover:bg-[var(--brand-subtle)] transition-colors shadow-[var(--shadow-xs)]"
               >
                 <span className="text-[13px] font-medium text-[var(--text-primary)]">

@@ -13,6 +13,7 @@ import { PatternMatcher } from "./pattern-matcher";
 import { TfIdfIntentScorer } from "./tfidf-intent-scorer";
 import { readTrainingJson } from "./training-files";
 import { getGroupQueries } from "@/core/catalog/query-registry";
+import { auditQueryNameDrift } from "@/core/catalog/query-drift";
 import type {
   ClassificationResult,
   DisambiguationCandidate,
@@ -47,6 +48,9 @@ export class NlpService {
   private patternMatcher = new PatternMatcher();
   private tfidfScorer = new TfIdfIntentScorer();
   private initialized = false;
+  // Lowercased registry query names backing this group — the source of truth
+  // for which query.execute candidates may carry a queryName (orphans excluded).
+  private validQueryNames = new Set<string>();
   private corpusFile: string | null;
   private cachedOverlaps: IntentOverlap[] = [];
   // Classification cache — avoids re-running NLP for identical user texts.
@@ -480,9 +484,18 @@ export class NlpService {
     const top3 = ensembleSorted.slice(0, 3);
     return top3.map(([intent, score]) => {
       const candidate: DisambiguationCandidate = { intent, score };
-      // Only attach queryName when this candidate is itself an executable query intent.
+      // Only attach queryName when this candidate is itself an executable query
+      // intent AND the extracted name is backed by the live registry. Orphan
+      // corpus names (no catalog entry) are dropped so they never surface as a
+      // runnable chip. If the registry set hasn't been synced yet, fall back to
+      // attaching (request-time filtering still applies downstream).
       if (intent === "query.execute" && queryName) {
-        candidate.queryName = queryName;
+        if (
+          this.validQueryNames.size === 0 ||
+          this.validQueryNames.has(queryName.toLowerCase())
+        ) {
+          candidate.queryName = queryName;
+        }
       }
       return candidate;
     });
@@ -616,6 +629,27 @@ export class NlpService {
       // group's own file already holds exactly its queries (environment-
       // agnostic, no db.json, no allowlist/source re-filtering needed).
       const queries = getGroupQueries(this.groupId);
+
+      // Record the registry-backed names and warn-log corpus orphans (corpus
+      // query_name options with no catalog entry). Orphans are kept out of
+      // disambiguation candidates below so they never reach chips/UI.
+      this.validQueryNames = new Set(
+        queries.map((q) => String(q.name).toLowerCase()).filter(Boolean),
+      );
+      const drift = auditQueryNameDrift({
+        corpusQueryNames,
+        registryQueryNames: queries.map((q) => q.name as string),
+      });
+      if (drift.orphans.length > 0) {
+        logger.warn(
+          {
+            groupId: this.groupId,
+            orphanCount: drift.orphans.length,
+            orphans: drift.orphans,
+          },
+          "Corpus query_name options have no catalog/registry entry — excluded from chips/disambiguation",
+        );
+      }
 
       let addedCount = 0;
       for (const q of queries) {
