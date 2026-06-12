@@ -5,6 +5,7 @@ import type { Message } from "@/hooks/useChat";
 import type { DrillDownConfig } from "@/types/dashboard";
 import { QueryFilterForm, type QueryFilterFormData } from "./QueryFilterForm";
 import type { DetectedColumnMeta } from "./DataChart";
+import { CHART_MAX_ROWS } from "./chartConstants";
 import { QueryResultTable } from "./QueryResultTable";
 import { PaginatedTableBody } from "./PaginatedTableBody";
 import type {
@@ -270,7 +271,10 @@ export function RichContentRenderer({
                 }
               >
                 <DataChart
-                  data={csvData.rows as Record<string, unknown>[]}
+                  data={(csvData.rows as Record<string, unknown>[]).slice(
+                    0,
+                    CHART_MAX_ROWS,
+                  )}
                   headers={csvData.headers}
                   chartConfig={csvData.chartConfig}
                   columnConfig={csvData.columnConfig}
@@ -476,7 +480,10 @@ export function RichContentRenderer({
                   </div>
                 }
               >
-                <DataChart data={chartRows} headers={chartHeaders} />
+                <DataChart
+                  data={chartRows.slice(0, CHART_MAX_ROWS)}
+                  headers={chartHeaders}
+                />
               </Suspense>
             </div>
           )}

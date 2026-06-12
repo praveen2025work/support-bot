@@ -3,6 +3,7 @@ import { Inter, Sora, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { UserProvider } from "@/contexts/UserContext";
+import { EngineStatusProvider } from "@/contexts/EngineStatusContext";
 import { ToastProvider } from "@/components/ui/Toast";
 import { AppShell } from "@/components/shell/AppShell";
 
@@ -44,9 +45,11 @@ export default function RootLayout({
       <body className="bg-[var(--bg-canvas)] text-[var(--text-primary)] font-[var(--font-sans)]">
         <ThemeProvider>
           <UserProvider>
-            <ToastProvider>
-              <AppShell>{children}</AppShell>
-            </ToastProvider>
+            <EngineStatusProvider>
+              <ToastProvider>
+                <AppShell>{children}</AppShell>
+              </ToastProvider>
+            </EngineStatusProvider>
           </UserProvider>
         </ThemeProvider>
       </body>

@@ -1,7 +1,8 @@
 "use client";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { PinnedDashboard } from "./PinnedDashboard";
 import { ContextualInsightsRail, type KpiStat } from "./ContextualInsightsRail";
+import { CHART_MAX_ROWS } from "./chartConstants";
 
 const DataChart = lazy(() =>
   import("./DataChart").then((m) => ({ default: m.DataChart })),
@@ -87,19 +88,30 @@ function ResultView({
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const pageSize = 25;
-  const sortedData = sortCol
-    ? [...activeResult.data].sort((a, b) => {
-        const va = a[sortCol] ?? "";
-        const vb = b[sortCol] ?? "";
-        if (typeof va === "number" && typeof vb === "number")
-          return sortDir === "asc" ? va - vb : vb - va;
-        return sortDir === "asc"
-          ? String(va).localeCompare(String(vb))
-          : String(vb).localeCompare(String(va));
-      })
-    : activeResult.data;
+  const { data } = activeResult;
+  // Memoize the full-array sort so header clicks / parent re-renders that
+  // don't change (data, sortCol, sortDir) skip re-sorting.
+  const sortedData = useMemo(() => {
+    if (!sortCol) return data;
+    return [...data].sort((a, b) => {
+      const va = a[sortCol] ?? "";
+      const vb = b[sortCol] ?? "";
+      if (typeof va === "number" && typeof vb === "number")
+        return sortDir === "asc" ? va - vb : vb - va;
+      return sortDir === "asc"
+        ? String(va).localeCompare(String(vb))
+        : String(vb).localeCompare(String(va));
+    });
+  }, [data, sortCol, sortDir]);
   const totalPages = Math.ceil(sortedData.length / pageSize);
-  const pagedData = sortedData.slice(page * pageSize, (page + 1) * pageSize);
+  const pagedData = useMemo(
+    () => sortedData.slice(page * pageSize, (page + 1) * pageSize),
+    [sortedData, page],
+  );
+  // The chart only ever plots the first CHART_MAX_ROWS — hand it a trimmed,
+  // memoized slice so the full result set isn't passed down or re-referenced
+  // in DataChart's detection deps.
+  const chartData = useMemo(() => data.slice(0, CHART_MAX_ROWS), [data]);
 
   return (
     <div className="flex-1 p-3 overflow-auto">
@@ -176,10 +188,7 @@ function ResultView({
                 </div>
               }
             >
-              <DataChart
-                data={activeResult.data}
-                headers={activeResult.columns}
-              />
+              <DataChart data={chartData} headers={activeResult.columns} />
             </Suspense>
           )}
         </div>

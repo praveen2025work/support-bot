@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { DrillDownConfig } from "@/types/dashboard";
 import type { DetectedColumnMeta } from "./DataChart";
+import { CHART_MAX_ROWS } from "./chartConstants";
 import { TablePagination, exportToCsv } from "./TablePagination";
 import { ArrowRight } from "lucide-react";
 import type {
@@ -132,8 +133,21 @@ export function QueryResultTable({
   const editInputRef = useRef<HTMLInputElement>(null);
   // Auto mode: tab toggle between table and chart (defaults to table)
   const [autoTab, setAutoTab] = useState<"table" | "chart">("table");
-  const rows = result.data || [];
-  const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+  // Memoize `rows` so `result.data || []` doesn't mint a fresh empty array
+  // every render — that previously invalidated every downstream useMemo /
+  // useCallback that depends on `rows`.
+  const rows = useMemo(() => result.data || [], [result.data]);
+  // Memoize the column derivation so it isn't recomputed on every render
+  // (e.g. sort/page/edit state changes that leave `rows` untouched).
+  const columns = useMemo(
+    () => (rows.length > 0 ? Object.keys(rows[0]) : []),
+    [rows],
+  );
+
+  // The chart only ever plots the first CHART_MAX_ROWS — hand it a trimmed,
+  // memoized slice so the full result set isn't passed down or re-referenced
+  // in DataChart's detection deps.
+  const chartRows = useMemo(() => rows.slice(0, CHART_MAX_ROWS), [rows]);
 
   // Detect numeric columns once
   const numericCols = useMemo(() => {
@@ -594,7 +608,7 @@ export function QueryResultTable({
               }
             >
               <DataChart
-                data={rows}
+                data={chartRows}
                 chartConfig={result.chartConfig}
                 columnConfig={result.columnConfig}
                 columnMetadata={result.columnMetadata}

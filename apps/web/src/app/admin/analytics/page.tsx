@@ -61,6 +61,13 @@ interface NlpMissesPayload {
 
 const NLP_GROUPS = ["default", "finance", "engineering", "analytics"];
 
+/**
+ * How often to refresh query stats while the tab is visible. The poll is
+ * paused entirely when the document is hidden (background tab) and a catch-up
+ * fetch fires on the way back to visible.
+ */
+const STATS_POLL_INTERVAL_MS = 10000;
+
 export default function AnalyticsPage() {
   const [stats, setStats] = useState<QueryStat[]>([]);
   const [aggregated, setAggregated] = useState<AggregatedStat[]>([]);
@@ -99,9 +106,39 @@ export default function AnalyticsPage() {
   }, [filterQuery, timeRange]);
 
   useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const start = () => {
+      if (interval === null) {
+        interval = setInterval(fetchStats, STATS_POLL_INTERVAL_MS);
+      }
+    };
+    const stop = () => {
+      if (interval !== null) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stop();
+      } else {
+        // Catch up immediately on the data missed while hidden, then resume.
+        void fetchStats();
+        start();
+      }
+    };
+
     fetchStats();
-    const interval = setInterval(fetchStats, 10000);
-    return () => clearInterval(interval);
+    // Only poll while the tab is visible — background tabs pause the interval.
+    if (!document.hidden) start();
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      stop();
+    };
   }, [fetchStats]);
 
   const fetchNlpMisses = useCallback(async () => {

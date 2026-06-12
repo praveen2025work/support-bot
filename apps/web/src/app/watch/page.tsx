@@ -14,6 +14,7 @@ import { WatchRuleList } from "@/components/watch/WatchRuleList";
 import { WatchRuleForm } from "@/components/watch/WatchRuleForm";
 import { WatchRuleDetailPanel } from "@/components/watch/WatchRuleDetailPanel";
 import { ContextualTopBar } from "@/components/shell/ContextualTopBar";
+import { useEngineStatus } from "@/contexts/EngineStatusContext";
 import type { WatchRule } from "@/types/watch";
 
 interface AlertEvent {
@@ -36,9 +37,9 @@ function WatchPageContent() {
   const [listKey, setListKey] = useState(0);
   const [rules, setRules] = useState<WatchRule[]>([]);
   const [alerts, setAlerts] = useState<AlertEvent[]>([]);
-  const [engineUp, setEngineUp] = useState<"ok" | "down" | "checking">(
-    "checking",
-  );
+  // Engine health comes from the shared EngineStatusProvider (single 30s
+  // poll) instead of a per-page setInterval.
+  const engineUp = useEngineStatus();
 
   useEffect(() => {
     fetch(`/api/watch/rules?groupId=${groupId}`)
@@ -50,26 +51,6 @@ function WatchPageContent() {
       .then((data) => setAlerts(data.alerts || data.data || []))
       .catch(() => {});
   }, [groupId, listKey]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function check() {
-      try {
-        const res = await fetch("/api/health", {
-          signal: AbortSignal.timeout(4000),
-        });
-        if (!cancelled) setEngineUp(res.ok ? "ok" : "down");
-      } catch {
-        if (!cancelled) setEngineUp("down");
-      }
-    }
-    void check();
-    const id = setInterval(check, 30_000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, []);
 
   function handleCreated() {
     setShowForm(false);

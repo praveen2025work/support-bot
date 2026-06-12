@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Bot, Minus, X } from "lucide-react";
 import { useChat } from "@/hooks/useChat";
 import { useUser } from "@/contexts/UserContext";
+import { useEngineStatus } from "@/contexts/EngineStatusContext";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
 import { SuggestionChips } from "./SuggestionChips";
@@ -24,31 +25,6 @@ function getPostMessageTargetOrigin(): string {
     return "*";
   }
   return window.location.origin;
-}
-
-/** Hook: ping /api/health every 30s to track engine status */
-function useEngineStatus() {
-  const [status, setStatus] = useState<"ok" | "down" | "checking">("checking");
-
-  const check = useCallback(async () => {
-    try {
-      const res = await fetch("/api/health", {
-        signal: AbortSignal.timeout(5000),
-      });
-      setStatus(res.ok ? "ok" : "down");
-    } catch {
-      setStatus("down");
-    }
-  }, []);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- polling on mount is a valid pattern
-    check();
-    const interval = setInterval(check, 30000);
-    return () => clearInterval(interval);
-  }, [check]);
-
-  return status;
 }
 
 export type DisplayMode = "auto" | "table" | "chart";

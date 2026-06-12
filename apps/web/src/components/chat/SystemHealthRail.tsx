@@ -10,6 +10,7 @@ import {
   Sparkles,
   TriangleAlert,
 } from "lucide-react";
+import { useEngineStatus } from "@/contexts/EngineStatusContext";
 
 interface HealthMetric {
   label: string;
@@ -52,32 +53,11 @@ function relativeTime(iso?: string): string {
 }
 
 export function SystemHealthRail() {
-  const [engineUp, setEngineUp] = useState<"ok" | "down" | "checking">(
-    "checking",
-  );
+  // Engine health comes from the shared EngineStatusProvider (single 30s
+  // poll) instead of a per-component setInterval.
+  const engineUp = useEngineStatus();
   const [alerts, setAlerts] = useState<AlertEvent[]>([]);
   const [loadedAlerts, setLoadedAlerts] = useState(false);
-
-  // Poll engine health
-  useEffect(() => {
-    let cancelled = false;
-    async function check() {
-      try {
-        const res = await fetch("/api/health", {
-          signal: AbortSignal.timeout(4000),
-        });
-        if (!cancelled) setEngineUp(res.ok ? "ok" : "down");
-      } catch {
-        if (!cancelled) setEngineUp("down");
-      }
-    }
-    void check();
-    const id = setInterval(check, 30_000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, []);
 
   // Load recent alerts to populate Action History
   useEffect(() => {

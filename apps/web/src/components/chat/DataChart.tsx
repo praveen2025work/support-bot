@@ -3,6 +3,7 @@
 const MAX_BAR_CHART_ITEMS = 20;
 
 import React, { useMemo, useState } from "react";
+import { CHART_MAX_ROWS } from "./chartConstants";
 import {
   BarChart,
   Bar,
@@ -357,7 +358,7 @@ export function DataChart({
   const chartData = useMemo(() => {
     if (detection.labelKey === "" && detection.numericKeys.length === 0)
       return [];
-    return data.slice(0, 30).map((row) => {
+    return data.slice(0, CHART_MAX_ROWS).map((row) => {
       const entry: Record<string, unknown> = {
         [detection.labelKey]: row[detection.labelKey],
       };
