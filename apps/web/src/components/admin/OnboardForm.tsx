@@ -28,9 +28,12 @@ interface PreviewData {
 export function OnboardForm({
   backUrl,
   successUrl,
+  onSuccess,
 }: {
   backUrl: string;
   successUrl?: (groupId: string) => string;
+  /** Called after a successful create so a parent can advance (e.g. smoke test). */
+  onSuccess?: (groupId: string) => void;
 }) {
   const [stage, setStage] = useState<Stage>("upload");
   const [file, setFile] = useState<File | null>(null);
@@ -104,6 +107,7 @@ export function OnboardForm({
 
       setResult({ groupId: data.groupId, queriesAdded: data.queriesAdded });
       setStage("success");
+      onSuccess?.(data.groupId);
     } catch {
       setErrors(["Submission failed. Please try again."]);
       setStage("error");

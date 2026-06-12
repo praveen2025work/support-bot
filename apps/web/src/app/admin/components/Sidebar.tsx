@@ -29,6 +29,7 @@ import {
   BrainCircuit,
   Languages,
   Gauge,
+  FolderPlus,
   type LucideIcon,
 } from "lucide-react";
 
@@ -53,6 +54,12 @@ const NAV_SECTIONS: NavSection[] = [
         label: "Groups",
         icon: FolderKanban,
         match: (p: string) => p === "/admin" || p.startsWith("/admin/groups"),
+      },
+      {
+        href: "/admin/onboard",
+        label: "Onboard Group",
+        icon: FolderPlus,
+        match: (p: string) => p.startsWith("/admin/onboard"),
       },
       {
         href: "/admin/intents",

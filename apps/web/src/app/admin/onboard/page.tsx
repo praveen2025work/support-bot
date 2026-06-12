@@ -4,6 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { csrfHeaders } from "@/lib/csrf";
 import { OnboardForm } from "@/components/admin/OnboardForm";
+import {
+  TemplatePicker,
+  type OnboardTemplate,
+} from "@/components/admin/onboard/TemplatePicker";
+import { SmokeTest } from "@/components/admin/onboard/SmokeTest";
 import Link from "next/link";
 
 type Tab = "manual" | "excel";
@@ -33,6 +38,29 @@ export default function AdminOnboardPage() {
   ]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  // Set after a successful create → advances to the smoke-test step.
+  const [createdGroupId, setCreatedGroupId] = useState<string | null>(null);
+
+  const applyTemplate = (tpl: OnboardTemplate | null) => {
+    if (!tpl) {
+      setQueries([
+        { name: "", description: "", source: "", url: "", filters: "" },
+      ]);
+      return;
+    }
+    setQueries(
+      tpl.queries.length > 0
+        ? tpl.queries.map((q) => ({
+            name: q.name,
+            description: q.description,
+            source: q.source,
+            url: q.url,
+            filters: q.filters,
+          }))
+        : [{ name: "", description: "", source: "", url: "", filters: "" }],
+    );
+    if (!sourcesText.trim()) setSourcesText(tpl.source);
+  };
 
   const addQueryRow = () => {
     setQueries([
@@ -101,7 +129,9 @@ export default function AdminOnboardPage() {
         return;
       }
 
-      router.push(`/admin/groups/${data.groupId}`);
+      // Group is live immediately — advance to the smoke-test step instead of
+      // redirecting straight to the group page.
+      setCreatedGroupId(data.groupId);
     } catch {
       setError("Failed to create group");
     } finally {
@@ -124,237 +154,255 @@ export default function AdminOnboardPage() {
         Create a new chatbot group manually or by uploading an Excel template.
       </p>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-200 mb-6">
-        <button
-          onClick={() => setTab("manual")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            tab === "manual"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Manual Setup
-        </button>
-        <button
-          onClick={() => setTab("excel")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            tab === "excel"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Excel Upload
-        </button>
-      </div>
-
-      {tab === "excel" ? (
-        <OnboardForm
-          backUrl="/admin"
-          successUrl={(gid) => `/admin/groups/${gid}`}
+      {createdGroupId ? (
+        <SmokeTest
+          groupId={createdGroupId}
+          queries={queries}
+          onFinish={() => router.push(`/admin/groups/${createdGroupId}`)}
         />
       ) : (
-        <div>
-          {error && (
-            <div className="mb-4 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
-              {error}
-            </div>
-          )}
+        <>
+          {/* Tabs */}
+          <div className="flex border-b border-gray-200 mb-6">
+            <button
+              onClick={() => setTab("manual")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                tab === "manual"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Manual Setup
+            </button>
+            <button
+              onClick={() => setTab("excel")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                tab === "excel"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Excel Upload
+            </button>
+          </div>
 
-          {/* Group Info */}
-          <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-            <h2 className="text-sm font-semibold text-gray-700 mb-4">
-              Group Info
-            </h2>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Group ID <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    value={groupId}
-                    onChange={(e) => setGroupId(e.target.value)}
-                    placeholder="e.g. finance_team"
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Lowercase, underscores only
-                  </p>
+          {tab === "excel" ? (
+            <OnboardForm
+              backUrl="/admin"
+              successUrl={(gid) => `/admin/groups/${gid}`}
+              onSuccess={(gid) => setCreatedGroupId(gid)}
+            />
+          ) : (
+            <div>
+              <TemplatePicker onSelect={applyTemplate} />
+              {error && (
+                <div className="mb-4 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
+                  {error}
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Name <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Finance Bot"
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Description
-                </label>
-                <input
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="What this bot helps with"
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Sources{" "}
-                    <span className="text-gray-400 font-normal">
-                      (comma-separated)
-                    </span>
-                  </label>
-                  <input
-                    value={sourcesText}
-                    onChange={(e) => setSourcesText(e.target.value)}
-                    placeholder="e.g. finance, commerce"
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    API Base URL{" "}
-                    <span className="text-gray-400 font-normal">
-                      (optional)
-                    </span>
-                  </label>
-                  <input
-                    value={apiBaseUrl}
-                    onChange={(e) => setApiBaseUrl(e.target.value)}
-                    placeholder="http://localhost:8080"
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Greeting
-                </label>
-                <textarea
-                  value={greeting}
-                  onChange={(e) => setGreeting(e.target.value)}
-                  rows={2}
-                  placeholder="Hello! I'm the Finance Bot. How can I help?"
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Help Text
-                </label>
-                <textarea
-                  value={helpText}
-                  onChange={(e) => setHelpText(e.target.value)}
-                  rows={3}
-                  placeholder="I can help you with..."
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-          </section>
+              )}
 
-          {/* Queries */}
-          <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-gray-700">Queries</h2>
-              <button
-                onClick={addQueryRow}
-                className="text-xs text-blue-600 hover:underline"
-              >
-                + Add Query
-              </button>
-            </div>
-            <div className="space-y-3">
-              {queries.map((q, idx) => (
-                <div
-                  key={idx}
-                  className="p-3 bg-gray-50 rounded-lg border border-gray-100"
-                >
-                  <div className="grid grid-cols-2 gap-3 mb-2">
-                    <input
-                      value={q.name}
-                      onChange={(e) => updateQuery(idx, "name", e.target.value)}
-                      placeholder="Query name (e.g. monthly_revenue)"
-                      className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                    <input
-                      value={q.description}
-                      onChange={(e) =>
-                        updateQuery(idx, "description", e.target.value)
-                      }
-                      placeholder="Description"
-                      className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <input
-                      value={q.source}
-                      onChange={(e) =>
-                        updateQuery(idx, "source", e.target.value)
-                      }
-                      placeholder="Source (e.g. finance)"
-                      className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                    <input
-                      value={q.url}
-                      onChange={(e) => updateQuery(idx, "url", e.target.value)}
-                      placeholder="Dashboard URL"
-                      className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                    <div className="flex gap-2">
+              {/* Group Info */}
+              <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+                <h2 className="text-sm font-semibold text-gray-700 mb-4">
+                  Group Info
+                </h2>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Group ID <span className="text-red-400">*</span>
+                      </label>
                       <input
-                        value={q.filters}
-                        onChange={(e) =>
-                          updateQuery(idx, "filters", e.target.value)
-                        }
-                        placeholder="Filters (e.g. date_range, region)"
-                        className="flex-1 text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        value={groupId}
+                        onChange={(e) => setGroupId(e.target.value)}
+                        placeholder="e.g. finance_team"
+                        className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
-                      {queries.length > 1 && (
-                        <button
-                          onClick={() => removeQueryRow(idx)}
-                          className="text-xs text-red-400 hover:text-red-600"
-                        >
-                          Remove
-                        </button>
-                      )}
+                      <p className="text-xs text-gray-400 mt-1">
+                        Lowercase, underscores only
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Name <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g. Finance Bot"
+                        className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
                     </div>
                   </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Description
+                    </label>
+                    <input
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="What this bot helps with"
+                      className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Sources{" "}
+                        <span className="text-gray-400 font-normal">
+                          (comma-separated)
+                        </span>
+                      </label>
+                      <input
+                        value={sourcesText}
+                        onChange={(e) => setSourcesText(e.target.value)}
+                        placeholder="e.g. finance, commerce"
+                        className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        API Base URL{" "}
+                        <span className="text-gray-400 font-normal">
+                          (optional)
+                        </span>
+                      </label>
+                      <input
+                        value={apiBaseUrl}
+                        onChange={(e) => setApiBaseUrl(e.target.value)}
+                        placeholder="http://localhost:8080"
+                        className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Greeting
+                    </label>
+                    <textarea
+                      value={greeting}
+                      onChange={(e) => setGreeting(e.target.value)}
+                      rows={2}
+                      placeholder="Hello! I'm the Finance Bot. How can I help?"
+                      className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Help Text
+                    </label>
+                    <textarea
+                      value={helpText}
+                      onChange={(e) => setHelpText(e.target.value)}
+                      rows={3}
+                      placeholder="I can help you with..."
+                      className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
-              ))}
-            </div>
-            <p className="text-xs text-gray-400 mt-3">
-              Filters: use known types (date_range, region, environment, team)
-              for dropdowns, or any custom name for text input fields.
-            </p>
-          </section>
+              </section>
 
-          {/* Submit */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleManualSubmit}
-              disabled={saving}
-              className="px-6 py-2 text-sm bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            >
-              {saving ? "Creating..." : "Create Group"}
-            </button>
-            <Link
-              href="/admin"
-              className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Cancel
-            </Link>
-          </div>
-        </div>
+              {/* Queries */}
+              <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-sm font-semibold text-gray-700">
+                    Queries
+                  </h2>
+                  <button
+                    onClick={addQueryRow}
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    + Add Query
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {queries.map((q, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 bg-gray-50 rounded-lg border border-gray-100"
+                    >
+                      <div className="grid grid-cols-2 gap-3 mb-2">
+                        <input
+                          value={q.name}
+                          onChange={(e) =>
+                            updateQuery(idx, "name", e.target.value)
+                          }
+                          placeholder="Query name (e.g. monthly_revenue)"
+                          className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                        <input
+                          value={q.description}
+                          onChange={(e) =>
+                            updateQuery(idx, "description", e.target.value)
+                          }
+                          placeholder="Description"
+                          className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="grid grid-cols-3 gap-3">
+                        <input
+                          value={q.source}
+                          onChange={(e) =>
+                            updateQuery(idx, "source", e.target.value)
+                          }
+                          placeholder="Source (e.g. finance)"
+                          className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                        <input
+                          value={q.url}
+                          onChange={(e) =>
+                            updateQuery(idx, "url", e.target.value)
+                          }
+                          placeholder="Dashboard URL"
+                          className="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                        <div className="flex gap-2">
+                          <input
+                            value={q.filters}
+                            onChange={(e) =>
+                              updateQuery(idx, "filters", e.target.value)
+                            }
+                            placeholder="Filters (e.g. date_range, region)"
+                            className="flex-1 text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                          {queries.length > 1 && (
+                            <button
+                              onClick={() => removeQueryRow(idx)}
+                              className="text-xs text-red-400 hover:text-red-600"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mt-3">
+                  Filters: use known types (date_range, region, environment,
+                  team) for dropdowns, or any custom name for text input fields.
+                </p>
+              </section>
+
+              {/* Submit */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleManualSubmit}
+                  disabled={saving}
+                  className="px-6 py-2 text-sm bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  {saving ? "Creating..." : "Create Group"}
+                </button>
+                <Link
+                  href="/admin"
+                  className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </Link>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
