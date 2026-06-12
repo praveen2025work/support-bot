@@ -57,6 +57,19 @@ vi.mock("@/core/nlp/synonym-expander", async () => {
   };
 });
 
+// The /score route resolves the engine via the singleton — stub it so we can
+// assert the route plumbing without booting a real NLP pipeline.
+const classifyTextMock = vi.fn(async (_text: string) => ({
+  intent: "query.execute",
+  confidence: 0.82,
+  source: "ensemble" as const,
+  entities: [],
+}));
+vi.mock("@/lib/singleton", () => ({
+  getEngine: vi.fn(async () => ({ classifyText: classifyTextMock })),
+}));
+
+import { getEngine } from "@/lib/singleton";
 import { logAudit } from "@/lib/audit-logger";
 import { clearGroupSynonymsCache } from "@/core/nlp/synonym-expander";
 import synonymsRouter from "../../../routes/admin/synonyms";
@@ -427,6 +440,60 @@ describe("admin synonyms route", () => {
       // The route returns 200 with an empty synonyms list — never throws.
       expect(res.status).toBe(200);
       expect(res.body.synonyms).toEqual([]);
+    });
+  });
+
+  describe("POST /api/admin/groups/:groupId/synonyms/score", () => {
+    it("returns the top intent + confidence for a phrase (200)", async () => {
+      const app = buildApp("admin");
+      const res = await request<{
+        intent: string;
+        confidence: number;
+        source: string;
+        thresholds: { confidence: number; disambigFloor: number };
+      }>(app, {
+        method: "POST",
+        path: "/api/admin/groups/finance/synonyms/score",
+        body: { text: "show me revenue" },
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.intent).toBe("query.execute");
+      expect(res.body.confidence).toBe(0.82);
+      expect(res.body.source).toBe("ensemble");
+      expect(typeof res.body.thresholds.confidence).toBe("number");
+      expect(typeof res.body.thresholds.disambigFloor).toBe("number");
+      // groupId from the path is forwarded to the engine resolver.
+      expect(vi.mocked(getEngine)).toHaveBeenCalledWith("finance");
+    });
+
+    it("rejects an empty/missing text body (400)", async () => {
+      const app = buildApp("admin");
+      const res = await request(app, {
+        method: "POST",
+        path: "/api/admin/groups/default/synonyms/score",
+        body: {},
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("rejects an over-long phrase (400)", async () => {
+      const app = buildApp("admin");
+      const res = await request(app, {
+        method: "POST",
+        path: "/api/admin/groups/default/synonyms/score",
+        body: { text: "x".repeat(281) },
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("is gated by intents.manage (403 for viewer)", async () => {
+      const app = buildApp("viewer");
+      const res = await request(app, {
+        method: "POST",
+        path: "/api/admin/groups/default/synonyms/score",
+        body: { text: "hello" },
+      });
+      expect(res.status).toBe(403);
     });
   });
 });

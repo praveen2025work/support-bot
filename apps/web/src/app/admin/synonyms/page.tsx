@@ -63,6 +63,48 @@ export default function SynonymsPage() {
     return expanded.join(" ");
   }, [testPhrase, entries]);
 
+  // Live NLP score for the test phrase (top intent + confidence), fetched
+  // debounced from the engine so admins see how a phrase actually classifies.
+  const [nlpScore, setNlpScore] = useState<{
+    intent: string;
+    confidence: number;
+    source: string;
+    thresholds: { confidence: number; disambigFloor: number };
+  } | null>(null);
+  const [scoring, setScoring] = useState(false);
+
+  useEffect(() => {
+    const phrase = testPhrase.trim();
+    if (!phrase) {
+      setNlpScore(null);
+      setScoring(false);
+      return;
+    }
+    const controller = new AbortController();
+    setScoring(true);
+    const timer = setTimeout(() => {
+      fetch(`/api/admin/groups/${encodeURIComponent(groupId)}/synonyms/score`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...csrfHeaders() },
+        body: JSON.stringify({ text: phrase }),
+        signal: controller.signal,
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data && typeof data.confidence === "number") setNlpScore(data);
+          else setNlpScore(null);
+        })
+        .catch(() => {
+          // aborted or network error — leave the last value cleared
+        })
+        .finally(() => setScoring(false));
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [testPhrase, groupId]);
+
   const fetchEntries = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -223,19 +265,54 @@ export default function SynonymsPage() {
           htmlFor="test-phrase"
           className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide"
         >
-          Preview synonym expansion
+          Preview synonym expansion &amp; NLP match score
         </label>
         <input
           id="test-phrase"
           type="text"
           value={testPhrase}
           onChange={(e) => setTestPhrase(e.target.value)}
-          placeholder="Type a phrase to see how synonyms expand it..."
+          placeholder="Type a phrase to see how synonyms expand it and how it scores..."
           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
         />
         {testExpansion && (
           <div className="mt-2 text-sm font-mono text-gray-700 bg-white border border-gray-200 rounded px-3 py-2">
             {testExpansion}
+          </div>
+        )}
+        {testPhrase.trim() && (
+          <div className="mt-2 flex items-center gap-2 text-sm">
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              NLP match
+            </span>
+            {scoring && !nlpScore ? (
+              <span className="text-gray-400">Scoring…</span>
+            ) : nlpScore ? (
+              <>
+                <code className="rounded bg-white border border-gray-200 px-1.5 py-0.5 text-gray-800">
+                  {nlpScore.intent}
+                </code>
+                {(() => {
+                  const pct = nlpScore.confidence * 100;
+                  const tone =
+                    nlpScore.confidence >= nlpScore.thresholds.confidence
+                      ? "text-green-700"
+                      : nlpScore.confidence >= nlpScore.thresholds.disambigFloor
+                        ? "text-amber-600"
+                        : "text-red-600";
+                  return (
+                    <span className={`font-semibold tabular-nums ${tone}`}>
+                      {pct.toFixed(1)}%
+                    </span>
+                  );
+                })()}
+                <span className="text-xs text-gray-400">
+                  via {nlpScore.source}
+                </span>
+              </>
+            ) : (
+              <span className="text-gray-400">—</span>
+            )}
           </div>
         )}
       </div>

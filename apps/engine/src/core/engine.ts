@@ -370,6 +370,16 @@ export class ChatbotEngine {
     return this.nlpService.getOverlaps();
   }
 
+  /**
+   * Diagnostic: run text through the live NLP pipeline and return the top
+   * intent + score. Side-effect-free (no session, no interaction log) — used by
+   * the synonym editor's "score this phrase" box.
+   */
+  async classifyText(text: string): Promise<ClassificationResult> {
+    await this.initialize();
+    return this.nlpService.classify(text, false);
+  }
+
   /** Remove a session from the store (called on browser close). */
   async closeSession(
     sessionId: string,

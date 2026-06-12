@@ -20,6 +20,8 @@ import { logger } from "@/lib/logger";
 import { logAudit } from "@/lib/audit-logger";
 import { requirePermission } from "@/middleware/rbac";
 import { paths } from "@/lib/env-config";
+import { getEngine } from "@/lib/singleton";
+import { NLP_CONFIDENCE_THRESHOLD, NLP_DISAMBIG_FLOOR } from "@/core/constants";
 import {
   clearGroupSynonymsCache,
   type GroupSynonymEntry,
@@ -314,6 +316,57 @@ router.delete(
         "synonyms route: DELETE failed",
       );
       return res.status(500).json({ error: "Failed to delete synonym entry" });
+    }
+  },
+);
+
+const MAX_TEST_PHRASE_LEN = 280;
+
+/**
+ * POST /api/admin/groups/:groupId/synonyms/score
+ * Body: { text: string }
+ *
+ * Diagnostic-only: runs the phrase through the group's live NLP pipeline and
+ * returns the top intent + confidence so the synonym editor's test box can show
+ * how a phrase actually scores (not just how synonyms expand it). No
+ * persistence, no audit, no cache mutation — a pure read.
+ */
+router.post(
+  "/score",
+  requirePermission("intents.manage"),
+  async (req: Request, res: Response) => {
+    const groupId = (req.params as { groupId?: string }).groupId;
+    if (!groupId) {
+      return res.status(400).json({ error: "groupId path param is required" });
+    }
+    const text = (req.body as { text?: unknown })?.text;
+    if (typeof text !== "string" || !text.trim()) {
+      return res
+        .status(400)
+        .json({ error: "text (non-empty string) is required" });
+    }
+    if (text.length > MAX_TEST_PHRASE_LEN) {
+      return res
+        .status(400)
+        .json({ error: `text exceeds ${MAX_TEST_PHRASE_LEN} chars` });
+    }
+    try {
+      const engine = await getEngine(groupId);
+      const result = await engine.classifyText(text);
+      return res.json({
+        groupId,
+        text,
+        intent: result.intent,
+        confidence: result.confidence,
+        source: result.source,
+        thresholds: {
+          confidence: NLP_CONFIDENCE_THRESHOLD,
+          disambigFloor: NLP_DISAMBIG_FLOOR,
+        },
+      });
+    } catch (err) {
+      logger.error({ err, groupId }, "synonyms route: POST /score failed");
+      return res.status(500).json({ error: "Failed to score phrase" });
     }
   },
 );
