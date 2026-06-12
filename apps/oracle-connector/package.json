@@ -9,7 +9,8 @@
     "build:typecheck": "tsc --noEmit",
     "start": "node dist/server.js",
     "test": "tsx --test \"src/**/*.test.ts\"",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix"
   },
   "dependencies": {
     "cors": "^2.8.5",

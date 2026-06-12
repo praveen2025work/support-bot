@@ -89,6 +89,32 @@ jobs:
       - run: npm ci
       - run: npm run typecheck:tests
 
+  # ── Data connectors: lint + typecheck + tests ────────────────────────────
+  # mssql / oracle / csv-xlsx are standalone Node/TS services (not workspaces),
+  # so each installs and verifies independently via a matrix. fail-fast: false
+  # so one connector's failure doesn't mask the others.
+  connectors:
+    name: Connectors lint + tsc + tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        connector: [mssql-connector, oracle-connector, csv-xlsx-connector]
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.connector }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/${{ matrix.connector }}/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build:typecheck
+      - run: npm test
+
   # ── End-to-end validation harness ────────────────────────────────────────
   # Boots mock-api + engine + Next.js, then runs the validation suite in
   # scripts/demo/validate.mjs. Any red harness check fails this job — the same
