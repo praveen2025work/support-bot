@@ -28,6 +28,7 @@ import {
   Container,
   BrainCircuit,
   Languages,
+  Gauge,
   type LucideIcon,
 } from "lucide-react";
 
@@ -111,6 +112,12 @@ const NAV_SECTIONS: NavSection[] = [
         label: "Learning",
         icon: GraduationCap,
         match: (p: string) => p.startsWith("/admin/learning"),
+      },
+      {
+        href: "/admin/calibration",
+        label: "Calibration",
+        icon: Gauge,
+        match: (p: string) => p.startsWith("/admin/calibration"),
       },
       {
         href: "/admin/audit",

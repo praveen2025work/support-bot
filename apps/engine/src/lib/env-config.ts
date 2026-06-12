@@ -128,6 +128,9 @@ export const paths = {
     auditDir: join(DATA_DIR, "audit"),
     auditFile: join(DATA_DIR, "audit", "audit.jsonl"),
 
+    /** NLP threshold-calibration history (append-only JSONL) */
+    calibrationHistory: join(DATA_DIR, "nlp", "calibration-history.jsonl"),
+
     /** Conversation logs */
     logsDir: join(DATA_DIR, "logs"),
     conversationsLog: join(DATA_DIR, "logs", "conversations.jsonl"),

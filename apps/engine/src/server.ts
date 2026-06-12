@@ -21,6 +21,10 @@ import { openapiRouter } from "./routes/openapi";
 import { registerGauge } from "./lib/metrics";
 import { getEngineCount } from "./lib/singleton";
 import { setDraining } from "./lib/lifecycle";
+import {
+  startCalibrationScheduler,
+  stopCalibrationScheduler,
+} from "./core/scheduler/calibration-scheduler";
 import { chatRouter } from "./routes/chat";
 import { adminRouter } from "./routes/admin/index";
 import { viewsRouter } from "./routes/views";
@@ -203,6 +207,9 @@ const server = app.listen(PORT, () => {
   // Start the schedule executor (checks every 60s for due schedules)
   startScheduleExecutor();
 
+  // Start the NLP calibration scheduler (off unless CALIBRATION_ENABLED=true)
+  startCalibrationScheduler();
+
   // Start the watch executor (checks every 60s for triggered watch rules)
   const watchExecutor = new WatchExecutor(path.resolve(__dirname, "../data"));
   watchExecutor.start();
@@ -264,6 +271,7 @@ async function shutdown(signal: string) {
 
   logger.info("Drain window elapsed — closing server");
   stopScheduleExecutor();
+  stopCalibrationScheduler();
   stopHealthMonitor();
   // Stop accepting new connections and close existing ones
   server.close(() => {
