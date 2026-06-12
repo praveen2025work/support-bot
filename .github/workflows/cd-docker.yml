@@ -1,0 +1,43 @@
+name: CD · Docker build
+
+# Build-only: confirms every app's Docker image builds from its own self-contained
+# context. No registry push (add a `docker/login-action` + `push: true` later to publish).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cd-docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    name: Build image · ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # One self-contained image per app (mock-api has no Dockerfile — it runs
+        # from a base node image in docker-compose.full.yml).
+        app:
+          - web
+          - engine
+          - mssql-connector
+          - oracle-connector
+          - csv-xlsx-connector
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build ${{ matrix.app }} image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/${{ matrix.app }}
+          push: false
+          tags: chatbot-${{ matrix.app }}:ci
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}

@@ -126,7 +126,7 @@ Response format:
 
 ### Step 3: Register Entity Synonyms
 
-So the bot understands natural language references to your queries, add synonyms in `src/training/corpus.json`:
+So the bot understands natural language references to your queries, add synonyms in `apps/web/src/training/corpus.json`:
 
 ```json
 {
@@ -178,7 +178,7 @@ The platform includes built-in ML features that enhance the user experience auto
 - **ML analysis** — 13 built-in analysis types: column profiling, smart summary, correlation, distribution, anomaly detection, trend, duplicates, missing data, clustering, decision tree, forecasting, PCA, and insight reports.
 - **Learning system** — The engine learns from user interactions with temporal decay (7-day half-life), cross-surface tracking (chat, dashboard, gridboard, widget), and priority-scored review queues. Recent signals are weighted more heavily than old ones.
 
-These features improve over time as more users interact with the platform. No additional setup is required — the Engine manages ML data in `services/engine/data/`.
+These features improve over time as more users interact with the platform. No additional setup is required — the Engine manages ML data in `apps/engine/data/`.
 
 ---
 
@@ -306,7 +306,7 @@ After running a query, users can chain operations:
 
 To add your own filter:
 
-1. Add the filter entity to `src/training/corpus.json`:
+1. Add the filter entity to `apps/web/src/training/corpus.json`:
 
 ```json
 {
@@ -430,7 +430,7 @@ npm run dev:mock
 
 ### Add Your Queries to Mock Data
 
-Define your queries via the admin Queries UI (persisted per-group to `DATA_DIR/queries/<group>.json`), then add matching mock responses in `mock-api/server.js` in the `generateMockData()` function:
+Define your queries via the admin Queries UI (persisted per-group to `DATA_DIR/queries/<group>.json`), then add matching mock responses in `apps/mock-api/server.js` in the `generateMockData()` function:
 
 ```javascript
 case 'your_query_name':

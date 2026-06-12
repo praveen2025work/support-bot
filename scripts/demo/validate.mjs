@@ -552,7 +552,7 @@ async function testEdgeCases() {
   // (top-N/group-by don't mutate context.lastApiResult; mock-api
   // filters don't go below ~19 rows). The guard IS verified by code
   // review and fires correctly in production data. See
-  // services/engine/src/core/response/handlers/analysis-handler.ts.
+  // apps/engine/src/core/response/handlers/analysis-handler.ts.
   // (No harness check here — would only flake.)
 
   // Empty result: clear "no rows" message, not "(0 rows)" with blank table.
@@ -1092,7 +1092,7 @@ async function testSchemaDrift() {
   const { writeFile: writeFileFs, readFile: readFileFs } = await import(
     "node:fs/promises"
   );
-  const path = `services/engine/data/schema/${groupId}/${queryName}.json`;
+  const path = `apps/engine/data/schema/${groupId}/${queryName}.json`;
   let originalJson;
   try {
     originalJson = await readFileFs(path, "utf-8");

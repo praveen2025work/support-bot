@@ -40,15 +40,15 @@ async function copyService(serviceDir) {
 await rm(outDir, { recursive: true, force: true });
 await mkdir(path.join(outDir, 'ui', '.next'), { recursive: true });
 
-await copyRequired(path.join(root, '.next', 'standalone'), path.join(outDir, 'ui'));
-await copyRequired(path.join(root, '.next', 'static'), path.join(outDir, 'ui', '.next', 'static'));
-await copyOptional(path.join(root, 'public'), path.join(outDir, 'ui', 'public'));
-await copyOptional(path.join(root, 'data'), path.join(outDir, 'ui', 'data'));
+await copyRequired(path.join(root, 'apps/web/.next', 'standalone'), path.join(outDir, 'ui'));
+await copyRequired(path.join(root, 'apps/web/.next', 'static'), path.join(outDir, 'ui', '.next', 'static'));
+await copyOptional(path.join(root, 'apps/web/public'), path.join(outDir, 'ui', 'public'));
+await copyOptional(path.join(root, 'apps/web/data'), path.join(outDir, 'ui', 'data'));
 
-await copyService('services/engine');
-await copyService('services/mssql-connector');
-await copyService('services/oracle-connector');
-await copyService('services/csv-xlsx-connector');
+await copyService('apps/engine');
+await copyService('apps/mssql-connector');
+await copyService('apps/oracle-connector');
+await copyService('apps/csv-xlsx-connector');
 
 const manifest = {
   generatedAt: new Date().toISOString(),
@@ -57,10 +57,10 @@ const manifest = {
     entrypoint: 'ui/server.js',
   },
   services: {
-    engine: 'services/engine/dist/server.js',
-    mssqlConnector: 'services/mssql-connector/dist/server.js',
-    oracleConnector: 'services/oracle-connector/dist/server.js',
-    csvXlsxConnector: 'services/csv-xlsx-connector/dist/server.js',
+    engine: 'apps/engine/dist/server.js',
+    mssqlConnector: 'apps/mssql-connector/dist/server.js',
+    oracleConnector: 'apps/oracle-connector/dist/server.js',
+    csvXlsxConnector: 'apps/csv-xlsx-connector/dist/server.js',
   },
 };
 

@@ -96,7 +96,7 @@ npm run db:down    # Stop containers
 ### 1. Install Dependencies
 
 ```bash
-cd services/oracle-connector
+cd apps/oracle-connector
 npm install
 ```
 
@@ -411,7 +411,7 @@ Response:
 ## Data Files
 
 ```
-services/oracle-connector/data/
+apps/oracle-connector/data/
 ├── connectors/
 │   ├── connectors.json         # Connector configurations
 │   └── credentials.enc.json    # AES-256-GCM encrypted passwords
@@ -466,7 +466,7 @@ When results are truncated, the response includes `"truncated": true` and Chat s
 ### Build
 
 ```bash
-cd services/oracle-connector
+cd apps/oracle-connector
 npm run build
 # → dist/server.js (single file, ~25ms build)
 ```

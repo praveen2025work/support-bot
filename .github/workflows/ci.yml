@@ -13,85 +13,90 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── Lint + Next.js typecheck + unit tests ─────────────────────────────────
-  lint-and-test:
-    name: Next.js lint + tsc + jest
+  # ── Web (UI): lint + Next.js typecheck + jest ─────────────────────────────
+  web:
+    name: Web lint + tsc + jest
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
       - run: npm run lint
       - run: npx tsc --noEmit
       - run: npm test -- --passWithNoTests
 
-  # ── Production build sanity check ────────────────────────────────────────
+  # ── Web production build sanity check ────────────────────────────────────
   build:
-    name: Production build
+    name: Web production build
     runs-on: ubuntu-latest
-    needs: lint-and-test
+    needs: web
+    defaults:
+      run:
+        working-directory: apps/web
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
       - run: npm run build
 
-  # ── Engine typecheck + vitest ─────────────────────────────────────────────
+  # ── Engine: typecheck + vitest (unit) + jest (integration) ───────────────
   engine:
-    name: Engine tsc + vitest
+    name: Engine tsc + tests
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: services/engine
+        working-directory: apps/engine
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: services/engine/package-lock.json
+          cache-dependency-path: apps/engine/package-lock.json
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npm test
 
   # ── Typecheck engine-integration tests ───────────────────────────────────
-  # tests/nlp and tests/learning import engine source (which uses the engine's
-  # `@/*` alias) and are therefore excluded from both the root and engine
-  # tsconfigs. This job typechecks them with `@/* -> services/engine/src` so
-  # type errors in those tests (e.g. a wrong constructor arg) can't hide.
-  # Needs root deps (@types/jest) AND engine deps (ml-matrix, natural, …).
+  # apps/engine/tests/{nlp,learning,…} import engine source (which uses the
+  # engine's `@/*` alias) and are excluded from the engine's main tsconfig.
+  # This job typechecks them via apps/engine/tsconfig.tests.json so type errors
+  # in those tests (e.g. a wrong constructor arg) can't hide.
   engine-tests-typecheck:
     name: Engine-integration tests tsc
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/engine
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
-      - name: Install root deps
-        run: npm ci
-      - name: Install engine deps
-        working-directory: services/engine
-        run: npm ci
-      - name: Typecheck engine-integration tests
-        run: npm run typecheck:tests-engine
+          cache-dependency-path: apps/engine/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck:tests
 
   # ── End-to-end validation harness ────────────────────────────────────────
-  # Boots mock-api + engine + Next.js, then runs the 125-check
-  # validation suite that lives in scripts/demo/validate.mjs. Any
-  # red harness check fails this job — the same harness operators
-  # run pre-deploy.
+  # Boots mock-api + engine + Next.js, then runs the validation suite in
+  # scripts/demo/validate.mjs. Any red harness check fails this job — the same
+  # harness operators run pre-deploy.
   validation-harness:
     name: Validation harness (125 checks)
     runs-on: ubuntu-latest
-    needs: [lint-and-test, engine]
+    needs: [web, engine]
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
@@ -100,19 +105,23 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Install root deps (Next.js)
+      - name: Install root deps (orchestration)
+        run: npm ci
+
+      - name: Install web deps
+        working-directory: apps/web
         run: npm ci
 
       - name: Install engine deps
-        working-directory: services/engine
+        working-directory: apps/engine
         run: npm ci
 
       - name: Install mock-api deps
-        working-directory: services/mock-api
+        working-directory: apps/mock-api
         run: npm ci
 
       - name: Boot mock-api
-        working-directory: services/mock-api
+        working-directory: apps/mock-api
         run: |
           nohup node server.js > /tmp/mock-api.log 2>&1 &
           echo $! > /tmp/mock-api.pid

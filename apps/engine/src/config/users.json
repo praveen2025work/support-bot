@@ -1,0 +1,48 @@
+{
+  "users": [
+    {
+      "id": "u1",
+      "name": "Application Owner",
+      "email": "admin@company.com",
+      "userid": "admin01",
+      "brid": "BR001",
+      "role": "admin",
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedBy": "system",
+      "updatedOn": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "u2",
+      "name": "John Smith",
+      "email": "john.smith@company.com",
+      "userid": "jsmith01",
+      "brid": "",
+      "role": "admin",
+      "createdAt": "2026-03-11T16:18:51.297Z",
+      "updatedBy": "admin",
+      "updatedOn": "2026-03-11T16:18:51.297Z"
+    },
+    {
+      "id": "u3",
+      "name": "Local Developer",
+      "email": "dev@localhost",
+      "userid": "local_dev",
+      "brid": "",
+      "role": "admin",
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedBy": "system",
+      "updatedOn": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "u4",
+      "name": "Demo User",
+      "email": "demo@company.com",
+      "userid": "demo_user",
+      "brid": "",
+      "role": "admin",
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedBy": "system",
+      "updatedOn": "2024-01-01T00:00:00Z"
+    }
+  ]
+}

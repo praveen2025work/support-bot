@@ -1,7 +1,7 @@
 # Engine file-based DB — JSON/JSONL written by the engine's own serializer.
 # Prettier would reformat it (e.g. collapse arrays) and fight the engine,
 # producing spurious diffs on the next write. Leave it engine-managed.
-services/engine/data/
+apps/engine/data/
 
 # Generated / vendored
 **/dist/

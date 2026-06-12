@@ -1,0 +1,10 @@
+{
+  "name": "@chatbot/sql-connector",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Canonical shared SQL connector router. Vendored into apps/mssql-connector and apps/oracle-connector via scripts/sync-shared.mjs so each connector stays self-contained.",
+  "main": "connectors-router.ts",
+  "peerDependencies": {
+    "express": "^4.21.0"
+  }
+}

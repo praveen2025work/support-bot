@@ -22,9 +22,10 @@ NSSM pattern shown below.
 ## Local Review
 
 ```bash
-npm install
-npm install --prefix services/engine
-npm install --prefix services/mock-api
+# Each app is self-contained — install per app.
+npm install --prefix apps/web
+npm install --prefix apps/engine
+npm install --prefix apps/mock-api
 
 # Mock-data review mode: mock API + engine + UI.
 # Environment-agnostic admin content such as intents, glossary, templates,
@@ -38,22 +39,23 @@ Open `http://localhost:3001`.
 Useful validation commands:
 
 ```bash
-npm run build
-npm test -- --runInBand
-cd services/engine && npm test
+npm run build:all
+cd apps/web && npm test          # jest (UI)
+cd apps/engine && npm test       # vitest (unit) + jest (integration)
 npm run validate:demo:quick
 ```
 
 ## Environment Files
 
-Copy `.env.example` to the target environment file:
+Copy `.env.example` to the target environment file. Compose uses exactly two:
+`.env.demo` (mock data — `docker-compose.full.yml`) and `.env.prod` (real API +
+SSO — `docker-compose.ui-engine.yml` and `docker-compose.no-mock.yml`).
+`.env.mock` is used by the local `npm run dev:mock` workflow.
 
 ```bash
-cp .env.example .env.mock
-cp .env.example .env.demo
-cp .env.example .env.dev
-cp .env.example .env.uat
-cp .env.example .env.prod
+cp .env.example .env.mock   # local dev:mock workflow
+cp .env.example .env.demo   # mock/demo data — docker-compose.full.yml
+cp .env.example .env.prod   # real API + SSO — ui-engine / no-mock
 ```
 
 Production minimum:
@@ -77,7 +79,8 @@ SQL_CREDENTIAL_KEY=replace-with-strong-credential-encryption-key
 
 `NEXT_PUBLIC_WIJMO_LICENSE_KEY` is a browser-side Wijmo key and must be present
 when the UI is built. Docker production builds pass it as a build argument from
-`.env.prod`; IIS/NSSM deployments should set it before running `npm run build:ui`.
+`.env.prod`; IIS/NSSM deployments should set it before running the UI build
+(`cd apps/web && npm run build`).
 
 For Docker, use Linux-style container paths when overriding paths:
 
@@ -110,25 +113,25 @@ share one source of truth.
 
 ### Seed the shared volume (one time)
 
-| Repo source                                             | Copy to                                                          |
-| ------------------------------------------------------- | ---------------------------------------------------------------- |
-| `services/engine/src/config/*.json`                     | `$CONFIG_DIR/`                                                   |
-| `services/engine/data/queries/*.json`                   | `$DATA_DIR/queries/` (file-based query catalog, shipped in repo) |
-| `services/engine/src/training/` (corpus/faq, `groups/`) | `$TRAINING_DIR/` (only if you use per-group corpus/FAQ)          |
+| Repo source                                         | Copy to                                                          |
+| --------------------------------------------------- | ---------------------------------------------------------------- |
+| `apps/engine/src/config/*.json`                     | `$CONFIG_DIR/`                                                   |
+| `apps/engine/data/queries/*.json`                   | `$DATA_DIR/queries/` (file-based query catalog, shipped in repo) |
+| `apps/engine/src/training/` (corpus/faq, `groups/`) | `$TRAINING_DIR/` (only if you use per-group corpus/FAQ)          |
 
 ```bash
 VOL=/mnt/nas/chatbot                       # your shared volume root
 mkdir -p "$VOL"/{config,data/queries,training}
-cp services/engine/src/config/*.json   "$VOL/config/"
-cp services/engine/data/queries/*.json "$VOL/data/queries/"   # file-based query catalog, shipped in repo
-cp -r services/engine/src/training/*   "$VOL/training/"     # if used
+cp apps/engine/src/config/*.json   "$VOL/config/"
+cp apps/engine/data/queries/*.json "$VOL/data/queries/"   # file-based query catalog, shipped in repo
+cp -r apps/engine/src/training/*   "$VOL/training/"     # if used
 ```
 
 ### Per-group query files (shipped as seed — no script to run)
 
 The query catalog is the **file-based source of truth** at
 `DATA_DIR/queries/<group>.json`. These files are **committed in the repo** at
-`services/engine/data/queries/*.json`, so they are copied with the rest of the
+`apps/engine/data/queries/*.json`, so they are copied with the rest of the
 seed above — **there is no migration step to run at deploy time.** The admin
 **Queries** UI writes straight to these files (the engine is the single writer),
 so edits persist with no mock-api involved.
@@ -137,7 +140,7 @@ so edits persist with no mock-api involved.
 > place and the engine **idempotently seeds** `DATA_DIR/queries/<group>.json`
 > from it on first boot (a no-op once per-group files exist) — see
 > `migrateQueriesFromDbJson` in `core/catalog/query-registry.ts`. The legacy
-> `services/engine/src/scripts/migrate-queries-to-per-group.ts` remains for
+> `apps/engine/src/scripts/migrate-queries-to-per-group.ts` remains for
 > manual repo regeneration.
 
 ### Migrating from an existing deployment (source → destination)
@@ -148,22 +151,22 @@ are written back to those same paths).
 
 **1. Copy — admin-authored config and content (carry these over):**
 
-| What                                         | Source (existing setup)                                                | Destination (shared volume)  |
-| -------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------- |
-| Groups, settings, users, filters, data-roles | `services/engine/src/config/*.json`                                    | `$CONFIG_DIR/`               |
-| Query definitions (per-group files)          | `…/data/queries/*.json` (existing deployment)                          | `$DATA_DIR/queries/`         |
-| NLP corpus / FAQ                             | `services/engine/src/training/` (`corpus.json`, `faq.json`, `groups/`) | `$TRAINING_DIR/`             |
-| Glossary (metric definitions)                | `…/data/glossary/*.json`                                               | `$DATA_DIR/glossary/`        |
-| Watch **rules**                              | `…/data/watch/<group>/rules.json`                                      | `$DATA_DIR/watch/<group>/`   |
-| Workflows                                    | `…/data/workflows/*.json`                                              | `$DATA_DIR/workflows/`       |
-| Saved GridBoard views                        | `…/data/gridboard-views/*.json`                                        | `$DATA_DIR/gridboard-views/` |
-| Uploaded knowledge docs                      | `…/data/knowledge/`                                                    | `$DATA_DIR/knowledge/`       |
+| What                                         | Source (existing setup)                                            | Destination (shared volume)  |
+| -------------------------------------------- | ------------------------------------------------------------------ | ---------------------------- |
+| Groups, settings, users, filters, data-roles | `apps/engine/src/config/*.json`                                    | `$CONFIG_DIR/`               |
+| Query definitions (per-group files)          | `…/data/queries/*.json` (existing deployment)                      | `$DATA_DIR/queries/`         |
+| NLP corpus / FAQ                             | `apps/engine/src/training/` (`corpus.json`, `faq.json`, `groups/`) | `$TRAINING_DIR/`             |
+| Glossary (metric definitions)                | `…/data/glossary/*.json`                                           | `$DATA_DIR/glossary/`        |
+| Watch **rules**                              | `…/data/watch/<group>/rules.json`                                  | `$DATA_DIR/watch/<group>/`   |
+| Workflows                                    | `…/data/workflows/*.json`                                          | `$DATA_DIR/workflows/`       |
+| Saved GridBoard views                        | `…/data/gridboard-views/*.json`                                    | `$DATA_DIR/gridboard-views/` |
+| Uploaded knowledge docs                      | `…/data/knowledge/`                                                | `$DATA_DIR/knowledge/`       |
 
 **2. Provided as seed / built automatically — no script to run:**
 
 | What                                           | How                                                                                                                                   |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Per-group query files (`queries/<group>.json`) | shipped as seed — copy from `services/engine/data/queries/` (above); admin edits keep them in sync. No script.                        |
+| Per-group query files (`queries/<group>.json`) | shipped as seed — copy from `apps/engine/data/queries/` (above); admin edits keep them in sync. No script.                            |
 | Search indexes (`indexes/…`)                   | built from corpus/knowledge automatically on engine init (NLP train). No script. Copy `…/data/indexes/` only to skip the first build. |
 
 **3. Leave as-is — transactional runtime state. Do NOT copy; the engine
@@ -221,26 +224,43 @@ On the **UI** service, set `ENGINE_URL` to the engine service address.
 
 ## Docker
 
-Demo mode with mock data:
+Four compose files cover every topology. Each puts its services on an explicit
+`chatbot` bridge network, and every host port is overridable via `*_HOST_PORT`
+env vars (`UI_HOST_PORT`, `ENGINE_HOST_PORT`, `MOCK_HOST_PORT`,
+`MSSQL_HOST_PORT`, `ORACLE_HOST_PORT`, `CSV_HOST_PORT`) when a default is taken:
+
+| Compose file                   | Stack                               | Data source                      | Env file    |
+| ------------------------------ | ----------------------------------- | -------------------------------- | ----------- |
+| `docker-compose.full.yml`      | all 6 (UI + engine + mock + 3 conn) | mock/demo data, works out of box | `.env.demo` |
+| `docker-compose.ui-engine.yml` | UI + engine                         | real tenant API                  | `.env.prod` |
+| `docker-compose.no-mock.yml`   | UI + engine + 3 connectors          | real API + connectors            | `.env.prod` |
+| `docker-compose.sample-db.yml` | sample MSSQL/Oracle DBs             | for connector testing only       | —           |
+
+Demo / out-of-the-box mode with mock data (no secrets needed):
 
 ```bash
-docker compose up --build
+docker compose -f docker-compose.full.yml up --build -d
+docker compose -f docker-compose.full.yml ps
+# Override host ports if a default is taken, e.g.:
+# MOCK_HOST_PORT=8088 ENGINE_HOST_PORT=4011 docker compose -f docker-compose.full.yml up -d
 ```
 
-UAT mode (prod mirror with real UAT-tenant APIs — fill placeholders in `.env.uat`):
+UI + engine only (real tenant API — fill placeholders in `.env.prod`):
 
 ```bash
-docker compose -f docker-compose.uat.yml up --build -d
-docker compose -f docker-compose.uat.yml ps
-docker compose -f docker-compose.uat.yml logs -f engine ui mssql-connector oracle-connector
+docker compose -f docker-compose.ui-engine.yml up --build -d
+docker compose -f docker-compose.ui-engine.yml ps
+docker compose -f docker-compose.ui-engine.yml logs -f engine ui
+# Override host ports if taken, e.g. UI_HOST_PORT=3011 ENGINE_HOST_PORT=4011 docker compose -f docker-compose.ui-engine.yml up -d
 ```
 
-Production mode:
+Production mode (real API + connectors — fill placeholders in `.env.prod`):
 
 ```bash
-docker compose -f docker-compose.prod.yml up --build -d
-docker compose -f docker-compose.prod.yml ps
-docker compose -f docker-compose.prod.yml logs -f engine ui mssql-connector oracle-connector
+docker compose -f docker-compose.no-mock.yml up --build -d
+docker compose -f docker-compose.no-mock.yml ps
+docker compose -f docker-compose.no-mock.yml logs -f engine ui mssql-connector oracle-connector
+# Override host ports if taken, e.g. ENGINE_HOST_PORT=4011 docker compose -f docker-compose.no-mock.yml up -d
 ```
 
 Smoke checks:
@@ -254,37 +274,37 @@ curl http://localhost:4003/health
 curl http://localhost:4004/health
 ```
 
-The compose files persist engine runtime state in the `engine-data` volume.
+The compose files persist engine runtime state in a named `*-engine-data`
+volume (`engine-data` for `ui-engine`/`no-mock`, `demo-engine-data` for `full`).
 That state includes learning data, audit/log output, user preferences,
 knowledge uploads, snapshots, and saved views.
 
-SQL connector runtime state is persisted in `mssql-connector-data` and
-`oracle-connector-data`. Connector definitions and encrypted database
-credentials belong in those runtime volumes, not in source control.
-CSV/XLSX connector runtime state is persisted in `csv-xlsx-connector-data`.
+SQL connector runtime state is persisted in the matching connector volumes
+(`mssql-data`, `oracle-data`, `csv-data` for `no-mock`; `demo-*` for `full`).
+Connector definitions and encrypted database credentials belong in those
+runtime volumes, not in source control.
 
-SQL connector images use one shared Dockerfile:
+Each app is self-contained and ships its own `Dockerfile` (build context is the
+app folder, e.g. `apps/mssql-connector`). The connectors vendor the shared SQL
+router from `packages/sql-connector` via `npm run sync:shared` at the repo root.
+Build a single connector image directly:
 
 ```bash
-docker build -f services/connector.Dockerfile \
-  --build-arg SERVICE_DIR=services/mssql-connector \
-  --build-arg SERVICE_PORT=4002 \
-  -t chatbot-mssql-connector .
-
-docker build -f services/connector.Dockerfile \
-  --build-arg SERVICE_DIR=services/oracle-connector \
-  --build-arg SERVICE_PORT=4003 \
-  -t chatbot-oracle-connector .
-
-docker build -f services/connector.Dockerfile \
-  --build-arg SERVICE_DIR=services/csv-xlsx-connector \
-  --build-arg SERVICE_PORT=4004 \
-  -t chatbot-csv-xlsx-connector .
+docker build -t chatbot-mssql-connector apps/mssql-connector
+docker build -t chatbot-oracle-connector apps/oracle-connector
+docker build -t chatbot-csv-xlsx-connector apps/csv-xlsx-connector
 ```
 
-`docker-compose.prod.yml` enables SQL Server, Oracle, and CSV/XLSX connector
-services by default. The demo compose file keeps the mock API as the data
-source for mock mode; leave it that way for local review unless you are
+Or build through compose, which builds each app from its own context:
+
+```bash
+docker compose -f docker-compose.no-mock.yml build engine
+docker compose -f docker-compose.no-mock.yml build mssql-connector
+```
+
+`docker-compose.no-mock.yml` enables SQL Server, Oracle, and CSV/XLSX connector
+services by default. `docker-compose.full.yml` keeps the mock API as the data
+source for demo mode; leave it that way for local review unless you are
 explicitly testing live database or file connectors.
 
 ## SQL Connector Setup
@@ -329,19 +349,20 @@ process on `localhost:3001`; IIS handles TLS, Windows auth, and routing.
 5. Set the site application pool to **No Managed Code**.
 6. Run the UI and engine as Windows services with NSSM.
 
-Build once on the server:
+Build once on the server (each app is self-contained — build per app):
 
 ```powershell
-npm ci
-npm ci --prefix services/engine
-npm run build
+npm ci --prefix apps/web
+npm ci --prefix apps/engine
+cd apps/web; npm run build      # Next.js UI -> apps/web/.next/standalone
+cd ..\engine; npm run build     # engine -> apps/engine/dist
 ```
 
 Install the engine service:
 
 ```powershell
 nssm install ChatbotEngine "C:\Program Files\nodejs\node.exe" "dist\server.js"
-nssm set ChatbotEngine AppDirectory "C:\apps\Chatbot\services\engine"
+nssm set ChatbotEngine AppDirectory "C:\apps\Chatbot\apps\engine"
 nssm set ChatbotEngine AppEnvironmentExtra "NODE_ENV=production" "ENGINE_PORT=4001" "DATA_DIR=C:\chatbot\data"
 nssm start ChatbotEngine
 ```
@@ -350,7 +371,7 @@ Install the UI service:
 
 ```powershell
 nssm install ChatbotUI "C:\Program Files\nodejs\node.exe" "server.js"
-nssm set ChatbotUI AppDirectory "C:\apps\Chatbot\.next\standalone"
+nssm set ChatbotUI AppDirectory "C:\apps\Chatbot\apps\web\.next\standalone"
 nssm set ChatbotUI AppEnvironmentExtra "NODE_ENV=production" "PORT=3001" "ENGINE_URL=http://localhost:4001" "NEXT_PUBLIC_WIJMO_LICENSE_KEY=replace-with-wijmo-license-key"
 nssm start ChatbotUI
 ```
@@ -359,7 +380,7 @@ Install the SQL Server connector service:
 
 ```powershell
 nssm install ChatbotMssqlConnector "C:\Program Files\nodejs\node.exe" "dist\server.js"
-nssm set ChatbotMssqlConnector AppDirectory "C:\apps\Chatbot\services\mssql-connector"
+nssm set ChatbotMssqlConnector AppDirectory "C:\apps\Chatbot\apps\mssql-connector"
 nssm set ChatbotMssqlConnector AppEnvironmentExtra "NODE_ENV=production" "CONNECTOR_PORT=4002" "DATA_DIR=C:\chatbot\mssql-connector-data" "CONNECTOR_API_KEY=replace-with-strong-key" "SQL_CREDENTIAL_KEY=replace-with-strong-encryption-key" "UI_ORIGIN=https://chatbot.your-org.example.com"
 nssm start ChatbotMssqlConnector
 ```
@@ -368,7 +389,7 @@ Install the Oracle connector service:
 
 ```powershell
 nssm install ChatbotOracleConnector "C:\Program Files\nodejs\node.exe" "dist\server.js"
-nssm set ChatbotOracleConnector AppDirectory "C:\apps\Chatbot\services\oracle-connector"
+nssm set ChatbotOracleConnector AppDirectory "C:\apps\Chatbot\apps\oracle-connector"
 nssm set ChatbotOracleConnector AppEnvironmentExtra "NODE_ENV=production" "CONNECTOR_PORT=4003" "DATA_DIR=C:\chatbot\oracle-connector-data" "CONNECTOR_API_KEY=replace-with-strong-key" "SQL_CREDENTIAL_KEY=replace-with-strong-encryption-key" "UI_ORIGIN=https://chatbot.your-org.example.com"
 nssm start ChatbotOracleConnector
 ```
@@ -377,7 +398,7 @@ Install the CSV/XLSX connector service:
 
 ```powershell
 nssm install ChatbotCsvXlsxConnector "C:\Program Files\nodejs\node.exe" "dist\server.js"
-nssm set ChatbotCsvXlsxConnector AppDirectory "C:\apps\Chatbot\services\csv-xlsx-connector"
+nssm set ChatbotCsvXlsxConnector AppDirectory "C:\apps\Chatbot\apps\csv-xlsx-connector"
 nssm set ChatbotCsvXlsxConnector AppEnvironmentExtra "NODE_ENV=production" "CONNECTOR_PORT=4004" "DATA_DIR=C:\chatbot\csv-xlsx-connector-data" "CONNECTOR_API_KEY=replace-with-strong-key" "UI_ORIGIN=https://chatbot.your-org.example.com"
 nssm start ChatbotCsvXlsxConnector
 ```

@@ -15,7 +15,7 @@
 │   Next.js UI    │────▶│   Engine Service     │────▶│  Data API (per-group) │
 │   port 3001     │     │   port 4001          │     │  port 8080 (mock)     │
 │                 │     │                      │     │  or real tenant APIs  │
-│ src/app/        │     │ services/engine/src/ │     │ services/mock-api/    │
+│ apps/web/src/   │     │ apps/engine/src/     │     │ apps/mock-api/        │
 └─────────────────┘     └─────────────────────┘     └───────────────────────┘
                                 │
                    ┌────────────┴────────────┐
@@ -24,12 +24,12 @@
         │ MSSQL Connector  │      │ Oracle Connector  │
         │   port 4002      │      │   port 4003       │
         │                  │      │                   │
-        │ services/        │      │ services/         │
+        │ apps/            │      │ apps/             │
         │ mssql-connector/ │      │ oracle-connector/ │
         └──────────────────┘      └──────────────────┘
 ```
 
-- **UI** (Next.js) — All `/api/*` routes proxy to Engine via `src/lib/engine-proxy.ts`
+- **UI** (Next.js) — All `/api/*` routes proxy to Engine via `apps/web/src/lib/engine-proxy.ts`
 - **Engine** (Express) — NLP, query execution, admin API, tenant context
 - **Data API** — Mock API for dev, or real per-group tenant APIs in production
 - **MSSQL Connector** (Express) — SQL Server database connector with saved queries, connection pooling, schema introspection
@@ -46,12 +46,13 @@
 git clone <your-repo-url>
 cd Chatbot
 
-# 2. Install root dependencies
+# 2. Install root (orchestration) dependencies
 npm install
 
-# 3. Install service dependencies
-cd services/engine && npm install && cd ../..
-cd services/mock-api && npm install && cd ../..
+# 3. Install per-app dependencies (each app is self-contained)
+cd apps/engine && npm install && cd ../..
+cd apps/mock-api && npm install && cd ../..
+cd apps/web && npm install && cd ../..
 
 # 4. Copy environment template
 cp .env.example .env.mock
@@ -65,33 +66,36 @@ npm run dev:mock
 
 This starts:
 
-| Service      | Port | What it runs                                |
-| ------------ | ---- | ------------------------------------------- |
-| **mock-api** | 8080 | `services/mock-api/server.js` (json-server) |
-| **engine**   | 4001 | `services/engine/src/server.ts` (Express)   |
-| **ui**       | 3001 | `src/app/` (Next.js dev server)             |
+| Service      | Port | What it runs                             |
+| ------------ | ---- | ---------------------------------------- |
+| **mock-api** | 8080 | `apps/mock-api/server.js` (json-server)  |
+| **engine**   | 4001 | `apps/engine/src/server.ts` (Express)    |
+| **ui**       | 3001 | `apps/web/src/app/` (Next.js dev server) |
 
 ### With SQL Connectors
 
 To also start the MSSQL and/or Oracle connectors:
 
 ```bash
-# All services (mock + engine + MSSQL + Oracle + UI)
-npm run dev:sql
+# All apps (mock + engine + 3 connectors + UI)
+npm run dev:all
 
 # Engine + MSSQL connector + UI only
 npm run dev:mssql
 
 # Engine + Oracle connector + UI only
 npm run dev:oracle
+
+# Engine + CSV/XLSX connector + UI only
+npm run dev:csv
 ```
 
 This adds:
 
-| Service              | Port | What it runs                                        |
-| -------------------- | ---- | --------------------------------------------------- |
-| **mssql-connector**  | 4002 | `services/mssql-connector/src/server.ts` (Express)  |
-| **oracle-connector** | 4003 | `services/oracle-connector/src/server.ts` (Express) |
+| Service              | Port | What it runs                                    |
+| -------------------- | ---- | ----------------------------------------------- |
+| **mssql-connector**  | 4002 | `apps/mssql-connector/src/server.ts` (Express)  |
+| **oracle-connector** | 4003 | `apps/oracle-connector/src/server.ts` (Express) |
 
 Access points:
 
@@ -109,44 +113,62 @@ Access points:
 ## Project Structure
 
 ```
-Chatbot/
-├── src/                              # Next.js UI source
-│   ├── app/                          # App Router pages & API route handlers
-│   │   ├── admin/                    # Admin panel pages
-│   │   ├── api/                      # API routes (proxy to engine)
-│   │   │   ├── chat/route.ts
-│   │   │   ├── health/route.ts
-│   │   │   ├── queries/route.ts
-│   │   │   └── admin/               # Admin API proxies
-│   │   └── widget/                   # Embeddable widget page
-│   ├── components/
-│   │   └── chat/                     # Chat UI components
-│   │       ├── ChatWindow.tsx        # Main chat window (widget + web)
-│   │       ├── ChatInput.tsx         # Message input
-│   │       ├── MessageList.tsx       # Message display
-│   │       ├── MessageBubble.tsx     # Individual message
-│   │       ├── SuggestionChips.tsx   # Quick reply chips
-│   │       └── ErrorBoundary.tsx     # Error boundary
-│   ├── contexts/
-│   │   └── UserContext.tsx           # User info context provider
-│   ├── hooks/
-│   │   └── useChat.ts               # Chat state & API hook
-│   ├── lib/
-│   │   ├── engine-proxy.ts          # Proxy helper: Next.js → Engine
-│   │   ├── csrf.ts                  # CSRF token utility
-│   │   ├── db.ts                    # File-level locking
-│   │   └── log-encryption.ts        # AES-256-GCM log encryption
-│   └── training/
-│       ├── corpus.json              # Main NLP corpus (all groups)
-│       ├── groups/                   # Group-specific corpora
-│       │   ├── corpus-finance.json
-│       │   ├── corpus-engineering.json
-│       │   └── corpus-analytics.json
-│       └── scripts/
-│           ├── train.ts             # NLP training script
-│           └── evaluate.ts          # NLP evaluation script
-│
-├── services/
+Chatbot/                              # Repo root = orchestration ONLY (no app code)
+├── apps/                             # Deployable apps (each self-contained)
+│   ├── web/                          # Next.js UI (was the repo root in the old layout)
+│   │   ├── src/
+│   │   │   ├── app/                  # App Router pages & API route handlers
+│   │   │   │   ├── admin/            # Admin panel pages
+│   │   │   │   ├── api/              # API routes (proxy to engine)
+│   │   │   │   │   ├── chat/route.ts
+│   │   │   │   │   ├── health/route.ts
+│   │   │   │   │   ├── queries/route.ts
+│   │   │   │   │   └── admin/        # Admin API proxies
+│   │   │   │   └── widget/           # Embeddable widget page
+│   │   │   ├── components/
+│   │   │   │   └── chat/             # Chat UI components
+│   │   │   │       ├── ChatWindow.tsx        # Main chat window (widget + web)
+│   │   │   │       ├── ChatInput.tsx         # Message input
+│   │   │   │       ├── MessageList.tsx       # Message display
+│   │   │   │       ├── MessageBubble.tsx     # Individual message
+│   │   │   │       ├── SuggestionChips.tsx   # Quick reply chips
+│   │   │   │       └── ErrorBoundary.tsx     # Error boundary
+│   │   │   ├── contexts/
+│   │   │   │   └── UserContext.tsx           # User info context provider
+│   │   │   ├── hooks/
+│   │   │   │   └── useChat.ts                # Chat state & API hook
+│   │   │   ├── lib/
+│   │   │   │   ├── engine-proxy.ts           # Proxy helper: Next.js → Engine
+│   │   │   │   ├── csrf.ts                   # CSRF token utility
+│   │   │   │   ├── db.ts                     # File-level locking
+│   │   │   │   └── log-encryption.ts         # AES-256-GCM log encryption
+│   │   │   └── training/
+│   │   │       ├── corpus.json               # Main NLP corpus (all groups)
+│   │   │       ├── groups/                   # Group-specific corpora
+│   │   │       │   ├── corpus-finance.json
+│   │   │       │   ├── corpus-engineering.json
+│   │   │       │   └── corpus-analytics.json
+│   │   │       └── scripts/
+│   │   │           ├── train.ts              # NLP training script
+│   │   │           └── evaluate.ts           # NLP evaluation script
+│   │   ├── public/
+│   │   │   └── widget/
+│   │   │       └── chatbot-widget.js         # Embeddable widget script
+│   │   ├── tests/                            # UI tests (jest)
+│   │   ├── data/                             # UI runtime data (gitignored)
+│   │   │   ├── conversations/                # Chat logs
+│   │   │   ├── learning/                     # Learning feedback
+│   │   │   └── audit/                        # Audit trail
+│   │   ├── .storybook/                       # Storybook configuration
+│   │   │   ├── main.ts                       # Stories glob, addons, framework
+│   │   │   └── preview.ts                    # Global decorators, backgrounds
+│   │   ├── next.config.mjs                   # Next.js config (proxy rewrites, bundle analyzer)
+│   │   ├── jest.config.ts                    # Jest test config
+│   │   ├── tsconfig.json
+│   │   ├── Dockerfile                        # UI Docker image
+│   │   ├── package.json                      # Self-contained (own next/react deps)
+│   │   └── package-lock.json
+│   │
 │   ├── engine/                       # Express API service
 │   │   ├── src/
 │   │   │   ├── server.ts            # Entry point (Express app)
@@ -216,16 +238,22 @@ Chatbot/
 │   │   │           ├── learning.ts  # Learning stats
 │   │   │           ├── anomaly.ts   # Anomaly baselines, config, history, business rules
 │   │   │           └── logs.ts      # Log viewer
+│   │   ├── tests/                   # Integration tests (jest)
+│   │   ├── data/                    # Engine runtime data (gitignored)
 │   │   ├── docs/
 │   │   │   └── openapi.yaml         # OpenAPI 3.0 spec
-│   │   ├── esbuild.config.mjs         # esbuild bundler config
-│   │   ├── package.json
+│   │   ├── esbuild.config.mjs       # esbuild bundler config
+│   │   ├── Dockerfile               # Engine Docker image
+│   │   ├── package.json             # Self-contained
+│   │   ├── package-lock.json
 │   │   └── tsconfig.json
 │   │
 │   ├── mock-api/                     # Mock data API (json-server)
 │   │   ├── server.js                 # Custom Express server with mock data
 │   │   ├── db.json                   # Sample row data (dev/demo). Query definitions live in DATA_DIR/queries/<group>.json
-│   │   └── package.json
+│   │   ├── Dockerfile
+│   │   ├── package.json
+│   │   └── package-lock.json
 │   │
 │   ├── mssql-connector/              # SQL Server database connector
 │   │   ├── src/
@@ -237,6 +265,7 @@ Chatbot/
 │   │   │   │   ├── query-executor.ts     # Read-only validation & row limiting
 │   │   │   │   ├── credential-store.ts   # AES-256-GCM encrypted credentials
 │   │   │   │   └── types.ts             # TypeScript interfaces
+│   │   │   ├── shared/                # Vendored from packages/sql-connector (npm run sync:shared)
 │   │   │   ├── routes/
 │   │   │   │   ├── connectors.ts     # Connector CRUD & schema introspection
 │   │   │   │   ├── queries.ts        # Saved query CRUD & execute endpoint
@@ -247,59 +276,49 @@ Chatbot/
 │   │   │   ├── connectors/           # Connector configs + encrypted credentials
 │   │   │   └── queries/queries.json  # Saved query definitions
 │   │   ├── esbuild.config.mjs
+│   │   ├── Dockerfile
 │   │   ├── package.json
+│   │   ├── package-lock.json
 │   │   └── tsconfig.json
 │   │
-│   └── oracle-connector/             # Oracle database connector
-│       ├── src/                      # Same structure as mssql-connector
-│       │   ├── server.ts             # Entry point (Express, port 4003)
-│       │   ├── core/
-│       │   │   ├── oracle-connector.ts   # Oracle driver (oracledb + connection pooling)
-│       │   │   └── ...               # Same modules as MSSQL
-│       │   ├── routes/               # Same route structure
-│       │   ├── middleware/
-│       │   └── lib/
-│       ├── data/
-│       │   └── connectors/           # Connector configs
+│   ├── oracle-connector/             # Oracle database connector
+│   │   ├── src/                      # Same structure as mssql-connector
+│   │   │   ├── server.ts             # Entry point (Express, port 4003)
+│   │   │   ├── core/
+│   │   │   │   ├── oracle-connector.ts   # Oracle driver (oracledb + connection pooling)
+│   │   │   │   └── ...               # Same modules as MSSQL
+│   │   │   ├── shared/               # Vendored from packages/sql-connector (npm run sync:shared)
+│   │   │   ├── routes/               # Same route structure
+│   │   │   ├── middleware/
+│   │   │   └── lib/
+│   │   ├── data/
+│   │   │   └── connectors/           # Connector configs
+│   │   ├── Dockerfile
+│   │   ├── package.json
+│   │   ├── package-lock.json
+│   │   └── tsconfig.json
+│   │
+│   └── csv-xlsx-connector/           # CSV/XLSX file connector
+│       ├── src/                      # Same self-contained structure
+│       ├── Dockerfile
 │       ├── package.json
-│       └── tsconfig.json
+│       └── package-lock.json
 │
-├── public/
-│   └── widget/
-│       └── chatbot-widget.js         # Embeddable widget script
-│
-├── tests/
-│   ├── nlp/                          # NLP classifier tests
-│   ├── csv/                          # CSV analyzer tests
-│   ├── auth/                         # Auth middleware tests
-│   └── api/                          # API route tests
-│
-├── data/                             # Runtime data (gitignored)
-│   ├── conversations/                # Chat logs
-│   ├── learning/                     # Learning feedback
-│   └── audit/                        # Audit trail
-│
-├── .storybook/                        # Storybook configuration
-│   ├── main.ts                       # Stories glob, addons, framework
-│   └── preview.ts                    # Global decorators, backgrounds
+├── packages/                         # Shared libraries
+│   └── sql-connector/                # Canonical shared SQL router
+│                                     #   (vendored into SQL connectors via `npm run sync:shared`)
 │
 ├── .env.example                      # Environment variable template
 ├── .env.mock                         # Mock environment config
-├── .env.demo                         # Demo environment config (showcase, mock data)
-├── .env.dev                          # Dev environment config (real APIs)
-├── .env.uat                          # UAT environment config (prod mirror, real UAT APIs)
-├── .env.prod                         # Production config
+├── .env.demo                         # Demo env (mock data; used by docker-compose.full.yml)
+├── .env.prod                         # Real API + SSO env (used by ui-engine & no-mock compose)
 ├── .husky/pre-commit                 # Git pre-commit hook (lint-staged)
-├── package.json                      # Root scripts & dependencies
-├── next.config.mjs                   # Next.js config (proxy rewrites, bundle analyzer)
-├── tsconfig.json                     # Root TypeScript config
-├── jest.config.ts                    # Jest test config
+├── package.json                      # Root = orchestration ONLY (no next/react deps)
 ├── eslint.config.mjs                 # ESLint flat config
-├── Dockerfile                        # UI Docker image
-├── docker-compose.yml                # Demo: mock-api + engine + UI
-├── docker-compose.dev.yml            # Dev: engine + UI (real APIs)
-├── docker-compose.uat.yml            # UAT: engine + UI (prod mirror, real UAT APIs)
-└── docker-compose.prod.yml           # Prod: engine + UI
+├── docker-compose.ui-engine.yml          # UI + engine (real tenant API, .env.prod)
+├── docker-compose.no-mock.yml            # UI + engine + 3 connectors (real API, .env.prod)
+├── docker-compose.full.yml               # all 6 incl mock-api (mock/demo data, .env.demo)
+└── docker-compose.sample-db.yml          # sample MSSQL/Oracle DBs for connector testing
 ```
 
 ---
@@ -310,7 +329,7 @@ The engine's `core/` directory contains the main processing pipeline. Here's a d
 
 ### NLP & Intent Classification
 
-- **40 intents**, **626 training utterances** in `src/training/corpus.json`
+- **40 intents**, **626 training utterances** in `apps/web/src/training/corpus.json`
 - Ensemble classifier: NLP.js (50%) + TF-IDF (30%) + Pattern matching (20%)
 - 5 conversational intents: `confirm`, `negate`, `clarify`, `export`, `undo`
 - 13 ML analysis intents: `analysis.profile`, `analysis.smart_summary`, `analysis.correlation`, `analysis.distribution`, `analysis.anomaly`, `analysis.trend`, `analysis.duplicates`, `analysis.missing`, `analysis.cluster`, `analysis.decision_tree`, `analysis.forecast`, `analysis.pca`, `analysis.report`
@@ -433,9 +452,9 @@ npm run dev:mock
 
 **What runs**:
 
-- `services/mock-api/server.js` → port 8080
-- `services/engine/src/server.ts` → port 4001
-- `src/app/` (Next.js dev) → port 3001
+- `apps/mock-api/server.js` → port 8080
+- `apps/engine/src/server.ts` → port 4001
+- `apps/web/src/app/` (Next.js dev) → port 3001
 
 ---
 
@@ -443,7 +462,7 @@ npm run dev:mock
 
 Uses real tenant APIs and AD/SSO authentication.
 
-**Env file**: `.env.dev`
+**Env file**: `.env.prod`
 
 ```env
 NODE_ENV=development
@@ -460,8 +479,8 @@ npm run dev
 
 **What runs** (no mock-api):
 
-- `services/engine/src/server.ts` → port 4001
-- `src/app/` (Next.js dev) → port 3001
+- `apps/engine/src/server.ts` → port 4001
+- `apps/web/src/app/` (Next.js dev) → port 3001
 
 ---
 
@@ -481,36 +500,17 @@ API_TOKEN=your-prod-token
 **Build & start**:
 
 ```bash
-npm run build:prod            # Build Next.js + Engine (esbuild) in one step
+npm run build:all             # Build every app (web + engine + connectors)
 npm run start:prod            # Start Engine + UI in production mode
-# or start all 3 (including mock-api) from production builds:
+# or start all 6 (including mock-api) from production builds:
 npm run start:all
 ```
 
----
-
-### Mode 4: UAT (Prod Mirror)
-
-Mirrors production against the UAT tenant: real UAT-tenant APIs, `ENGINE_API_KEY`,
-real/UAT SSO, and connectors. Fill the placeholders in `.env.uat`.
-
-**Env file**: `.env.uat`
-
-```env
-NODE_ENV=production
-ENGINE_URL=http://engine:4001
-ENGINE_API_KEY=your-secure-key
-USER_INFO_URL=https://sso-uat.yourcompany.com/api/userinfo
-API_BASE_URL=https://api-uat.yourcompany.com/api
-API_TOKEN=your-uat-token
-```
-
-**Build & start**:
+Or with Docker Compose (host ports overridable via `*_HOST_PORT` env vars, e.g.
+`UI_HOST_PORT`, `ENGINE_HOST_PORT`):
 
 ```bash
-docker compose -f docker-compose.uat.yml up
-# or
-npm run start:uat
+docker compose -f docker-compose.no-mock.yml up
 ```
 
 ---
@@ -519,7 +519,7 @@ npm run start:uat
 
 API configuration lives at the **group level** and **query level** — not just globally.
 
-### File: `services/engine/src/config/groups.json`
+### File: `apps/engine/src/config/groups.json`
 
 Each group can override the global `API_BASE_URL`:
 
@@ -591,85 +591,100 @@ Request (groupId=finance)
 
 ## NPM Scripts Reference
 
-### File: `package.json` (root)
+### File: `package.json` (root — orchestration ONLY)
 
-| Script                    | What it does                                                       |
-| ------------------------- | ------------------------------------------------------------------ |
-| `npm run dev:mock`        | Start mock-api + engine + UI (uses `.env.mock`)                    |
-| `npm run dev:mock:3svc`   | Same as `dev:mock`                                                 |
-| `npm run dev`             | Start engine + UI with real APIs (uses `.env.dev`)                 |
-| `npm run start:demo`      | Production build with mock-api (uses `.env.demo`)                  |
-| `npm run start:uat`       | Production build, prod mirror with real UAT APIs (uses `.env.uat`) |
-| `npm run start:prod`      | Production build with real APIs (uses `.env.prod`)                 |
-| `npm run build:prod`      | Production build: Next.js + Engine (esbuild)                       |
-| `npm run start:all`       | Start mock-api + engine + UI from production builds                |
-| `npm run svc:mock-api`    | Start mock-api only (`services/mock-api/server.js`)                |
-| `npm run svc:engine`      | Start engine only (`services/engine/src/server.ts`)                |
-| `npm run dev:sql`         | Start mock + engine + MSSQL + Oracle + UI (all 5 services)         |
-| `npm run dev:mssql`       | Start engine + MSSQL connector + UI                                |
-| `npm run dev:oracle`      | Start engine + Oracle connector + UI                               |
-| `npm run svc:mssql`       | Start MSSQL connector only                                         |
-| `npm run svc:oracle`      | Start Oracle connector only                                        |
-| `npm run svc:ui`          | Start UI only (Next.js dev)                                        |
-| `npm run build`           | Build Next.js for production                                       |
-| `npm run build:engine`    | Compile engine TypeScript to `services/engine/dist/`               |
-| `npm run build:mssql`     | Compile MSSQL connector to `services/mssql-connector/dist/`        |
-| `npm run build:oracle`    | Compile Oracle connector to `services/oracle-connector/dist/`      |
-| `npm run db:up`           | Start sample databases via Docker Compose                          |
-| `npm run db:down`         | Stop sample databases                                              |
-| `npm run db:logs`         | Tail sample database logs                                          |
-| `npm run train`           | Train NLP model (`src/training/scripts/train.ts`)                  |
-| `npm run evaluate`        | Evaluate NLP model accuracy                                        |
-| `npm test`                | Run Jest tests                                                     |
-| `npm run lint`            | Run ESLint                                                         |
-| `npm run analyze`         | Bundle analysis (opens interactive treemap)                        |
-| `npm run storybook`       | Start Storybook dev server (port 6006)                             |
-| `npm run build:storybook` | Build static Storybook site to `storybook-static/`                 |
+The root no longer carries any `next`/`react` deps or app build logic. Every root
+script either fans out to a per-app build/test or starts a combination of apps.
 
-### File: `services/engine/package.json`
+| Script                     | What it does                                                     |
+| -------------------------- | ---------------------------------------------------------------- |
+| `npm run sync:shared`      | Vendor `packages/sql-connector` into the SQL connectors          |
+| `npm run dev:mock`         | Start mock-api + engine + UI (uses `.env.mock`)                  |
+| `npm run dev`              | Start engine + UI with real APIs                                 |
+| `npm run dev:mssql`        | Start engine + MSSQL connector + UI                              |
+| `npm run dev:oracle`       | Start engine + Oracle connector + UI                             |
+| `npm run dev:csv`          | Start engine + CSV/XLSX connector + UI                           |
+| `npm run dev:all`          | Start all 6 apps (mock + engine + 3 connectors + UI)             |
+| `npm run start:demo`       | Start mock-api + engine + UI from prod builds (uses `.env.demo`) |
+| `npm run start:prod`       | Start engine + UI from prod builds (uses `.env.prod`)            |
+| `npm run start:all`        | Start mock-api + engine + UI from production builds              |
+| `npm run build:all`        | Build every app (web + engine + connectors)                      |
+| `npm run build:web`        | Build the UI (`cd apps/web && npm run build`)                    |
+| `npm run build:engine`     | Build the engine (`cd apps/engine && npm run build`)             |
+| `npm run build:connectors` | Build all three SQL connectors                                   |
+| `npm run svc:mock-api`     | Start mock-api only (`apps/mock-api/server.js`)                  |
+| `npm run svc:engine`       | Start engine only (`apps/engine` dev)                            |
+| `npm run svc:mssql`        | Start MSSQL connector only                                       |
+| `npm run svc:oracle`       | Start Oracle connector only                                      |
+| `npm run svc:csv`          | Start CSV/XLSX connector only                                    |
+| `npm run svc:web`          | Start UI only (Next.js dev)                                      |
+| `npm test`                 | Run every app's tests (fans out to `apps/web` + `apps/engine`)   |
+| `npm run test:web`         | Run UI tests (`cd apps/web && npm test`)                         |
+| `npm run test:engine`      | Run engine tests (`cd apps/engine && npm test`)                  |
+| `npm run lint:all`         | Lint web + engine                                                |
+| `npm run db:up`            | Start sample databases via Docker Compose                        |
+| `npm run db:down`          | Stop sample databases                                            |
+| `npm run db:logs`          | Tail sample database logs                                        |
 
-| Script                    | What it does                                                  |
-| ------------------------- | ------------------------------------------------------------- |
-| `npm run dev`             | Start engine with auto-reload (`tsx watch src/server.ts`)     |
-| `npm run build`           | Bundle with esbuild → single `dist/server.js` (~357KB, ~25ms) |
-| `npm run build:typecheck` | TypeScript type-checking only (`tsc --noEmit`)                |
-| `npm start`               | Run compiled `dist/server.js` (production)                    |
-| `npm run train`           | Train NLP model                                               |
+### File: `apps/web/package.json` (the UI)
+
+| Script                    | What it does                                       |
+| ------------------------- | -------------------------------------------------- |
+| `npm run dev`             | Start the Next.js dev server (port 3001)           |
+| `npm run build`           | Build Next.js for production                       |
+| `npm start`               | Serve the production build                         |
+| `npm test`                | Run UI tests (jest)                                |
+| `npm run train`           | Train NLP model (`src/training/scripts/train.ts`)  |
+| `npm run evaluate`        | Evaluate NLP model accuracy                        |
+| `npm run lint`            | Run ESLint                                         |
+| `npm run analyze`         | Bundle analysis (opens interactive treemap)        |
+| `npm run storybook`       | Start Storybook dev server (port 6006)             |
+| `npm run build:storybook` | Build static Storybook site to `storybook-static/` |
+
+### File: `apps/engine/package.json`
+
+| Script                    | What it does                                                            |
+| ------------------------- | ----------------------------------------------------------------------- |
+| `npm run dev`             | Start engine with auto-reload (`tsx watch src/server.ts`)               |
+| `npm run build`           | Bundle with esbuild → single `dist/server.js` (~357KB, ~25ms)           |
+| `npm run build:typecheck` | TypeScript type-checking only (`tsc --noEmit`)                          |
+| `npm start`               | Run compiled `dist/server.js` (production)                              |
+| `npm test`                | Run engine tests (vitest unit in `src/` + jest integration in `tests/`) |
+| `npm run train`           | Train NLP model                                                         |
 
 ---
 
 ## Key Configuration Files
 
-| File                                                        | Purpose                                                                                             |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `.env.example`                                              | Environment variable template                                                                       |
-| `.env.mock`                                                 | Mock environment (local dev with sample data)                                                       |
-| `.env.demo`                                                 | Demo environment (self-contained showcase, mock data)                                               |
-| `.env.dev`                                                  | Dev environment (real APIs)                                                                         |
-| `.env.uat`                                                  | UAT environment (prod mirror, real UAT APIs)                                                        |
-| `.env.prod`                                                 | Production environment                                                                              |
-| `next.config.mjs`                                           | Next.js config (proxy rewrites to engine)                                                           |
-| `services/engine/src/config/groups.json`                    | Group definitions (per-group API URL, sources, templates)                                           |
-| `services/engine/src/config/settings.json`                  | Runtime settings (NLP thresholds, cache TTL)                                                        |
-| `services/engine/src/config/group-config.ts`                | Group config loader & Zod validator                                                                 |
-| `services/engine/src/lib/config.ts`                         | Engine env config (`API_BASE_URL`, `API_TOKEN`, etc.)                                               |
-| `services/engine/src/middleware/tenant-context.ts`          | Per-request tenant context (groupId, requestId)                                                     |
-| `services/engine/src/lib/singleton.ts`                      | Engine instance cache (one per group)                                                               |
-| `DATA_DIR/queries/<group>.json`                             | Per-group query definitions with auth config (engine source of truth, written via admin Queries UI) |
-| `services/mock-api/db.json`                                 | Sample row data queries execute against (dev/demo)                                                  |
-| `services/engine/esbuild.config.mjs`                        | esbuild bundler config (replaces tsc)                                                               |
-| `services/mock-api/server.js`                               | Mock API endpoints and sample data                                                                  |
-| `services/mssql-connector/data/queries/queries.json`        | MSSQL saved query definitions                                                                       |
-| `services/mssql-connector/data/connectors/connectors.json`  | MSSQL connector configurations                                                                      |
-| `services/oracle-connector/data/connectors/connectors.json` | Oracle connector configurations                                                                     |
-| `.storybook/main.ts`                                        | Storybook framework, addons, stories glob                                                           |
-| `.storybook/preview.ts`                                     | Storybook global decorators and backgrounds                                                         |
-| `src/lib/engine-proxy.ts`                                   | Next.js → Engine proxy utility                                                                      |
-| `public/widget/chatbot-widget.js`                           | Embeddable widget script                                                                            |
+| File                                                    | Purpose                                                                                             |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `.env.example`                                          | Environment variable template                                                                       |
+| `.env.mock`                                             | Mock environment (local dev with sample data)                                                       |
+| `.env.demo`                                             | Demo environment (mock data; used by `docker-compose.full.yml`)                                     |
+| `.env.prod`                                             | Real API + SSO environment (used by `ui-engine` & `no-mock` compose)                                |
+| `apps/web/next.config.mjs`                              | Next.js config (proxy rewrites to engine)                                                           |
+| `apps/engine/src/config/groups.json`                    | Group definitions (per-group API URL, sources, templates)                                           |
+| `apps/engine/src/config/settings.json`                  | Runtime settings (NLP thresholds, cache TTL)                                                        |
+| `apps/engine/src/config/group-config.ts`                | Group config loader & Zod validator                                                                 |
+| `apps/engine/src/lib/config.ts`                         | Engine env config (`API_BASE_URL`, `API_TOKEN`, etc.)                                               |
+| `apps/engine/src/middleware/tenant-context.ts`          | Per-request tenant context (groupId, requestId)                                                     |
+| `apps/engine/src/lib/singleton.ts`                      | Engine instance cache (one per group)                                                               |
+| `DATA_DIR/queries/<group>.json`                         | Per-group query definitions with auth config (engine source of truth, written via admin Queries UI) |
+| `apps/mock-api/db.json`                                 | Sample row data queries execute against (dev/demo)                                                  |
+| `apps/engine/esbuild.config.mjs`                        | esbuild bundler config (replaces tsc)                                                               |
+| `apps/mock-api/server.js`                               | Mock API endpoints and sample data                                                                  |
+| `packages/sql-connector/`                               | Canonical shared SQL router (vendored via `npm run sync:shared`)                                    |
+| `apps/mssql-connector/data/queries/queries.json`        | MSSQL saved query definitions                                                                       |
+| `apps/mssql-connector/data/connectors/connectors.json`  | MSSQL connector configurations                                                                      |
+| `apps/oracle-connector/data/connectors/connectors.json` | Oracle connector configurations                                                                     |
+| `apps/web/.storybook/main.ts`                           | Storybook framework, addons, stories glob                                                           |
+| `apps/web/.storybook/preview.ts`                        | Storybook global decorators and backgrounds                                                         |
+| `apps/web/src/lib/engine-proxy.ts`                      | Next.js → Engine proxy utility                                                                      |
+| `apps/web/public/widget/chatbot-widget.js`              | Embeddable widget script                                                                            |
 
 ---
 
-## File: `services/engine/src/config/settings.json`
+## File: `apps/engine/src/config/settings.json`
 
 ```json
 {
@@ -687,7 +702,7 @@ Request (groupId=finance)
 
 ## Widget Embedding
 
-### File: `public/widget/chatbot-widget.js`
+### File: `apps/web/public/widget/chatbot-widget.js`
 
 Embed the chatbot widget on any page:
 
@@ -711,7 +726,7 @@ Widget supports 3 states: **open** → **minimized** (collapsed bar) → **close
 
 ## Mock API Endpoints
 
-### File: `services/mock-api/server.js` (port 8080)
+### File: `apps/mock-api/server.js` (port 8080)
 
 | Method     | Endpoint                      | Description                      |
 | ---------- | ----------------------------- | -------------------------------- |
@@ -725,8 +740,8 @@ Widget supports 3 states: **open** → **minimized** (collapsed bar) → **close
 ### Adding a New Query
 
 1. Add the query definition via the admin Queries UI (persisted to `DATA_DIR/queries/<group>.json`, the engine's source of truth)
-2. Add mock data in `getRawData()` in `services/mock-api/server.js`
-3. Add NLP entity synonyms in `src/training/corpus.json`
+2. Add mock data in `getRawData()` in `apps/mock-api/server.js`
+3. Add NLP entity synonyms in `apps/web/src/training/corpus.json`
 4. Retrain: `npm run train`
 
 ---
@@ -735,12 +750,12 @@ Widget supports 3 states: **open** → **minimized** (collapsed bar) → **close
 
 ### Corpus Files
 
-| File                                          | Scope                    |
-| --------------------------------------------- | ------------------------ |
-| `src/training/corpus.json`                    | Main corpus (all groups) |
-| `src/training/groups/corpus-finance.json`     | Finance group            |
-| `src/training/groups/corpus-engineering.json` | Engineering group        |
-| `src/training/groups/corpus-analytics.json`   | Analytics group          |
+| File                                                   | Scope                    |
+| ------------------------------------------------------ | ------------------------ |
+| `apps/web/src/training/corpus.json`                    | Main corpus (all groups) |
+| `apps/web/src/training/groups/corpus-finance.json`     | Finance group            |
+| `apps/web/src/training/groups/corpus-engineering.json` | Engineering group        |
+| `apps/web/src/training/groups/corpus-analytics.json`   | Analytics group          |
 
 ### Commands
 
@@ -753,14 +768,21 @@ npm run evaluate   # Evaluate accuracy
 
 ## Testing
 
-### File: `jest.config.ts`
+Tests are **per-app**. The UI uses jest; the engine uses vitest (unit tests in
+`src/`) plus jest (integration tests in `tests/`).
 
 ```bash
-npm test              # Run all tests
-npm run test:watch    # Watch mode
+# All apps (fans out to apps/web + apps/engine)
+npm test
+
+# UI only
+cd apps/web && npm test
+
+# Engine only (vitest unit + jest integration)
+cd apps/engine && npm test
 ```
 
-Test directories:
+UI test directories (under `apps/web/`):
 
 - `tests/nlp/` — NLP classifier tests
 - `tests/csv/` — CSV analyzer tests
@@ -771,38 +793,45 @@ Test directories:
 
 ## Docker Deployment
 
+Each app ships its own `Dockerfile` and is built from its own directory — no app
+depends on the repo root.
+
 ### Build Images
 
 ```bash
 # UI image
-docker build -t chatbot-ui .
+docker build apps/web -t chatbot-ui
 
 # Engine image
-docker build -t chatbot-engine -f services/engine/Dockerfile services/engine/
+docker build apps/engine -t chatbot-engine
+
+# Or build a single service via a compose file
+docker compose -f docker-compose.no-mock.yml build engine
 ```
 
 ### Docker Compose
 
-| File                           | Services                                    | Use case                         |
-| ------------------------------ | ------------------------------------------- | -------------------------------- |
-| `docker-compose.yml`           | mock-api (8080) + engine (4001) + ui (3001) | Demo                             |
-| `docker-compose.dev.yml`       | engine (4001) + ui (3001)                   | Dev with real APIs               |
-| `docker-compose.uat.yml`       | engine (4001) + ui (3001)                   | UAT (prod mirror, real UAT APIs) |
-| `docker-compose.prod.yml`      | engine (4001) + ui (3001)                   | Production                       |
-| `docker-compose.sample-db.yml` | SQL Server + Oracle XE sample databases     | Local DB testing                 |
+There are exactly four compose files. Each service runs on an explicit `chatbot`
+bridge network, and host ports are overridable via `*_HOST_PORT` env vars (e.g.
+`UI_HOST_PORT`, `ENGINE_HOST_PORT`, `MOCK_HOST_PORT`, `MSSQL_HOST_PORT`,
+`ORACLE_HOST_PORT`, `CSV_HOST_PORT`).
+
+| File                           | Services                                               | Use case                                            |
+| ------------------------------ | ------------------------------------------------------ | --------------------------------------------------- |
+| `docker-compose.full.yml`      | all 6 incl mock-api (8080) + engine (4001) + ui (3001) | Demo — mock data, `.env.demo`, works out of the box |
+| `docker-compose.ui-engine.yml` | engine (4001) + ui (3001)                              | Real tenant API, `.env.prod`                        |
+| `docker-compose.no-mock.yml`   | engine (4001) + ui (3001) + 3 connectors               | Real API + connectors (prod), `.env.prod`           |
+| `docker-compose.sample-db.yml` | SQL Server + Oracle XE sample databases                | Local DB testing                                    |
 
 ```bash
-# Demo mode
-docker-compose up -d
+# Demo / out-of-the-box (mock data)
+docker compose -f docker-compose.full.yml up -d
 
-# Dev mode
-docker-compose -f docker-compose.dev.yml up -d
+# UI + engine against real tenant APIs
+docker compose -f docker-compose.ui-engine.yml up -d
 
-# UAT (prod mirror)
-docker-compose -f docker-compose.uat.yml up -d
-
-# Production
-docker-compose -f docker-compose.prod.yml up -d
+# UI + engine + connectors against real APIs (prod)
+docker compose -f docker-compose.no-mock.yml up -d
 ```
 
 ---
@@ -819,20 +848,21 @@ docker-compose -f docker-compose.prod.yml up -d
    ```cmd
    cd C:\Chatbot
    npm install
-   cd services\engine && npm install && npm run build && cd ..\..
-   cd services\mock-api && npm install && cd ..\..
-   npm run train
-   npm run build:prod
+   cd apps\engine && npm install && npm run build && cd ..\..
+   cd apps\mock-api && npm install && cd ..\..
+   cd apps\web && npm install && npm run train && cd ..\..
+   npm run build:all
    ```
 
 ### Directory Layout (recommended)
 
 ```
-C:\Chatbot\                              # Project root
-├── .next\standalone\                    # Built Next.js app
-├── services\engine\dist\                # Compiled engine
-├── services\mock-api\                   # Mock API
-├── data\                                # Runtime data (logs, learning, audit)
+C:\Chatbot\                              # Project root (orchestration only)
+├── apps\web\.next\standalone\           # Built Next.js app
+├── apps\web\data\                       # UI runtime data (logs, learning, audit)
+├── apps\engine\dist\                    # Compiled engine
+├── apps\engine\data\                    # Engine runtime data
+├── apps\mock-api\                       # Mock API
 └── nssm\                                # NSSM scripts (optional)
     ├── install-services.bat
     └── env\
@@ -845,15 +875,17 @@ C:\Chatbot\                              # Project root
 ```cmd
 cd C:\Chatbot
 
-:: Build Next.js
+:: Build Next.js (UI app)
+cd apps\web
 npm run build
 
 :: Copy static assets for standalone mode
 xcopy /E /I public .next\standalone\public
 xcopy /E /I .next\static .next\standalone\.next\static
+cd ..\..
 
 :: Build Engine
-cd services\engine
+cd apps\engine
 npm run build
 cd ..\..
 ```
@@ -868,7 +900,7 @@ nssm install ChatbotEngine "C:\Program Files\nodejs\node.exe"
 nssm set ChatbotEngine AppParameters "dist\server.js"
 
 :: Set working directory (CRITICAL — all relative paths depend on this)
-nssm set ChatbotEngine AppDirectory "C:\Chatbot\services\engine"
+nssm set ChatbotEngine AppDirectory "C:\Chatbot\apps\engine"
 
 :: Set environment variables
 nssm set ChatbotEngine AppEnvironmentExtra ^
@@ -913,8 +945,8 @@ nssm install ChatbotUI "C:\Program Files\nodejs\node.exe"
 :: Set the startup arguments — standalone Next.js server
 nssm set ChatbotUI AppParameters ".next\standalone\server.js"
 
-:: Set working directory
-nssm set ChatbotUI AppDirectory "C:\Chatbot"
+:: Set working directory (the UI app)
+nssm set ChatbotUI AppDirectory "C:\Chatbot\apps\web"
 
 :: Set environment variables
 nssm set ChatbotUI AppEnvironmentExtra ^
@@ -952,7 +984,7 @@ nssm start ChatbotUI
 ```cmd
 nssm install ChatbotMockAPI "C:\Program Files\nodejs\node.exe"
 nssm set ChatbotMockAPI AppParameters "server.js"
-nssm set ChatbotMockAPI AppDirectory "C:\Chatbot\services\mock-api"
+nssm set ChatbotMockAPI AppDirectory "C:\Chatbot\apps\mock-api"
 
 nssm set ChatbotMockAPI AppStdout "C:\Chatbot\data\logs\mock-api-stdout.log"
 nssm set ChatbotMockAPI AppStderr "C:\Chatbot\data\logs\mock-api-stderr.log"
@@ -998,7 +1030,7 @@ powershell Get-Content "C:\Chatbot\data\logs\engine-stdout.log" -Wait -Tail 50
 :: ── MSSQL Connector ──
 nssm install ChatbotMSSQL "C:\Program Files\nodejs\node.exe"
 nssm set ChatbotMSSQL AppParameters "dist\server.js"
-nssm set ChatbotMSSQL AppDirectory "C:\Chatbot\services\mssql-connector"
+nssm set ChatbotMSSQL AppDirectory "C:\Chatbot\apps\mssql-connector"
 nssm set ChatbotMSSQL AppEnvironmentExtra ^
   NODE_ENV=production ^
   CONNECTOR_PORT=4002 ^
@@ -1018,7 +1050,7 @@ nssm start ChatbotMSSQL
 :: ── Oracle Connector ──
 nssm install ChatbotOracle "C:\Program Files\nodejs\node.exe"
 nssm set ChatbotOracle AppParameters "dist\server.js"
-nssm set ChatbotOracle AppDirectory "C:\Chatbot\services\oracle-connector"
+nssm set ChatbotOracle AppDirectory "C:\Chatbot\apps\oracle-connector"
 nssm set ChatbotOracle AppEnvironmentExtra ^
   NODE_ENV=production ^
   CONNECTOR_PORT=4003 ^
@@ -1089,7 +1121,7 @@ if not exist "%LOGS%" mkdir "%LOGS%"
 echo === Installing ChatbotEngine ===
 nssm install ChatbotEngine "%NODE%"
 nssm set ChatbotEngine AppParameters "dist\server.js"
-nssm set ChatbotEngine AppDirectory "%PROJECT%\services\engine"
+nssm set ChatbotEngine AppDirectory "%PROJECT%\apps\engine"
 nssm set ChatbotEngine AppEnvironmentExtra NODE_ENV=production ENGINE_PORT=4001 API_BASE_URL=http://localhost:8080/api UI_ORIGIN=http://localhost:3001
 nssm set ChatbotEngine AppStdout "%LOGS%\engine-stdout.log"
 nssm set ChatbotEngine AppStderr "%LOGS%\engine-stderr.log"
@@ -1105,7 +1137,7 @@ nssm set ChatbotEngine AppStopMethodConsole 10000
 echo === Installing ChatbotUI ===
 nssm install ChatbotUI "%NODE%"
 nssm set ChatbotUI AppParameters ".next\standalone\server.js"
-nssm set ChatbotUI AppDirectory "%PROJECT%"
+nssm set ChatbotUI AppDirectory "%PROJECT%\apps\web"
 nssm set ChatbotUI AppEnvironmentExtra NODE_ENV=production PORT=3001 ENGINE_URL=http://localhost:4001
 nssm set ChatbotUI AppStdout "%LOGS%\ui-stdout.log"
 nssm set ChatbotUI AppStderr "%LOGS%\ui-stderr.log"
@@ -1134,11 +1166,11 @@ pause
 
 The codebase handles Windows service stops gracefully:
 
-| File                            | Signal Handling                                                |
-| ------------------------------- | -------------------------------------------------------------- |
-| `services/engine/src/server.ts` | Listens for `SIGTERM`, `SIGINT`, `SIGHUP` — 10s graceful close |
-| `services/mock-api/server.js`   | Listens for `SIGTERM`, `SIGINT`, `SIGHUP` — 5s graceful close  |
-| Next.js standalone              | Built-in graceful shutdown                                     |
+| File                        | Signal Handling                                                |
+| --------------------------- | -------------------------------------------------------------- |
+| `apps/engine/src/server.ts` | Listens for `SIGTERM`, `SIGINT`, `SIGHUP` — 10s graceful close |
+| `apps/mock-api/server.js`   | Listens for `SIGTERM`, `SIGINT`, `SIGHUP` — 5s graceful close  |
+| Next.js standalone          | Built-in graceful shutdown                                     |
 
 NSSM is configured with `AppStopMethodConsole 10000` which sends Ctrl+C (mapped to SIGINT) and waits 10 seconds before force-killing.
 
@@ -1165,20 +1197,22 @@ nssm stop ChatbotEngine
 cd C:\Chatbot
 git pull
 
-:: 3. Install dependencies
+:: 3. Install dependencies (per app)
 npm install
-cd services\engine && npm install && cd ..\..
+cd apps\engine && npm install && cd ..\..
+cd apps\web && npm install && cd ..\..
 
-:: 4. Rebuild
-npm run build
-cd services\engine && npm run build && cd ..\..
+:: 4. Rebuild (per app)
+cd apps\engine && npm run build && cd ..\..
+cd apps\web && npm run build
 
-:: 5. Copy standalone assets
+:: 5. Copy standalone assets (from apps\web)
 xcopy /E /I /Y public .next\standalone\public
 xcopy /E /I /Y .next\static .next\standalone\.next\static
+cd ..\..
 
 :: 6. Retrain NLP (if corpus changed)
-npm run train
+cd apps\web && npm run train && cd ..\..
 
 :: 7. Restart services
 nssm start ChatbotEngine
@@ -1210,7 +1244,7 @@ This provides:
 | SQL Server 2022 | 1433 | `sample-mssql`  | `sa` / configured in compose       |
 | Oracle XE 21c   | 1521 | `sample-oracle` | `testuser` / configured in compose |
 
-Once databases are running, configure connectors via **Admin → Connectors** in the UI, or create connector config files directly in `services/mssql-connector/data/connectors/` and `services/oracle-connector/data/connectors/`.
+Once databases are running, configure connectors via **Admin → Connectors** in the UI, or create connector config files directly in `apps/mssql-connector/data/connectors/` and `apps/oracle-connector/data/connectors/`.
 
 ---
 
@@ -1236,10 +1270,10 @@ The project uses [Storybook 8](https://storybook.js.org/) with `@storybook/nextj
 
 ### Configuration
 
-| File                    | Purpose                                            |
-| ----------------------- | -------------------------------------------------- |
-| `.storybook/main.ts`    | Storybook config (stories glob, addons, framework) |
-| `.storybook/preview.ts` | Global decorators, backgrounds, controls           |
+| File                             | Purpose                                            |
+| -------------------------------- | -------------------------------------------------- |
+| `apps/web/.storybook/main.ts`    | Storybook config (stories glob, addons, framework) |
+| `apps/web/.storybook/preview.ts` | Global decorators, backgrounds, controls           |
 
 ### Running Storybook
 
@@ -1271,7 +1305,7 @@ The engine backend uses [esbuild](https://esbuild.github.io/) for fast, tree-sha
 
 ### Configuration
 
-**File:** `services/engine/esbuild.config.mjs`
+**File:** `apps/engine/esbuild.config.mjs`
 
 | Setting       | Value                               | Why                              |
 | ------------- | ----------------------------------- | -------------------------------- |
@@ -1285,7 +1319,7 @@ The engine backend uses [esbuild](https://esbuild.github.io/) for fast, tree-sha
 ### Build Output
 
 ```bash
-cd services/engine && npm run build
+cd apps/engine && npm run build
 # → dist/server.js (~357KB, built in ~25ms)
 # Compare: old tsc output was 69 files, ~1.4MB, ~3s build
 ```
@@ -1295,7 +1329,7 @@ cd services/engine && npm run build
 esbuild strips types without checking them. Run `tsc --noEmit` separately:
 
 ```bash
-cd services/engine && npm run build:typecheck
+cd apps/engine && npm run build:typecheck
 ```
 
 ### Performance Optimizations
@@ -1311,7 +1345,7 @@ The following libraries are lazy-loaded at runtime to reduce startup time:
 
 ### Port 4001 already in use (EADDRINUSE)
 
-The engine's `predev` script in `services/engine/package.json` auto-kills orphaned processes on port 4001. If it still fails:
+The engine's `predev` script in `apps/engine/package.json` auto-kills orphaned processes on port 4001. If it still fails:
 
 ```bash
 # Mac/Linux
@@ -1326,7 +1360,7 @@ taskkill /PID <PID> /F
 
 The `dev:mock` script uses `concurrently --restart-tries 3 --restart-after 2000` for auto-recovery. The engine also has:
 
-- `unhandledRejection` / `uncaughtException` handlers in `services/engine/src/server.ts`
+- `unhandledRejection` / `uncaughtException` handlers in `apps/engine/src/server.ts`
 - `tsx watch --ignore './data/**'` to prevent data file writes from triggering restarts
 
 ### UI not loading / no styles
@@ -1342,10 +1376,10 @@ npm run dev:mock
 
 ### Engine health check failing
 
-The UI checks engine health via `GET /api/health` every 30 seconds (in `src/components/chat/ChatWindow.tsx`). If it shows "Disconnected":
+The UI checks engine health via `GET /api/health` every 30 seconds (in `apps/web/src/components/chat/ChatWindow.tsx`). If it shows "Disconnected":
 
 1. Check engine is running: `curl http://localhost:4001/api/health`
-2. Check `services/engine/` logs in the terminal
+2. Check `apps/engine/` logs in the terminal
 3. Restart: `npm run svc:engine`
 
 ### Windows NSSM: Service won't start
@@ -1374,8 +1408,8 @@ powershell Get-Content "C:\Chatbot\data\logs\engine-stderr.log" -Tail 100
 
 Common causes:
 
-- Missing `node_modules/` — run `npm install` in the service directory
-- Missing `dist/` — run `npm run build` in `services/engine/`
+- Missing `node_modules/` — run `npm install` in the app directory
+- Missing `dist/` — run `npm run build` in `apps/engine/`
 - Missing env vars — verify with `nssm edit ChatbotEngine` → Environment tab
 - Missing data directories — create `C:\Chatbot\data\logs\`, `data\knowledge\`, etc.
 
@@ -1405,7 +1439,7 @@ load balancers, and integration testing.
 | `GET /api/health`                       | Liveness probe (always 200 if process is alive). Returns uptime + memory.                                                                                                                                                     |
 | `GET /api/health/ready`                 | Readiness probe. 503 when NLP isn't initialized, data dir is unreachable, or every configured data source is down. LBs should drain on 503.                                                                                   |
 | `GET /api/metrics`                      | Prometheus text exposition. Counters: `chat_requests_total{intent,status,group}`. Histogram (summary): `chat_request_duration_seconds`. Gauges: `engines_initialized`, `sources_ok`, `sources_unreachable`, plus `process_*`. |
-| `GET /api/openapi.json`                 | OpenAPI 3.0 spec for the engine's admin + chat surface. Hand-maintained at `services/engine/openapi.json`. Mounted with a 60s cache.                                                                                          |
+| `GET /api/openapi.json`                 | OpenAPI 3.0 spec for the engine's admin + chat surface. Hand-maintained at `apps/engine/openapi.json`. Mounted with a 60s cache.                                                                                              |
 | `GET /api/admin/sources/health`         | Per-baseUrl reachability snapshot from the background prober. Requires `analytics.view` permission.                                                                                                                           |
 | `POST /api/admin/sources/recheck`       | Force an immediate probe of every registered source. Requires `learning.manage`.                                                                                                                                              |
 | `GET /api/admin/schema/drift?groupId=X` | Queries with unacknowledged column-set changes. Requires `learning.manage`.                                                                                                                                                   |

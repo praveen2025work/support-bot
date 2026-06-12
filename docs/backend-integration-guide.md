@@ -14,7 +14,7 @@ The chatbot connects to a backend API to:
 1. **Discover queries** — fetch available query definitions
 2. **Execute queries** — run queries with optional filters and return tabular results
 
-The backend URL is configured per group via `apiBaseUrl` in `src/config/groups.json`, or globally via the `API_BASE_URL` environment variable (defaults to `http://localhost:8080/api`).
+The backend URL is configured per group via `apiBaseUrl` in `apps/web/src/config/groups.json`, or globally via the `API_BASE_URL` environment variable (defaults to `http://localhost:8080/api`).
 
 ## Required Endpoints
 
@@ -160,7 +160,7 @@ API_TOKEN=your-secret-token
 
 ## Group Configuration
 
-Each group can point to a different backend by setting `apiBaseUrl` in `src/config/groups.json`:
+Each group can point to a different backend by setting `apiBaseUrl` in `apps/web/src/config/groups.json`:
 
 ```json
 {
@@ -337,11 +337,11 @@ npm run mock-api
 
 This starts a JSON Server on port 8080 with:
 
-- `GET /api/queries` — serves queries from `mock-api/db.json`
+- `GET /api/queries` — serves queries from `apps/mock-api/db.json`
 - `POST /api/queries/:id/execute` — executes with filter handling
 - `POST /api/queries/batch` — batch execution
 
-See `mock-api/server.js` for the reference implementation of filter handling and response formatting.
+See `apps/mock-api/server.js` for the reference implementation of filter handling and response formatting.
 
 ---
 
