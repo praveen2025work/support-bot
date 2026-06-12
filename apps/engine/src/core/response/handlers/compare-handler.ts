@@ -1,19 +1,27 @@
-import { logger } from '@/lib/logger';
-import { CrossSourceJoiner } from '../../intelligence/cross-source';
-import type { QueryService, QueryExecutionResult } from '../../api-connector/query-service';
-import type { ClassificationResult, BotResponse, ConversationContext } from '../../types';
+import { logger } from "@/lib/logger";
+import { CrossSourceJoiner } from "../../intelligence/cross-source";
+import type {
+  QueryService,
+  QueryExecutionResult,
+} from "../../api-connector/query-service";
+import type {
+  ClassificationResult,
+  BotResponse,
+  ConversationContext,
+} from "../../types";
 
-const COMPARE_PATTERN = /\bcompare\b\s+(\S+)\s+(?:to|with|and|vs|versus)\s+(\S+)/i;
+const COMPARE_PATTERN =
+  /\bcompare\b\s+(\S+)\s+(?:to|with|and|vs|versus)\s+(\S+)/i;
 
 /**
  * Extract tabular data rows from a QueryExecutionResult, regardless of type (api/csv/xlsx).
  */
 function extractRows(result: QueryExecutionResult): Record<string, unknown>[] {
-  if (result.type === 'api' && result.apiResult) {
+  if (result.type === "api" && result.apiResult) {
     const apiData = result.apiResult as { data?: Record<string, unknown>[] };
     return apiData.data || [];
   }
-  if ((result.type === 'csv' || result.type === 'xlsx') && result.csvResult) {
+  if ((result.type === "csv" || result.type === "xlsx") && result.csvResult) {
     return result.csvResult.rows as Record<string, unknown>[];
   }
   return [];
@@ -28,13 +36,14 @@ export async function handleCompare(
   context: ConversationContext,
   queryService: QueryService,
   incomingHeaders?: Record<string, string>,
-  groupId?: string
+  groupId?: string,
 ): Promise<BotResponse | null> {
   // Extract query names from user text
-  const userText = context.history
-    .slice()
-    .reverse()
-    .find((h) => h.role === 'user')?.text || '';
+  const userText =
+    context.history
+      .slice()
+      .reverse()
+      .find((h) => h.role === "user")?.text || "";
 
   const match = userText.match(COMPARE_PATTERN);
   if (!match) return null;
@@ -42,7 +51,7 @@ export async function handleCompare(
   const queryNameA = match[1];
   const queryNameB = match[2];
 
-  logger.info({ queryNameA, queryNameB }, 'Handling cross-source compare');
+  logger.info({ queryNameA, queryNameB }, "Handling cross-source compare");
 
   try {
     // Execute both queries in parallel
@@ -54,7 +63,7 @@ export async function handleCompare(
     if (!resultA || !resultB) {
       return {
         text: `Could not find one or both queries: "${queryNameA}", "${queryNameB}". Try "list queries" to see available queries.`,
-        suggestions: ['List queries'],
+        suggestions: ["List queries"],
         sessionId: context.sessionId,
         intent: classification.intent,
         confidence: classification.confidence,
@@ -78,12 +87,17 @@ export async function handleCompare(
     const headersB = Object.keys(dataB[0]);
 
     const joiner = new CrossSourceJoiner();
-    const candidates = joiner.detectJoinableColumns(dataA, dataB, headersA, headersB);
+    const candidates = joiner.detectJoinableColumns(
+      dataA,
+      dataB,
+      headersA,
+      headersB,
+    );
 
     if (candidates.length === 0) {
       return {
-        text: `No matching columns found between "${queryNameA}" and "${queryNameB}". The datasets don't appear to share a common key for joining.\n\nColumns in ${queryNameA}: ${headersA.join(', ')}\nColumns in ${queryNameB}: ${headersB.join(', ')}`,
-        suggestions: [`Run ${queryNameA}`, `Run ${queryNameB}`, 'Help'],
+        text: `No matching columns found between "${queryNameA}" and "${queryNameB}". The datasets don't appear to share a common key for joining.\n\nColumns in ${queryNameA}: ${headersA.join(", ")}\nColumns in ${queryNameB}: ${headersB.join(", ")}`,
+        suggestions: [`Run ${queryNameA}`, `Run ${queryNameB}`, "Help"],
         sessionId: context.sessionId,
         intent: classification.intent,
         confidence: classification.confidence,
@@ -98,7 +112,7 @@ export async function handleCompare(
       bestCandidate.leftColumn,
       bestCandidate.rightColumn,
       queryNameA,
-      queryNameB
+      queryNameB,
     );
 
     // Build a summary
@@ -113,35 +127,41 @@ export async function handleCompare(
     context.lastQueryName = `${queryNameA}_vs_${queryNameB}`;
     context.lastApiResult = {
       data: joinResult.joinedData,
-      headers: joinResult.joinedData.length > 0 ? Object.keys(joinResult.joinedData[0]) : [],
+      headers:
+        joinResult.joinedData.length > 0
+          ? Object.keys(joinResult.joinedData[0])
+          : [],
       total: joinResult.matchedCount,
     };
 
     return {
-      text: summaryParts.join('\n'),
+      text: summaryParts.join("\n"),
       richContent: {
-        type: 'query_result',
+        type: "query_result",
         data: {
           data: joinResult.joinedData.slice(0, 100),
           rowCount: joinResult.matchedCount,
           executionTime: 0,
-          headers: joinResult.joinedData.length > 0 ? Object.keys(joinResult.joinedData[0]) : [],
+          headers:
+            joinResult.joinedData.length > 0
+              ? Object.keys(joinResult.joinedData[0])
+              : [],
           total: joinResult.matchedCount,
           queryName: `${queryNameA} ↔ ${queryNameB}`,
         },
       },
-      suggestions: ['Summarize', 'Sort by', 'Group by', 'Find outliers'],
+      suggestions: ["Summarize", "Sort by", "Group by", "Find outliers"],
       sessionId: context.sessionId,
       intent: classification.intent,
       confidence: classification.confidence,
       sourceName: `${queryNameA} ↔ ${queryNameB}`,
-      sourceType: 'api',
+      sourceType: "api",
     };
   } catch (error) {
-    logger.error({ error, queryNameA, queryNameB }, 'Compare handler error');
+    logger.error({ error, queryNameA, queryNameB }, "Compare handler error");
     return {
-      text: `Error comparing "${queryNameA}" with "${queryNameB}": ${error instanceof Error ? error.message : 'Unknown error'}`,
-      suggestions: ['List queries', 'Help'],
+      text: `Error comparing "${queryNameA}" with "${queryNameB}": ${error instanceof Error ? error.message : "Unknown error"}`,
+      suggestions: ["List queries", "Help"],
       sessionId: context.sessionId,
       intent: classification.intent,
       confidence: classification.confidence,

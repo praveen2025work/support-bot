@@ -4,10 +4,36 @@
   "entities": {
     "query_name": {
       "options": {
-        "active_users": ["active users", "user count", "monthly active users", "MAU", "DAU", "users", "user metrics"],
-        "customer_churn": ["customer churn", "churn rate", "churn", "attrition", "customer loss"],
-        "support_tickets": ["support_tickets", "support tickets", "tickets", "support data", "ticket data"],
-        "employee_metrics": ["employee_metrics", "employee metrics", "employee data", "staff metrics", "workforce data"]
+        "active_users": [
+          "active users",
+          "user count",
+          "monthly active users",
+          "MAU",
+          "DAU",
+          "users",
+          "user metrics"
+        ],
+        "customer_churn": [
+          "customer churn",
+          "churn rate",
+          "churn",
+          "attrition",
+          "customer loss"
+        ],
+        "support_tickets": [
+          "support_tickets",
+          "support tickets",
+          "tickets",
+          "support data",
+          "ticket data"
+        ],
+        "employee_metrics": [
+          "employee_metrics",
+          "employee metrics",
+          "employee data",
+          "staff metrics",
+          "workforce data"
+        ]
       }
     },
     "time_period": {
@@ -24,7 +50,14 @@
   "data": [
     {
       "intent": "greeting",
-      "utterances": ["hello", "hi", "hey", "good morning", "good afternoon", "hi there"],
+      "utterances": [
+        "hello",
+        "hi",
+        "hey",
+        "good morning",
+        "good afternoon",
+        "hi there"
+      ],
       "answers": []
     },
     {
@@ -95,7 +128,12 @@
     },
     {
       "intent": "help",
-      "utterances": ["help", "what can you do", "how does this work", "instructions"],
+      "utterances": [
+        "help",
+        "what can you do",
+        "how does this work",
+        "instructions"
+      ],
       "answers": []
     },
     {

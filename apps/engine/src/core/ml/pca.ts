@@ -1,6 +1,9 @@
-import { Matrix, EigenvalueDecomposition } from 'ml-matrix';
-import { extractNumericColumns, computeColumnStats } from '@/core/anomaly/numeric-utils';
-import type { CsvData } from '@/core/api-connector/csv-analyzer';
+import { Matrix, EigenvalueDecomposition } from "ml-matrix";
+import {
+  extractNumericColumns,
+  computeColumnStats,
+} from "@/core/anomaly/numeric-utils";
+import type { CsvData } from "@/core/api-connector/csv-analyzer";
 
 /** Result of PCA analysis. */
 export interface PCAResult {
@@ -29,7 +32,9 @@ export interface PCAResult {
 export function computePCA(data: CsvData): PCAResult | null {
   if (data.rows.length < 3) return null;
 
-  const numericCols = extractNumericColumns(data.rows as Record<string, unknown>[]);
+  const numericCols = extractNumericColumns(
+    data.rows as Record<string, unknown>[],
+  );
   if (numericCols.length < 2) return null;
 
   const n = data.rows.length;
@@ -40,7 +45,7 @@ export function computePCA(data: CsvData): PCAResult | null {
   const colStats = numericCols.map((col) => {
     const values = data.rows.map((row) => {
       const v = row[col];
-      return typeof v === 'number' ? v : parseFloat(String(v)) || 0;
+      return typeof v === "number" ? v : parseFloat(String(v)) || 0;
     });
     return computeColumnStats(values);
   });
@@ -50,7 +55,7 @@ export function computePCA(data: CsvData): PCAResult | null {
     const row: number[] = [];
     for (let j = 0; j < p; j++) {
       const v = data.rows[i][numericCols[j]];
-      const num = typeof v === 'number' ? v : parseFloat(String(v)) || 0;
+      const num = typeof v === "number" ? v : parseFloat(String(v)) || 0;
       const std = colStats[j].stdDev || 1;
       row.push((num - colStats[j].mean) / std);
     }
@@ -82,8 +87,12 @@ export function computePCA(data: CsvData): PCAResult | null {
   const pc2Eigenval = indexed.length > 1 ? Math.max(indexed[1].val, 0) : 0;
 
   const varianceExplained: [number, number] = [
-    totalVariance > 0 ? Math.round((pc1Eigenval / totalVariance) * 10000) / 10000 : 0,
-    totalVariance > 0 ? Math.round((pc2Eigenval / totalVariance) * 10000) / 10000 : 0,
+    totalVariance > 0
+      ? Math.round((pc1Eigenval / totalVariance) * 10000) / 10000
+      : 0,
+    totalVariance > 0
+      ? Math.round((pc2Eigenval / totalVariance) * 10000) / 10000
+      : 0,
   ];
 
   // Extract eigenvectors for PC1 and PC2

@@ -1,4 +1,4 @@
-import { type CsvData } from '@/core/api-connector/csv-analyzer';
+import { type CsvData } from "@/core/api-connector/csv-analyzer";
 
 /** Per-column missing value statistics. */
 export interface MissingColumnInfo {
@@ -56,16 +56,16 @@ export function analyzeMissing(data: CsvData): MissingResult {
     return {
       column: h,
       nullCount,
-      nullPercent: rows.length > 0
-        ? Math.round((nullCount / rows.length) * 10000) / 100
-        : 0,
+      nullPercent:
+        rows.length > 0
+          ? Math.round((nullCount / rows.length) * 10000) / 100
+          : 0,
     };
   });
 
   const totalMissing = columns.reduce((sum, c) => sum + c.nullCount, 0);
-  const missingPercent = totalCells > 0
-    ? Math.round((totalMissing / totalCells) * 10000) / 100
-    : 0;
+  const missingPercent =
+    totalCells > 0 ? Math.round((totalMissing / totalCells) * 10000) / 100 : 0;
 
   // Heatmap grid — sample first 50 rows
   const sampleSize = Math.min(50, rows.length);
@@ -92,6 +92,6 @@ export function analyzeMissing(data: CsvData): MissingResult {
 /** Check whether a cell value should be considered missing. */
 function isMissing(value: string | number | undefined | null): boolean {
   if (value === undefined || value === null) return true;
-  if (typeof value === 'string' && value.trim() === '') return true;
+  if (typeof value === "string" && value.trim() === "") return true;
   return false;
 }

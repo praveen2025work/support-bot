@@ -1,20 +1,24 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { AppHeader } from './AppHeader';
-import { fn } from '@storybook/test';
+import type { Meta, StoryObj } from "@storybook/react";
+import { AppHeader } from "./AppHeader";
+import { fn } from "@storybook/test";
 
 const sampleGroups = [
-  { id: 'default', name: 'Default Bot', description: 'General assistant' },
-  { id: 'engineering', name: 'Engineering Bot', description: 'Engineering queries' },
-  { id: 'finance', name: 'Finance Bot', description: 'Finance reports' },
+  { id: "default", name: "Default Bot", description: "General assistant" },
+  {
+    id: "engineering",
+    name: "Engineering Bot",
+    description: "Engineering queries",
+  },
+  { id: "finance", name: "Finance Bot", description: "Finance reports" },
 ];
 
 const meta: Meta<typeof AppHeader> = {
-  title: 'Components/AppHeader',
+  title: "Components/AppHeader",
   component: AppHeader,
-  tags: ['autodocs'],
-  parameters: { layout: 'fullscreen' },
+  tags: ["autodocs"],
+  parameters: { layout: "fullscreen" },
   args: {
-    groupId: 'default',
+    groupId: "default",
     groups: sampleGroups,
     onGroupChange: fn(),
   },

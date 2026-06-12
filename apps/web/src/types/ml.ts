@@ -1,6 +1,13 @@
 // ─── Core Data Types ──────────────────────────────────────────────────────────
 
-export type ColumnType = 'numeric' | 'categorical' | 'date' | 'currency' | 'id' | 'boolean' | 'unknown';
+export type ColumnType =
+  | "numeric"
+  | "categorical"
+  | "date"
+  | "currency"
+  | "id"
+  | "boolean"
+  | "unknown";
 
 export interface ColumnProfile {
   name: string;
@@ -9,7 +16,7 @@ export interface ColumnProfile {
   nullCount: number;
   nullPercent: number;
   unique: number;
-  cardinality: 'low' | 'medium' | 'high';
+  cardinality: "low" | "medium" | "high";
   // numeric only
   min?: number;
   max?: number;
@@ -38,7 +45,7 @@ export interface AnomalyResult {
   value: number;
   zScore: number;
   iqrOutlier: boolean;
-  severity: 'mild' | 'moderate' | 'severe';
+  severity: "mild" | "moderate" | "severe";
 }
 
 export interface TrendResult {
@@ -47,7 +54,7 @@ export interface TrendResult {
   slope: number;
   intercept: number;
   r2: number;
-  direction: 'up' | 'down' | 'flat';
+  direction: "up" | "down" | "flat";
   percentChangePerPeriod: number;
   forecast: { label: string; value: number }[];
 }
@@ -88,26 +95,33 @@ export interface DuplicateResult {
 export interface HistogramResult {
   column: string;
   bins: { lower: number; upper: number; count: number; label: string }[];
-  stats: { mean: number; median: number; std: number; skewness: number; min: number; max: number };
+  stats: {
+    mean: number;
+    median: number;
+    std: number;
+    skewness: number;
+    min: number;
+    max: number;
+  };
   totalCount: number;
 }
 
 // ─── Bot Message Types ─────────────────────────────────────────────────────────
 
 export type MLAnalysisType =
-  | 'profile'
-  | 'anomaly'
-  | 'trend'
-  | 'cluster'
-  | 'regression'
-  | 'correlation'
-  | 'duplicates'
-  | 'summary'
-  | 'histogram'
-  | 'forecast';
+  | "profile"
+  | "anomaly"
+  | "trend"
+  | "cluster"
+  | "regression"
+  | "correlation"
+  | "duplicates"
+  | "summary"
+  | "histogram"
+  | "forecast";
 
 export interface ChartConfig {
-  type: 'bar' | 'line' | 'scatter' | 'doughnut' | 'heatmap';
+  type: "bar" | "line" | "scatter" | "doughnut" | "heatmap";
   labels: string[];
   datasets: {
     label: string;
@@ -120,11 +134,11 @@ export interface ChartConfig {
 export interface MLBotMessage {
   id: string;
   analysisType: MLAnalysisType;
-  headline: string;           // NL summary sentence
-  details: string[];          // Bullet insights
+  headline: string; // NL summary sentence
+  details: string[]; // Bullet insights
   chart?: ChartConfig;
   tableData?: { headers: string[]; rows: (string | number)[][] };
-  downloadPayload?: string;   // CSV string for export
+  downloadPayload?: string; // CSV string for export
   executionMs: number;
   rowsAnalyzed: number;
 }
@@ -132,17 +146,17 @@ export interface MLBotMessage {
 // ─── NLP Intent Types ─────────────────────────────────────────────────────────
 
 export type MLIntent =
-  | 'profile_data'
-  | 'find_anomalies'
-  | 'show_trend'
-  | 'cluster_data'
-  | 'predict_column'
-  | 'show_correlation'
-  | 'find_duplicates'
-  | 'show_histogram'
-  | 'summarize'
-  | 'forecast'
-  | 'unknown';
+  | "profile_data"
+  | "find_anomalies"
+  | "show_trend"
+  | "cluster_data"
+  | "predict_column"
+  | "show_correlation"
+  | "find_duplicates"
+  | "show_histogram"
+  | "summarize"
+  | "forecast"
+  | "unknown";
 
 export interface ParsedIntent {
   intent: MLIntent;
@@ -150,9 +164,9 @@ export interface ParsedIntent {
   entities: {
     columns: string[];
     targetColumn?: string;
-    k?: number;               // for clustering
-    periods?: number;         // for forecast
-    threshold?: number;       // for anomaly sensitivity
+    k?: number; // for clustering
+    periods?: number; // for forecast
+    threshold?: number; // for anomaly sensitivity
   };
   rawQuery: string;
 }
@@ -180,7 +194,7 @@ export interface WorkerResponse {
 
 export interface TenantMLConfig {
   tenantId: string;
-  maxFileSize: number;        // bytes
+  maxFileSize: number; // bytes
   allowedAnalyses: MLAnalysisType[];
   maxRows: number;
   enableWebWorker: boolean;
@@ -189,14 +203,14 @@ export interface TenantMLConfig {
 // ─── Intent → Analysis Type Mapping ───────────────────────────────────────────
 
 export const INTENT_TO_ANALYSIS: Record<string, MLAnalysisType> = {
-  profile_data: 'profile',
-  summarize: 'summary',
-  find_anomalies: 'anomaly',
-  show_trend: 'trend',
-  forecast: 'forecast',
-  cluster_data: 'cluster',
-  predict_column: 'regression',
-  show_correlation: 'correlation',
-  find_duplicates: 'duplicates',
-  show_histogram: 'histogram',
+  profile_data: "profile",
+  summarize: "summary",
+  find_anomalies: "anomaly",
+  show_trend: "trend",
+  forecast: "forecast",
+  cluster_data: "cluster",
+  predict_column: "regression",
+  show_correlation: "correlation",
+  find_duplicates: "duplicates",
+  show_histogram: "histogram",
 };

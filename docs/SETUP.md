@@ -66,10 +66,10 @@ npm run dev:mock
 
 This starts:
 
-| Service      | Port | What it runs                            |
-| ------------ | ---- | --------------------------------------- |
-| **mock-api** | 8080 | `apps/mock-api/server.js` (json-server) |
-| **engine**   | 4001 | `apps/engine/src/server.ts` (Express)   |
+| Service      | Port | What it runs                             |
+| ------------ | ---- | ---------------------------------------- |
+| **mock-api** | 8080 | `apps/mock-api/server.js` (json-server)  |
+| **engine**   | 4001 | `apps/engine/src/server.ts` (Express)    |
 | **ui**       | 3001 | `apps/web/src/app/` (Next.js dev server) |
 
 ### With SQL Connectors
@@ -596,61 +596,61 @@ Request (groupId=finance)
 The root no longer carries any `next`/`react` deps or app build logic. Every root
 script either fans out to a per-app build/test or starts a combination of apps.
 
-| Script                     | What it does                                                    |
-| -------------------------- | -------------------------------------------------------------- |
-| `npm run sync:shared`      | Vendor `packages/sql-connector` into the SQL connectors        |
-| `npm run dev:mock`         | Start mock-api + engine + UI (uses `.env.mock`)                |
-| `npm run dev`              | Start engine + UI with real APIs                               |
-| `npm run dev:mssql`        | Start engine + MSSQL connector + UI                            |
-| `npm run dev:oracle`       | Start engine + Oracle connector + UI                          |
-| `npm run dev:csv`          | Start engine + CSV/XLSX connector + UI                        |
-| `npm run dev:all`          | Start all 6 apps (mock + engine + 3 connectors + UI)         |
+| Script                     | What it does                                                     |
+| -------------------------- | ---------------------------------------------------------------- |
+| `npm run sync:shared`      | Vendor `packages/sql-connector` into the SQL connectors          |
+| `npm run dev:mock`         | Start mock-api + engine + UI (uses `.env.mock`)                  |
+| `npm run dev`              | Start engine + UI with real APIs                                 |
+| `npm run dev:mssql`        | Start engine + MSSQL connector + UI                              |
+| `npm run dev:oracle`       | Start engine + Oracle connector + UI                             |
+| `npm run dev:csv`          | Start engine + CSV/XLSX connector + UI                           |
+| `npm run dev:all`          | Start all 6 apps (mock + engine + 3 connectors + UI)             |
 | `npm run start:demo`       | Start mock-api + engine + UI from prod builds (uses `.env.demo`) |
-| `npm run start:prod`       | Start engine + UI from prod builds (uses `.env.prod`)         |
-| `npm run start:all`        | Start mock-api + engine + UI from production builds          |
-| `npm run build:all`        | Build every app (web + engine + connectors)                 |
-| `npm run build:web`        | Build the UI (`cd apps/web && npm run build`)               |
-| `npm run build:engine`     | Build the engine (`cd apps/engine && npm run build`)        |
-| `npm run build:connectors` | Build all three SQL connectors                              |
-| `npm run svc:mock-api`     | Start mock-api only (`apps/mock-api/server.js`)             |
-| `npm run svc:engine`       | Start engine only (`apps/engine` dev)                      |
-| `npm run svc:mssql`        | Start MSSQL connector only                                  |
-| `npm run svc:oracle`       | Start Oracle connector only                                 |
-| `npm run svc:csv`          | Start CSV/XLSX connector only                               |
-| `npm run svc:web`          | Start UI only (Next.js dev)                                 |
-| `npm test`                 | Run every app's tests (fans out to `apps/web` + `apps/engine`) |
-| `npm run test:web`         | Run UI tests (`cd apps/web && npm test`)                   |
-| `npm run test:engine`      | Run engine tests (`cd apps/engine && npm test`)            |
-| `npm run lint:all`         | Lint web + engine                                          |
-| `npm run db:up`            | Start sample databases via Docker Compose                  |
-| `npm run db:down`          | Stop sample databases                                      |
-| `npm run db:logs`          | Tail sample database logs                                  |
+| `npm run start:prod`       | Start engine + UI from prod builds (uses `.env.prod`)            |
+| `npm run start:all`        | Start mock-api + engine + UI from production builds              |
+| `npm run build:all`        | Build every app (web + engine + connectors)                      |
+| `npm run build:web`        | Build the UI (`cd apps/web && npm run build`)                    |
+| `npm run build:engine`     | Build the engine (`cd apps/engine && npm run build`)             |
+| `npm run build:connectors` | Build all three SQL connectors                                   |
+| `npm run svc:mock-api`     | Start mock-api only (`apps/mock-api/server.js`)                  |
+| `npm run svc:engine`       | Start engine only (`apps/engine` dev)                            |
+| `npm run svc:mssql`        | Start MSSQL connector only                                       |
+| `npm run svc:oracle`       | Start Oracle connector only                                      |
+| `npm run svc:csv`          | Start CSV/XLSX connector only                                    |
+| `npm run svc:web`          | Start UI only (Next.js dev)                                      |
+| `npm test`                 | Run every app's tests (fans out to `apps/web` + `apps/engine`)   |
+| `npm run test:web`         | Run UI tests (`cd apps/web && npm test`)                         |
+| `npm run test:engine`      | Run engine tests (`cd apps/engine && npm test`)                  |
+| `npm run lint:all`         | Lint web + engine                                                |
+| `npm run db:up`            | Start sample databases via Docker Compose                        |
+| `npm run db:down`          | Stop sample databases                                            |
+| `npm run db:logs`          | Tail sample database logs                                        |
 
 ### File: `apps/web/package.json` (the UI)
 
-| Script                    | What it does                                        |
-| ------------------------- | --------------------------------------------------- |
-| `npm run dev`             | Start the Next.js dev server (port 3001)            |
-| `npm run build`           | Build Next.js for production                        |
-| `npm start`               | Serve the production build                          |
-| `npm test`                | Run UI tests (jest)                                 |
-| `npm run train`           | Train NLP model (`src/training/scripts/train.ts`)   |
-| `npm run evaluate`        | Evaluate NLP model accuracy                         |
-| `npm run lint`            | Run ESLint                                          |
-| `npm run analyze`         | Bundle analysis (opens interactive treemap)         |
-| `npm run storybook`       | Start Storybook dev server (port 6006)              |
-| `npm run build:storybook` | Build static Storybook site to `storybook-static/`  |
+| Script                    | What it does                                       |
+| ------------------------- | -------------------------------------------------- |
+| `npm run dev`             | Start the Next.js dev server (port 3001)           |
+| `npm run build`           | Build Next.js for production                       |
+| `npm start`               | Serve the production build                         |
+| `npm test`                | Run UI tests (jest)                                |
+| `npm run train`           | Train NLP model (`src/training/scripts/train.ts`)  |
+| `npm run evaluate`        | Evaluate NLP model accuracy                        |
+| `npm run lint`            | Run ESLint                                         |
+| `npm run analyze`         | Bundle analysis (opens interactive treemap)        |
+| `npm run storybook`       | Start Storybook dev server (port 6006)             |
+| `npm run build:storybook` | Build static Storybook site to `storybook-static/` |
 
 ### File: `apps/engine/package.json`
 
-| Script                    | What it does                                                  |
-| ------------------------- | ------------------------------------------------------------- |
-| `npm run dev`             | Start engine with auto-reload (`tsx watch src/server.ts`)     |
-| `npm run build`           | Bundle with esbuild → single `dist/server.js` (~357KB, ~25ms) |
-| `npm run build:typecheck` | TypeScript type-checking only (`tsc --noEmit`)                |
-| `npm start`               | Run compiled `dist/server.js` (production)                    |
+| Script                    | What it does                                                            |
+| ------------------------- | ----------------------------------------------------------------------- |
+| `npm run dev`             | Start engine with auto-reload (`tsx watch src/server.ts`)               |
+| `npm run build`           | Bundle with esbuild → single `dist/server.js` (~357KB, ~25ms)           |
+| `npm run build:typecheck` | TypeScript type-checking only (`tsc --noEmit`)                          |
+| `npm start`               | Run compiled `dist/server.js` (production)                              |
 | `npm test`                | Run engine tests (vitest unit in `src/` + jest integration in `tests/`) |
-| `npm run train`           | Train NLP model                                               |
+| `npm run train`           | Train NLP model                                                         |
 
 ---
 
@@ -750,12 +750,12 @@ Widget supports 3 states: **open** → **minimized** (collapsed bar) → **close
 
 ### Corpus Files
 
-| File                                                  | Scope                    |
-| ----------------------------------------------------- | ------------------------ |
-| `apps/web/src/training/corpus.json`                   | Main corpus (all groups) |
-| `apps/web/src/training/groups/corpus-finance.json`    | Finance group            |
-| `apps/web/src/training/groups/corpus-engineering.json` | Engineering group       |
-| `apps/web/src/training/groups/corpus-analytics.json`  | Analytics group          |
+| File                                                   | Scope                    |
+| ------------------------------------------------------ | ------------------------ |
+| `apps/web/src/training/corpus.json`                    | Main corpus (all groups) |
+| `apps/web/src/training/groups/corpus-finance.json`     | Finance group            |
+| `apps/web/src/training/groups/corpus-engineering.json` | Engineering group        |
+| `apps/web/src/training/groups/corpus-analytics.json`   | Analytics group          |
 
 ### Commands
 
@@ -816,12 +816,12 @@ bridge network, and host ports are overridable via `*_HOST_PORT` env vars (e.g.
 `UI_HOST_PORT`, `ENGINE_HOST_PORT`, `MOCK_HOST_PORT`, `MSSQL_HOST_PORT`,
 `ORACLE_HOST_PORT`, `CSV_HOST_PORT`).
 
-| File                           | Services                                                   | Use case                                            |
-| ------------------------------ | ---------------------------------------------------------- | --------------------------------------------------- |
-| `docker-compose.full.yml`      | all 6 incl mock-api (8080) + engine (4001) + ui (3001)     | Demo — mock data, `.env.demo`, works out of the box |
-| `docker-compose.ui-engine.yml` | engine (4001) + ui (3001)                                  | Real tenant API, `.env.prod`                        |
-| `docker-compose.no-mock.yml`   | engine (4001) + ui (3001) + 3 connectors                   | Real API + connectors (prod), `.env.prod`           |
-| `docker-compose.sample-db.yml` | SQL Server + Oracle XE sample databases                    | Local DB testing                                    |
+| File                           | Services                                               | Use case                                            |
+| ------------------------------ | ------------------------------------------------------ | --------------------------------------------------- |
+| `docker-compose.full.yml`      | all 6 incl mock-api (8080) + engine (4001) + ui (3001) | Demo — mock data, `.env.demo`, works out of the box |
+| `docker-compose.ui-engine.yml` | engine (4001) + ui (3001)                              | Real tenant API, `.env.prod`                        |
+| `docker-compose.no-mock.yml`   | engine (4001) + ui (3001) + 3 connectors               | Real API + connectors (prod), `.env.prod`           |
+| `docker-compose.sample-db.yml` | SQL Server + Oracle XE sample databases                | Local DB testing                                    |
 
 ```bash
 # Demo / out-of-the-box (mock data)

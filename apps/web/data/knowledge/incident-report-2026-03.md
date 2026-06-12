@@ -9,22 +9,26 @@
 ## Timeline
 
 ### Detection
+
 - **14:23 UTC** — PagerDuty alert triggered: Payment success rate dropped below 50%
 - **14:25 UTC** — On-call engineer acknowledged alert and began investigation
 - **14:27 UTC** — Confirmed that Stripe API calls were returning 503 errors
 
 ### Investigation
+
 - **14:28 UTC** — Checked Stripe status page: No reported incidents
 - **14:30 UTC** — Discovered our API gateway was sending malformed headers after a config deployment at 14:20 UTC
 - **14:33 UTC** — Identified root cause: A configuration change to enable HTTP/2 upstream broke the Stripe webhook signature verification
 
 ### Mitigation
+
 - **14:35 UTC** — Rolled back the API gateway configuration to previous version
 - **14:38 UTC** — Verified rollback was successful, payment success rate recovering
 - **14:45 UTC** — Payment success rate back to 98%
 - **15:10 UTC** — All queued transactions processed, incident declared resolved
 
 ### Post-Resolution
+
 - **15:30 UTC** — Identified 342 transactions that failed during the outage
 - **16:00 UTC** — Automated retry processed 310 of 342 failed transactions
 - **17:00 UTC** — Remaining 32 transactions manually reconciled by finance team
@@ -37,26 +41,26 @@ The configuration change was tested in staging but the staging environment uses 
 
 ## Impact Assessment
 
-| Metric | Value |
-|--------|-------|
-| Duration | 47 minutes |
-| Failed transactions | 342 |
-| Revenue at risk | $29,847 |
-| Recovered automatically | $27,090 (310 transactions) |
-| Manual reconciliation | $2,757 (32 transactions) |
-| Customer complaints | 18 |
-| SLA breach | Yes (monthly uptime dropped to 99.94%) |
+| Metric                  | Value                                  |
+| ----------------------- | -------------------------------------- |
+| Duration                | 47 minutes                             |
+| Failed transactions     | 342                                    |
+| Revenue at risk         | $29,847                                |
+| Recovered automatically | $27,090 (310 transactions)             |
+| Manual reconciliation   | $2,757 (32 transactions)               |
+| Customer complaints     | 18                                     |
+| SLA breach              | Yes (monthly uptime dropped to 99.94%) |
 
 ## Action Items
 
-| # | Action | Owner | Due Date | Status |
-|---|--------|-------|----------|--------|
-| 1 | Add Stripe integration test to staging pipeline | Platform Team | 2026-03-12 | In Progress |
-| 2 | Implement canary deployment for gateway config changes | DevOps | 2026-03-19 | Not Started |
-| 3 | Add HTTP/2 compatibility check for all upstream services | Platform Team | 2026-03-15 | In Progress |
-| 4 | Create runbook for payment gateway rollback | On-Call Team | 2026-03-10 | Completed |
-| 5 | Set up automated transaction reconciliation for outage scenarios | Finance Eng | 2026-03-26 | Not Started |
-| 6 | Review and update SLA monitoring thresholds | SRE | 2026-03-14 | Not Started |
+| #   | Action                                                           | Owner         | Due Date   | Status      |
+| --- | ---------------------------------------------------------------- | ------------- | ---------- | ----------- |
+| 1   | Add Stripe integration test to staging pipeline                  | Platform Team | 2026-03-12 | In Progress |
+| 2   | Implement canary deployment for gateway config changes           | DevOps        | 2026-03-19 | Not Started |
+| 3   | Add HTTP/2 compatibility check for all upstream services         | Platform Team | 2026-03-15 | In Progress |
+| 4   | Create runbook for payment gateway rollback                      | On-Call Team  | 2026-03-10 | Completed   |
+| 5   | Set up automated transaction reconciliation for outage scenarios | Finance Eng   | 2026-03-26 | Not Started |
+| 6   | Review and update SLA monitoring thresholds                      | SRE           | 2026-03-14 | Not Started |
 
 ## Lessons Learned
 

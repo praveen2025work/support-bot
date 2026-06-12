@@ -8,13 +8,13 @@ so every pipeline is **per-app** via a matrix.
 
 Runs on every push to `main`/`develop` and every PR to `main`.
 
-| Job | Runner | What it checks |
-| --- | --- | --- |
-| `web` | ubuntu | `apps/web`: eslint + `tsc --noEmit` + jest |
-| `build` | ubuntu | `apps/web`: production `next build` |
-| `engine` | ubuntu | `apps/engine`: `tsc --noEmit` + vitest (unit) + jest (integration) |
-| `engine-tests-typecheck` | ubuntu | typechecks the engine integration tests (`tsconfig.tests.json`) |
-| `validation-harness` | ubuntu | boots mock-api + engine + UI, runs `scripts/demo/validate.mjs` |
+| Job                      | Runner | What it checks                                                     |
+| ------------------------ | ------ | ------------------------------------------------------------------ |
+| `web`                    | ubuntu | `apps/web`: eslint + `tsc --noEmit` + jest                         |
+| `build`                  | ubuntu | `apps/web`: production `next build`                                |
+| `engine`                 | ubuntu | `apps/engine`: `tsc --noEmit` + vitest (unit) + jest (integration) |
+| `engine-tests-typecheck` | ubuntu | typechecks the engine integration tests (`tsconfig.tests.json`)    |
+| `validation-harness`     | ubuntu | boots mock-api + engine + UI, runs `scripts/demo/validate.mjs`     |
 
 ## CD · Docker — `cd-docker.yml`
 

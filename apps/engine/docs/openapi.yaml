@@ -12,7 +12,7 @@ info:
 servers:
   - url: http://localhost:4001
     description: Local development
-  - url: '{productionUrl}'
+  - url: "{productionUrl}"
     description: Production
     variables:
       productionUrl:
@@ -259,7 +259,7 @@ components:
           type: integer
         failureRate:
           type: string
-          example: '2.5%'
+          example: "2.5%"
         avgDurationMs:
           type: integer
         p50Ms:
@@ -353,7 +353,7 @@ components:
       properties:
         groupId:
           type: string
-          pattern: '^[a-z0-9_]+$'
+          pattern: "^[a-z0-9_]+$"
           example: support_team
         name:
           type: string
@@ -761,33 +761,33 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ChatRequest'
+              $ref: "#/components/schemas/ChatRequest"
             example:
               text: How many open tickets are there?
               sessionId: sess_abc123
               groupId: default
               platform: web
       responses:
-        '200':
+        "200":
           description: Bot response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ChatResponse'
-        '400':
+                $ref: "#/components/schemas/ChatResponse"
+        "400":
           description: Invalid message format
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
               example:
                 error: Invalid message format
-        '500':
+        "500":
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   # ════════════════════════════════════════════════════════════════════════
   # QUERIES (public)
@@ -804,7 +804,7 @@ paths:
             default: default
           description: Group whose queries to list
       responses:
-        '200':
+        "200":
           description: List of queries
           content:
             application/json:
@@ -814,8 +814,8 @@ paths:
                   queries:
                     type: array
                     items:
-                      $ref: '#/components/schemas/QuerySummary'
-        '500':
+                      $ref: "#/components/schemas/QuerySummary"
+        "500":
           description: Server error
           content:
             application/json:
@@ -831,19 +831,19 @@ paths:
       tags: [Queries]
       summary: Get filter configuration for the chat UI
       responses:
-        '200':
+        "200":
           description: Filter configuration
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FilterConfig'
+                $ref: "#/components/schemas/FilterConfig"
 
   /api/groups:
     get:
       tags: [Queries]
       summary: List all groups
       responses:
-        '200':
+        "200":
           description: List of groups
           content:
             application/json:
@@ -853,7 +853,7 @@ paths:
                   groups:
                     type: array
                     items:
-                      $ref: '#/components/schemas/GroupSummary'
+                      $ref: "#/components/schemas/GroupSummary"
 
   # ════════════════════════════════════════════════════════════════════════
   # HEALTH
@@ -864,12 +864,12 @@ paths:
       summary: Liveness probe
       description: Lightweight check that the process is running.
       responses:
-        '200':
+        "200":
           description: Service is alive
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HealthResponse'
+                $ref: "#/components/schemas/HealthResponse"
 
   /api/health/ready:
     get:
@@ -877,18 +877,18 @@ paths:
       summary: Readiness probe
       description: Verifies that critical subsystems (NLP engine, data directory) are operational.
       responses:
-        '200':
+        "200":
           description: All checks passed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReadinessResponse'
-        '503':
+                $ref: "#/components/schemas/ReadinessResponse"
+        "503":
           description: One or more checks failed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReadinessResponse'
+                $ref: "#/components/schemas/ReadinessResponse"
 
   # ════════════════════════════════════════════════════════════════════════
   # STATS
@@ -910,7 +910,7 @@ paths:
             format: date-time
           description: Only include stats after this timestamp
       responses:
-        '200':
+        "200":
           description: Statistics with aggregations
           content:
             application/json:
@@ -920,19 +920,19 @@ paths:
                   stats:
                     type: array
                     items:
-                      $ref: '#/components/schemas/QueryStat'
+                      $ref: "#/components/schemas/QueryStat"
                   aggregated:
                     type: array
                     items:
-                      $ref: '#/components/schemas/AggregatedStat'
+                      $ref: "#/components/schemas/AggregatedStat"
                   totalRecords:
                     type: integer
-        '500':
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     post:
       tags: [Stats]
@@ -962,26 +962,26 @@ paths:
                 error:
                   type: string
       responses:
-        '201':
+        "201":
           description: Stat recorded
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QueryStat'
-        '400':
+                $ref: "#/components/schemas/QueryStat"
+        "400":
           description: Missing queryName
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
               example:
                 error: queryName is required
-        '500':
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   # ════════════════════════════════════════════════════════════════════════
   # USER
@@ -994,18 +994,18 @@ paths:
         Proxies to the configured USER_INFO_URL (production) or the mock API (development).
         Returns Active Directory / Windows Auth user profile data.
       responses:
-        '200':
+        "200":
           description: User profile
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserInfo'
-        '502':
+                $ref: "#/components/schemas/UserInfo"
+        "502":
           description: Upstream user info service unavailable
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   # ════════════════════════════════════════════════════════════════════════
   # ADMIN — GROUPS
@@ -1017,7 +1017,7 @@ paths:
       security:
         - ApiKeyAuth: []
       responses:
-        '200':
+        "200":
           description: List of groups
           content:
             application/json:
@@ -1027,14 +1027,14 @@ paths:
                   groups:
                     type: array
                     items:
-                      $ref: '#/components/schemas/AdminGroup'
-        '401':
+                      $ref: "#/components/schemas/AdminGroup"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
@@ -1056,9 +1056,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateGroupRequest'
+              $ref: "#/components/schemas/CreateGroupRequest"
       responses:
-        '201':
+        "201":
           description: Group created
           content:
             application/json:
@@ -1071,24 +1071,24 @@ paths:
                     type: string
                   queriesAdded:
                     type: integer
-        '400':
+        "400":
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   /api/admin/groups/{id}:
     get:
@@ -1103,24 +1103,24 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Group detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminGroupDetail'
-        '401':
+                $ref: "#/components/schemas/AdminGroupDetail"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '404':
+                $ref: "#/components/schemas/Error"
+        "404":
           description: Group not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     patch:
       tags: [Admin/Groups]
@@ -1155,30 +1155,30 @@ paths:
                   type: object
                   nullable: true
       responses:
-        '200':
+        "200":
           description: Updated group
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminGroupDetail'
-        '401':
+                $ref: "#/components/schemas/AdminGroupDetail"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '404':
+                $ref: "#/components/schemas/Error"
+        "404":
           description: Group not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     delete:
       tags: [Admin/Groups]
@@ -1193,7 +1193,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Group deleted
           content:
             application/json:
@@ -1204,30 +1204,30 @@ paths:
                     type: boolean
                   deletedGroupId:
                     type: string
-        '400':
+        "400":
           description: Cannot delete default group
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '404':
+                $ref: "#/components/schemas/Error"
+        "404":
           description: Group not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   # ════════════════════════════════════════════════════════════════════════
   # ADMIN — QUERIES
@@ -1245,7 +1245,7 @@ paths:
             type: string
           description: Comma-separated list of sources to filter by
       responses:
-        '200':
+        "200":
           description: List of queries
           content:
             application/json:
@@ -1255,14 +1255,14 @@ paths:
                   queries:
                     type: array
                     items:
-                      $ref: '#/components/schemas/AdminQuery'
-        '401':
+                      $ref: "#/components/schemas/AdminQuery"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
@@ -1283,38 +1283,38 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateQueryRequest'
+              $ref: "#/components/schemas/CreateQueryRequest"
       responses:
-        '201':
+        "201":
           description: Query created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminQuery'
-        '400':
+                $ref: "#/components/schemas/AdminQuery"
+        "400":
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '409':
+                $ref: "#/components/schemas/Error"
+        "409":
           description: Query name already exists
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     patch:
       tags: [Admin/Queries]
@@ -1354,36 +1354,36 @@ paths:
                 endpoint:
                   type: string
       responses:
-        '200':
+        "200":
           description: Updated query
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminQuery'
-        '400':
+                $ref: "#/components/schemas/AdminQuery"
+        "400":
           description: Missing id
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '404':
+                $ref: "#/components/schemas/Error"
+        "404":
           description: Query not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     delete:
       tags: [Admin/Queries]
@@ -1398,7 +1398,7 @@ paths:
             type: string
           description: Query ID to delete
       responses:
-        '200':
+        "200":
           description: Query deleted
           content:
             application/json:
@@ -1409,30 +1409,30 @@ paths:
                     type: boolean
                   deletedQueryId:
                     type: string
-        '400':
+        "400":
           description: Missing id
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '404':
+                $ref: "#/components/schemas/Error"
+        "404":
           description: Query not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   # ════════════════════════════════════════════════════════════════════════
   # ADMIN — FILTERS
@@ -1444,18 +1444,18 @@ paths:
       security:
         - ApiKeyAuth: []
       responses:
-        '200':
+        "200":
           description: Filter config
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FilterConfig'
-        '401':
+                $ref: "#/components/schemas/FilterConfig"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     post:
       tags: [Admin/Filters]
@@ -1467,9 +1467,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateFilterRequest'
+              $ref: "#/components/schemas/CreateFilterRequest"
       responses:
-        '200':
+        "200":
           description: Filter saved
           content:
             application/json:
@@ -1489,24 +1489,24 @@ paths:
                   placeholder:
                     type: string
                     nullable: true
-        '400':
+        "400":
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     delete:
       tags: [Admin/Filters]
@@ -1521,7 +1521,7 @@ paths:
             type: string
           description: Filter key to delete
       responses:
-        '200':
+        "200":
           description: Filter deleted
           content:
             application/json:
@@ -1532,30 +1532,30 @@ paths:
                     type: boolean
                   deletedKey:
                     type: string
-        '400':
+        "400":
           description: Missing key
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '404':
+                $ref: "#/components/schemas/Error"
+        "404":
           description: Filter not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   # ════════════════════════════════════════════════════════════════════════
   # ADMIN — INTENTS
@@ -1567,7 +1567,7 @@ paths:
       security:
         - ApiKeyAuth: []
       responses:
-        '200':
+        "200":
           description: Intents and entities
           content:
             application/json:
@@ -1577,7 +1577,7 @@ paths:
                   intents:
                     type: array
                     items:
-                      $ref: '#/components/schemas/IntentItem'
+                      $ref: "#/components/schemas/IntentItem"
                   entities:
                     type: object
                     additionalProperties:
@@ -1589,18 +1589,18 @@ paths:
                             type: array
                             items:
                               type: string
-        '401':
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     post:
       tags: [Admin/Intents]
@@ -1613,9 +1613,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateIntentRequest'
+              $ref: "#/components/schemas/CreateIntentRequest"
       responses:
-        '200':
+        "200":
           description: Intent saved
           content:
             application/json:
@@ -1626,24 +1626,24 @@ paths:
                     type: boolean
                   intent:
                     type: string
-        '400':
+        "400":
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     delete:
       tags: [Admin/Intents]
@@ -1658,7 +1658,7 @@ paths:
             type: string
           description: Intent name to delete
       responses:
-        '200':
+        "200":
           description: Intent deleted
           content:
             application/json:
@@ -1669,24 +1669,24 @@ paths:
                     type: boolean
                   deleted:
                     type: string
-        '400':
+        "400":
           description: Missing intent
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   # ════════════════════════════════════════════════════════════════════════
   # ADMIN — ENTITIES
@@ -1698,7 +1698,7 @@ paths:
       security:
         - ApiKeyAuth: []
       responses:
-        '200':
+        "200":
           description: Entities map
           content:
             application/json:
@@ -1716,18 +1716,18 @@ paths:
                             type: array
                             items:
                               type: string
-        '401':
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     post:
       tags: [Admin/Entities]
@@ -1739,9 +1739,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateEntityRequest'
+              $ref: "#/components/schemas/CreateEntityRequest"
       responses:
-        '200':
+        "200":
           description: Entity saved
           content:
             application/json:
@@ -1754,24 +1754,24 @@ paths:
                     type: string
                   optionKey:
                     type: string
-        '400':
+        "400":
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     delete:
       tags: [Admin/Entities]
@@ -1790,7 +1790,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Entity deleted
           content:
             application/json:
@@ -1801,24 +1801,24 @@ paths:
                     type: boolean
                   deleted:
                     type: string
-        '400':
+        "400":
           description: Missing parameters
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   # ════════════════════════════════════════════════════════════════════════
   # ADMIN — TEMPLATES
@@ -1830,7 +1830,7 @@ paths:
       security:
         - ApiKeyAuth: []
       responses:
-        '200':
+        "200":
           description: Templates
           content:
             application/json:
@@ -1851,18 +1851,18 @@ paths:
                         type: array
                         items:
                           type: string
-        '401':
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     post:
       tags: [Admin/Templates]
@@ -1874,9 +1874,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateTemplateRequest'
+              $ref: "#/components/schemas/CreateTemplateRequest"
       responses:
-        '200':
+        "200":
           description: Template saved
           content:
             application/json:
@@ -1889,30 +1889,30 @@ paths:
                     type: string
                   intent:
                     type: string
-        '400':
+        "400":
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '404':
+                $ref: "#/components/schemas/Error"
+        "404":
           description: Group not found (when scope is a group ID)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     delete:
       tags: [Admin/Templates]
@@ -1933,7 +1933,7 @@ paths:
             type: string
           description: Intent name to delete template for
       responses:
-        '200':
+        "200":
           description: Template deleted
           content:
             application/json:
@@ -1944,24 +1944,24 @@ paths:
                     type: boolean
                   deleted:
                     type: string
-        '400':
+        "400":
           description: Missing intent
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   # ════════════════════════════════════════════════════════════════════════
   # ADMIN — USERS
@@ -1973,7 +1973,7 @@ paths:
       security:
         - ApiKeyAuth: []
       responses:
-        '200':
+        "200":
           description: User list
           content:
             application/json:
@@ -1983,14 +1983,14 @@ paths:
                   users:
                     type: array
                     items:
-                      $ref: '#/components/schemas/AdminUser'
-        '401':
+                      $ref: "#/components/schemas/AdminUser"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
@@ -2011,38 +2011,38 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateUserRequest'
+              $ref: "#/components/schemas/CreateUserRequest"
       responses:
-        '201':
+        "201":
           description: User created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminUser'
-        '400':
+                $ref: "#/components/schemas/AdminUser"
+        "400":
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '409':
+                $ref: "#/components/schemas/Error"
+        "409":
           description: User or email already exists
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   /api/admin/users/{id}:
     get:
@@ -2057,30 +2057,30 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: User detail
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminUser'
-        '401':
+                $ref: "#/components/schemas/AdminUser"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '404':
+                $ref: "#/components/schemas/Error"
+        "404":
           description: User not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     patch:
       tags: [Admin/Users]
@@ -2114,30 +2114,30 @@ paths:
                 updatedBy:
                   type: string
       responses:
-        '200':
+        "200":
           description: Updated user
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdminUser'
-        '401':
+                $ref: "#/components/schemas/AdminUser"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '404':
+                $ref: "#/components/schemas/Error"
+        "404":
           description: User not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     delete:
       tags: [Admin/Users]
@@ -2152,7 +2152,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: User deleted
           content:
             application/json:
@@ -2163,30 +2163,30 @@ paths:
                     type: boolean
                   deletedUserId:
                     type: string
-        '400':
+        "400":
           description: Cannot delete last admin
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '404':
+                $ref: "#/components/schemas/Error"
+        "404":
           description: User not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   # ════════════════════════════════════════════════════════════════════════
   # ADMIN — FILES (Knowledge Base)
@@ -2198,7 +2198,7 @@ paths:
       security:
         - ApiKeyAuth: []
       responses:
-        '200':
+        "200":
           description: File list
           content:
             application/json:
@@ -2208,21 +2208,21 @@ paths:
                   files:
                     type: array
                     items:
-                      $ref: '#/components/schemas/KnowledgeFile'
+                      $ref: "#/components/schemas/KnowledgeFile"
                   totalFiles:
                     type: integer
-        '401':
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     post:
       tags: [Admin/Files]
@@ -2234,9 +2234,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateFileRequest'
+              $ref: "#/components/schemas/CreateFileRequest"
       responses:
-        '200':
+        "200":
           description: File created
           content:
             application/json:
@@ -2247,24 +2247,24 @@ paths:
                     type: boolean
                   name:
                     type: string
-        '400':
+        "400":
           description: Missing name or content
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     delete:
       tags: [Admin/Files]
@@ -2279,7 +2279,7 @@ paths:
             type: string
           description: Filename to delete
       responses:
-        '200':
+        "200":
           description: File deleted
           content:
             application/json:
@@ -2290,24 +2290,24 @@ paths:
                     type: boolean
                   deleted:
                     type: string
-        '400':
+        "400":
           description: Missing name
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   /api/admin/files/read:
     get:
@@ -2323,7 +2323,7 @@ paths:
             type: string
           description: Filename to read
       responses:
-        '200':
+        "200":
           description: File content
           content:
             application/json:
@@ -2334,24 +2334,24 @@ paths:
                     type: string
                   content:
                     type: string
-        '400':
+        "400":
           description: Missing name
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   # ════════════════════════════════════════════════════════════════════════
   # ADMIN — LEARNING
@@ -2379,7 +2379,7 @@ paths:
             type: string
           description: Filter by review status
       responses:
-        '200':
+        "200":
           description: Review queue items
           content:
             application/json:
@@ -2389,21 +2389,21 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/ReviewItem'
+                      $ref: "#/components/schemas/ReviewItem"
                   total:
                     type: integer
-        '401':
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   /api/admin/learning/review/{id}/resolve:
     post:
@@ -2433,36 +2433,36 @@ paths:
                   type: string
                   default: default
       responses:
-        '200':
+        "200":
           description: Item resolved
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
-        '400':
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
           description: Missing correctIntent
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
+                $ref: "#/components/schemas/Error"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '404':
+                $ref: "#/components/schemas/Error"
+        "404":
           description: Review item not found or already resolved
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   /api/admin/learning/review/{id}/dismiss:
     post:
@@ -2486,30 +2486,30 @@ paths:
                   type: string
                   default: default
       responses:
-        '200':
+        "200":
           description: Item dismissed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
-        '401':
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '404':
+                $ref: "#/components/schemas/Error"
+        "404":
           description: Review item not found or already resolved
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   /api/admin/learning/stats:
     get:
@@ -2524,24 +2524,24 @@ paths:
             type: string
             default: default
       responses:
-        '200':
+        "200":
           description: Learning stats
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LearningStats'
-        '401':
+                $ref: "#/components/schemas/LearningStats"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   /api/admin/learning/auto-learned:
     get:
@@ -2561,7 +2561,7 @@ paths:
             type: integer
             default: 50
       responses:
-        '200':
+        "200":
           description: Auto-learned items
           content:
             application/json:
@@ -2574,18 +2574,18 @@ paths:
                       type: object
                   total:
                     type: integer
-        '401':
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   /api/admin/learning/retrain:
     post:
@@ -2607,7 +2607,7 @@ paths:
                   default: default
                   example: all
       responses:
-        '200':
+        "200":
           description: Retrain triggered
           content:
             application/json:
@@ -2618,18 +2618,18 @@ paths:
                     type: boolean
                   groupId:
                     type: string
-        '401':
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   /api/admin/learning/process-signals:
     post:
@@ -2648,7 +2648,7 @@ paths:
                   type: string
                   default: default
       responses:
-        '200':
+        "200":
           description: Signals processed
           content:
             application/json:
@@ -2661,18 +2661,18 @@ paths:
                     type: integer
                   newReviewItems:
                     type: integer
-        '401':
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   # ════════════════════════════════════════════════════════════════════════
   # ADMIN — SETTINGS
@@ -2684,7 +2684,7 @@ paths:
       security:
         - ApiKeyAuth: []
       responses:
-        '200':
+        "200":
           description: Engine settings
           content:
             application/json:
@@ -2692,13 +2692,13 @@ paths:
                 type: object
                 properties:
                   config:
-                    $ref: '#/components/schemas/EngineSettings'
-        '401':
+                    $ref: "#/components/schemas/EngineSettings"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     post:
       tags: [Admin/Settings]
@@ -2711,9 +2711,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EngineSettings'
+              $ref: "#/components/schemas/EngineSettings"
       responses:
-        '200':
+        "200":
           description: Settings updated
           content:
             application/json:
@@ -2723,19 +2723,19 @@ paths:
                   success:
                     type: boolean
                   config:
-                    $ref: '#/components/schemas/EngineSettings'
-        '401':
+                    $ref: "#/components/schemas/EngineSettings"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   # ════════════════════════════════════════════════════════════════════════
   # ADMIN — LOGS
@@ -2769,7 +2769,7 @@ paths:
             default: 100
           description: Maximum number of logs to return
       responses:
-        '200':
+        "200":
           description: Conversation logs
           content:
             application/json:
@@ -2779,7 +2779,7 @@ paths:
                   logs:
                     type: array
                     items:
-                      $ref: '#/components/schemas/ConversationLog'
+                      $ref: "#/components/schemas/ConversationLog"
                   total:
                     type: integer
                   filtered:
@@ -2788,18 +2788,18 @@ paths:
                     type: object
                     additionalProperties:
                       type: integer
-        '401':
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
     delete:
       tags: [Admin/Logs]
@@ -2807,24 +2807,24 @@ paths:
       security:
         - ApiKeyAuth: []
       responses:
-        '200':
+        "200":
           description: Logs cleared
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
-        '401':
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   # ════════════════════════════════════════════════════════════════════════
   # ADMIN — AUDIT
@@ -2858,7 +2858,7 @@ paths:
             format: date-time
           description: Only include entries after this timestamp
       responses:
-        '200':
+        "200":
           description: Audit entries
           content:
             application/json:
@@ -2868,18 +2868,18 @@ paths:
                   entries:
                     type: array
                     items:
-                      $ref: '#/components/schemas/AuditEntry'
+                      $ref: "#/components/schemas/AuditEntry"
                   count:
                     type: integer
-        '401':
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"

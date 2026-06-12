@@ -8,7 +8,6 @@
   },
   "scripts": {
     "sync:shared": "node scripts/sync-shared.mjs",
-
     "build:all": "npm run build:web && npm run build:engine && npm run build:connectors",
     "build:dev": "npm run build:web && npm run build:engine && npm run build:connectors && node scripts/build/prepare-out.mjs",
     "build:web": "cd apps/web && npm run build",
@@ -17,29 +16,24 @@
     "build:mssql": "cd apps/mssql-connector && npm run build",
     "build:oracle": "cd apps/oracle-connector && npm run build",
     "build:csv": "cd apps/csv-xlsx-connector && npm run build",
-
     "test": "cd apps/web && npm test && cd ../engine && npm test",
     "test:web": "cd apps/web && npm test",
     "test:engine": "cd apps/engine && npm test",
     "typecheck:tests-engine": "cd apps/engine && npm run typecheck:tests",
     "lint:all": "cd apps/web && npm run lint && cd ../engine && npm run lint",
     "lint:fix:all": "cd apps/web && npm run lint:fix && cd ../engine && npm run lint:fix",
-
     "validate:demo": "node scripts/demo/validate.mjs",
     "validate:demo:quick": "node scripts/demo/validate.mjs --quick",
-
     "dev": "dotenv -e .env.dev -- concurrently --restart-tries 3 --restart-after 2000 -n engine,ui -c blue,green \"cd apps/engine && npm run dev\" \"cd apps/web && npm run dev\"",
     "dev:mock": "dotenv -e .env.mock -- concurrently --restart-tries 3 --restart-after 2000 -n mock,engine,ui -c yellow,blue,green \"npm run svc:mock-api\" \"cd apps/engine && npm run dev\" \"cd apps/web && npm run dev\"",
     "dev:mssql": "dotenv -e .env.dev -- concurrently --restart-tries 3 --restart-after 2000 -n engine,mssql,ui -c blue,cyan,green \"cd apps/engine && npm run dev\" \"cd apps/mssql-connector && npm run dev\" \"cd apps/web && npm run dev\"",
     "dev:oracle": "dotenv -e .env.dev -- concurrently --restart-tries 3 --restart-after 2000 -n engine,oracle,ui -c blue,magenta,green \"cd apps/engine && npm run dev\" \"cd apps/oracle-connector && npm run dev\" \"cd apps/web && npm run dev\"",
     "dev:csv": "dotenv -e .env.dev -- concurrently --restart-tries 3 --restart-after 2000 -n engine,csv,ui -c blue,red,green \"cd apps/engine && npm run dev\" \"cd apps/csv-xlsx-connector && npm run dev\" \"cd apps/web && npm run dev\"",
     "dev:all": "dotenv -e .env.dev -- concurrently --restart-tries 3 --restart-after 2000 -n mock,engine,mssql,oracle,csv,ui -c yellow,blue,cyan,magenta,red,green \"npm run svc:mock-api\" \"cd apps/engine && npm run dev\" \"cd apps/mssql-connector && npm run dev\" \"cd apps/oracle-connector && npm run dev\" \"cd apps/csv-xlsx-connector && npm run dev\" \"cd apps/web && npm run dev\"",
-
     "start:all": "concurrently -n mock,engine,ui -c yellow,blue,green \"npm run svc:mock-api\" \"cd apps/engine && npm start\" \"cd apps/web && npm start\"",
     "start:demo": "dotenv -e .env.demo -- concurrently -n mock,engine,ui -c yellow,blue,green \"npm run svc:mock-api\" \"cd apps/engine && npm start\" \"cd apps/web && npm start\"",
     "start:uat": "dotenv -e .env.uat -- concurrently -n engine,ui -c blue,green \"cd apps/engine && npm start\" \"cd apps/web && npm start\"",
     "start:prod": "dotenv -e .env.prod -- concurrently -n engine,ui -c blue,green \"cd apps/engine && npm start\" \"cd apps/web && npm start\"",
-
     "svc:mock-api": "cd apps/mock-api && npm start",
     "svc:action-demo": "cd apps/action-demo && node server.js",
     "svc:engine": "cd apps/engine && npm run dev",
@@ -47,7 +41,6 @@
     "svc:oracle": "cd apps/oracle-connector && npm run dev",
     "svc:csv": "cd apps/csv-xlsx-connector && npm run dev",
     "svc:web": "cd apps/web && npm run dev",
-
     "db:up": "docker compose -f docker-compose.sample-db.yml up -d",
     "db:down": "docker compose -f docker-compose.sample-db.yml down",
     "db:logs": "docker compose -f docker-compose.sample-db.yml logs -f",

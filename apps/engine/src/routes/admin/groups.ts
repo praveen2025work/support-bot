@@ -171,11 +171,9 @@ router.post(
       if (!groupId || !name)
         return res.status(400).json({ error: "groupId and name are required" });
       if (!/^[a-z0-9_]+$/.test(groupId))
-        return res
-          .status(400)
-          .json({
-            error: "groupId must be lowercase alphanumeric with underscores",
-          });
+        return res.status(400).json({
+          error: "groupId must be lowercase alphanumeric with underscores",
+        });
 
       const payload = {
         groupInfo: {
@@ -215,12 +213,10 @@ router.post(
 
       const result = await processOnboarding(payload);
       if (!result.success)
-        return res
-          .status(400)
-          .json({
-            error: result.errors?.[0] || "Failed",
-            details: result.errors,
-          });
+        return res.status(400).json({
+          error: result.errors?.[0] || "Failed",
+          details: result.errors,
+        });
 
       if (apiBaseUrl) {
         const groupsData = readGroups();
@@ -237,13 +233,11 @@ router.post(
         details: { name, description, sources },
         ip: req.ip,
       });
-      return res
-        .status(201)
-        .json({
-          success: true,
-          groupId: result.groupId,
-          queriesAdded: result.queriesAdded,
-        });
+      return res.status(201).json({
+        success: true,
+        groupId: result.groupId,
+        queriesAdded: result.queriesAdded,
+      });
     } catch (error) {
       logger.error({ error }, "Manual group creation error");
       return res.status(500).json({ error: "Failed to create group" });

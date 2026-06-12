@@ -4,7 +4,7 @@
  * Scores new queries by cosine similarity against each intent's centroid.
  */
 
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 interface IntentScore {
   intent: string;
@@ -19,22 +19,97 @@ interface IntentVectors {
 
 // Simple stopwords list
 const STOPWORDS = new Set([
-  'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
-  'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
-  'should', 'may', 'might', 'shall', 'can', 'to', 'of', 'in', 'for',
-  'on', 'with', 'at', 'by', 'from', 'as', 'into', 'through', 'during',
-  'before', 'after', 'above', 'below', 'between', 'and', 'but', 'or',
-  'not', 'no', 'so', 'if', 'then', 'than', 'too', 'very', 'just',
-  'about', 'up', 'out', 'all', 'also', 'how', 'each', 'which', 'their',
-  'there', 'this', 'that', 'these', 'those', 'it', 'its', 'my', 'your',
-  'we', 'they', 'i', 'me', 'he', 'she', 'him', 'her', 'who', 'what',
-  'when', 'where', 'why',
+  "a",
+  "an",
+  "the",
+  "is",
+  "are",
+  "was",
+  "were",
+  "be",
+  "been",
+  "being",
+  "have",
+  "has",
+  "had",
+  "do",
+  "does",
+  "did",
+  "will",
+  "would",
+  "could",
+  "should",
+  "may",
+  "might",
+  "shall",
+  "can",
+  "to",
+  "of",
+  "in",
+  "for",
+  "on",
+  "with",
+  "at",
+  "by",
+  "from",
+  "as",
+  "into",
+  "through",
+  "during",
+  "before",
+  "after",
+  "above",
+  "below",
+  "between",
+  "and",
+  "but",
+  "or",
+  "not",
+  "no",
+  "so",
+  "if",
+  "then",
+  "than",
+  "too",
+  "very",
+  "just",
+  "about",
+  "up",
+  "out",
+  "all",
+  "also",
+  "how",
+  "each",
+  "which",
+  "their",
+  "there",
+  "this",
+  "that",
+  "these",
+  "those",
+  "it",
+  "its",
+  "my",
+  "your",
+  "we",
+  "they",
+  "i",
+  "me",
+  "he",
+  "she",
+  "him",
+  "her",
+  "who",
+  "what",
+  "when",
+  "where",
+  "why",
 ]);
 
 function tokenize(text: string): string[] {
   return text
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
     .filter((t) => t.length >= 2 && !STOPWORDS.has(t));
 }
@@ -95,11 +170,18 @@ export class TfIdfIntentScorer {
         });
       }
 
-      this.intentVectors.push({ intent, centroid, utteranceCount: utterances.length });
+      this.intentVectors.push({
+        intent,
+        centroid,
+        utteranceCount: utterances.length,
+      });
     });
 
     this.initialized = true;
-    logger.info({ intentCount: intentUtterances.size, totalDocs }, 'TF-IDF intent scorer initialized');
+    logger.info(
+      { intentCount: intentUtterances.size, totalDocs },
+      "TF-IDF intent scorer initialized",
+    );
   }
 
   /**
@@ -136,7 +218,10 @@ export class TfIdfIntentScorer {
     return scores.sort((a, b) => b.score - a.score).slice(0, 5);
   }
 
-  private cosineSimilarity(a: Map<string, number>, b: Map<string, number>): number {
+  private cosineSimilarity(
+    a: Map<string, number>,
+    b: Map<string, number>,
+  ): number {
     let dotProduct = 0;
     let normA = 0;
     let normB = 0;

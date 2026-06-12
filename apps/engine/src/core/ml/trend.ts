@@ -1,8 +1,11 @@
-import { detectColumnTypes, type CsvData } from '@/core/api-connector/csv-analyzer';
-import { extractNumericColumns } from '@/core/anomaly/numeric-utils';
+import {
+  detectColumnTypes,
+  type CsvData,
+} from "@/core/api-connector/csv-analyzer";
+import { extractNumericColumns } from "@/core/anomaly/numeric-utils";
 
 /** Trend direction. */
-export type TrendDirection = 'up' | 'down' | 'flat';
+export type TrendDirection = "up" | "down" | "flat";
 
 /** A single data/trend point with a date label. */
 export interface TrendPoint {
@@ -40,14 +43,15 @@ export interface TrendResult {
 export function detectTrend(
   data: CsvData,
   dateColumn?: string,
-  valueColumn?: string
+  valueColumn?: string,
 ): TrendResult | null {
   const { headers, rows } = data;
   if (rows.length < 2) return null;
 
   // Resolve columns
   const detected = detectColumnTypes(headers, rows);
-  const datCol = dateColumn ?? detected.find((d) => d.detectedType === 'date')?.column;
+  const datCol =
+    dateColumn ?? detected.find((d) => d.detectedType === "date")?.column;
   if (!datCol) return null;
 
   let valCol = valueColumn;
@@ -57,7 +61,9 @@ export function detectTrend(
     valCol = numCols.find((c) => c !== datCol);
     if (!valCol) {
       const numDetected = detected.find(
-        (d) => (d.detectedType === 'integer' || d.detectedType === 'decimal') && d.column !== datCol
+        (d) =>
+          (d.detectedType === "integer" || d.detectedType === "decimal") &&
+          d.column !== datCol,
       );
       valCol = numDetected?.column;
     }
@@ -70,7 +76,7 @@ export function detectTrend(
     const rawDate = row[datCol];
     const rawVal = row[valCol];
     const d = parseDate(rawDate);
-    const v = typeof rawVal === 'number' ? rawVal : parseFloat(String(rawVal));
+    const v = typeof rawVal === "number" ? rawVal : parseFloat(String(rawVal));
     if (d && !isNaN(v)) {
       pairs.push({ date: d, value: v, label: formatDateLabel(d) });
     }
@@ -111,12 +117,13 @@ export function detectTrend(
     ssTot += (ys[i] - meanY) ** 2;
     ssRes += (ys[i] - predicted) ** 2;
   }
-  const rSquared = ssTot === 0 ? 0 : Math.round((1 - ssRes / ssTot) * 10000) / 10000;
+  const rSquared =
+    ssTot === 0 ? 0 : Math.round((1 - ssRes / ssTot) * 10000) / 10000;
 
   // Direction — treat as flat when R² is very low or slope is negligible
-  let direction: TrendDirection = 'flat';
+  let direction: TrendDirection = "flat";
   if (rSquared > 0.1) {
-    direction = slope > 0 ? 'up' : slope < 0 ? 'down' : 'flat';
+    direction = slope > 0 ? "up" : slope < 0 ? "down" : "flat";
   }
 
   // Percentage change between first and last predicted values
@@ -125,7 +132,8 @@ export function detectTrend(
   const percentageChange =
     firstPred === 0
       ? 0
-      : Math.round(((lastPred - firstPred) / Math.abs(firstPred)) * 10000) / 100;
+      : Math.round(((lastPred - firstPred) / Math.abs(firstPred)) * 10000) /
+        100;
 
   // Build point arrays
   const dataPoints: TrendPoint[] = pairs.map((p, i) => ({
@@ -141,11 +149,12 @@ export function detectTrend(
   }));
 
   // Natural-language description
-  const dirWord = direction === 'up' ? 'up' : direction === 'down' ? 'down' : 'flat';
+  const dirWord =
+    direction === "up" ? "up" : direction === "down" ? "down" : "flat";
   const pctAbs = Math.abs(percentageChange);
   const rSqStr = rSquared.toFixed(2);
   const nlDescription =
-    direction === 'flat'
+    direction === "flat"
       ? `${valCol} is trending flat with R²=${rSqStr}`
       : `${valCol} trending ${dirWord} ${pctAbs}% over the period with R²=${rSqStr}`;
 
@@ -167,10 +176,11 @@ export function detectTrend(
 
 /** Attempt to parse a value into a Date. */
 function parseDate(raw: string | number | undefined | null): Date | null {
-  if (raw === undefined || raw === null || String(raw).trim() === '') return null;
+  if (raw === undefined || raw === null || String(raw).trim() === "")
+    return null;
 
   // Numeric — could be epoch ms or Excel serial date
-  if (typeof raw === 'number') {
+  if (typeof raw === "number") {
     // Excel serial date range: 1 – 100000 (1900-01-01 to ~2173)
     if (raw > 0 && raw < 100000) {
       const epoch = (raw - 25569) * 86400000; // Excel epoch offset
@@ -195,7 +205,7 @@ function parseDate(raw: string | number | undefined | null): Date | null {
 /** Format a Date as a short label. */
 function formatDateLabel(d: Date): string {
   const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }

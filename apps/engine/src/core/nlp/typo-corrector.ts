@@ -1,29 +1,123 @@
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 // Common word dictionary for the chatbot domain
 const COMMON_WORDS = new Set([
   // Query-related
-  'query', 'queries', 'run', 'execute', 'show', 'get', 'find', 'list', 'search',
-  'filter', 'filters', 'results', 'result', 'data', 'report', 'reports',
+  "query",
+  "queries",
+  "run",
+  "execute",
+  "show",
+  "get",
+  "find",
+  "list",
+  "search",
+  "filter",
+  "filters",
+  "results",
+  "result",
+  "data",
+  "report",
+  "reports",
   // Time-related
-  'today', 'yesterday', 'week', 'month', 'year', 'quarter', 'daily', 'monthly',
-  'weekly', 'last', 'this', 'previous', 'current', 'recent',
+  "today",
+  "yesterday",
+  "week",
+  "month",
+  "year",
+  "quarter",
+  "daily",
+  "monthly",
+  "weekly",
+  "last",
+  "this",
+  "previous",
+  "current",
+  "recent",
   // Actions
-  'help', 'hello', 'hi', 'hey', 'thanks', 'thank', 'bye', 'goodbye',
-  'please', 'can', 'could', 'would', 'want', 'need', 'give', 'tell',
+  "help",
+  "hello",
+  "hi",
+  "hey",
+  "thanks",
+  "thank",
+  "bye",
+  "goodbye",
+  "please",
+  "can",
+  "could",
+  "would",
+  "want",
+  "need",
+  "give",
+  "tell",
   // Domain
-  'revenue', 'sales', 'users', 'active', 'performance', 'metrics',
-  'status', 'summary', 'total', 'average', 'avg', 'count', 'top', 'bottom',
-  'sum', 'min', 'max', 'mean', 'minimum', 'maximum', 'highest', 'lowest',
-  'compare', 'comparison', 'trend', 'trends', 'growth',
+  "revenue",
+  "sales",
+  "users",
+  "active",
+  "performance",
+  "metrics",
+  "status",
+  "summary",
+  "total",
+  "average",
+  "avg",
+  "count",
+  "top",
+  "bottom",
+  "sum",
+  "min",
+  "max",
+  "mean",
+  "minimum",
+  "maximum",
+  "highest",
+  "lowest",
+  "compare",
+  "comparison",
+  "trend",
+  "trends",
+  "growth",
   // Data operations
-  'sort', 'sorted', 'group', 'grouped', 'calculate', 'aggregate',
+  "sort",
+  "sorted",
+  "group",
+  "grouped",
+  "calculate",
+  "aggregate",
   // Regions/filters
-  'region', 'environment', 'team', 'production', 'staging', 'development',
-  'engineering', 'marketing', 'finance', 'analytics',
+  "region",
+  "environment",
+  "team",
+  "production",
+  "staging",
+  "development",
+  "engineering",
+  "marketing",
+  "finance",
+  "analytics",
   // Connectors
-  'for', 'the', 'in', 'on', 'by', 'from', 'to', 'with', 'of', 'and', 'or',
-  'about', 'what', 'how', 'when', 'where', 'which', 'all', 'me', 'my',
+  "for",
+  "the",
+  "in",
+  "on",
+  "by",
+  "from",
+  "to",
+  "with",
+  "of",
+  "and",
+  "or",
+  "about",
+  "what",
+  "how",
+  "when",
+  "where",
+  "which",
+  "all",
+  "me",
+  "my",
 ]);
 
 function levenshteinDistance(a: string, b: string): number {
@@ -36,7 +130,7 @@ function levenshteinDistance(a: string, b: string): number {
       matrix[i][j] = Math.min(
         matrix[i - 1][j] + 1,
         matrix[i][j - 1] + 1,
-        matrix[i - 1][j - 1] + cost
+        matrix[i - 1][j - 1] + cost,
       );
     }
   }
@@ -89,13 +183,13 @@ export function correctTypos(text: string): TypoCorrectionResult {
 
     if (replacement && replacement !== lower) {
       corrections.push({ from: core, to: replacement });
-      logger.debug({ from: core, to: replacement }, 'Typo corrected');
+      logger.debug({ from: core, to: replacement }, "Typo corrected");
       return prefix + replacement + suffix;
     }
     return word;
   });
 
-  const corrected = correctedWords.join(' ');
+  const corrected = correctedWords.join(" ");
   return {
     corrected,
     original: text,

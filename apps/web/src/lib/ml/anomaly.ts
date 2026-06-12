@@ -4,7 +4,7 @@
  * Uses simple-statistics — no LLM, no external API
  */
 
-import type { AnomalyResult } from '../../types/ml';
+import type { AnomalyResult } from "../../types/ml";
 
 interface StatsLib {
   mean(arr: number[]): number;
@@ -14,7 +14,10 @@ interface StatsLib {
 
 // ─── IQR Fence Method ─────────────────────────────────────────────────────────
 
-function iqrFences(sorted: number[], ss: StatsLib): { lower: number; upper: number } {
+function iqrFences(
+  sorted: number[],
+  ss: StatsLib,
+): { lower: number; upper: number } {
   const q1 = ss.quantile(sorted, 0.25);
   const q3 = ss.quantile(sorted, 0.75);
   const iqr = q3 - q1;
@@ -33,10 +36,10 @@ function zScore(value: number, mean: number, std: number): number {
 
 // ─── Severity Classification ───────────────────────────────────────────────────
 
-function classifySeverity(absZ: number): AnomalyResult['severity'] {
-  if (absZ > 4) return 'severe';
-  if (absZ > 3) return 'moderate';
-  return 'mild';
+function classifySeverity(absZ: number): AnomalyResult["severity"] {
+  if (absZ > 4) return "severe";
+  if (absZ > 3) return "moderate";
+  return "mild";
 }
 
 // ─── Main Anomaly Detector ────────────────────────────────────────────────────
@@ -45,7 +48,7 @@ export function detectAnomalies(
   data: Record<string, (number | null)[]>,
   targetColumns: string[],
   ss: StatsLib,
-  options: { zThreshold?: number; includeIQR?: boolean } = {}
+  options: { zThreshold?: number; includeIQR?: boolean } = {},
 ): AnomalyResult[] {
   const { zThreshold = 2.5, includeIQR = true } = options;
   const results: AnomalyResult[] = [];
@@ -57,10 +60,10 @@ export function detectAnomalies(
     const values = rawVals.filter((v): v is number => v !== null && !isNaN(v));
     if (values.length < 10) continue; // not enough data
 
-    const sorted   = [...values].sort((a, b) => a - b);
-    const mu       = ss.mean(values);
-    const sigma    = ss.standardDeviation(values);
-    const fences   = iqrFences(sorted, ss);
+    const sorted = [...values].sort((a, b) => a - b);
+    const mu = ss.mean(values);
+    const sigma = ss.standardDeviation(values);
+    const fences = iqrFences(sorted, ss);
 
     rawVals.forEach((val, rowIndex) => {
       if (val === null || isNaN(val)) return;
@@ -88,22 +91,25 @@ export function detectAnomalies(
 
 export function anomalyToNL(
   results: AnomalyResult[],
-  totalRows: number
+  totalRows: number,
 ): { headline: string; details: string[] } {
   if (!results.length) {
     return {
-      headline: 'No anomalies detected in the selected columns.',
-      details: ['All values fall within expected statistical ranges (IQR fences + Z-score < 2.5).'],
+      headline: "No anomalies detected in the selected columns.",
+      details: [
+        "All values fall within expected statistical ranges (IQR fences + Z-score < 2.5).",
+      ],
     };
   }
 
-  const severe   = results.filter(r => r.severity === 'severe');
+  const severe = results.filter((r) => r.severity === "severe");
   const byColumn = results.reduce<Record<string, AnomalyResult[]>>((acc, r) => {
     acc[r.column] = [...(acc[r.column] || []), r];
     return acc;
   }, {});
 
-  const headline = `Found ${results.length} anomal${results.length === 1 ? 'y' : 'ies'} across ` +
+  const headline =
+    `Found ${results.length} anomal${results.length === 1 ? "y" : "ies"} across ` +
     `${Object.keys(byColumn).length} column(s) — ` +
     `${severe.length} severe, affecting ${((results.length / totalRows) * 100).toFixed(1)}% of rows.`;
 
@@ -112,12 +118,19 @@ export function anomalyToNL(
     const top = rows.slice(0, 3);
     details.push(
       `${col}: ${rows.length} outlier(s) — ` +
-      top.map(r => `row ${r.rowIndex + 1} (value=${r.value}, z=${r.zScore})`).join(', ')
+        top
+          .map((r) => `row ${r.rowIndex + 1} (value=${r.value}, z=${r.zScore})`)
+          .join(", "),
     );
   });
 
   if (severe.length) {
-    details.push(`Severe outliers at rows: ${severe.slice(0, 5).map(r => r.rowIndex + 1).join(', ')} — investigate immediately.`);
+    details.push(
+      `Severe outliers at rows: ${severe
+        .slice(0, 5)
+        .map((r) => r.rowIndex + 1)
+        .join(", ")} — investigate immediately.`,
+    );
   }
 
   return { headline, details };
@@ -128,24 +141,24 @@ export function anomalyToNL(
 export function anomalyToChart(
   columnValues: number[],
   anomalies: AnomalyResult[],
-  columnName: string
+  columnName: string,
 ) {
-  const anomalyRows = new Set(anomalies.map(a => a.rowIndex));
+  const anomalyRows = new Set(anomalies.map((a) => a.rowIndex));
   return {
-    type: 'scatter' as const,
+    type: "scatter" as const,
     labels: columnValues.map((_, i) => `Row ${i + 1}`),
     datasets: [
       {
-        label: 'Normal',
+        label: "Normal",
         data: columnValues
           .map((v, i) => ({ x: i, y: v }))
           .filter((_, i) => !anomalyRows.has(i)),
-        backgroundColor: '#1D9E75',
+        backgroundColor: "#1D9E75",
       },
       {
-        label: 'Anomaly',
-        data: anomalies.map(a => ({ x: a.rowIndex, y: a.value })),
-        backgroundColor: '#D85A30',
+        label: "Anomaly",
+        data: anomalies.map((a) => ({ x: a.rowIndex, y: a.value })),
+        backgroundColor: "#D85A30",
       },
     ],
   };

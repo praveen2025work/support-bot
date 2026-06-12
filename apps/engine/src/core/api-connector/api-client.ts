@@ -1,10 +1,10 @@
-import { LRUCache } from 'lru-cache';
-import { config } from '@/lib/config';
-import { logger } from '@/lib/logger';
-import { ApiConnectionError } from '@/lib/errors';
-import { API_CACHE_TTL_MS } from '../constants';
-import { timeoutSignal } from '@/lib/generate-id';
-import { CircuitBreaker, CircuitState } from './circuit-breaker';
+import { LRUCache } from "lru-cache";
+import { config } from "@/lib/config";
+import { logger } from "@/lib/logger";
+import { ApiConnectionError } from "@/lib/errors";
+import { API_CACHE_TTL_MS } from "../constants";
+import { timeoutSignal } from "@/lib/generate-id";
+import { CircuitBreaker, CircuitState } from "./circuit-breaker";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -53,9 +53,12 @@ function backoffDelay(attempt: number, baseMs: number): number {
  * retry logic so we can distinguish 4xx (non-retryable) from 5xx.
  */
 class HttpStatusError extends Error {
-  constructor(public readonly status: number, message: string) {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
     super(message);
-    this.name = 'HttpStatusError';
+    this.name = "HttpStatusError";
   }
 }
 
@@ -89,7 +92,7 @@ export class ApiClient {
   private circuitBreaker: CircuitBreaker;
 
   constructor(baseUrl?: string, options?: ApiClientOptions) {
-    this.baseUrl = (baseUrl || config.apiBaseUrl).replace(/\/?$/, '/');
+    this.baseUrl = (baseUrl || config.apiBaseUrl).replace(/\/?$/, "/");
 
     // Tuned for 1500 req/min: 2000 entries covers ~2min of unique requests
     this.cache = new LRUCache({
@@ -107,21 +110,18 @@ export class ApiClient {
   // Internal: single fetch (no retry, no circuit breaker)
   // -----------------------------------------------------------------------
 
-  private async rawFetch(
-    url: string,
-    init: RequestInit
-  ): Promise<Response> {
+  private async rawFetch(url: string, init: RequestInit): Promise<Response> {
     const response = await fetch(url, {
       ...init,
       signal: timeoutSignal(this.timeoutMs),
     });
 
-    logger.debug({ url, status: response.status }, 'API response');
+    logger.debug({ url, status: response.status }, "API response");
 
     if (!response.ok) {
       throw new HttpStatusError(
         response.status,
-        `HTTP ${response.status}: ${response.statusText}`
+        `HTTP ${response.status}: ${response.statusText}`,
       );
     }
 
@@ -134,7 +134,7 @@ export class ApiClient {
 
   private async fetchWithRetry(
     url: string,
-    init: RequestInit
+    init: RequestInit,
   ): Promise<Response> {
     let lastError: unknown;
 
@@ -151,8 +151,14 @@ export class ApiClient {
 
         const delay = backoffDelay(attempt, this.retryBaseDelayMs);
         logger.warn(
-          { url, attempt: attempt + 1, maxRetries: this.maxRetries, delayMs: delay, error },
-          `Retrying request (attempt ${attempt + 1}/${this.maxRetries})`
+          {
+            url,
+            attempt: attempt + 1,
+            maxRetries: this.maxRetries,
+            delayMs: delay,
+            error,
+          },
+          `Retrying request (attempt ${attempt + 1}/${this.maxRetries})`,
         );
         await sleep(delay);
       }
@@ -187,10 +193,10 @@ export class ApiClient {
 
   private buildHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
     if (config.apiToken) {
-      headers['Authorization'] = `Bearer ${config.apiToken}`;
+      headers["Authorization"] = `Bearer ${config.apiToken}`;
     }
     return headers;
   }
@@ -199,7 +205,10 @@ export class ApiClient {
   // GET
   // -----------------------------------------------------------------------
 
-  async get<T>(path: string, options?: { cacheTtl?: number; authHeaders?: Record<string, string> }): Promise<T> {
+  async get<T>(
+    path: string,
+    options?: { cacheTtl?: number; authHeaders?: Record<string, string> },
+  ): Promise<T> {
     const cacheKey = `GET:${path}`;
     const cached = this.cache.get(cacheKey);
     if (cached) return cached as T;
@@ -207,15 +216,15 @@ export class ApiClient {
     const url = `${this.baseUrl}${path}`;
     try {
       const response = await this.request(url, {
-        method: 'GET',
+        method: "GET",
         headers: { ...this.buildHeaders(), ...options?.authHeaders },
       });
 
-      const data = await response.json() as T;
+      const data = (await response.json()) as T;
       this.cache.set(cacheKey, data, { ttl: options?.cacheTtl });
       return data;
     } catch (error) {
-      logger.error({ error, path, url }, 'API GET request failed');
+      logger.error({ error, path, url }, "API GET request failed");
       throw error instanceof ApiConnectionError
         ? error
         : new ApiConnectionError(`Failed to fetch ${path}`);
@@ -230,7 +239,7 @@ export class ApiClient {
     path: string,
     body: unknown,
     params?: Record<string, string>,
-    authHeaders?: Record<string, string>
+    authHeaders?: Record<string, string>,
   ): Promise<T> {
     let url = `${this.baseUrl}${path}`;
     if (params && Object.keys(params).length > 0) {
@@ -240,14 +249,14 @@ export class ApiClient {
 
     try {
       const response = await this.request(url, {
-        method: 'POST',
+        method: "POST",
         headers: { ...this.buildHeaders(), ...authHeaders },
         body: JSON.stringify(body),
       });
 
-      return await response.json() as T;
+      return (await response.json()) as T;
     } catch (error) {
-      logger.error({ error, path, url }, 'API POST request failed');
+      logger.error({ error, path, url }, "API POST request failed");
       throw error instanceof ApiConnectionError
         ? error
         : new ApiConnectionError(`Failed to post to ${path}`);
@@ -262,22 +271,28 @@ export class ApiClient {
    * Fetch from an absolute URL (not relative to baseUrl).
    * Used for BAM token endpoints and other external URLs.
    */
-  async fetchAbsolute<T>(absoluteUrl: string, options?: {
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
-    body?: unknown;
-    headers?: Record<string, string>;
-  }): Promise<T> {
-    const method = options?.method ?? 'POST';
+  async fetchAbsolute<T>(
+    absoluteUrl: string,
+    options?: {
+      method?: "GET" | "POST" | "PUT" | "DELETE";
+      body?: unknown;
+      headers?: Record<string, string>;
+    },
+  ): Promise<T> {
+    const method = options?.method ?? "POST";
     try {
       const response = await this.request(absoluteUrl, {
         method,
-        headers: { 'Content-Type': 'application/json', ...options?.headers },
+        headers: { "Content-Type": "application/json", ...options?.headers },
         body: options?.body ? JSON.stringify(options.body) : undefined,
       });
 
-      return await response.json() as T;
+      return (await response.json()) as T;
     } catch (error) {
-      logger.error({ error, url: absoluteUrl }, 'API request (absolute) failed');
+      logger.error(
+        { error, url: absoluteUrl },
+        "API request (absolute) failed",
+      );
       throw error instanceof ApiConnectionError
         ? error
         : new ApiConnectionError(`Failed to fetch ${absoluteUrl}`);

@@ -1,6 +1,6 @@
-import { Worker } from 'worker_threads';
-import * as os from 'os';
-import * as path from 'path';
+import { Worker } from "worker_threads";
+import * as os from "os";
+import * as path from "path";
 
 /** Queued task waiting for a free worker. */
 interface QueuedTask {
@@ -16,7 +16,11 @@ interface ManagedWorker {
   busy: boolean;
 }
 
-const WORKER_SCRIPT = path.resolve(__dirname, 'workers', 'heavy-task-worker.js');
+const WORKER_SCRIPT = path.resolve(
+  __dirname,
+  "workers",
+  "heavy-task-worker.js",
+);
 const POOL_SIZE = Math.min(Math.max(1, os.cpus().length - 1), 4);
 const TASK_TIMEOUT_MS = 30_000;
 
@@ -65,7 +69,7 @@ function drainQueue(): void {
 function dispatch<T>(
   managed: ManagedWorker,
   taskFn: string,
-  data: unknown
+  data: unknown,
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     managed.busy = true;
@@ -77,18 +81,22 @@ function dispatch<T>(
 
     function cleanup(): void {
       clearTimeout(timeout);
-      managed.worker.removeListener('message', onMessage);
-      managed.worker.removeListener('error', onError);
+      managed.worker.removeListener("message", onMessage);
+      managed.worker.removeListener("error", onError);
       managed.busy = false;
       drainQueue();
     }
 
-    function onMessage(result: { success: boolean; data?: T; error?: string }): void {
+    function onMessage(result: {
+      success: boolean;
+      data?: T;
+      error?: string;
+    }): void {
       cleanup();
       if (result.success) {
         resolve(result.data as T);
       } else {
-        reject(new Error(result.error ?? 'Worker task failed'));
+        reject(new Error(result.error ?? "Worker task failed"));
       }
     }
 
@@ -97,8 +105,8 @@ function dispatch<T>(
       reject(err);
     }
 
-    managed.worker.once('message', onMessage);
-    managed.worker.once('error', onError);
+    managed.worker.once("message", onMessage);
+    managed.worker.once("error", onError);
     managed.worker.postMessage({ taskFn, data });
   });
 }

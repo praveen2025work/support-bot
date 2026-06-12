@@ -361,7 +361,9 @@ function DashboardSettingsEditor({
                     <div>
                       <label className={labelCls}>
                         Source Query{" "}
-                        <span className="text-[var(--text-muted)]">(for dropdown)</span>
+                        <span className="text-[var(--text-muted)]">
+                          (for dropdown)
+                        </span>
                       </label>
                       <select
                         className={selectCls}

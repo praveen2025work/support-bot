@@ -12,9 +12,9 @@ const HEADING_REGEX = /^#{1,6}\s+.+$/;
  * Split markdown content into sections by headings.
  * Falls back to paragraph splitting if no headings found.
  */
-function splitIntoSections(content: string): Omit<DocumentSection, 'score'>[] {
-  const lines = content.split('\n');
-  const sections: Omit<DocumentSection, 'score'>[] = [];
+function splitIntoSections(content: string): Omit<DocumentSection, "score">[] {
+  const lines = content.split("\n");
+  const sections: Omit<DocumentSection, "score">[] = [];
 
   // Find heading line indices
   const headingIndices: number[] = [];
@@ -33,7 +33,7 @@ function splitIntoSections(content: string): Omit<DocumentSection, 'score'>[] {
     for (const para of paragraphs) {
       const trimmed = para.trim();
       if (trimmed.length > 0) {
-        const paraLines = trimmed.split('\n').length;
+        const paraLines = trimmed.split("\n").length;
         sections.push({
           heading: null,
           content: trimmed,
@@ -50,7 +50,7 @@ function splitIntoSections(content: string): Omit<DocumentSection, 'score'>[] {
 
   // Content before first heading
   if (headingIndices[0] > 0) {
-    const preContent = lines.slice(0, headingIndices[0]).join('\n').trim();
+    const preContent = lines.slice(0, headingIndices[0]).join("\n").trim();
     if (preContent.length > 0) {
       sections.push({
         heading: null,
@@ -64,9 +64,13 @@ function splitIntoSections(content: string): Omit<DocumentSection, 'score'>[] {
   // Each heading to next heading (or end)
   for (let i = 0; i < headingIndices.length; i++) {
     const start = headingIndices[i];
-    const end = i + 1 < headingIndices.length ? headingIndices[i + 1] : lines.length;
+    const end =
+      i + 1 < headingIndices.length ? headingIndices[i + 1] : lines.length;
     const heading = lines[start].trim();
-    const body = lines.slice(start + 1, end).join('\n').trim();
+    const body = lines
+      .slice(start + 1, end)
+      .join("\n")
+      .trim();
     sections.push({
       heading,
       content: body,
@@ -85,7 +89,7 @@ function splitIntoSections(content: string): Omit<DocumentSection, 'score'>[] {
 export function searchDocument(
   content: string,
   keywords: string[],
-  maxResults: number = 5
+  maxResults: number = 5,
 ): DocumentSection[] {
   if (!content || keywords.length === 0) return [];
 
@@ -93,7 +97,8 @@ export function searchDocument(
   const lowerKeywords = keywords.map((k) => k.toLowerCase());
 
   const scored: DocumentSection[] = sections.map((section) => {
-    const searchText = `${section.heading ?? ''} ${section.content}`.toLowerCase();
+    const searchText =
+      `${section.heading ?? ""} ${section.content}`.toLowerCase();
     let score = 0;
     for (const kw of lowerKeywords) {
       if (kw.length < 2) continue;
@@ -116,18 +121,62 @@ export function searchDocument(
 // ── BM25 stop words ────────────────────────────────────────────────
 
 const BM25_STOP = new Set([
-  'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-  'of', 'with', 'by', 'from', 'is', 'it', 'as', 'be', 'was', 'are',
-  'were', 'been', 'have', 'has', 'had', 'do', 'does', 'did',
-  'will', 'would', 'could', 'should', 'may', 'might', 'can',
-  'this', 'that', 'these', 'those', 'not', 'no', 'so',
-  'what', 'which', 'who', 'how', 'when', 'where', 'why',
+  "the",
+  "a",
+  "an",
+  "and",
+  "or",
+  "but",
+  "in",
+  "on",
+  "at",
+  "to",
+  "for",
+  "of",
+  "with",
+  "by",
+  "from",
+  "is",
+  "it",
+  "as",
+  "be",
+  "was",
+  "are",
+  "were",
+  "been",
+  "have",
+  "has",
+  "had",
+  "do",
+  "does",
+  "did",
+  "will",
+  "would",
+  "could",
+  "should",
+  "may",
+  "might",
+  "can",
+  "this",
+  "that",
+  "these",
+  "those",
+  "not",
+  "no",
+  "so",
+  "what",
+  "which",
+  "who",
+  "how",
+  "when",
+  "where",
+  "why",
 ]);
 
 function tokenizeBM25(text: string): string[] {
   return text
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
     .filter((w) => w.length >= 2 && !BM25_STOP.has(w));
 }
@@ -140,7 +189,7 @@ function tokenizeBM25(text: string): string[] {
 export function searchDocumentBM25(
   content: string,
   query: string,
-  maxResults: number = 5
+  maxResults: number = 5,
 ): DocumentSection[] {
   if (!content || !query.trim()) return [];
 
@@ -155,11 +204,12 @@ export function searchDocumentBM25(
 
   // Tokenize all sections
   const sectionTokens = sections.map((s) =>
-    tokenizeBM25(`${s.heading ?? ''} ${s.content}`)
+    tokenizeBM25(`${s.heading ?? ""} ${s.content}`),
   );
 
   // Average document length
-  const avgDl = sectionTokens.reduce((sum, t) => sum + t.length, 0) / sections.length;
+  const avgDl =
+    sectionTokens.reduce((sum, t) => sum + t.length, 0) / sections.length;
 
   // Document frequency per term
   const df = new Map<string, number>();
@@ -189,7 +239,8 @@ export function searchDocumentBM25(
 
       const idf = Math.log((N - termDf + 0.5) / (termDf + 0.5) + 1);
       const termTf = tf.get(term) || 0;
-      const tfNorm = (termTf * (k1 + 1)) / (termTf + k1 * (1 - b + b * (dl / avgDl)));
+      const tfNorm =
+        (termTf * (k1 + 1)) / (termTf + k1 * (1 - b + b * (dl / avgDl)));
 
       score += idf * tfNorm;
     }

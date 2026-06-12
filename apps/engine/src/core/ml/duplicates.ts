@@ -1,5 +1,5 @@
-import Fuse from 'fuse.js';
-import { type CsvData } from '@/core/api-connector/csv-analyzer';
+import Fuse from "fuse.js";
+import { type CsvData } from "@/core/api-connector/csv-analyzer";
 
 /** A group of duplicate or near-duplicate rows. */
 export interface DuplicateGroup {
@@ -30,7 +30,7 @@ export interface DuplicateResult {
  */
 export function findDuplicates(
   data: CsvData,
-  threshold: number = 0.3
+  threshold: number = 0.3,
 ): DuplicateResult {
   const { rows } = data;
   if (rows.length === 0) {
@@ -39,7 +39,13 @@ export function findDuplicates(
 
   // Convert each row to a composite string for comparison
   const rowStrings = rows.map((row) =>
-    Object.values(row).map((v) => String(v ?? '').trim().toLowerCase()).join('|')
+    Object.values(row)
+      .map((v) =>
+        String(v ?? "")
+          .trim()
+          .toLowerCase(),
+      )
+      .join("|"),
   );
 
   // ── Phase 1: exact duplicates ────────────────────────────────────────
@@ -76,7 +82,7 @@ export function findDuplicates(
   if (remaining.length > 1) {
     const fuseItems = remaining.map(({ str, idx }) => ({ text: str, idx }));
     const fuse = new Fuse(fuseItems, {
-      keys: ['text'],
+      keys: ["text"],
       includeScore: true,
       threshold,
       isCaseSensitive: false,
@@ -107,7 +113,8 @@ export function findDuplicates(
         const avgScore =
           matches
             .filter((m) => nearDupes.includes(m.item.idx))
-            .reduce((sum, m) => sum + (1 - (m.score ?? 0)), 0) / nearDupes.length;
+            .reduce((sum, m) => sum + (1 - (m.score ?? 0)), 0) /
+          nearDupes.length;
 
         groups.push({
           canonical: rows[item.idx],
@@ -118,7 +125,10 @@ export function findDuplicates(
     }
   }
 
-  const totalDuplicates = groups.reduce((sum, g) => sum + g.duplicates.length, 0);
+  const totalDuplicates = groups.reduce(
+    (sum, g) => sum + g.duplicates.length,
+    0,
+  );
 
   return {
     groups,

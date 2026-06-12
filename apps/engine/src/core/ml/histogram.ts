@@ -1,5 +1,5 @@
-import { computeColumnStats } from '@/core/anomaly/numeric-utils';
-import { type CsvData } from '@/core/api-connector/csv-analyzer';
+import { computeColumnStats } from "@/core/anomaly/numeric-utils";
+import { type CsvData } from "@/core/api-connector/csv-analyzer";
 
 /** A single histogram bin. */
 export interface HistogramBin {
@@ -41,13 +41,13 @@ export interface HistogramResult {
 export function computeHistogram(
   data: CsvData,
   column: string,
-  numBins?: number
+  numBins?: number,
 ): HistogramResult | null {
   // Extract numeric values
   const values: number[] = [];
   for (const row of data.rows) {
     const v = row[column];
-    const n = typeof v === 'number' ? v : parseFloat(String(v));
+    const n = typeof v === "number" ? v : parseFloat(String(v));
     if (!isNaN(n)) values.push(n);
   }
 
@@ -114,7 +114,11 @@ function formatBound(n: number): string {
   return n.toFixed(2);
 }
 
-function computeSkewness(values: number[], mean: number, stdDev: number): number {
+function computeSkewness(
+  values: number[],
+  mean: number,
+  stdDev: number,
+): number {
   const n = values.length;
   if (n < 3 || stdDev === 0) return 0;
 
@@ -123,5 +127,5 @@ function computeSkewness(values: number[], mean: number, stdDev: number): number
     sum += ((v - mean) / stdDev) ** 3;
   }
 
-  return Math.round(((n / ((n - 1) * (n - 2))) * sum) * 1000) / 1000;
+  return Math.round((n / ((n - 1) * (n - 2))) * sum * 1000) / 1000;
 }

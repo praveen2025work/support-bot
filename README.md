@@ -139,12 +139,12 @@ cd apps/web && npm test
 
 Compose files, one per scenario (each on an explicit `chatbot` network):
 
-| File                            | Services                                | Data source / env                          |
-| ------------------------------- | --------------------------------------- | ------------------------------------------ |
-| `docker-compose.ui-engine.yml`  | UI + engine                             | Real tenant API — needs `.env.prod`        |
-| `docker-compose.no-mock.yml`    | UI + engine + 3 connectors              | Real tenant API + connectors — `.env.prod` |
-| `docker-compose.full.yml`       | UI + engine + mock-api + 3 connectors   | Mock/demo data — `.env.demo` (no secrets)  |
-| `docker-compose.sample-db.yml`  | Sample MSSQL/Oracle DBs                  | For exercising the SQL connectors          |
+| File                           | Services                              | Data source / env                          |
+| ------------------------------ | ------------------------------------- | ------------------------------------------ |
+| `docker-compose.ui-engine.yml` | UI + engine                           | Real tenant API — needs `.env.prod`        |
+| `docker-compose.no-mock.yml`   | UI + engine + 3 connectors            | Real tenant API + connectors — `.env.prod` |
+| `docker-compose.full.yml`      | UI + engine + mock-api + 3 connectors | Mock/demo data — `.env.demo` (no secrets)  |
+| `docker-compose.sample-db.yml` | Sample MSSQL/Oracle DBs               | For exercising the SQL connectors          |
 
 ```bash
 docker compose -f docker-compose.full.yml up -d --build      # everything, mock data

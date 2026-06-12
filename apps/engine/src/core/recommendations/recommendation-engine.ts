@@ -1,13 +1,13 @@
-import { logger } from '@/lib/logger';
-import { CoOccurrenceTracker } from './co-occurrence';
-import { CollaborativeFilter } from './collaborative-filter';
-import { TimePatternAnalyzer } from './time-patterns';
-import { UserClustering } from './user-clustering';
-import { getInteractionTracker } from './interaction-tracker';
-import type { ClassificationResult, ConversationContext } from '../types';
+import { logger } from "@/lib/logger";
+import { CoOccurrenceTracker } from "./co-occurrence";
+import { CollaborativeFilter } from "./collaborative-filter";
+import { TimePatternAnalyzer } from "./time-patterns";
+import { UserClustering } from "./user-clustering";
+import { getInteractionTracker } from "./interaction-tracker";
+import type { ClassificationResult, ConversationContext } from "../types";
 
 export interface Recommendation {
-  type: 'query' | 'document' | 'faq';
+  type: "query" | "document" | "faq";
   name: string;
   reason: string;
   score: number;
@@ -18,8 +18,8 @@ const CO_OCCURRENCE_WEIGHT = 0.25;
 const COLLABORATIVE_WEIGHT = 0.25;
 const CONTEXT_WEIGHT = 0.15;
 const TIME_WEIGHT = 0.15;
-const CLUSTER_WEIGHT = 0.10;
-const POPULARITY_WEIGHT = 0.10;
+const CLUSTER_WEIGHT = 0.1;
+const POPULARITY_WEIGHT = 0.1;
 
 /**
  * ML-enhanced recommendation engine that suggests relevant queries, documents, and FAQs
@@ -35,7 +35,7 @@ export class RecommendationEngine {
   private interactionCount = 0;
   private rebuildInterval = 50;
 
-  constructor(groupId: string = 'default') {
+  constructor(groupId: string = "default") {
     this.groupId = groupId;
     this.coTracker = new CoOccurrenceTracker(groupId);
     this.collabFilter = new CollaborativeFilter(groupId);
@@ -75,7 +75,10 @@ export class RecommendationEngine {
       this.userClustering.save(),
     ]);
 
-    logger.info({ groupId: this.groupId, interactions: interactions.length }, 'ML recommendation models rebuilt');
+    logger.info(
+      { groupId: this.groupId, interactions: interactions.length },
+      "ML recommendation models rebuilt",
+    );
   }
 
   /**
@@ -85,7 +88,7 @@ export class RecommendationEngine {
     context: ConversationContext,
     classification: ClassificationResult,
     maxRecommendations: number = 3,
-    userId?: string
+    userId?: string,
   ): Promise<Recommendation[]> {
     await this.ensureLoaded();
 
@@ -93,7 +96,7 @@ export class RecommendationEngine {
     this.interactionCount++;
     if (this.interactionCount % this.rebuildInterval === 0) {
       this.rebuildModels().catch((err) =>
-        logger.error({ err }, 'ML model rebuild failed')
+        logger.error({ err }, "ML model rebuild failed"),
       );
     }
 
@@ -110,7 +113,7 @@ export class RecommendationEngine {
         if (sessionQueries.has(r.name) || seen.has(r.name)) continue;
         seen.add(r.name);
         recommendations.push({
-          type: 'query',
+          type: "query",
           name: r.name,
           reason: `Often used with ${context.lastQueryName}`,
           score: r.count * CO_OCCURRENCE_WEIGHT,
@@ -125,9 +128,9 @@ export class RecommendationEngine {
         if (sessionQueries.has(s.name) || seen.has(s.name)) continue;
         seen.add(s.name);
         recommendations.push({
-          type: 'query',
+          type: "query",
           name: s.name,
-          reason: 'Popular with similar users',
+          reason: "Popular with similar users",
           score: s.score * COLLABORATIVE_WEIGHT,
         });
       }
@@ -147,14 +150,18 @@ export class RecommendationEngine {
     // 4. Time-aware recommendations
     if (this.timeAnalyzer.isLoaded) {
       const now = new Date();
-      const timeRecs = this.timeAnalyzer.getTimeRelevant(now.getHours(), now.getDay(), 5);
+      const timeRecs = this.timeAnalyzer.getTimeRelevant(
+        now.getHours(),
+        now.getDay(),
+        5,
+      );
       for (const tr of timeRecs) {
         if (sessionQueries.has(tr.name) || seen.has(tr.name)) continue;
         seen.add(tr.name);
         recommendations.push({
-          type: 'query',
+          type: "query",
           name: tr.name,
-          reason: 'Popular at this time',
+          reason: "Popular at this time",
           score: tr.score * TIME_WEIGHT,
         });
       }
@@ -162,14 +169,17 @@ export class RecommendationEngine {
 
     // 5. User cluster recommendations
     if (userId && this.userClustering.isLoaded) {
-      const clusterRecs = this.userClustering.getClusterRecommendations(userId, 5);
+      const clusterRecs = this.userClustering.getClusterRecommendations(
+        userId,
+        5,
+      );
       for (const cr of clusterRecs) {
         if (sessionQueries.has(cr.name) || seen.has(cr.name)) continue;
         seen.add(cr.name);
         recommendations.push({
-          type: 'query',
+          type: "query",
           name: cr.name,
-          reason: 'Recommended for your profile',
+          reason: "Recommended for your profile",
           score: cr.score * CLUSTER_WEIGHT,
         });
       }
@@ -192,29 +202,54 @@ export class RecommendationEngine {
 
   private getContextRecommendations(
     classification: ClassificationResult,
-    context: ConversationContext
+    context: ConversationContext,
   ): Recommendation[] {
     const recs: Recommendation[] = [];
     const intent = classification.intent;
 
-    if (intent === 'query.execute' && context.lastQueryName) {
-      recs.push({ type: 'query', name: 'summarize', reason: 'Summarize the results', score: 0.7 });
-      recs.push({ type: 'document', name: 'search documents', reason: 'Find related documentation', score: 0.5 });
+    if (intent === "query.execute" && context.lastQueryName) {
+      recs.push({
+        type: "query",
+        name: "summarize",
+        reason: "Summarize the results",
+        score: 0.7,
+      });
+      recs.push({
+        type: "document",
+        name: "search documents",
+        reason: "Find related documentation",
+        score: 0.5,
+      });
     }
 
-    if (intent === 'document.ask' || intent === 'knowledge.search') {
-      recs.push({ type: 'query', name: 'list queries', reason: 'See available data queries', score: 0.6 });
+    if (intent === "document.ask" || intent === "knowledge.search") {
+      recs.push({
+        type: "query",
+        name: "list queries",
+        reason: "See available data queries",
+        score: 0.6,
+      });
     }
 
     return recs;
   }
 
-  private getGeneralRecommendations(sessionQueries: Set<string>): Recommendation[] {
+  private getGeneralRecommendations(
+    sessionQueries: Set<string>,
+  ): Recommendation[] {
     const recs: Recommendation[] = [];
     const commonActions = [
-      { name: 'list queries', reason: 'Explore available queries', type: 'query' as const },
-      { name: 'list documents', reason: 'See uploaded documents', type: 'document' as const },
-      { name: 'help', reason: 'Get usage tips', type: 'faq' as const },
+      {
+        name: "list queries",
+        reason: "Explore available queries",
+        type: "query" as const,
+      },
+      {
+        name: "list documents",
+        reason: "See uploaded documents",
+        type: "document" as const,
+      },
+      { name: "help", reason: "Get usage tips", type: "faq" as const },
     ];
 
     for (const action of commonActions) {

@@ -1,6 +1,6 @@
-import type { IPlatformAdapter } from './adapter.interface';
-import { WebAdapter } from './web/web-adapter';
-import { TeamsAdapter } from './teams/teams-adapter';
+import type { IPlatformAdapter } from "./adapter.interface";
+import { WebAdapter } from "./web/web-adapter";
+import { TeamsAdapter } from "./teams/teams-adapter";
 
 const adapters: Record<string, () => IPlatformAdapter> = {
   web: () => new WebAdapter(),

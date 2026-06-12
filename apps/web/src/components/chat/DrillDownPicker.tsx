@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 
 export interface DrillDownPickerQuery {
   name: string;
@@ -20,7 +20,15 @@ interface DrillDownPickerProps {
   onClose: () => void;
 }
 
-export function DrillDownPicker({ open, column, value, matchingQueries, position, onSelect, onClose }: DrillDownPickerProps) {
+export function DrillDownPicker({
+  open,
+  column,
+  value,
+  matchingQueries,
+  position,
+  onSelect,
+  onClose,
+}: DrillDownPickerProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   // Close on click outside
@@ -29,16 +37,18 @@ export function DrillDownPicker({ open, column, value, matchingQueries, position
     const handle = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) onClose();
     };
-    document.addEventListener('mousedown', handle);
-    return () => document.removeEventListener('mousedown', handle);
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
   }, [open, onClose]);
 
   // Close on Escape
   useEffect(() => {
     if (!open) return;
-    const handle = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', handle);
-    return () => document.removeEventListener('keydown', handle);
+    const handle = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handle);
+    return () => document.removeEventListener("keydown", handle);
   }, [open, onClose]);
 
   if (!open || matchingQueries.length === 0) return null;
@@ -54,9 +64,14 @@ export function DrillDownPicker({ open, column, value, matchingQueries, position
       style={{ top, left }}
     >
       <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-750">
-        <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Drill down on</p>
+        <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+          Drill down on
+        </p>
         <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
-          {column} = <span className="text-blue-600 dark:text-blue-400">{String(value)}</span>
+          {column} ={" "}
+          <span className="text-blue-600 dark:text-blue-400">
+            {String(value)}
+          </span>
         </p>
       </div>
       <div className="max-h-60 overflow-y-auto">
@@ -66,9 +81,13 @@ export function DrillDownPicker({ open, column, value, matchingQueries, position
             onClick={() => onSelect(q)}
             className="w-full text-left px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 border-b border-gray-50 dark:border-gray-750 last:border-b-0 transition-colors"
           >
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{q.name}</p>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+              {q.name}
+            </p>
             {q.description && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{q.description}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                {q.description}
+              </p>
             )}
             <p className="text-[10px] text-gray-400 mt-0.5">
               Filter: <span className="font-mono">{q.matchingFilter}</span>
@@ -86,19 +105,31 @@ export function DrillDownPicker({ open, column, value, matchingQueries, position
  */
 export function findMatchingQueries(
   column: string,
-  availableQueries: Array<{ name: string; description?: string; filters?: Array<string | { key: string; binding: string }> }>
+  availableQueries: Array<{
+    name: string;
+    description?: string;
+    filters?: Array<string | { key: string; binding: string }>;
+  }>,
 ): DrillDownPickerQuery[] {
-  const colLower = column.toLowerCase().replace(/[_\s-]/g, '');
+  const colLower = column.toLowerCase().replace(/[_\s-]/g, "");
   const matches: DrillDownPickerQuery[] = [];
 
   for (const q of availableQueries) {
     if (!q.filters) continue;
     for (const f of q.filters) {
-      const filterKey = typeof f === 'string' ? f : f.key;
-      const fLower = filterKey.toLowerCase().replace(/[_\s-]/g, '');
+      const filterKey = typeof f === "string" ? f : f.key;
+      const fLower = filterKey.toLowerCase().replace(/[_\s-]/g, "");
       // Match: exact, contains, or contained-by
-      if (fLower === colLower || fLower.includes(colLower) || colLower.includes(fLower)) {
-        matches.push({ name: q.name, description: q.description, matchingFilter: filterKey });
+      if (
+        fLower === colLower ||
+        fLower.includes(colLower) ||
+        colLower.includes(fLower)
+      ) {
+        matches.push({
+          name: q.name,
+          description: q.description,
+          matchingFilter: filterKey,
+        });
         break; // one match per query
       }
     }

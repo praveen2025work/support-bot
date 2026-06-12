@@ -1,10 +1,10 @@
-import { logger } from '@/lib/logger';
-import { CircuitOpenError } from '@/lib/errors';
+import { logger } from "@/lib/logger";
+import { CircuitOpenError } from "@/lib/errors";
 
 export enum CircuitState {
-  CLOSED = 'CLOSED',
-  OPEN = 'OPEN',
-  HALF_OPEN = 'HALF_OPEN',
+  CLOSED = "CLOSED",
+  OPEN = "OPEN",
+  HALF_OPEN = "HALF_OPEN",
 }
 
 export interface CircuitBreakerOptions {
@@ -48,7 +48,7 @@ export class CircuitBreaker {
         entry.state = CircuitState.HALF_OPEN;
         logger.info(
           { baseUrl, cooldownMs: this.cooldownMs },
-          'Circuit breaker OPEN -> HALF_OPEN (cooldown elapsed)'
+          "Circuit breaker OPEN -> HALF_OPEN (cooldown elapsed)",
         );
         return CircuitState.HALF_OPEN;
       }
@@ -63,7 +63,7 @@ export class CircuitBreaker {
   onSuccess(baseUrl: string): void {
     const entry = this.getOrCreate(baseUrl);
     if (entry.state === CircuitState.HALF_OPEN) {
-      logger.info({ baseUrl }, 'Circuit breaker HALF_OPEN -> CLOSED (success)');
+      logger.info({ baseUrl }, "Circuit breaker HALF_OPEN -> CLOSED (success)");
     }
     entry.state = CircuitState.CLOSED;
     entry.consecutiveFailures = 0;
@@ -77,7 +77,10 @@ export class CircuitBreaker {
 
     if (entry.state === CircuitState.HALF_OPEN) {
       entry.state = CircuitState.OPEN;
-      logger.warn({ baseUrl }, 'Circuit breaker HALF_OPEN -> OPEN (probe failed)');
+      logger.warn(
+        { baseUrl },
+        "Circuit breaker HALF_OPEN -> OPEN (probe failed)",
+      );
       return;
     }
 
@@ -88,7 +91,7 @@ export class CircuitBreaker {
       entry.state = CircuitState.OPEN;
       logger.warn(
         { baseUrl, consecutiveFailures: entry.consecutiveFailures },
-        'Circuit breaker CLOSED -> OPEN (failure threshold reached)'
+        "Circuit breaker CLOSED -> OPEN (failure threshold reached)",
       );
     }
   }

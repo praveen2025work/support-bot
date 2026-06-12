@@ -1,5 +1,5 @@
-import { extractNumericColumns } from '@/core/anomaly/numeric-utils';
-import { type CsvData } from '@/core/api-connector/csv-analyzer';
+import { extractNumericColumns } from "@/core/anomaly/numeric-utils";
+import { type CsvData } from "@/core/api-connector/csv-analyzer";
 
 /** Pearson correlation matrix result. */
 export interface CorrelationResult {
@@ -16,7 +16,9 @@ export interface CorrelationResult {
  * coefficient uses the maximum available data.
  */
 export function computeCorrelationMatrix(data: CsvData): CorrelationResult {
-  const numericCols = extractNumericColumns(data.rows as Record<string, unknown>[]);
+  const numericCols = extractNumericColumns(
+    data.rows as Record<string, unknown>[],
+  );
 
   if (numericCols.length === 0) {
     return { columns: [], matrix: [] };
@@ -28,7 +30,7 @@ export function computeCorrelationMatrix(data: CsvData): CorrelationResult {
     const vals: number[] = [];
     for (const row of data.rows) {
       const v = row[col];
-      const n = typeof v === 'number' ? v : parseFloat(String(v));
+      const n = typeof v === "number" ? v : parseFloat(String(v));
       vals.push(isNaN(n) ? NaN : n);
     }
     columnValues.set(col, vals);
@@ -82,7 +84,7 @@ function pearson(xs: number[], ys: number[]): number {
   if (count < 2) return 0;
 
   const denom = Math.sqrt(
-    (count * sumX2 - sumX * sumX) * (count * sumY2 - sumY * sumY)
+    (count * sumX2 - sumX * sumX) * (count * sumY2 - sumY * sumY),
   );
   if (denom === 0) return 0;
 

@@ -4,7 +4,7 @@
  * Pure TypeScript — no external library
  */
 
-import type { HistogramResult } from '../../types/ml';
+import type { HistogramResult } from "../../types/ml";
 
 // ─── Stats Helpers ───────────────────────────────────────────────────────────
 
@@ -25,11 +25,17 @@ function skewness(values: number[], mean: number, std: number): number {
 export function computeHistogram(
   data: Record<string, (string | number | null)[]>,
   column: string,
-  binCount?: number
+  binCount?: number,
 ): HistogramResult {
   const rawVals = data[column] ?? [];
   const values = rawVals
-    .map(v => (v === null ? NaN : typeof v === 'string' ? parseFloat(v.replace(/[$,£€]/g, '')) : v))
+    .map((v) =>
+      v === null
+        ? NaN
+        : typeof v === "string"
+          ? parseFloat(v.replace(/[$,£€]/g, ""))
+          : v,
+    )
     .filter((v): v is number => !isNaN(v));
 
   if (values.length === 0) {
@@ -45,15 +51,18 @@ export function computeHistogram(
   const min = sorted[0];
   const max = sorted[sorted.length - 1];
   const mean = values.reduce((s, v) => s + v, 0) / values.length;
-  const variance = values.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / values.length;
+  const variance =
+    values.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / values.length;
   const std = Math.sqrt(variance);
   const skew = skewness(values, mean, std);
 
   // Sturges' rule: k = ceil(log2(n) + 1)
-  const k = binCount ?? Math.max(5, Math.min(30, Math.ceil(Math.log2(values.length) + 1)));
+  const k =
+    binCount ??
+    Math.max(5, Math.min(30, Math.ceil(Math.log2(values.length) + 1)));
   const binWidth = max === min ? 1 : (max - min) / k;
 
-  const bins: HistogramResult['bins'] = [];
+  const bins: HistogramResult["bins"] = [];
   for (let i = 0; i < k; i++) {
     const lower = parseFloat((min + i * binWidth).toFixed(4));
     const upper = parseFloat((min + (i + 1) * binWidth).toFixed(4));
@@ -89,24 +98,33 @@ export function computeHistogram(
 
 // ─── NL Response Generator ─────────────────────────────────────────────────────
 
-export function histogramToNL(
-  result: HistogramResult
-): { headline: string; details: string[] } {
+export function histogramToNL(result: HistogramResult): {
+  headline: string;
+  details: string[];
+} {
   if (result.totalCount === 0) {
     return {
       headline: `No numeric data found in column "${result.column}" for histogram.`,
-      details: ['Check that the column contains numeric values.'],
+      details: ["Check that the column contains numeric values."],
     };
   }
 
   const { stats } = result;
-  const skewDir = stats.skewness > 0.5 ? 'right-skewed' :
-                  stats.skewness < -0.5 ? 'left-skewed' : 'roughly symmetric';
+  const skewDir =
+    stats.skewness > 0.5
+      ? "right-skewed"
+      : stats.skewness < -0.5
+        ? "left-skewed"
+        : "roughly symmetric";
 
-  const peakBin = result.bins.reduce((best, b) => b.count > best.count ? b : best, result.bins[0]);
+  const peakBin = result.bins.reduce(
+    (best, b) => (b.count > best.count ? b : best),
+    result.bins[0],
+  );
   const peakPct = ((peakBin.count / result.totalCount) * 100).toFixed(1);
 
-  const headline = `Distribution of ${result.column}: ${skewDir}, ` +
+  const headline =
+    `Distribution of ${result.column}: ${skewDir}, ` +
     `range ${stats.min.toLocaleString()}–${stats.max.toLocaleString()}.`;
 
   const details = [
@@ -116,7 +134,9 @@ export function histogramToNL(
   ];
 
   if (Math.abs(stats.skewness) > 1) {
-    details.push('High skewness — consider log-transform before further analysis.');
+    details.push(
+      "High skewness — consider log-transform before further analysis.",
+    );
   }
 
   return { headline, details };
@@ -126,13 +146,13 @@ export function histogramToNL(
 
 export function histogramToChart(result: HistogramResult) {
   return {
-    type: 'bar' as const,
-    labels: result.bins.map(b => b.label),
+    type: "bar" as const,
+    labels: result.bins.map((b) => b.label),
     datasets: [
       {
         label: `${result.column} frequency`,
-        data: result.bins.map(b => b.count),
-        backgroundColor: '#185FA5',
+        data: result.bins.map((b) => b.count),
+        backgroundColor: "#185FA5",
       },
     ],
   };

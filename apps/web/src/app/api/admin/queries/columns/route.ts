@@ -16,8 +16,7 @@ async function readColumnsFromFile(
   try {
     // Priority: per-query fileBaseDir → global FILE_BASE_DIR → apps/engine
     const externalBase = queryFileBaseDir || process.env.FILE_BASE_DIR || "";
-    const baseDir =
-      externalBase || path.resolve(process.cwd(), "../engine");
+    const baseDir = externalBase || path.resolve(process.cwd(), "../engine");
     const resolved = path.resolve(baseDir, filePath);
     const ext = path.extname(filePath).toLowerCase();
     logger.info({ resolved, ext }, "Column discovery: reading file directly");

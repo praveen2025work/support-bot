@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { isRequestAdmin } from '@/lib/admin-auth';
+import { NextRequest, NextResponse } from "next/server";
+import { isRequestAdmin } from "@/lib/admin-auth";
 
 /**
  * GET /api/admin/auth — Check if the current user is an admin.

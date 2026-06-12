@@ -1,8 +1,8 @@
-import { logger } from '@/lib/logger';
-import { promises as fs } from 'fs';
-import { join } from 'path';
-import { paths } from '@/lib/env-config';
-import type { Chunk } from './chunker';
+import { logger } from "@/lib/logger";
+import { promises as fs } from "fs";
+import { join } from "path";
+import { paths } from "@/lib/env-config";
+import type { Chunk } from "./chunker";
 
 export interface ScoredChunk {
   chunk: Chunk;
@@ -135,16 +135,19 @@ export class TfIdfIndex {
         updatedAt: new Date().toISOString(),
       };
       await fs.writeFile(
-        join(this.indexDir, 'tfidf-index.json'),
+        join(this.indexDir, "tfidf-index.json"),
         JSON.stringify(data),
-        'utf-8'
+        "utf-8",
       );
       logger.info(
         { groupId: this.groupId, chunks: this.chunks.length },
-        'TF-IDF index saved to disk'
+        "TF-IDF index saved to disk",
       );
     } catch (error) {
-      logger.error({ error, groupId: this.groupId }, 'Failed to save TF-IDF index');
+      logger.error(
+        { error, groupId: this.groupId },
+        "Failed to save TF-IDF index",
+      );
     }
   }
 
@@ -152,14 +155,18 @@ export class TfIdfIndex {
   async load(): Promise<boolean> {
     try {
       const raw = await fs.readFile(
-        join(this.indexDir, 'tfidf-index.json'),
-        'utf-8'
+        join(this.indexDir, "tfidf-index.json"),
+        "utf-8",
       );
       const data: SerializedIndex = JSON.parse(raw);
       this.chunks = data.chunks;
       logger.info(
-        { groupId: this.groupId, chunks: this.chunks.length, updatedAt: data.updatedAt },
-        'TF-IDF index loaded from disk'
+        {
+          groupId: this.groupId,
+          chunks: this.chunks.length,
+          updatedAt: data.updatedAt,
+        },
+        "TF-IDF index loaded from disk",
       );
       return true;
     } catch {
@@ -173,7 +180,7 @@ export class TfIdfIndex {
     this.chunks = allChunks;
     logger.info(
       { groupId: this.groupId, chunks: allChunks.length },
-      'TF-IDF index rebuilt'
+      "TF-IDF index rebuilt",
     );
   }
 }
@@ -185,23 +192,117 @@ export class TfIdfIndex {
 function tokenize(text: string): string[] {
   return text
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
     .filter((w) => w.length >= 2 && !STOP_WORDS.has(w));
 }
 
 const STOP_WORDS = new Set([
-  'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-  'of', 'with', 'by', 'from', 'is', 'it', 'as', 'be', 'was', 'are',
-  'were', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
-  'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'can',
-  'this', 'that', 'these', 'those', 'am', 'not', 'no', 'nor', 'so',
-  'if', 'then', 'than', 'too', 'very', 'just', 'about', 'above',
-  'after', 'again', 'all', 'also', 'any', 'because', 'before',
-  'between', 'both', 'each', 'few', 'more', 'most', 'other',
-  'some', 'such', 'only', 'own', 'same', 'into', 'over', 'under',
-  'what', 'which', 'who', 'whom', 'how', 'when', 'where', 'why',
-  'up', 'out', 'off', 'down', 'here', 'there', 'me', 'my', 'we',
-  'our', 'you', 'your', 'he', 'she', 'his', 'her', 'they', 'their',
-  'its', 'us', 'him', 'them',
+  "the",
+  "a",
+  "an",
+  "and",
+  "or",
+  "but",
+  "in",
+  "on",
+  "at",
+  "to",
+  "for",
+  "of",
+  "with",
+  "by",
+  "from",
+  "is",
+  "it",
+  "as",
+  "be",
+  "was",
+  "are",
+  "were",
+  "been",
+  "being",
+  "have",
+  "has",
+  "had",
+  "do",
+  "does",
+  "did",
+  "will",
+  "would",
+  "could",
+  "should",
+  "may",
+  "might",
+  "shall",
+  "can",
+  "this",
+  "that",
+  "these",
+  "those",
+  "am",
+  "not",
+  "no",
+  "nor",
+  "so",
+  "if",
+  "then",
+  "than",
+  "too",
+  "very",
+  "just",
+  "about",
+  "above",
+  "after",
+  "again",
+  "all",
+  "also",
+  "any",
+  "because",
+  "before",
+  "between",
+  "both",
+  "each",
+  "few",
+  "more",
+  "most",
+  "other",
+  "some",
+  "such",
+  "only",
+  "own",
+  "same",
+  "into",
+  "over",
+  "under",
+  "what",
+  "which",
+  "who",
+  "whom",
+  "how",
+  "when",
+  "where",
+  "why",
+  "up",
+  "out",
+  "off",
+  "down",
+  "here",
+  "there",
+  "me",
+  "my",
+  "we",
+  "our",
+  "you",
+  "your",
+  "he",
+  "she",
+  "his",
+  "her",
+  "they",
+  "their",
+  "its",
+  "us",
+  "him",
+  "them",
 ]);

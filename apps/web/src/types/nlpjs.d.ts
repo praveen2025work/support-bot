@@ -1,8 +1,8 @@
-declare module '@nlpjs/core' {
+declare module "@nlpjs/core" {
   export function containerBootstrap(): Promise<any>;
 }
 
-declare module '@nlpjs/nlp' {
+declare module "@nlpjs/nlp" {
   export class Nlp {
     settings: { autoSave: boolean };
     addCorpus(corpus: any): Promise<void>;
@@ -11,6 +11,6 @@ declare module '@nlpjs/nlp' {
   }
 }
 
-declare module '@nlpjs/lang-en' {
+declare module "@nlpjs/lang-en" {
   export class LangEn {}
 }

@@ -1,9 +1,9 @@
-import { promises as fs } from 'fs';
-import { dirname } from 'path';
-import { createReadStream } from 'fs';
-import { createInterface } from 'readline';
-import { logger } from '@/lib/logger';
-import { paths } from '@/lib/env-config';
+import { promises as fs } from "fs";
+import { dirname } from "path";
+import { createReadStream } from "fs";
+import { createInterface } from "readline";
+import { logger } from "@/lib/logger";
+import { paths } from "@/lib/env-config";
 
 export interface CoOccurrenceMatrix {
   [queryName: string]: { [relatedQuery: string]: number };
@@ -18,7 +18,7 @@ export class CoOccurrenceTracker {
   private groupId: string;
   private outputPath: string;
 
-  constructor(groupId: string = 'default') {
+  constructor(groupId: string = "default") {
     this.groupId = groupId;
     this.outputPath = paths.data.coOccurrence(groupId);
   }
@@ -35,14 +35,14 @@ export class CoOccurrenceTracker {
     const sessions = new Map<string, string[]>();
 
     try {
-      const stream = createReadStream(logPath, 'utf-8');
+      const stream = createReadStream(logPath, "utf-8");
       const rl = createInterface({ input: stream, crlfDelay: Infinity });
 
       for await (const line of rl) {
         if (!line.trim()) continue;
         try {
           const entry = JSON.parse(line);
-          if (entry.intent === 'query.execute' && entry.sessionId) {
+          if (entry.intent === "query.execute" && entry.sessionId) {
             // Extract query name from the user message or entities
             const queryName = this.extractQueryName(entry);
             if (queryName) {
@@ -61,7 +61,10 @@ export class CoOccurrenceTracker {
       }
     } catch {
       // No interaction log yet — that's fine
-      logger.debug({ groupId: this.groupId }, 'No interaction log found for co-occurrence');
+      logger.debug(
+        { groupId: this.groupId },
+        "No interaction log found for co-occurrence",
+      );
       return this.matrix;
     }
 
@@ -91,7 +94,7 @@ export class CoOccurrenceTracker {
         sessions: sessions.size,
         entries: Object.keys(this.matrix).length,
       },
-      'Co-occurrence matrix built'
+      "Co-occurrence matrix built",
     );
 
     return this.matrix;
@@ -100,7 +103,10 @@ export class CoOccurrenceTracker {
   /**
    * Get queries most commonly used with the given query.
    */
-  getRelated(queryName: string, topK: number = 5): Array<{ name: string; count: number }> {
+  getRelated(
+    queryName: string,
+    topK: number = 5,
+  ): Array<{ name: string; count: number }> {
     const related = this.matrix[queryName];
     if (!related) return [];
 
@@ -113,7 +119,7 @@ export class CoOccurrenceTracker {
   /** Load from disk */
   async load(): Promise<boolean> {
     try {
-      const raw = await fs.readFile(this.outputPath, 'utf-8');
+      const raw = await fs.readFile(this.outputPath, "utf-8");
       this.matrix = JSON.parse(raw);
       return true;
     } catch {
@@ -123,13 +129,20 @@ export class CoOccurrenceTracker {
 
   private async save(): Promise<void> {
     await fs.mkdir(dirname(this.outputPath), { recursive: true });
-    await fs.writeFile(this.outputPath, JSON.stringify(this.matrix, null, 2), 'utf-8');
+    await fs.writeFile(
+      this.outputPath,
+      JSON.stringify(this.matrix, null, 2),
+      "utf-8",
+    );
   }
 
-  private extractQueryName(entry: { userMessage?: string; entities?: Array<{ entity: string; value: string }> }): string | null {
+  private extractQueryName(entry: {
+    userMessage?: string;
+    entities?: Array<{ entity: string; value: string }>;
+  }): string | null {
     // Try entities first
     if (entry.entities) {
-      const qe = entry.entities.find((e) => e.entity === 'query_name');
+      const qe = entry.entities.find((e) => e.entity === "query_name");
       if (qe) return qe.value;
     }
     return null;

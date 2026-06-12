@@ -151,16 +151,16 @@ are written back to those same paths).
 
 **1. Copy — admin-authored config and content (carry these over):**
 
-| What                                         | Source (existing setup)                                                | Destination (shared volume)  |
-| -------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------- |
+| What                                         | Source (existing setup)                                            | Destination (shared volume)  |
+| -------------------------------------------- | ------------------------------------------------------------------ | ---------------------------- |
 | Groups, settings, users, filters, data-roles | `apps/engine/src/config/*.json`                                    | `$CONFIG_DIR/`               |
 | Query definitions (per-group files)          | `…/data/queries/*.json` (existing deployment)                      | `$DATA_DIR/queries/`         |
 | NLP corpus / FAQ                             | `apps/engine/src/training/` (`corpus.json`, `faq.json`, `groups/`) | `$TRAINING_DIR/`             |
-| Glossary (metric definitions)                | `…/data/glossary/*.json`                                               | `$DATA_DIR/glossary/`        |
-| Watch **rules**                              | `…/data/watch/<group>/rules.json`                                      | `$DATA_DIR/watch/<group>/`   |
-| Workflows                                    | `…/data/workflows/*.json`                                              | `$DATA_DIR/workflows/`       |
-| Saved GridBoard views                        | `…/data/gridboard-views/*.json`                                        | `$DATA_DIR/gridboard-views/` |
-| Uploaded knowledge docs                      | `…/data/knowledge/`                                                    | `$DATA_DIR/knowledge/`       |
+| Glossary (metric definitions)                | `…/data/glossary/*.json`                                           | `$DATA_DIR/glossary/`        |
+| Watch **rules**                              | `…/data/watch/<group>/rules.json`                                  | `$DATA_DIR/watch/<group>/`   |
+| Workflows                                    | `…/data/workflows/*.json`                                          | `$DATA_DIR/workflows/`       |
+| Saved GridBoard views                        | `…/data/gridboard-views/*.json`                                    | `$DATA_DIR/gridboard-views/` |
+| Uploaded knowledge docs                      | `…/data/knowledge/`                                                | `$DATA_DIR/knowledge/`       |
 
 **2. Provided as seed / built automatically — no script to run:**
 
@@ -229,12 +229,12 @@ Four compose files cover every topology. Each puts its services on an explicit
 env vars (`UI_HOST_PORT`, `ENGINE_HOST_PORT`, `MOCK_HOST_PORT`,
 `MSSQL_HOST_PORT`, `ORACLE_HOST_PORT`, `CSV_HOST_PORT`) when a default is taken:
 
-| Compose file                   | Stack                              | Data source                        | Env file    |
-| ------------------------------ | ---------------------------------- | ---------------------------------- | ----------- |
-| `docker-compose.full.yml`      | all 6 (UI + engine + mock + 3 conn)| mock/demo data, works out of box   | `.env.demo` |
-| `docker-compose.ui-engine.yml` | UI + engine                        | real tenant API                    | `.env.prod` |
-| `docker-compose.no-mock.yml`   | UI + engine + 3 connectors         | real API + connectors              | `.env.prod` |
-| `docker-compose.sample-db.yml` | sample MSSQL/Oracle DBs            | for connector testing only         | —           |
+| Compose file                   | Stack                               | Data source                      | Env file    |
+| ------------------------------ | ----------------------------------- | -------------------------------- | ----------- |
+| `docker-compose.full.yml`      | all 6 (UI + engine + mock + 3 conn) | mock/demo data, works out of box | `.env.demo` |
+| `docker-compose.ui-engine.yml` | UI + engine                         | real tenant API                  | `.env.prod` |
+| `docker-compose.no-mock.yml`   | UI + engine + 3 connectors          | real API + connectors            | `.env.prod` |
+| `docker-compose.sample-db.yml` | sample MSSQL/Oracle DBs             | for connector testing only       | —           |
 
 Demo / out-of-the-box mode with mock data (no secrets needed):
 

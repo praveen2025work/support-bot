@@ -4,7 +4,7 @@
  * Uses built-in fetch — no external HTML parser dependency needed.
  */
 
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 interface ParsedUrl {
   url: string;
@@ -21,7 +21,7 @@ interface ParsedUrl {
 function htmlToText(html: string): { title: string; text: string } {
   // Extract title
   const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-  const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+  const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : "";
 
   // Remove unwanted blocks
   let cleaned = html;
@@ -37,34 +37,34 @@ function htmlToText(html: string): { title: string; text: string } {
   ];
 
   for (const pattern of removePatterns) {
-    cleaned = cleaned.replace(pattern, ' ');
+    cleaned = cleaned.replace(pattern, " ");
   }
 
   // Replace block-level tags with newlines for paragraph detection
   cleaned = cleaned
-    .replace(/<\/(div|p|h[1-6]|li|tr|br|hr)[^>]*>/gi, '\n')
-    .replace(/<(br|hr)\s*\/?>/gi, '\n');
+    .replace(/<\/(div|p|h[1-6]|li|tr|br|hr)[^>]*>/gi, "\n")
+    .replace(/<(br|hr)\s*\/?>/gi, "\n");
 
   // Strip all remaining HTML tags
-  cleaned = cleaned.replace(/<[^>]+>/g, ' ');
+  cleaned = cleaned.replace(/<[^>]+>/g, " ");
 
   // Decode common HTML entities
   cleaned = cleaned
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&#\d+;/g, ' ')
-    .replace(/&\w+;/g, ' ');
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#\d+;/g, " ")
+    .replace(/&\w+;/g, " ");
 
   // Collapse whitespace
   const text = cleaned
-    .split('\n')
-    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .split("\n")
+    .map((line) => line.replace(/\s+/g, " ").trim())
     .filter(Boolean)
-    .join('\n');
+    .join("\n");
 
   return { title, text };
 }
@@ -80,8 +80,8 @@ export async function parseUrl(url: string): Promise<ParsedUrl> {
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        'User-Agent': 'ChatBot-URLParser/1.0',
-        'Accept': 'text/html,application/xhtml+xml,text/plain',
+        "User-Agent": "ChatBot-URLParser/1.0",
+        Accept: "text/html,application/xhtml+xml,text/plain",
       },
     });
 
@@ -93,7 +93,7 @@ export async function parseUrl(url: string): Promise<ParsedUrl> {
     const { title, text } = htmlToText(html);
     const wordCount = text.split(/\s+/).filter(Boolean).length;
 
-    logger.info({ url, title, wordCount }, 'URL parsed successfully');
+    logger.info({ url, title, wordCount }, "URL parsed successfully");
 
     return {
       url,

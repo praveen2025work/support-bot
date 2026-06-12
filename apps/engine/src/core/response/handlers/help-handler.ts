@@ -1,6 +1,10 @@
-import type { QueryService } from '../../api-connector/query-service';
-import type { ClassificationResult, BotResponse, ConversationContext } from '../../types';
-import { INTENTS } from '../../constants';
+import type { QueryService } from "../../api-connector/query-service";
+import type {
+  ClassificationResult,
+  BotResponse,
+  ConversationContext,
+} from "../../types";
+import { INTENTS } from "../../constants";
 
 /**
  * Handle help intent — returns a help template with contextual suggestions.
@@ -9,7 +13,7 @@ export async function handleHelp(
   classification: ClassificationResult,
   context: ConversationContext,
   templates: Record<string, string[]>,
-  queryService: QueryService
+  queryService: QueryService,
 ): Promise<BotResponse> {
   const tplList = templates[classification.intent];
   const text = tplList
@@ -19,12 +23,9 @@ export async function handleHelp(
   let suggestions: string[] = [];
   try {
     const names = await queryService.getQueryNames();
-    suggestions = [
-      'List queries',
-      ...names.slice(0, 3).map((n) => `Run ${n}`),
-    ];
+    suggestions = ["List queries", ...names.slice(0, 3).map((n) => `Run ${n}`)];
   } catch {
-    suggestions = ['List queries', 'Help'];
+    suggestions = ["List queries", "Help"];
   }
 
   return {

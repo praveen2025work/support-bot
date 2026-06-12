@@ -1,10 +1,14 @@
-import { computeColumnStats, isIqrOutlier } from '@/core/anomaly/numeric-utils';
-import { detectColumnTypes, type CsvData, type DetectedColumnMeta } from '@/core/api-connector/csv-analyzer';
+import { computeColumnStats, isIqrOutlier } from "@/core/anomaly/numeric-utils";
+import {
+  detectColumnTypes,
+  type CsvData,
+  type DetectedColumnMeta,
+} from "@/core/api-connector/csv-analyzer";
 
 /** Statistical profile for a single column. */
 export interface ColumnProfile {
   column: string;
-  type: DetectedColumnMeta['detectedType'];
+  type: DetectedColumnMeta["detectedType"];
   nullCount: number;
   nullPercent: number;
   cardinality: number;
@@ -39,7 +43,7 @@ export function profileColumns(data: CsvData): ColumnProfile[] {
   const profiles: ColumnProfile[] = [];
 
   for (const header of headers) {
-    const colType = typeMap.get(header) ?? 'string';
+    const colType = typeMap.get(header) ?? "string";
 
     // Null / empty counting
     let nullCount = 0;
@@ -47,7 +51,7 @@ export function profileColumns(data: CsvData): ColumnProfile[] {
 
     for (const row of rows) {
       const raw = row[header];
-      if (raw === undefined || raw === null || String(raw).trim() === '') {
+      if (raw === undefined || raw === null || String(raw).trim() === "") {
         nullCount++;
       } else {
         const key = String(raw);
@@ -55,9 +59,8 @@ export function profileColumns(data: CsvData): ColumnProfile[] {
       }
     }
 
-    const nullPercent = rows.length > 0
-      ? Math.round((nullCount / rows.length) * 10000) / 100
-      : 0;
+    const nullPercent =
+      rows.length > 0 ? Math.round((nullCount / rows.length) * 10000) / 100 : 0;
 
     // Top 5 values by frequency
     const topValues = [...freq.entries()]
@@ -75,12 +78,12 @@ export function profileColumns(data: CsvData): ColumnProfile[] {
     };
 
     // Numeric stats
-    const isNumeric = colType === 'integer' || colType === 'decimal';
+    const isNumeric = colType === "integer" || colType === "decimal";
     if (isNumeric) {
       const values: number[] = [];
       for (const row of rows) {
         const v = row[header];
-        const n = typeof v === 'number' ? v : parseFloat(String(v));
+        const n = typeof v === "number" ? v : parseFloat(String(v));
         if (!isNaN(n)) values.push(n);
       }
 
@@ -113,7 +116,11 @@ export function profileColumns(data: CsvData): ColumnProfile[] {
  *
  * Falls back to 0 when stdDev is zero or sample size is too small.
  */
-function computeSkewness(values: number[], mean: number, stdDev: number): number {
+function computeSkewness(
+  values: number[],
+  mean: number,
+  stdDev: number,
+): number {
   const n = values.length;
   if (n < 3 || stdDev === 0) return 0;
 
@@ -122,5 +129,5 @@ function computeSkewness(values: number[], mean: number, stdDev: number): number
     sum += ((v - mean) / stdDev) ** 3;
   }
 
-  return Math.round(((n / ((n - 1) * (n - 2))) * sum) * 1000) / 1000;
+  return Math.round((n / ((n - 1) * (n - 2))) * sum * 1000) / 1000;
 }

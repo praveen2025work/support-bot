@@ -1,6 +1,10 @@
-import { INTENTS } from '../../constants';
-import type { QueryService } from '../../api-connector/query-service';
-import type { ClassificationResult, BotResponse, ConversationContext } from '../../types';
+import { INTENTS } from "../../constants";
+import type { QueryService } from "../../api-connector/query-service";
+import type {
+  ClassificationResult,
+  BotResponse,
+  ConversationContext,
+} from "../../types";
 
 /**
  * Handle greeting intent — returns a random greeting template with contextual suggestions.
@@ -9,7 +13,7 @@ export async function handleGreeting(
   classification: ClassificationResult,
   context: ConversationContext,
   templates: Record<string, string[]>,
-  queryService: QueryService
+  queryService: QueryService,
 ): Promise<BotResponse> {
   const tplList = templates[classification.intent];
   const text = tplList
@@ -20,12 +24,12 @@ export async function handleGreeting(
   try {
     const names = await queryService.getQueryNames();
     suggestions = [
-      'List queries',
-      'Help',
+      "List queries",
+      "Help",
       ...names.slice(0, 2).map((n) => `Run ${n}`),
     ];
   } catch {
-    suggestions = ['List queries', 'Help'];
+    suggestions = ["List queries", "Help"];
   }
 
   return {
@@ -43,12 +47,12 @@ export async function handleGreeting(
 export function handleFarewell(
   classification: ClassificationResult,
   context: ConversationContext,
-  templates: Record<string, string[]>
+  templates: Record<string, string[]>,
 ): BotResponse {
   const tplList = templates[classification.intent];
   const text = tplList
     ? tplList[Math.floor(Math.random() * tplList.length)]
-    : 'Goodbye!';
+    : "Goodbye!";
 
   return {
     text,

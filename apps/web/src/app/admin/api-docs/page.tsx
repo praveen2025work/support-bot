@@ -42,8 +42,8 @@ export default function ApiDocsPage() {
           Chatbot Engine — OpenAPI 3.0
         </h1>
         <p className="text-xs text-gray-500 mt-1">
-          Hand-maintained spec at <code>apps/engine/openapi.json</code>.
-          Served from{" "}
+          Hand-maintained spec at <code>apps/engine/openapi.json</code>. Served
+          from{" "}
           <a
             href="/api/openapi.json"
             className="text-blue-600 hover:underline"

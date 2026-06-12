@@ -31,6 +31,7 @@ Dunning management retries failed payments on days 1, 3, 7, and 14 after initial
 Full refunds are processed within 5-10 business days. Partial refunds are supported and must include a reason code.
 
 Refund reason codes:
+
 - DUPLICATE: Duplicate charge
 - FRAUD: Fraudulent transaction
 - REQUEST: Customer request
@@ -38,14 +39,14 @@ Refund reason codes:
 
 ## API Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| /payments/charge | POST | Create a new payment |
-| /payments/{id} | GET | Get payment details |
-| /payments/{id}/refund | POST | Issue a refund |
-| /subscriptions | POST | Create subscription |
-| /subscriptions/{id} | PATCH | Update subscription |
-| /subscriptions/{id}/cancel | POST | Cancel subscription |
+| Endpoint                   | Method | Description          |
+| -------------------------- | ------ | -------------------- |
+| /payments/charge           | POST   | Create a new payment |
+| /payments/{id}             | GET    | Get payment details  |
+| /payments/{id}/refund      | POST   | Issue a refund       |
+| /subscriptions             | POST   | Create subscription  |
+| /subscriptions/{id}        | PATCH  | Update subscription  |
+| /subscriptions/{id}/cancel | POST   | Cancel subscription  |
 
 ## Performance Requirements
 
@@ -61,6 +62,7 @@ Transaction records are retained for 7 years per financial regulations. PII is e
 ## Integration Points
 
 The payments module integrates with:
+
 - **Accounting Service**: Real-time revenue recognition
 - **Notification Service**: Email receipts and payment failure alerts
 - **Analytics Pipeline**: Transaction data for reporting dashboards

@@ -1,8 +1,8 @@
-import { promises as fs } from 'fs';
-import { dirname } from 'path';
-import { logger } from '@/lib/logger';
-import { paths } from '@/lib/env-config';
-import type { UserQueryInteraction, UserCluster } from './types';
+import { promises as fs } from "fs";
+import { dirname } from "path";
+import { logger } from "@/lib/logger";
+import { paths } from "@/lib/env-config";
+import type { UserQueryInteraction, UserCluster } from "./types";
 
 /**
  * Groups users into clusters based on query usage similarity.
@@ -43,11 +43,17 @@ export class UserClustering {
     const vectors = new Map<string, number[]>();
     for (const userId of userIds) {
       const queries = userQueries.get(userId)!;
-      vectors.set(userId, queryList.map((q) => queries.has(q) ? 1 : 0));
+      vectors.set(
+        userId,
+        queryList.map((q) => (queries.has(q) ? 1 : 0)),
+      );
     }
 
     // Simple k-means (k = min(5, ceil(sqrt(n/2))))
-    const k = Math.min(5, Math.max(2, Math.ceil(Math.sqrt(userIds.length / 2))));
+    const k = Math.min(
+      5,
+      Math.max(2, Math.ceil(Math.sqrt(userIds.length / 2))),
+    );
     this.clusters = this.kMeans(userIds, vectors, queryList, k);
 
     // Build user → cluster map
@@ -59,11 +65,21 @@ export class UserClustering {
     }
 
     this.loaded = true;
-    logger.info({ groupId: this.groupId, users: userIds.length, clusters: this.clusters.length }, 'User clustering built');
+    logger.info(
+      {
+        groupId: this.groupId,
+        users: userIds.length,
+        clusters: this.clusters.length,
+      },
+      "User clustering built",
+    );
   }
 
   /** Get recommended queries for a user based on their cluster */
-  getClusterRecommendations(userId: string, topK: number = 5): Array<{ name: string; score: number }> {
+  getClusterRecommendations(
+    userId: string,
+    topK: number = 5,
+  ): Array<{ name: string; score: number }> {
     const clusterId = this.userClusterMap.get(userId);
     if (clusterId === undefined) return [];
 
@@ -72,7 +88,7 @@ export class UserClustering {
 
     return cluster.topQueries.slice(0, topK).map((name, i) => ({
       name,
-      score: 1 - (i / cluster.topQueries.length),
+      score: 1 - i / cluster.topQueries.length,
     }));
   }
 
@@ -80,14 +96,16 @@ export class UserClustering {
     userIds: string[],
     vectors: Map<string, number[]>,
     queryList: string[],
-    k: number
+    k: number,
   ): UserCluster[] {
     const dim = queryList.length;
     if (dim === 0) return [];
 
     // Initialize centroids randomly
     const shuffled = [...userIds].sort(() => Math.random() - 0.5);
-    let centroids: number[][] = shuffled.slice(0, k).map((uid) => [...vectors.get(uid)!]);
+    let centroids: number[][] = shuffled
+      .slice(0, k)
+      .map((uid) => [...vectors.get(uid)!]);
 
     let assignments = new Array(userIds.length).fill(0);
     const maxIterations = 10;
@@ -146,7 +164,10 @@ export class UserClustering {
         const vec = vectors.get(uid)!;
         for (let d = 0; d < dim; d++) {
           if (vec[d] > 0) {
-            queryCounts.set(queryList[d], (queryCounts.get(queryList[d]) || 0) + 1);
+            queryCounts.set(
+              queryList[d],
+              (queryCounts.get(queryList[d]) || 0) + 1,
+            );
           }
         }
       }
@@ -163,7 +184,9 @@ export class UserClustering {
   }
 
   private cosineSimilarity(a: number[], b: number[]): number {
-    let dot = 0, magA = 0, magB = 0;
+    let dot = 0,
+      magA = 0,
+      magB = 0;
     for (let i = 0; i < a.length; i++) {
       dot += a[i] * b[i];
       magA += a[i] * a[i];
@@ -176,12 +199,19 @@ export class UserClustering {
   async save(): Promise<void> {
     const filePath = paths.data.userClusters(this.groupId);
     await fs.mkdir(dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, JSON.stringify(this.clusters, null, 2), 'utf-8');
+    await fs.writeFile(
+      filePath,
+      JSON.stringify(this.clusters, null, 2),
+      "utf-8",
+    );
   }
 
   async load(): Promise<boolean> {
     try {
-      const raw = await fs.readFile(paths.data.userClusters(this.groupId), 'utf-8');
+      const raw = await fs.readFile(
+        paths.data.userClusters(this.groupId),
+        "utf-8",
+      );
       this.clusters = JSON.parse(raw);
       this.userClusterMap.clear();
       for (const cluster of this.clusters) {

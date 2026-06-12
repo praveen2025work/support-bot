@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { AsyncLocalStorage } from 'async_hooks';
-import { logger } from '@/lib/logger';
+import { Request, Response, NextFunction } from "express";
+import { AsyncLocalStorage } from "async_hooks";
+import { logger } from "@/lib/logger";
 
 export interface TenantContext {
   groupId: string;
@@ -12,10 +12,19 @@ export interface TenantContext {
 
 export const tenantStorage = new AsyncLocalStorage<TenantContext>();
 
-export function tenantContextMiddleware(req: Request, res: Response, next: NextFunction) {
-  const groupId = (req.body?.groupId || req.query?.groupId || 'default') as string;
-  const platform = (req.body?.platform || req.query?.platform || 'web') as string;
-  const requestId = req.headers['x-request-id'] as string || crypto.randomUUID();
+export function tenantContextMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  const groupId = (req.body?.groupId ||
+    req.query?.groupId ||
+    "default") as string;
+  const platform = (req.body?.platform ||
+    req.query?.platform ||
+    "web") as string;
+  const requestId =
+    (req.headers["x-request-id"] as string) || crypto.randomUUID();
 
   const context: TenantContext = {
     groupId,
@@ -26,7 +35,7 @@ export function tenantContextMiddleware(req: Request, res: Response, next: NextF
   };
 
   // Add request ID to response headers for tracing
-  res.setHeader('x-request-id', requestId);
+  res.setHeader("x-request-id", requestId);
 
   tenantStorage.run(context, () => next());
 }
@@ -40,7 +49,11 @@ export function getTenantContext(): TenantContext | undefined {
 export function getTenantLogger() {
   const ctx = getTenantContext();
   if (ctx) {
-    return logger.child({ groupId: ctx.groupId, requestId: ctx.requestId, platform: ctx.platform });
+    return logger.child({
+      groupId: ctx.groupId,
+      requestId: ctx.requestId,
+      platform: ctx.platform,
+    });
   }
   return logger;
 }

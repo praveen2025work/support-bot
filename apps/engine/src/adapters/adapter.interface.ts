@@ -1,11 +1,11 @@
-import type { ChatMessage, BotResponse } from '@/core/types';
+import type { ChatMessage, BotResponse } from "@/core/types";
 
 export interface IPlatformAdapter {
   readonly platform: string;
 
   parseIncoming(
     rawBody: unknown,
-    headers?: Record<string, string>
+    headers?: Record<string, string>,
   ): Promise<ChatMessage | null>;
 
   formatResponse(response: BotResponse): Promise<unknown>;
@@ -14,6 +14,6 @@ export interface IPlatformAdapter {
 
   verifyRequest(
     rawBody: unknown,
-    headers: Record<string, string>
+    headers: Record<string, string>,
   ): Promise<boolean>;
 }

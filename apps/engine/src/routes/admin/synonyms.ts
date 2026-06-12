@@ -291,11 +291,9 @@ router.delete(
       const existing = await readSynonyms(groupId);
       const idx = existing.findIndex((e) => e.canonical === canonical);
       if (idx < 0) {
-        return res
-          .status(404)
-          .json({
-            error: `No synonym entry found for canonical "${canonical}"`,
-          });
+        return res.status(404).json({
+          error: `No synonym entry found for canonical "${canonical}"`,
+        });
       }
       const next = existing.filter((_, i) => i !== idx);
       await writeSynonyms(groupId, next);

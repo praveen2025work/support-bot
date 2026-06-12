@@ -1,12 +1,12 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { TablePagination } from './TablePagination';
-import { fn } from '@storybook/test';
+import type { Meta, StoryObj } from "@storybook/react";
+import { TablePagination } from "./TablePagination";
+import { fn } from "@storybook/test";
 
 const meta: Meta<typeof TablePagination> = {
-  title: 'Chat/TablePagination',
+  title: "Chat/TablePagination",
   component: TablePagination,
-  tags: ['autodocs'],
-  parameters: { layout: 'padded' },
+  tags: ["autodocs"],
+  parameters: { layout: "padded" },
   args: {
     onPageChange: fn(),
     onExport: fn(),

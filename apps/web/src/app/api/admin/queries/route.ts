@@ -32,8 +32,7 @@ async function getXlsxSheetNames(
   if (ext !== ".xlsx" && ext !== ".xls") return [];
   try {
     const externalBase = queryFileBaseDir || process.env.FILE_BASE_DIR || "";
-    const baseDir =
-      externalBase || path.resolve(process.cwd(), "../engine");
+    const baseDir = externalBase || path.resolve(process.cwd(), "../engine");
     const resolved = path.resolve(baseDir, filePath);
     const buffer = await fs.readFile(resolved);
     // eslint-disable-next-line @typescript-eslint/no-require-imports

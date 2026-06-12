@@ -4,6 +4,7 @@ Goal: every app in its own top-level folder, each **independently buildable & de
 with no dependency on the repo root.
 
 ## Target layout
+
 ```
 Chatbot/
 ├── apps/
@@ -20,12 +21,14 @@ Chatbot/
 ```
 
 Decisions (confirmed with user):
+
 - Layout: `apps/` (deployables) + `packages/` (shared).
 - Dependencies: **self-contained per app** — each keeps its own `package.json`/lockfile/Dockerfile.
   Shared SQL router is **vendored** (committed copy) into each connector so its Docker build
   context is just its own folder; `packages/sql-connector` is the canonical source + sync script.
 
 ## Phases & status
+
 - [x] **P1 Backends + connectors** — DONE & verified: engine, mock-api, 3 connectors → `apps/`; shared → `packages/sql-connector`;
       vendored router into mssql/oracle (`@/shared/connectors-router`, rootDir→src); per-connector self-contained Dockerfiles;
       `scripts/sync-shared.mjs`. All 3 connectors + engine typecheck + esbuild-build green.
@@ -41,9 +44,11 @@ Decisions (confirmed with user):
       `sync:shared` ✓. Real connector image build: see verification log.
 
 ## Result
+
 All apps are independent top-level folders, each with its own `package.json` + lockfile + Dockerfile and
 buildable/deployable on its own:
+
 - `docker compose -f docker-compose.no-mock.yml build engine` — engine only
 - `docker compose -f docker-compose.no-mock.yml build mssql-connector` — one connector only
 - `docker build -t web apps/web` — UI only
-History preserved via `git mv` (783 renames). Branch: `refactor/monorepo-apps-layout`.
+  History preserved via `git mv` (783 renames). Branch: `refactor/monorepo-apps-layout`.

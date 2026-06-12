@@ -1,11 +1,11 @@
-import pino from 'pino';
-import { config } from './config';
+import pino from "pino";
+import { config } from "./config";
 
 // ---------------------------------------------------------------------------
 // Log-level configuration
 // Honour the LOG_LEVEL env var; fall back to 'debug' in dev, 'info' otherwise.
 // ---------------------------------------------------------------------------
-const level = process.env.LOG_LEVEL || (config.isDev ? 'debug' : 'info');
+const level = process.env.LOG_LEVEL || (config.isDev ? "debug" : "info");
 
 // ---------------------------------------------------------------------------
 // Sensitive data redaction
@@ -13,16 +13,16 @@ const level = process.env.LOG_LEVEL || (config.isDev ? 'debug' : 'info');
 // "[Redacted]" before the log record is serialised.
 // ---------------------------------------------------------------------------
 const redactPaths = [
-  'apiKey',
-  'api_key',
-  'token',
-  'password',
-  'secret',
-  'authorization',
-  'cookie',
+  "apiKey",
+  "api_key",
+  "token",
+  "password",
+  "secret",
+  "authorization",
+  "cookie",
   // Nested variants (e.g. req.headers.authorization)
-  'req.headers.authorization',
-  'req.headers.cookie',
+  "req.headers.authorization",
+  "req.headers.cookie",
 ];
 
 // ---------------------------------------------------------------------------
@@ -40,11 +40,11 @@ export const logger = pino({
   level,
   redact: {
     paths: redactPaths,
-    censor: '[Redacted]',
+    censor: "[Redacted]",
   },
   ...(config.isDev && {
     transport: {
-      target: 'pino-pretty',
+      target: "pino-pretty",
       options: { colorize: true },
     },
   }),

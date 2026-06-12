@@ -1,23 +1,25 @@
-import { promises as fs } from 'fs';
-import { dirname } from 'path';
-import { logger } from '@/lib/logger';
-import { DocumentManager } from '../document-index/document-manager';
-import { paths } from '@/lib/env-config';
-import type { Chunk } from '../document-index/chunker';
+import { promises as fs } from "fs";
+import { dirname } from "path";
+import { logger } from "@/lib/logger";
+import { DocumentManager } from "../document-index/document-manager";
+import { paths } from "@/lib/env-config";
+import type { Chunk } from "../document-index/chunker";
 
 interface AutoFaqEntry {
   question: string;
   intent: string;
   answer: string;
-  source: 'heading_question' | 'definition' | 'qa_pattern';
+  source: "heading_question" | "definition" | "qa_pattern";
   generatedAt: string;
 }
 
 // Patterns for detecting FAQ-like content
 const QA_PATTERN = /^(?:Q:|Question:|\?)\s*(.+)/i;
 const ANSWER_PATTERN = /^(?:A:|Answer:)\s*(.+)/i;
-const DEFINITION_PATTERN = /^(.{5,50})\s+(?:is|are|refers?\s+to|means?|can\s+be\s+defined\s+as)\s+(.{20,})/i;
-const HEADING_QUESTION_PATTERN = /^(?:what|how|why|when|where|who|which|can|does|is|are)\s/i;
+const DEFINITION_PATTERN =
+  /^(.{5,50})\s+(?:is|are|refers?\s+to|means?|can\s+be\s+defined\s+as)\s+(.{20,})/i;
+const HEADING_QUESTION_PATTERN =
+  /^(?:what|how|why|when|where|who|which|can|does|is|are)\s/i;
 
 /**
  * Auto-FAQ Generator — scans indexed documents for FAQ-like patterns
@@ -27,7 +29,7 @@ export class AutoFaqGenerator {
   private groupId: string;
   private outputPath: string;
 
-  constructor(groupId: string = 'default') {
+  constructor(groupId: string = "default") {
     this.groupId = groupId;
     this.outputPath = paths.data.autoFaqs(groupId);
   }
@@ -43,7 +45,7 @@ export class AutoFaqGenerator {
     const chunks = index.getChunks();
 
     if (chunks.length === 0) {
-      logger.info({ groupId: this.groupId }, 'No chunks to scan for auto-FAQ');
+      logger.info({ groupId: this.groupId }, "No chunks to scan for auto-FAQ");
       return [];
     }
 
@@ -53,15 +55,15 @@ export class AutoFaqGenerator {
     for (const chunk of chunks) {
       // 1. Check heading-as-question
       if (chunk.heading && HEADING_QUESTION_PATTERN.test(chunk.heading)) {
-        const question = chunk.heading.replace(/\?$/, '').trim();
+        const question = chunk.heading.replace(/\?$/, "").trim();
         const answer = this.extractFirstSentence(chunk.text);
         if (answer && !seen.has(question.toLowerCase())) {
           seen.add(question.toLowerCase());
           entries.push({
-            question: question + '?',
-            intent: 'knowledge.search',
+            question: question + "?",
+            intent: "knowledge.search",
             answer,
-            source: 'heading_question',
+            source: "heading_question",
             generatedAt: new Date().toISOString(),
           });
         }
@@ -91,7 +93,7 @@ export class AutoFaqGenerator {
       await this.save(entries);
       logger.info(
         { groupId: this.groupId, count: entries.length },
-        'Auto-FAQ entries generated'
+        "Auto-FAQ entries generated",
       );
     }
 
@@ -103,7 +105,7 @@ export class AutoFaqGenerator {
    */
   async load(): Promise<AutoFaqEntry[]> {
     try {
-      const raw = await fs.readFile(this.outputPath, 'utf-8');
+      const raw = await fs.readFile(this.outputPath, "utf-8");
       return JSON.parse(raw) as AutoFaqEntry[];
     } catch {
       return [];
@@ -112,15 +114,15 @@ export class AutoFaqGenerator {
 
   private extractQAPairs(chunk: Chunk): AutoFaqEntry[] {
     const results: AutoFaqEntry[] = [];
-    const lines = chunk.text.split('\n');
+    const lines = chunk.text.split("\n");
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       const qMatch = QA_PATTERN.exec(line);
       if (qMatch) {
-        const question = qMatch[1].replace(/\?$/, '').trim();
+        const question = qMatch[1].replace(/\?$/, "").trim();
         // Look for answer on next line(s)
-        let answer = '';
+        let answer = "";
         for (let j = i + 1; j < Math.min(i + 3, lines.length); j++) {
           const nextLine = lines[j].trim();
           const aMatch = ANSWER_PATTERN.exec(nextLine);
@@ -135,10 +137,11 @@ export class AutoFaqGenerator {
 
         if (question.length >= 10 && answer.length >= 10) {
           results.push({
-            question: question + '?',
-            intent: 'knowledge.search',
-            answer: answer.length > 200 ? answer.substring(0, 200) + '...' : answer,
-            source: 'qa_pattern',
+            question: question + "?",
+            intent: "knowledge.search",
+            answer:
+              answer.length > 200 ? answer.substring(0, 200) + "..." : answer,
+            source: "qa_pattern",
             generatedAt: new Date().toISOString(),
           });
         }
@@ -162,11 +165,12 @@ export class AutoFaqGenerator {
 
         results.push({
           question: `What is ${term}?`,
-          intent: 'knowledge.search',
-          answer: sentence.trim().length > 200
-            ? sentence.trim().substring(0, 200) + '...'
-            : sentence.trim(),
-          source: 'definition',
+          intent: "knowledge.search",
+          answer:
+            sentence.trim().length > 200
+              ? sentence.trim().substring(0, 200) + "..."
+              : sentence.trim(),
+          source: "definition",
           generatedAt: new Date().toISOString(),
         });
       }
@@ -179,13 +183,17 @@ export class AutoFaqGenerator {
     const sentences = text.split(/(?<=[.!?])\s+/);
     const first = sentences[0]?.trim();
     if (first && first.length >= 15) {
-      return first.length > 200 ? first.substring(0, 200) + '...' : first;
+      return first.length > 200 ? first.substring(0, 200) + "..." : first;
     }
     return null;
   }
 
   private async save(entries: AutoFaqEntry[]): Promise<void> {
     await fs.mkdir(dirname(this.outputPath), { recursive: true });
-    await fs.writeFile(this.outputPath, JSON.stringify(entries, null, 2), 'utf-8');
+    await fs.writeFile(
+      this.outputPath,
+      JSON.stringify(entries, null, 2),
+      "utf-8",
+    );
   }
 }

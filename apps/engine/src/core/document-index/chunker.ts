@@ -35,9 +35,9 @@ export function chunkDocument(
   documentId: string,
   text: string,
   maxWordsPerChunk: number = 300,
-  overlapWords: number = 50
+  overlapWords: number = 50,
 ): Chunk[] {
-  const lines = text.split('\n');
+  const lines = text.split("\n");
   const rawSections = splitByHeadings(lines);
   const chunks: Chunk[] = [];
   let position = 0;
@@ -63,7 +63,7 @@ export function chunkDocument(
       let start = 0;
       while (start < words.length) {
         const end = Math.min(start + maxWordsPerChunk, words.length);
-        const chunkText = words.slice(start, end).join(' ');
+        const chunkText = words.slice(start, end).join(" ");
         const sentences = splitSentences(chunkText);
         chunks.push({
           id: `${documentId}_chunk_${position}`,
@@ -101,7 +101,7 @@ function splitByHeadings(lines: string[]): RawSection[] {
 
   if (headingIndices.length === 0) {
     // No headings — split by double newlines (paragraphs)
-    const paragraphs = lines.join('\n').split(/\n\s*\n/);
+    const paragraphs = lines.join("\n").split(/\n\s*\n/);
     for (const para of paragraphs) {
       const trimmed = para.trim();
       if (trimmed.length > 0) {
@@ -113,7 +113,7 @@ function splitByHeadings(lines: string[]): RawSection[] {
 
   // Content before first heading
   if (headingIndices[0] > 0) {
-    const preContent = lines.slice(0, headingIndices[0]).join('\n').trim();
+    const preContent = lines.slice(0, headingIndices[0]).join("\n").trim();
     if (preContent.length > 0) {
       sections.push({ heading: null, content: preContent });
     }
@@ -122,9 +122,13 @@ function splitByHeadings(lines: string[]): RawSection[] {
   // Each heading to next heading (or end)
   for (let i = 0; i < headingIndices.length; i++) {
     const start = headingIndices[i];
-    const end = i + 1 < headingIndices.length ? headingIndices[i + 1] : lines.length;
-    const heading = lines[start].trim().replace(/^#+\s+/, '');
-    const body = lines.slice(start + 1, end).join('\n').trim();
+    const end =
+      i + 1 < headingIndices.length ? headingIndices[i + 1] : lines.length;
+    const heading = lines[start].trim().replace(/^#+\s+/, "");
+    const body = lines
+      .slice(start + 1, end)
+      .join("\n")
+      .trim();
     if (body.length > 0) {
       sections.push({ heading, content: body });
     }

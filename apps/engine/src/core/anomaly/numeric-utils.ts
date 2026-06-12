@@ -1,7 +1,9 @@
 /**
  * Extract columns that contain numeric values from a data array.
  */
-export function extractNumericColumns(data: Record<string, unknown>[]): string[] {
+export function extractNumericColumns(
+  data: Record<string, unknown>[],
+): string[] {
   if (data.length === 0) return [];
   const first = data[0];
   return Object.keys(first).filter((key) => {
@@ -9,7 +11,10 @@ export function extractNumericColumns(data: Record<string, unknown>[]): string[]
     const sample = data.slice(0, Math.min(5, data.length));
     return sample.every((row) => {
       const v = row[key];
-      return typeof v === 'number' || (typeof v === 'string' && !isNaN(Number(v)) && v.trim() !== '');
+      return (
+        typeof v === "number" ||
+        (typeof v === "string" && !isNaN(Number(v)) && v.trim() !== "")
+      );
     });
   });
 }
@@ -25,7 +30,8 @@ export function computeColumnStats(values: number[]): {
   p25: number;
   p75: number;
 } {
-  if (values.length === 0) return { mean: 0, stdDev: 0, min: 0, max: 0, p25: 0, p75: 0 };
+  if (values.length === 0)
+    return { mean: 0, stdDev: 0, min: 0, max: 0, p25: 0, p75: 0 };
 
   const sorted = [...values].sort((a, b) => a - b);
   const n = sorted.length;
@@ -62,7 +68,10 @@ export function isIqrOutlier(value: number, p25: number, p75: number): boolean {
 /**
  * Compute aggregated value for a numeric column (sum for totals).
  */
-export function aggregateColumn(data: Record<string, unknown>[], column: string): number {
+export function aggregateColumn(
+  data: Record<string, unknown>[],
+  column: string,
+): number {
   let sum = 0;
   for (const row of data) {
     const v = Number(row[column]);

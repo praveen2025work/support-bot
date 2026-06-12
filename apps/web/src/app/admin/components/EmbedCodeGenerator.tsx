@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 
-type TabId = 'iframe' | 'widget';
+type TabId = "iframe" | "widget";
 
 /**
  * Escape HTML entities to prevent injection in generated embed code.
  */
 function escapeHtml(str: string): string {
   return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 /**
@@ -22,28 +22,28 @@ function escapeHtml(str: string): string {
  */
 function escapeJsString(str: string): string {
   return str
-    .replace(/\\/g, '\\\\')
+    .replace(/\\/g, "\\\\")
     .replace(/'/g, "\\'")
-    .replace(/</g, '\\x3c')
-    .replace(/>/g, '\\x3e')
-    .replace(/&/g, '\\x26');
+    .replace(/</g, "\\x3c")
+    .replace(/>/g, "\\x3e")
+    .replace(/&/g, "\\x26");
 }
 
 export function EmbedCodeGenerator({ groupId }: { groupId: string }) {
-  const [activeTab, setActiveTab] = useState<TabId>('widget');
-  const [width, setWidth] = useState('400');
-  const [height, setHeight] = useState('600');
+  const [activeTab, setActiveTab] = useState<TabId>("widget");
+  const [width, setWidth] = useState("400");
+  const [height, setHeight] = useState("600");
   const [copied, setCopied] = useState(false);
-  const [theme, setTheme] = useState('blue');
-  const [position, setPosition] = useState('bottom-right');
-  const [greeting, setGreeting] = useState('');
-  const [iconType, setIconType] = useState('bot');
+  const [theme, setTheme] = useState("blue");
+  const [position, setPosition] = useState("bottom-right");
+  const [greeting, setGreeting] = useState("");
+  const [iconType, setIconType] = useState("bot");
 
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   // Sanitize width/height to digits only
-  const safeWidth = width.replace(/\D/g, '') || '400';
-  const safeHeight = height.replace(/\D/g, '') || '600';
+  const safeWidth = width.replace(/\D/g, "") || "400";
+  const safeHeight = height.replace(/\D/g, "") || "600";
 
   const iframeSnippet = `<iframe
   src="${escapeHtml(baseUrl)}/widget?group=${escapeHtml(encodeURIComponent(groupId))}"
@@ -57,13 +57,15 @@ export function EmbedCodeGenerator({ groupId }: { groupId: string }) {
   const widgetConfig = [
     `  baseUrl: '${escapeJsString(baseUrl)}',`,
     `  group: '${escapeJsString(groupId)}',`,
-    theme !== 'blue' ? `  theme: '${escapeJsString(theme)}',` : '',
-    position !== 'bottom-right' ? `  position: '${escapeJsString(position)}',` : '',
-    greeting ? `  greeting: '${escapeJsString(greeting)}',` : '',
-    iconType !== 'bot' ? `  iconType: '${escapeJsString(iconType)}',` : '',
+    theme !== "blue" ? `  theme: '${escapeJsString(theme)}',` : "",
+    position !== "bottom-right"
+      ? `  position: '${escapeJsString(position)}',`
+      : "",
+    greeting ? `  greeting: '${escapeJsString(greeting)}',` : "",
+    iconType !== "bot" ? `  iconType: '${escapeJsString(iconType)}',` : "",
   ]
     .filter(Boolean)
-    .join('\n');
+    .join("\n");
 
   const widgetSnippet = `<!-- Chatbot Widget -->
 <script>
@@ -73,7 +75,7 @@ ${widgetConfig}
 </script>
 <script src="${escapeHtml(baseUrl)}/widget/chatbot-widget.js"></script>`;
 
-  const snippet = activeTab === 'iframe' ? iframeSnippet : widgetSnippet;
+  const snippet = activeTab === "iframe" ? iframeSnippet : widgetSnippet;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(snippet);
@@ -86,21 +88,21 @@ ${widgetConfig}
       {/* Tabs */}
       <div className="flex border-b border-gray-200 mb-4">
         <button
-          onClick={() => setActiveTab('widget')}
+          onClick={() => setActiveTab("widget")}
           className={`px-4 py-2 text-xs font-medium border-b-2 transition-colors ${
-            activeTab === 'widget'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+            activeTab === "widget"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
           }`}
         >
           Widget Script
         </button>
         <button
-          onClick={() => setActiveTab('iframe')}
+          onClick={() => setActiveTab("iframe")}
           className={`px-4 py-2 text-xs font-medium border-b-2 transition-colors ${
-            activeTab === 'iframe'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+            activeTab === "iframe"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
           }`}
         >
           Inline Iframe
@@ -108,7 +110,7 @@ ${widgetConfig}
       </div>
 
       {/* Config options */}
-      {activeTab === 'widget' ? (
+      {activeTab === "widget" ? (
         <div className="grid grid-cols-2 gap-3 mb-3">
           <label className="text-xs text-gray-600">
             Theme
@@ -187,7 +189,7 @@ ${widgetConfig}
         onClick={handleCopy}
         className="mt-2 px-4 py-1.5 text-xs font-medium bg-gray-700 text-white rounded hover:bg-gray-800 transition-colors"
       >
-        {copied ? 'Copied!' : 'Copy to Clipboard'}
+        {copied ? "Copied!" : "Copy to Clipboard"}
       </button>
     </div>
   );

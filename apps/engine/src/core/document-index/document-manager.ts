@@ -1,10 +1,10 @@
-import { promises as fs } from 'fs';
-import { join, extname } from 'path';
-import { logger } from '@/lib/logger';
-import { extractText, type ExtractionResult } from './text-extractor';
-import { chunkDocument, type Chunk } from './chunker';
-import { TfIdfIndex } from './tfidf-index';
-import { paths, KNOWLEDGE_DIR } from '@/lib/env-config';
+import { promises as fs } from "fs";
+import { join, extname } from "path";
+import { logger } from "@/lib/logger";
+import { extractText, type ExtractionResult } from "./text-extractor";
+import { chunkDocument, type Chunk } from "./chunker";
+import { TfIdfIndex } from "./tfidf-index";
+import { paths, KNOWLEDGE_DIR } from "@/lib/env-config";
 
 export interface DocumentMeta {
   id: string;
@@ -42,7 +42,7 @@ export class DocumentManager {
   }
 
   /** Get or create a singleton instance for a group */
-  static getInstance(groupId: string = 'default'): DocumentManager {
+  static getInstance(groupId: string = "default"): DocumentManager {
     if (!instances.has(groupId)) {
       instances.set(groupId, new DocumentManager(groupId));
     }
@@ -62,31 +62,38 @@ export class DocumentManager {
    */
   async addDocument(
     buffer: Buffer,
-    filename: string
+    filename: string,
   ): Promise<{ meta: DocumentMeta; extraction: ExtractionResult }> {
     await this.ensureLoaded();
 
     const ext = extname(filename);
-    const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '-');
-    const documentId = `doc_${Date.now()}_${safeName.replace(/\.[^.]+$/, '')}`;
+    const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "-");
+    const documentId = `doc_${Date.now()}_${safeName.replace(/\.[^.]+$/, "")}`;
 
-    logger.info({ filename: safeName, documentId }, 'Starting document ingestion');
+    logger.info(
+      { filename: safeName, documentId },
+      "Starting document ingestion",
+    );
 
     // 1. Extract text
     const extraction = await extractText(buffer, ext);
     logger.info(
       { documentId, words: extraction.wordCount, format: extraction.format },
-      'Text extracted'
+      "Text extracted",
     );
 
     // 2. Save extracted text to knowledge directory
     await fs.mkdir(KNOWLEDGE_DIR, { recursive: true });
-    const textFilename = safeName.replace(/\.[^.]+$/, '.md');
-    await fs.writeFile(join(KNOWLEDGE_DIR, textFilename), extraction.rawText, 'utf-8');
+    const textFilename = safeName.replace(/\.[^.]+$/, ".md");
+    await fs.writeFile(
+      join(KNOWLEDGE_DIR, textFilename),
+      extraction.rawText,
+      "utf-8",
+    );
 
     // 3. Chunk the document
     const chunks = chunkDocument(documentId, extraction.rawText);
-    logger.info({ documentId, chunks: chunks.length }, 'Document chunked');
+    logger.info({ documentId, chunks: chunks.length }, "Document chunked");
 
     // 4. Add to TF-IDF index
     this.index.addChunks(chunks);
@@ -109,7 +116,10 @@ export class DocumentManager {
     // 6. Persist
     await Promise.all([this.saveRegistry(), this.index.save()]);
 
-    logger.info({ documentId, filename: safeName }, 'Document ingestion complete');
+    logger.info(
+      { documentId, filename: safeName },
+      "Document ingestion complete",
+    );
     return { meta, extraction };
   }
 
@@ -125,7 +135,10 @@ export class DocumentManager {
     this.index.removeDocument(documentId);
 
     await Promise.all([this.saveRegistry(), this.index.save()]);
-    logger.info({ documentId, filename: doc.filename }, 'Document removed from index');
+    logger.info(
+      { documentId, filename: doc.filename },
+      "Document removed from index",
+    );
     return true;
   }
 
@@ -165,12 +178,12 @@ export class DocumentManager {
 
   private async loadRegistry(): Promise<void> {
     try {
-      const raw = await fs.readFile(this.registryPath, 'utf-8');
+      const raw = await fs.readFile(this.registryPath, "utf-8");
       const data: DocumentRegistry = JSON.parse(raw);
       this.registry = data.documents;
       logger.info(
         { groupId: this.groupId, docs: this.registry.length },
-        'Document registry loaded'
+        "Document registry loaded",
       );
     } catch {
       // No registry yet — that's fine
@@ -185,6 +198,10 @@ export class DocumentManager {
       documents: this.registry,
       updatedAt: new Date().toISOString(),
     };
-    await fs.writeFile(this.registryPath, JSON.stringify(data, null, 2), 'utf-8');
+    await fs.writeFile(
+      this.registryPath,
+      JSON.stringify(data, null, 2),
+      "utf-8",
+    );
   }
 }

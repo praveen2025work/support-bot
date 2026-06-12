@@ -1,5 +1,5 @@
-import { extractNumericColumns } from '@/core/anomaly/numeric-utils';
-import type { CsvData } from '@/core/api-connector/csv-analyzer';
+import { extractNumericColumns } from "@/core/anomaly/numeric-utils";
+import type { CsvData } from "@/core/api-connector/csv-analyzer";
 
 /** A node in the CART decision tree. */
 export interface TreeNode {
@@ -48,7 +48,7 @@ function majorityClass(labels: string[]): string {
   for (const label of labels) {
     counts.set(label, (counts.get(label) ?? 0) + 1);
   }
-  let best = '';
+  let best = "";
   let bestCount = -1;
   for (const [cls, count] of counts) {
     if (count > bestCount) {
@@ -65,7 +65,7 @@ function majorityClass(labels: string[]): string {
 function findBestSplit(
   featureValues: number[],
   labels: string[],
-  minSamplesLeaf: number
+  minSamplesLeaf: number,
 ): { threshold: number; gain: number } | null {
   const n = featureValues.length;
   if (n < 2 * minSamplesLeaf) return null;
@@ -83,13 +83,17 @@ function findBestSplit(
   for (let i = minSamplesLeaf - 1; i < n - minSamplesLeaf; i++) {
     if (featureValues[indices[i]] === featureValues[indices[i + 1]]) continue;
 
-    const threshold = (featureValues[indices[i]] + featureValues[indices[i + 1]]) / 2;
+    const threshold =
+      (featureValues[indices[i]] + featureValues[indices[i + 1]]) / 2;
     const leftLabels = indices.slice(0, i + 1).map((idx) => labels[idx]);
     const rightLabels = indices.slice(i + 1).map((idx) => labels[idx]);
 
     const leftWeight = leftLabels.length / n;
     const rightWeight = rightLabels.length / n;
-    const gain = parentGini - leftWeight * giniImpurity(leftLabels) - rightWeight * giniImpurity(rightLabels);
+    const gain =
+      parentGini -
+      leftWeight * giniImpurity(leftLabels) -
+      rightWeight * giniImpurity(rightLabels);
 
     if (gain > bestGain) {
       bestGain = gain;
@@ -111,7 +115,7 @@ function buildNode(
   depth: number,
   maxDepth: number,
   minSamplesLeaf: number,
-  importanceAcc: Record<string, number>
+  importanceAcc: Record<string, number>,
 ): TreeNode {
   const gini = giniImpurity(labels);
 
@@ -120,14 +124,14 @@ function buildNode(
     return { prediction: majorityClass(labels), gini, samples: labels.length };
   }
 
-  let bestFeature = '';
+  let bestFeature = "";
   let bestThreshold = 0;
   let bestGain = 0;
 
   for (const feature of features) {
     const values = rows.map((row) => {
       const v = row[feature];
-      return typeof v === 'number' ? v : parseFloat(String(v)) || 0;
+      return typeof v === "number" ? v : parseFloat(String(v)) || 0;
     });
 
     const result = findBestSplit(values, labels, minSamplesLeaf);
@@ -144,7 +148,8 @@ function buildNode(
   }
 
   // Record feature importance (weighted impurity decrease)
-  importanceAcc[bestFeature] = (importanceAcc[bestFeature] ?? 0) + bestGain * labels.length;
+  importanceAcc[bestFeature] =
+    (importanceAcc[bestFeature] ?? 0) + bestGain * labels.length;
 
   // Split data
   const leftRows: Record<string, string | number>[] = [];
@@ -154,7 +159,7 @@ function buildNode(
 
   for (let i = 0; i < rows.length; i++) {
     const v = rows[i][bestFeature];
-    const num = typeof v === 'number' ? v : parseFloat(String(v)) || 0;
+    const num = typeof v === "number" ? v : parseFloat(String(v)) || 0;
     if (num <= bestThreshold) {
       leftRows.push(rows[i]);
       leftLabels.push(labels[i]);
@@ -169,20 +174,39 @@ function buildNode(
     threshold: Math.round(bestThreshold * 1000) / 1000,
     gini,
     samples: labels.length,
-    left: buildNode(leftRows, leftLabels, features, depth + 1, maxDepth, minSamplesLeaf, importanceAcc),
-    right: buildNode(rightRows, rightLabels, features, depth + 1, maxDepth, minSamplesLeaf, importanceAcc),
+    left: buildNode(
+      leftRows,
+      leftLabels,
+      features,
+      depth + 1,
+      maxDepth,
+      minSamplesLeaf,
+      importanceAcc,
+    ),
+    right: buildNode(
+      rightRows,
+      rightLabels,
+      features,
+      depth + 1,
+      maxDepth,
+      minSamplesLeaf,
+      importanceAcc,
+    ),
   };
 }
 
 /**
  * Predict the class for a single row using a trained tree.
  */
-function predictRow(node: TreeNode, row: Record<string, string | number>): string {
+function predictRow(
+  node: TreeNode,
+  row: Record<string, string | number>,
+): string {
   if (node.prediction !== undefined) return node.prediction;
-  if (!node.feature || node.threshold === undefined) return '';
+  if (!node.feature || node.threshold === undefined) return "";
 
   const v = row[node.feature];
-  const num = typeof v === 'number' ? v : parseFloat(String(v)) || 0;
+  const num = typeof v === "number" ? v : parseFloat(String(v)) || 0;
 
   if (num <= node.threshold && node.left) {
     return predictRow(node.left, row);
@@ -190,7 +214,7 @@ function predictRow(node: TreeNode, row: Record<string, string | number>): strin
   if (node.right) {
     return predictRow(node.right, row);
   }
-  return '';
+  return "";
 }
 
 /**
@@ -203,7 +227,10 @@ function predictRow(node: TreeNode, row: Record<string, string | number>): strin
  * @param targetColumn - The column to predict (treated as categorical).
  * @returns Decision tree result or null if data is insufficient.
  */
-export function buildDecisionTree(data: CsvData, targetColumn: string): DecisionTreeResult | null {
+export function buildDecisionTree(
+  data: CsvData,
+  targetColumn: string,
+): DecisionTreeResult | null {
   if (data.rows.length < 10) return null;
   if (!data.headers.includes(targetColumn)) return null;
 
@@ -211,26 +238,40 @@ export function buildDecisionTree(data: CsvData, targetColumn: string): Decision
   const minSamplesLeaf = 5;
 
   // Get numeric feature columns (excluding target)
-  const numericCols = extractNumericColumns(data.rows as Record<string, unknown>[]);
+  const numericCols = extractNumericColumns(
+    data.rows as Record<string, unknown>[],
+  );
   const features = numericCols.filter((c) => c !== targetColumn);
   if (features.length === 0) return null;
 
   // Extract labels
-  const labels = data.rows.map((row) => String(row[targetColumn] ?? ''));
+  const labels = data.rows.map((row) => String(row[targetColumn] ?? ""));
   const classes = [...new Set(labels)].sort();
   if (classes.length < 2) return null;
 
   // Build tree
   const importanceAcc: Record<string, number> = {};
-  const tree = buildNode(data.rows, labels, features, 0, maxDepth, minSamplesLeaf, importanceAcc);
+  const tree = buildNode(
+    data.rows,
+    labels,
+    features,
+    0,
+    maxDepth,
+    minSamplesLeaf,
+    importanceAcc,
+  );
 
   // Normalize feature importance to sum to 1
-  const totalImportance = Object.values(importanceAcc).reduce((a, b) => a + b, 0);
+  const totalImportance = Object.values(importanceAcc).reduce(
+    (a, b) => a + b,
+    0,
+  );
   const featureImportance: Record<string, number> = {};
   for (const [feat, imp] of Object.entries(importanceAcc)) {
-    featureImportance[feat] = totalImportance > 0
-      ? Math.round((imp / totalImportance) * 10000) / 10000
-      : 0;
+    featureImportance[feat] =
+      totalImportance > 0
+        ? Math.round((imp / totalImportance) * 10000) / 10000
+        : 0;
   }
 
   // Predict on training data
@@ -249,9 +290,13 @@ export function buildDecisionTree(data: CsvData, targetColumn: string): Decision
     const key = `${labels[i]}|||${predictions[i]}`;
     cmMap.set(key, (cmMap.get(key) ?? 0) + 1);
   }
-  const confusionMatrix: { actual: string; predicted: string; count: number }[] = [];
+  const confusionMatrix: {
+    actual: string;
+    predicted: string;
+    count: number;
+  }[] = [];
   for (const [key, count] of cmMap) {
-    const [actual, predicted] = key.split('|||');
+    const [actual, predicted] = key.split("|||");
     confusionMatrix.push({ actual, predicted, count });
   }
 

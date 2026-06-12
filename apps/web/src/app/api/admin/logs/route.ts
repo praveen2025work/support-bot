@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { readFileSync, existsSync, writeFileSync } from 'fs';
-import { join } from 'path';
-import { decryptLogEntry } from '@/lib/log-encryption';
+import { NextRequest, NextResponse } from "next/server";
+import { readFileSync, existsSync, writeFileSync } from "fs";
+import { join } from "path";
+import { decryptLogEntry } from "@/lib/log-encryption";
 
-const LOGS_PATH = join(process.cwd(), 'data/logs/conversations.jsonl');
+const LOGS_PATH = join(process.cwd(), "data/logs/conversations.jsonl");
 
 interface LogEntry {
   timestamp: string;
@@ -24,27 +24,34 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ logs: [], total: 0 });
     }
 
-    const raw = readFileSync(LOGS_PATH, 'utf-8');
-    const lines = raw.trim().split('\n').filter(Boolean);
-    const logs: LogEntry[] = lines.map((line) => {
-      try { return JSON.parse(decryptLogEntry(line)); } catch { return null; }
-    }).filter(Boolean);
+    const raw = readFileSync(LOGS_PATH, "utf-8");
+    const lines = raw.trim().split("\n").filter(Boolean);
+    const logs: LogEntry[] = lines
+      .map((line) => {
+        try {
+          return JSON.parse(decryptLogEntry(line));
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
 
     // Apply filters
     const { searchParams } = new URL(request.url);
-    const group = searchParams.get('group');
-    const intent = searchParams.get('intent');
-    const search = searchParams.get('search');
-    const limit = parseInt(searchParams.get('limit') || '100', 10);
+    const group = searchParams.get("group");
+    const intent = searchParams.get("intent");
+    const search = searchParams.get("search");
+    const limit = parseInt(searchParams.get("limit") || "100", 10);
 
     let filtered = logs;
     if (group) filtered = filtered.filter((l) => l.groupId === group);
     if (intent) filtered = filtered.filter((l) => l.intent === intent);
     if (search) {
       const q = search.toLowerCase();
-      filtered = filtered.filter((l) =>
-        l.userMessage.toLowerCase().includes(q) ||
-        l.botResponse.toLowerCase().includes(q)
+      filtered = filtered.filter(
+        (l) =>
+          l.userMessage.toLowerCase().includes(q) ||
+          l.botResponse.toLowerCase().includes(q),
       );
     }
 
@@ -71,7 +78,7 @@ export async function GET(request: NextRequest) {
 // DELETE — clear all logs
 export async function DELETE() {
   try {
-    writeFileSync(LOGS_PATH, '', 'utf-8');
+    writeFileSync(LOGS_PATH, "", "utf-8");
     return NextResponse.json({ success: true });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

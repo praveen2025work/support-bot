@@ -69,12 +69,9 @@ router.post("/", async (req: Request, res: Response) => {
     return res.status(201).json(created);
   } catch (error) {
     logger.error({ error }, "Failed to create query");
-    return res
-      .status(500)
-      .json({
-        error:
-          error instanceof Error ? error.message : "Failed to create query",
-      });
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : "Failed to create query",
+    });
   }
 });
 
@@ -85,12 +82,9 @@ router.put("/:queryId", async (req: Request, res: Response) => {
     return res.json(updated);
   } catch (error) {
     logger.error({ error }, "Failed to update query");
-    return res
-      .status(500)
-      .json({
-        error:
-          error instanceof Error ? error.message : "Failed to update query",
-      });
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : "Failed to update query",
+    });
   }
 });
 
@@ -101,12 +95,9 @@ router.delete("/:queryId", async (req: Request, res: Response) => {
     return res.json({ success: true });
   } catch (error) {
     logger.error({ error }, "Failed to delete query");
-    return res
-      .status(500)
-      .json({
-        error:
-          error instanceof Error ? error.message : "Failed to delete query",
-      });
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : "Failed to delete query",
+    });
   }
 });
 
@@ -158,12 +149,9 @@ router.post("/:queryId/execute", async (req: Request, res: Response) => {
     });
   } catch (error) {
     logger.error({ error }, "Failed to execute query");
-    return res
-      .status(500)
-      .json({
-        error:
-          error instanceof Error ? error.message : "Failed to execute query",
-      });
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : "Failed to execute query",
+    });
   }
 });
 

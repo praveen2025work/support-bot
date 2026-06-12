@@ -1,4 +1,7 @@
-import { detectColumnTypes, type CsvData } from '@/core/api-connector/csv-analyzer';
+import {
+  detectColumnTypes,
+  type CsvData,
+} from "@/core/api-connector/csv-analyzer";
 
 /** Result of exponential smoothing forecast. */
 export interface ForecastResult {
@@ -16,7 +19,7 @@ export interface ForecastResult {
  */
 function exponentialSmooth(
   values: number[],
-  alpha: number
+  alpha: number,
 ): { fitted: number[]; mse: number } {
   const n = values.length;
   if (n === 0) return { fitted: [], mse: Infinity };
@@ -59,7 +62,7 @@ function findOptimalAlpha(values: number[]): { alpha: number; mse: number } {
  * Attempt to parse a string as a Date and return an ISO date string.
  */
 function parseDate(value: string | number): Date | null {
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     // Excel serial date: days since 1899-12-30
     if (value > 1 && value < 200000) {
       const epoch = new Date(1899, 11, 30);
@@ -126,7 +129,7 @@ export function forecast(
   data: CsvData,
   periods = 5,
   dateColumn?: string,
-  valueColumn?: string
+  valueColumn?: string,
 ): ForecastResult | null {
   if (data.rows.length < 3) return null;
 
@@ -135,7 +138,7 @@ export function forecast(
 
   let datCol = dateColumn;
   if (!datCol) {
-    const dateColMeta = colTypes.find((c) => c.detectedType === 'date');
+    const dateColMeta = colTypes.find((c) => c.detectedType === "date");
     if (!dateColMeta) return null;
     datCol = dateColMeta.column;
   }
@@ -143,13 +146,16 @@ export function forecast(
   let valCol = valueColumn;
   if (!valCol) {
     const numColMeta = colTypes.find(
-      (c) => (c.detectedType === 'integer' || c.detectedType === 'decimal') && c.column !== datCol
+      (c) =>
+        (c.detectedType === "integer" || c.detectedType === "decimal") &&
+        c.column !== datCol,
     );
     if (!numColMeta) return null;
     valCol = numColMeta.column;
   }
 
-  if (!data.headers.includes(datCol) || !data.headers.includes(valCol)) return null;
+  if (!data.headers.includes(datCol) || !data.headers.includes(valCol))
+    return null;
 
   // Build date-value pairs and sort by date
   const pairs: { date: Date; dateStr: string; value: number }[] = [];
@@ -157,7 +163,7 @@ export function forecast(
     const d = parseDate(row[datCol]);
     if (!d) continue;
     const rawVal = row[valCol];
-    const v = typeof rawVal === 'number' ? rawVal : parseFloat(String(rawVal));
+    const v = typeof rawVal === "number" ? rawVal : parseFloat(String(rawVal));
     if (isNaN(v)) continue;
     pairs.push({ date: d, dateStr: d.toISOString().slice(0, 10), value: v });
   }
@@ -193,8 +199,7 @@ export function forecast(
     value: p.value,
   }));
 
-  const nlDescription =
-    `Forecasting ${periods} periods ahead using exponential smoothing (\u03B1=${alpha}, MSE=${mse})`;
+  const nlDescription = `Forecasting ${periods} periods ahead using exponential smoothing (\u03B1=${alpha}, MSE=${mse})`;
 
   return {
     dateColumn: datCol,

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 
-type Stage = 'upload' | 'preview' | 'submitting' | 'success' | 'error';
+type Stage = "upload" | "preview" | "submitting" | "success" | "error";
 
 interface PreviewData {
   groupInfo: {
@@ -32,7 +32,7 @@ export function OnboardForm({
   backUrl: string;
   successUrl?: (groupId: string) => string;
 }) {
-  const [stage, setStage] = useState<Stage>('upload');
+  const [stage, setStage] = useState<Stage>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -48,7 +48,7 @@ export function OnboardForm({
       setFile(selected);
       setErrors([]);
       setPreview(null);
-      setStage('upload');
+      setStage("upload");
     }
   };
 
@@ -58,21 +58,24 @@ export function OnboardForm({
     setErrors([]);
     try {
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('action', 'preview');
+      formData.append("file", file);
+      formData.append("action", "preview");
 
-      const res = await fetch('/api/onboard', { method: 'POST', body: formData });
+      const res = await fetch("/api/onboard", {
+        method: "POST",
+        body: formData,
+      });
       const data = await res.json();
 
       if (!res.ok) {
-        setErrors(data.details || [data.error || 'Validation failed']);
+        setErrors(data.details || [data.error || "Validation failed"]);
         return;
       }
 
       setPreview(data.data);
-      setStage('preview');
+      setStage("preview");
     } catch {
-      setErrors(['Failed to validate file. Please try again.']);
+      setErrors(["Failed to validate file. Please try again."]);
     } finally {
       setIsLoading(false);
     }
@@ -80,32 +83,35 @@ export function OnboardForm({
 
   const handleSubmit = async () => {
     if (!file) return;
-    setStage('submitting');
+    setStage("submitting");
     setErrors([]);
     try {
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('action', 'submit');
+      formData.append("file", file);
+      formData.append("action", "submit");
 
-      const res = await fetch('/api/onboard', { method: 'POST', body: formData });
+      const res = await fetch("/api/onboard", {
+        method: "POST",
+        body: formData,
+      });
       const data = await res.json();
 
       if (!res.ok) {
-        setErrors(data.details || [data.error || 'Onboarding failed']);
-        setStage('error');
+        setErrors(data.details || [data.error || "Onboarding failed"]);
+        setStage("error");
         return;
       }
 
       setResult({ groupId: data.groupId, queriesAdded: data.queriesAdded });
-      setStage('success');
+      setStage("success");
     } catch {
-      setErrors(['Submission failed. Please try again.']);
-      setStage('error');
+      setErrors(["Submission failed. Please try again."]);
+      setStage("error");
     }
   };
 
   const handleReset = () => {
-    setStage('upload');
+    setStage("upload");
     setFile(null);
     setPreview(null);
     setErrors([]);
@@ -159,13 +165,13 @@ export function OnboardForm({
             onChange={handleFileChange}
             className="text-sm"
           />
-          {file && stage === 'upload' && (
+          {file && stage === "upload" && (
             <button
               onClick={handlePreview}
               disabled={isLoading}
               className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
             >
-              {isLoading ? 'Validating...' : 'Validate & Preview'}
+              {isLoading ? "Validating..." : "Validate & Preview"}
             </button>
           )}
         </div>
@@ -197,7 +203,7 @@ export function OnboardForm({
       )}
 
       {/* Step 3: Preview */}
-      {stage === 'preview' && preview && (
+      {stage === "preview" && preview && (
         <section className="mb-8 p-4 border border-blue-200 rounded-lg bg-blue-50">
           <h2 className="text-sm font-semibold text-blue-700 mb-4">
             Step 3: Review & Confirm
@@ -210,30 +216,30 @@ export function OnboardForm({
             </h3>
             <div className="bg-white rounded p-3 text-sm space-y-1">
               <div>
-                <span className="font-medium">ID:</span>{' '}
+                <span className="font-medium">ID:</span>{" "}
                 {preview.groupInfo.group_id}
               </div>
               <div>
-                <span className="font-medium">Name:</span>{' '}
+                <span className="font-medium">Name:</span>{" "}
                 {preview.groupInfo.name}
               </div>
               <div>
-                <span className="font-medium">Description:</span>{' '}
+                <span className="font-medium">Description:</span>{" "}
                 {preview.groupInfo.description}
               </div>
               <div>
-                <span className="font-medium">Sources:</span>{' '}
+                <span className="font-medium">Sources:</span>{" "}
                 {preview.groupInfo.sources}
               </div>
               {preview.groupInfo.greeting && (
                 <div>
-                  <span className="font-medium">Greeting:</span>{' '}
+                  <span className="font-medium">Greeting:</span>{" "}
                   {preview.groupInfo.greeting}
                 </div>
               )}
               {preview.groupInfo.help_text && (
                 <div>
-                  <span className="font-medium">Help text:</span>{' '}
+                  <span className="font-medium">Help text:</span>{" "}
                   {preview.groupInfo.help_text}
                 </div>
               )}
@@ -261,7 +267,7 @@ export function OnboardForm({
                       <td className="p-2 font-mono">{q.name}</td>
                       <td className="p-2">{q.description}</td>
                       <td className="p-2">{q.source}</td>
-                      <td className="p-2">{q.filters || '-'}</td>
+                      <td className="p-2">{q.filters || "-"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -343,7 +349,7 @@ export function OnboardForm({
       )}
 
       {/* Submitting */}
-      {stage === 'submitting' && (
+      {stage === "submitting" && (
         <section className="mb-8 p-4 border border-gray-200 rounded-lg text-center">
           <p className="text-sm text-gray-500">
             Onboarding in progress... Generating config, training data, and
@@ -353,13 +359,13 @@ export function OnboardForm({
       )}
 
       {/* Success */}
-      {stage === 'success' && result && (
+      {stage === "success" && result && (
         <section className="mb-8 p-4 border border-green-200 rounded-lg bg-green-50">
           <h2 className="text-sm font-semibold text-green-700 mb-2">
             Onboarding Complete!
           </h2>
           <p className="text-sm text-green-600 mb-3">
-            Group <strong>{result.groupId}</strong> has been onboarded with{' '}
+            Group <strong>{result.groupId}</strong> has been onboarded with{" "}
             {result.queriesAdded} queries.
           </p>
           <div className="flex gap-3">

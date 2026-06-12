@@ -4,10 +4,10 @@
  */
 
 interface ConversationContext {
-  history: Array<{ role: 'user' | 'bot'; text: string }>;
+  history: Array<{ role: "user" | "bot"; text: string }>;
 }
 
-export type ExpertiseLevel = 'beginner' | 'intermediate' | 'expert';
+export type ExpertiseLevel = "beginner" | "intermediate" | "expert";
 
 interface TermMapping {
   beginner: string;
@@ -16,70 +16,70 @@ interface TermMapping {
 }
 
 const TERM_MAP: Record<string, TermMapping> = {
-  'z-score': {
-    beginner: 'how far from normal',
-    intermediate: 'standard deviations from average',
-    expert: 'z-score',
+  "z-score": {
+    beginner: "how far from normal",
+    intermediate: "standard deviations from average",
+    expert: "z-score",
   },
-  'outlier': {
-    beginner: 'unusual value',
-    intermediate: 'outlier',
-    expert: 'outlier',
+  outlier: {
+    beginner: "unusual value",
+    intermediate: "outlier",
+    expert: "outlier",
   },
-  'correlation': {
-    beginner: 'relationship between columns',
-    intermediate: 'correlation',
-    expert: 'correlation coefficient',
+  correlation: {
+    beginner: "relationship between columns",
+    intermediate: "correlation",
+    expert: "correlation coefficient",
   },
-  'R²': {
-    beginner: 'how well the trend fits the data',
-    intermediate: 'explains X% of the variation',
-    expert: 'R²',
+  "R²": {
+    beginner: "how well the trend fits the data",
+    intermediate: "explains X% of the variation",
+    expert: "R²",
   },
-  'IQR': {
-    beginner: 'typical value range',
-    intermediate: 'interquartile range',
-    expert: 'IQR (Q1–Q3)',
+  IQR: {
+    beginner: "typical value range",
+    intermediate: "interquartile range",
+    expert: "IQR (Q1–Q3)",
   },
-  'percentile': {
-    beginner: 'ranking position',
-    intermediate: 'percentile',
-    expert: 'percentile',
+  percentile: {
+    beginner: "ranking position",
+    intermediate: "percentile",
+    expert: "percentile",
   },
-  'variance': {
-    beginner: 'spread of values',
-    intermediate: 'variance',
-    expert: 'variance (σ²)',
+  variance: {
+    beginner: "spread of values",
+    intermediate: "variance",
+    expert: "variance (σ²)",
   },
-  'standard deviation': {
-    beginner: 'typical spread',
-    intermediate: 'standard deviation',
-    expert: 'σ',
+  "standard deviation": {
+    beginner: "typical spread",
+    intermediate: "standard deviation",
+    expert: "σ",
   },
-  'regression': {
-    beginner: 'trend line fitting',
-    intermediate: 'regression analysis',
-    expert: 'linear regression',
+  regression: {
+    beginner: "trend line fitting",
+    intermediate: "regression analysis",
+    expert: "linear regression",
   },
-  'cluster': {
-    beginner: 'group of similar items',
-    intermediate: 'segment',
-    expert: 'K-Means cluster',
+  cluster: {
+    beginner: "group of similar items",
+    intermediate: "segment",
+    expert: "K-Means cluster",
   },
-  'centroid': {
-    beginner: 'center of the group',
-    intermediate: 'cluster center',
-    expert: 'centroid',
+  centroid: {
+    beginner: "center of the group",
+    intermediate: "cluster center",
+    expert: "centroid",
   },
-  'skewness': {
-    beginner: 'lopsided distribution',
-    intermediate: 'skewness',
-    expert: 'skewness coefficient',
+  skewness: {
+    beginner: "lopsided distribution",
+    intermediate: "skewness",
+    expert: "skewness coefficient",
   },
-  'p-value': {
-    beginner: 'confidence in the result',
-    intermediate: 'statistical significance',
-    expert: 'p-value',
+  "p-value": {
+    beginner: "confidence in the result",
+    intermediate: "statistical significance",
+    expert: "p-value",
   },
 };
 
@@ -108,11 +108,11 @@ export class ExpertiseAdapter {
    */
   detectLevel(context: ConversationContext): ExpertiseLevel {
     const userMessages = context.history
-      .filter((h) => h.role === 'user')
+      .filter((h) => h.role === "user")
       .map((h) => h.text)
       .slice(-10); // Look at last 10 user messages
 
-    if (userMessages.length === 0) return 'intermediate';
+    if (userMessages.length === 0) return "intermediate";
 
     let expertScore = 0;
     let beginnerScore = 0;
@@ -131,9 +131,9 @@ export class ExpertiseAdapter {
     const expertRatio = expertScore / msgCount;
     const beginnerRatio = beginnerScore / msgCount;
 
-    if (expertRatio > 0.5) return 'expert';
-    if (beginnerRatio > 0.3) return 'beginner';
-    return 'intermediate';
+    if (expertRatio > 0.5) return "expert";
+    if (beginnerRatio > 0.3) return "beginner";
+    return "intermediate";
   }
 
   /**
@@ -141,14 +141,17 @@ export class ExpertiseAdapter {
    * Replaces technical terms with level-appropriate alternatives.
    */
   adapt(text: string, level: ExpertiseLevel): string {
-    if (level === 'intermediate') return text; // Default level, no changes
+    if (level === "intermediate") return text; // Default level, no changes
 
     let adapted = text;
     for (const [term, mapping] of Object.entries(TERM_MAP)) {
       const replacement = mapping[level];
       if (replacement !== term) {
         // Case-insensitive replacement
-        const regex = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+        const regex = new RegExp(
+          `\\b${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+          "gi",
+        );
         adapted = adapted.replace(regex, replacement);
       }
     }

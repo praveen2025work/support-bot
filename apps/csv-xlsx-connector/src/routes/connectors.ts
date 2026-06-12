@@ -198,12 +198,9 @@ router.post("/:id/preview", async (req: Request, res: Response) => {
     return res.json(result);
   } catch (error) {
     logger.error({ error }, "Failed to execute preview");
-    return res
-      .status(500)
-      .json({
-        error:
-          error instanceof Error ? error.message : "Failed to execute query",
-      });
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : "Failed to execute query",
+    });
   }
 });
 

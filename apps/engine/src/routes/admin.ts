@@ -1,1 +1,1 @@
-export { adminRouter, default } from './admin/index';
+export { adminRouter, default } from "./admin/index";

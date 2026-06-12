@@ -1,19 +1,22 @@
-import { detectColumnTypes, type CsvData } from '@/core/api-connector/csv-analyzer';
+import {
+  detectColumnTypes,
+  type CsvData,
+} from "@/core/api-connector/csv-analyzer";
 
 /** Extended column metadata with additional type detection. */
 export interface EnhancedColumnMeta {
   column: string;
   detectedType:
-    | 'date'
-    | 'integer'
-    | 'decimal'
-    | 'id'
-    | 'string'
-    | 'currency'
-    | 'category'
-    | 'percentage'
-    | 'email'
-    | 'phone';
+    | "date"
+    | "integer"
+    | "decimal"
+    | "id"
+    | "string"
+    | "currency"
+    | "category"
+    | "percentage"
+    | "email"
+    | "phone";
   format?: string;
   nullPercent: number;
   cardinality: number;
@@ -48,11 +51,14 @@ export function enhancedColumnTypes(data: CsvData): EnhancedColumnMeta[] {
   for (const header of data.headers) {
     const base = baseMap.get(header);
     const values = data.rows.map((row) => row[header]);
-    const nonNull = values.filter((v) => v !== undefined && v !== null && v !== '');
+    const nonNull = values.filter(
+      (v) => v !== undefined && v !== null && v !== "",
+    );
     const nullCount = values.length - nonNull.length;
-    const nullPercent = values.length > 0
-      ? Math.round((nullCount / values.length) * 10000) / 10000
-      : 0;
+    const nullPercent =
+      values.length > 0
+        ? Math.round((nullCount / values.length) * 10000) / 10000
+        : 0;
     const cardinality = new Set(nonNull.map(String)).size;
 
     const strValues = nonNull.map(String);
@@ -60,12 +66,14 @@ export function enhancedColumnTypes(data: CsvData): EnhancedColumnMeta[] {
     const sample = strValues.slice(0, sampleSize);
 
     // Check currency pattern: $X,XXX.XX
-    const currencyCount = sample.filter((v) => CURRENCY_PATTERN.test(v.trim())).length;
+    const currencyCount = sample.filter((v) =>
+      CURRENCY_PATTERN.test(v.trim()),
+    ).length;
     if (sampleSize > 0 && currencyCount / sampleSize > 0.8) {
       result.push({
         column: header,
-        detectedType: 'currency',
-        format: '$X,XXX.XX',
+        detectedType: "currency",
+        format: "$X,XXX.XX",
         nullPercent,
         cardinality,
       });
@@ -73,11 +81,13 @@ export function enhancedColumnTypes(data: CsvData): EnhancedColumnMeta[] {
     }
 
     // Check email
-    const emailCount = sample.filter((v) => EMAIL_PATTERN.test(v.trim())).length;
+    const emailCount = sample.filter((v) =>
+      EMAIL_PATTERN.test(v.trim()),
+    ).length;
     if (sampleSize > 0 && emailCount / sampleSize > 0.8) {
       result.push({
         column: header,
-        detectedType: 'email',
+        detectedType: "email",
         nullPercent,
         cardinality,
       });
@@ -85,11 +95,17 @@ export function enhancedColumnTypes(data: CsvData): EnhancedColumnMeta[] {
     }
 
     // Check phone
-    const phoneCount = sample.filter((v) => PHONE_PATTERN.test(v.trim())).length;
-    if (sampleSize > 0 && phoneCount / sampleSize > 0.8 && base?.detectedType === 'string') {
+    const phoneCount = sample.filter((v) =>
+      PHONE_PATTERN.test(v.trim()),
+    ).length;
+    if (
+      sampleSize > 0 &&
+      phoneCount / sampleSize > 0.8 &&
+      base?.detectedType === "string"
+    ) {
       result.push({
         column: header,
-        detectedType: 'phone',
+        detectedType: "phone",
         nullPercent,
         cardinality,
       });
@@ -97,14 +113,16 @@ export function enhancedColumnTypes(data: CsvData): EnhancedColumnMeta[] {
     }
 
     // Check percentage: ends in % or 0-100 with rate/pct in name
-    const pctSuffixCount = sample.filter((v) => PERCENTAGE_SUFFIX.test(v)).length;
+    const pctSuffixCount = sample.filter((v) =>
+      PERCENTAGE_SUFFIX.test(v),
+    ).length;
     const lowerHeader = header.toLowerCase();
     const nameHintsPct = /rate|pct|percent|ratio/i.test(lowerHeader);
     if (sampleSize > 0 && pctSuffixCount / sampleSize > 0.8) {
       result.push({
         column: header,
-        detectedType: 'percentage',
-        format: 'X%',
+        detectedType: "percentage",
+        format: "X%",
         nullPercent,
         cardinality,
       });
@@ -112,18 +130,18 @@ export function enhancedColumnTypes(data: CsvData): EnhancedColumnMeta[] {
     }
     if (
       nameHintsPct &&
-      (base?.detectedType === 'integer' || base?.detectedType === 'decimal')
+      (base?.detectedType === "integer" || base?.detectedType === "decimal")
     ) {
       // Check if values are in 0-100 range
-      const numValues = nonNull.map((v) =>
-        typeof v === 'number' ? v : parseFloat(String(v))
-      ).filter((v) => !isNaN(v));
+      const numValues = nonNull
+        .map((v) => (typeof v === "number" ? v : parseFloat(String(v))))
+        .filter((v) => !isNaN(v));
       const inRange = numValues.every((v) => v >= 0 && v <= 100);
       if (inRange && numValues.length > 0) {
         result.push({
           column: header,
-          detectedType: 'percentage',
-          format: '0-100',
+          detectedType: "percentage",
+          format: "0-100",
           nullPercent,
           cardinality,
         });
@@ -133,7 +151,7 @@ export function enhancedColumnTypes(data: CsvData): EnhancedColumnMeta[] {
 
     // Check category: string type with low cardinality relative to row count
     if (
-      (base?.detectedType === 'string') &&
+      base?.detectedType === "string" &&
       cardinality > 0 &&
       cardinality < 20 &&
       nonNull.length > 0 &&
@@ -141,7 +159,7 @@ export function enhancedColumnTypes(data: CsvData): EnhancedColumnMeta[] {
     ) {
       result.push({
         column: header,
-        detectedType: 'category',
+        detectedType: "category",
         nullPercent,
         cardinality,
       });
@@ -151,7 +169,7 @@ export function enhancedColumnTypes(data: CsvData): EnhancedColumnMeta[] {
     // Fall back to base type
     result.push({
       column: header,
-      detectedType: base?.detectedType ?? 'string',
+      detectedType: base?.detectedType ?? "string",
       format: base?.format,
       nullPercent,
       cardinality,
@@ -170,26 +188,29 @@ export function enhancedColumnTypes(data: CsvData): EnhancedColumnMeta[] {
  * @param meta - Enhanced column metadata from `enhancedColumnTypes`.
  * @returns Array of analysis suggestions.
  */
-export function suggestAnalyses(meta: EnhancedColumnMeta[]): AnalysisSuggestion[] {
+export function suggestAnalyses(
+  meta: EnhancedColumnMeta[],
+): AnalysisSuggestion[] {
   const suggestions: AnalysisSuggestion[] = [];
 
-  const dateCols = meta.filter((m) => m.detectedType === 'date');
+  const dateCols = meta.filter((m) => m.detectedType === "date");
   const numericCols = meta.filter((m) =>
-    ['integer', 'decimal', 'currency', 'percentage'].includes(m.detectedType)
+    ["integer", "decimal", "currency", "percentage"].includes(m.detectedType),
   );
-  const categoryCols = meta.filter((m) => m.detectedType === 'category');
+  const categoryCols = meta.filter((m) => m.detectedType === "category");
   const highNullCols = meta.filter((m) => m.nullPercent > 0.05);
 
   // Date + numeric: suggest trend/forecast
   if (dateCols.length > 0 && numericCols.length > 0) {
     suggestions.push({
-      analysis: 'trend',
-      reason: 'Date and numeric columns detected — can analyze trends over time.',
+      analysis: "trend",
+      reason:
+        "Date and numeric columns detected — can analyze trends over time.",
       columns: [dateCols[0].column, ...numericCols.map((c) => c.column)],
     });
     suggestions.push({
-      analysis: 'forecast',
-      reason: 'Time series data available for forecasting future values.',
+      analysis: "forecast",
+      reason: "Time series data available for forecasting future values.",
       columns: [dateCols[0].column, numericCols[0].column],
     });
   }
@@ -197,13 +218,15 @@ export function suggestAnalyses(meta: EnhancedColumnMeta[]): AnalysisSuggestion[
   // Multiple numeric columns: correlation and PCA
   if (numericCols.length >= 2) {
     suggestions.push({
-      analysis: 'correlation',
-      reason: 'Multiple numeric columns can reveal relationships between variables.',
+      analysis: "correlation",
+      reason:
+        "Multiple numeric columns can reveal relationships between variables.",
       columns: numericCols.map((c) => c.column),
     });
     suggestions.push({
-      analysis: 'pca',
-      reason: 'Dimensionality reduction can reveal hidden structure in multi-dimensional data.',
+      analysis: "pca",
+      reason:
+        "Dimensionality reduction can reveal hidden structure in multi-dimensional data.",
       columns: numericCols.map((c) => c.column),
     });
   }
@@ -211,15 +234,20 @@ export function suggestAnalyses(meta: EnhancedColumnMeta[]): AnalysisSuggestion[
   // Low cardinality columns: group-by and clustering
   if (categoryCols.length > 0) {
     suggestions.push({
-      analysis: 'group_by',
-      reason: 'Categorical columns with few distinct values are ideal for grouping.',
+      analysis: "group_by",
+      reason:
+        "Categorical columns with few distinct values are ideal for grouping.",
       columns: categoryCols.map((c) => c.column),
     });
     if (numericCols.length >= 2) {
       suggestions.push({
-        analysis: 'clustering',
-        reason: 'Categorical data with numeric features can be segmented into clusters.',
-        columns: [...categoryCols.map((c) => c.column), ...numericCols.map((c) => c.column)],
+        analysis: "clustering",
+        reason:
+          "Categorical data with numeric features can be segmented into clusters.",
+        columns: [
+          ...categoryCols.map((c) => c.column),
+          ...numericCols.map((c) => c.column),
+        ],
       });
     }
   }
@@ -227,7 +255,7 @@ export function suggestAnalyses(meta: EnhancedColumnMeta[]): AnalysisSuggestion[
   // Missing data
   if (highNullCols.length > 0) {
     suggestions.push({
-      analysis: 'missing_analysis',
+      analysis: "missing_analysis",
       reason: `Columns with significant missing data detected (${highNullCols.length} columns).`,
       columns: highNullCols.map((c) => c.column),
     });

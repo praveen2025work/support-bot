@@ -1,10 +1,10 @@
-import { promises as fs } from 'fs';
-import { dirname } from 'path';
-import { createReadStream } from 'fs';
-import { createInterface } from 'readline';
-import { logger } from '@/lib/logger';
-import { paths } from '@/lib/env-config';
-import type { UserQueryInteraction } from './types';
+import { promises as fs } from "fs";
+import { dirname } from "path";
+import { createReadStream } from "fs";
+import { createInterface } from "readline";
+import { logger } from "@/lib/logger";
+import { paths } from "@/lib/env-config";
+import type { UserQueryInteraction } from "./types";
 
 /**
  * Records user-query interactions for ML recommendation features.
@@ -29,7 +29,7 @@ export class InteractionTracker {
 
     const filePath = paths.data.userInteractions(this.groupId);
     await fs.mkdir(dirname(filePath), { recursive: true });
-    await fs.appendFile(filePath, JSON.stringify(entry) + '\n', 'utf-8');
+    await fs.appendFile(filePath, JSON.stringify(entry) + "\n", "utf-8");
   }
 
   /** Read all interactions from disk */
@@ -38,13 +38,15 @@ export class InteractionTracker {
     const interactions: UserQueryInteraction[] = [];
 
     try {
-      const stream = createReadStream(filePath, 'utf-8');
+      const stream = createReadStream(filePath, "utf-8");
       const rl = createInterface({ input: stream, crlfDelay: Infinity });
       for await (const line of rl) {
         if (!line.trim()) continue;
         try {
           interactions.push(JSON.parse(line));
-        } catch { /* skip malformed */ }
+        } catch {
+          /* skip malformed */
+        }
       }
     } catch {
       // No file yet

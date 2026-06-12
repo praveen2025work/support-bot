@@ -252,9 +252,8 @@ Query Results
 
           <InfoBox variant="info" title="File location">
             Constants are defined in{" "}
-            <FileRef path="apps/engine/src/core/constants.ts" />. Learning
-            logic lives in <FileRef path="apps/engine/src/core/learning/" />
-            .
+            <FileRef path="apps/engine/src/core/constants.ts" />. Learning logic
+            lives in <FileRef path="apps/engine/src/core/learning/" />.
           </InfoBox>
         </Section>
 
@@ -548,8 +547,8 @@ Query Results
 
           <InfoBox variant="info">
             Business rules are stored per-group in{" "}
-            <FileRef path="apps/engine/data/anomaly/{groupId}/config.json" />
-            . Rules trigger on every query that returns the monitored column.
+            <FileRef path="apps/engine/data/anomaly/{groupId}/config.json" />.
+            Rules trigger on every query that returns the monitored column.
           </InfoBox>
         </Section>
 

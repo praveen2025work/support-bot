@@ -1,4 +1,4 @@
-declare module '@nlpjs/core' {
+declare module "@nlpjs/core" {
   export class Container {
     use(plugin: unknown): void;
     get(name: string): unknown;
@@ -7,7 +7,7 @@ declare module '@nlpjs/core' {
   export function containerBootstrap(): Container;
 }
 
-declare module '@nlpjs/nlp' {
+declare module "@nlpjs/nlp" {
   export class Nlp {
     constructor(opts?: { container?: unknown; forceNER?: boolean });
     settings: Record<string, unknown>;
@@ -31,7 +31,7 @@ declare module '@nlpjs/nlp' {
   }
 }
 
-declare module '@nlpjs/lang-en' {
+declare module "@nlpjs/lang-en" {
   export class LangEn {
     static register(container: unknown): void;
   }

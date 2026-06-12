@@ -1,5 +1,8 @@
-import { extractNumericColumns, computeColumnStats } from '@/core/anomaly/numeric-utils';
-import type { CsvData } from '@/core/api-connector/csv-analyzer';
+import {
+  extractNumericColumns,
+  computeColumnStats,
+} from "@/core/anomaly/numeric-utils";
+import type { CsvData } from "@/core/api-connector/csv-analyzer";
 
 /** A single cluster description. */
 export interface ClusterInfo {
@@ -24,7 +27,11 @@ export interface ClusterResult {
  * Standardize a matrix of values using z-score normalization.
  * Each column is independently normalized to mean=0, stdDev=1.
  */
-function standardize(matrix: number[][]): { data: number[][]; means: number[]; stds: number[] } {
+function standardize(matrix: number[][]): {
+  data: number[][];
+  means: number[];
+  stds: number[];
+} {
   const cols = matrix[0].length;
   const means: number[] = [];
   const stds: number[] = [];
@@ -36,9 +43,7 @@ function standardize(matrix: number[][]): { data: number[][]; means: number[]; s
     stds.push(stats.stdDev || 1);
   }
 
-  const data = matrix.map((row) =>
-    row.map((v, c) => (v - means[c]) / stds[c])
-  );
+  const data = matrix.map((row) => row.map((v, c) => (v - means[c]) / stds[c]));
 
   return { data, means, stds };
 }
@@ -61,7 +66,7 @@ function squaredDist(a: number[], b: number[]): number {
 function lloydKMeans(
   data: number[][],
   k: number,
-  maxIter: number
+  maxIter: number,
 ): { centroids: number[][]; labels: number[]; inertia: number } {
   const n = data.length;
   const dims = data[0].length;
@@ -96,7 +101,9 @@ function lloydKMeans(
     }
 
     // Update step
-    const sums: number[][] = Array.from({ length: k }, () => new Array(dims).fill(0));
+    const sums: number[][] = Array.from({ length: k }, () =>
+      new Array(dims).fill(0),
+    );
     const counts = new Array(k).fill(0);
 
     for (let i = 0; i < n; i++) {
@@ -160,17 +167,18 @@ function selectK(data: number[][], maxIter: number): number {
 function describeCluster(
   centroid: number[],
   columns: string[],
-  globalMeans: number[]
+  globalMeans: number[],
 ): string {
   const traits: string[] = [];
   for (let i = 0; i < columns.length && traits.length < 2; i++) {
     const diff = centroid[i] - globalMeans[i];
-    const relDiff = globalMeans[i] !== 0 ? Math.abs(diff / globalMeans[i]) : Math.abs(diff);
+    const relDiff =
+      globalMeans[i] !== 0 ? Math.abs(diff / globalMeans[i]) : Math.abs(diff);
     if (relDiff > 0.2) {
-      traits.push(`${diff > 0 ? 'high' : 'low'} ${columns[i]}`);
+      traits.push(`${diff > 0 ? "high" : "low"} ${columns[i]}`);
     }
   }
-  return traits.length > 0 ? traits.join(', ') : 'average values';
+  return traits.length > 0 ? traits.join(", ") : "average values";
 }
 
 /**
@@ -184,10 +192,16 @@ function describeCluster(
  * @param maxIter - Maximum iterations for Lloyd's algorithm (default 50).
  * @returns Clustering result or null if insufficient numeric data.
  */
-export function kMeans(data: CsvData, k?: number, maxIter = 50): ClusterResult | null {
+export function kMeans(
+  data: CsvData,
+  k?: number,
+  maxIter = 50,
+): ClusterResult | null {
   if (data.rows.length < 2) return null;
 
-  const numericCols = extractNumericColumns(data.rows as Record<string, unknown>[]);
+  const numericCols = extractNumericColumns(
+    data.rows as Record<string, unknown>[],
+  );
   if (numericCols.length < 1) return null;
 
   // Build numeric matrix
@@ -196,7 +210,7 @@ export function kMeans(data: CsvData, k?: number, maxIter = 50): ClusterResult |
     const vals: number[] = [];
     for (const col of numericCols) {
       const v = row[col];
-      vals.push(typeof v === 'number' ? v : parseFloat(String(v)) || 0);
+      vals.push(typeof v === "number" ? v : parseFloat(String(v)) || 0);
     }
     matrix.push(vals);
   }
@@ -239,7 +253,7 @@ export function kMeans(data: CsvData, k?: number, maxIter = 50): ClusterResult |
   // Natural language description
   const clusterDescs = clusters
     .map((c, i) => `Cluster ${i + 1} (${c.size} rows, ${c.label})`)
-    .join(', ');
+    .join(", ");
   const nlDescription = `Data naturally falls into ${finalK} clusters: ${clusterDescs}`;
 
   return {

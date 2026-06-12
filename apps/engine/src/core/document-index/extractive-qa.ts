@@ -1,4 +1,4 @@
-import type { ScoredChunk } from './tfidf-index';
+import type { ScoredChunk } from "./tfidf-index";
 
 export interface ExtractedAnswer {
   answer: string;
@@ -17,14 +17,18 @@ export interface ExtractedAnswer {
 export function extractAnswer(
   question: string,
   candidates: ScoredChunk[],
-  maxAnswers: number = 3
+  maxAnswers: number = 3,
 ): ExtractedAnswer[] {
   if (candidates.length === 0) return [];
 
   const questionTerms = tokenize(question);
   const questionLower = question.toLowerCase();
-  const isDefinitionQ = /^\s*(what\s+is|what\s+are|define|explain)\b/i.test(question);
-  const isHowQ = /^\s*(how\s+do|how\s+does|how\s+to|how\s+is)\b/i.test(question);
+  const isDefinitionQ = /^\s*(what\s+is|what\s+are|define|explain)\b/i.test(
+    question,
+  );
+  const isHowQ = /^\s*(how\s+do|how\s+does|how\s+to|how\s+is)\b/i.test(
+    question,
+  );
   const isWhyQ = /^\s*(why\s+do|why\s+does|why\s+is)\b/i.test(question);
 
   const allScoredSentences: Array<{
@@ -54,17 +58,26 @@ export function extractAnswer(
       score += Math.min(chunkScore * 0.3, 1.0);
 
       // 3. Definition pattern bonus
-      if (isDefinitionQ && /\b(is|are|refers?\s+to|means?|defined?\s+as)\b/i.test(sentence)) {
+      if (
+        isDefinitionQ &&
+        /\b(is|are|refers?\s+to|means?|defined?\s+as)\b/i.test(sentence)
+      ) {
         score += 0.3;
       }
 
       // 4. How-to pattern bonus
-      if (isHowQ && /\b(steps?|process|procedure|first|then|next|follow)\b/i.test(sentence)) {
+      if (
+        isHowQ &&
+        /\b(steps?|process|procedure|first|then|next|follow)\b/i.test(sentence)
+      ) {
         score += 0.2;
       }
 
       // 5. Why/because pattern bonus
-      if (isWhyQ && /\b(because|reason|due\s+to|caused?\s+by|result\s+of)\b/i.test(sentence)) {
+      if (
+        isWhyQ &&
+        /\b(because|reason|due\s+to|caused?\s+by|result\s+of)\b/i.test(sentence)
+      ) {
         score += 0.2;
       }
 
@@ -136,7 +149,7 @@ export function extractAnswer(
       confidence: Math.min(item.score, 1.0), // cap at 1.0
       sourceDocument: chunk.documentId,
       sourceHeading: chunk.heading,
-      context: contextSentences.join(' '),
+      context: contextSentences.join(" "),
       chunkText: chunk.text,
     });
   }
@@ -149,7 +162,7 @@ export function extractAnswer(
 function tokenize(text: string): string[] {
   return text
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
     .filter((w) => w.length >= 2 && !STOP.has(w));
 }
@@ -178,12 +191,68 @@ function stringSimilarity(a: string, b: string): number {
 }
 
 const STOP = new Set([
-  'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-  'of', 'with', 'by', 'from', 'is', 'it', 'as', 'be', 'was', 'are',
-  'were', 'been', 'have', 'has', 'had', 'do', 'does', 'did',
-  'will', 'would', 'could', 'should', 'may', 'might', 'can',
-  'this', 'that', 'these', 'those', 'not', 'no', 'so',
-  'what', 'which', 'who', 'how', 'when', 'where', 'why',
-  'me', 'my', 'we', 'our', 'you', 'your', 'he', 'she', 'they', 'their',
-  'its', 'us', 'him', 'them',
+  "the",
+  "a",
+  "an",
+  "and",
+  "or",
+  "but",
+  "in",
+  "on",
+  "at",
+  "to",
+  "for",
+  "of",
+  "with",
+  "by",
+  "from",
+  "is",
+  "it",
+  "as",
+  "be",
+  "was",
+  "are",
+  "were",
+  "been",
+  "have",
+  "has",
+  "had",
+  "do",
+  "does",
+  "did",
+  "will",
+  "would",
+  "could",
+  "should",
+  "may",
+  "might",
+  "can",
+  "this",
+  "that",
+  "these",
+  "those",
+  "not",
+  "no",
+  "so",
+  "what",
+  "which",
+  "who",
+  "how",
+  "when",
+  "where",
+  "why",
+  "me",
+  "my",
+  "we",
+  "our",
+  "you",
+  "your",
+  "he",
+  "she",
+  "they",
+  "their",
+  "its",
+  "us",
+  "him",
+  "them",
 ]);

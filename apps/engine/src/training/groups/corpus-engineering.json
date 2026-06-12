@@ -4,19 +4,101 @@
   "entities": {
     "query_name": {
       "options": {
-        "error_rate": ["error rate", "errors", "failure rate", "error report", "error metrics"],
-        "performance": ["performance", "performance metrics", "latency", "response time", "p50", "p95", "p99"],
-        "infrastructure_costs": ["infrastructure costs", "infra costs", "cloud costs", "costs", "cloud spend"],
-        "api_changelog": ["api changelog", "changelog", "release notes", "api changes", "api updates"],
-        "brd_payments": ["brd_payments", "brd payments", "payments brd", "payments document", "payments requirements", "payments spec"],
-        "auth_spec": ["auth_spec", "auth spec", "authentication spec", "authorization spec", "auth feature spec", "auth module"],
-        "incident_report": ["incident_report", "incident report", "outage report", "post mortem", "incident post mortem"],
-        "deployment_runbook": ["deployment_runbook", "deployment runbook", "deploy runbook", "deployment guide", "release runbook"],
-        "servicenow_dashboard": ["servicenow_dashboard", "servicenow dashboard", "servicenow", "itsm dashboard", "incident tracking"],
-        "architecture_wiki": ["architecture_wiki", "architecture wiki", "system architecture", "architecture docs", "architecture documentation"],
-        "user_profile": ["user_profile", "user profile", "profile", "user info", "user details"],
-        "service_logs": ["service_logs", "service logs", "logs", "log data", "application logs"],
-        "report_generator": ["report_generator", "report generator", "generate report", "report", "custom report"]
+        "error_rate": [
+          "error rate",
+          "errors",
+          "failure rate",
+          "error report",
+          "error metrics"
+        ],
+        "performance": [
+          "performance",
+          "performance metrics",
+          "latency",
+          "response time",
+          "p50",
+          "p95",
+          "p99"
+        ],
+        "infrastructure_costs": [
+          "infrastructure costs",
+          "infra costs",
+          "cloud costs",
+          "costs",
+          "cloud spend"
+        ],
+        "api_changelog": [
+          "api changelog",
+          "changelog",
+          "release notes",
+          "api changes",
+          "api updates"
+        ],
+        "brd_payments": [
+          "brd_payments",
+          "brd payments",
+          "payments brd",
+          "payments document",
+          "payments requirements",
+          "payments spec"
+        ],
+        "auth_spec": [
+          "auth_spec",
+          "auth spec",
+          "authentication spec",
+          "authorization spec",
+          "auth feature spec",
+          "auth module"
+        ],
+        "incident_report": [
+          "incident_report",
+          "incident report",
+          "outage report",
+          "post mortem",
+          "incident post mortem"
+        ],
+        "deployment_runbook": [
+          "deployment_runbook",
+          "deployment runbook",
+          "deploy runbook",
+          "deployment guide",
+          "release runbook"
+        ],
+        "servicenow_dashboard": [
+          "servicenow_dashboard",
+          "servicenow dashboard",
+          "servicenow",
+          "itsm dashboard",
+          "incident tracking"
+        ],
+        "architecture_wiki": [
+          "architecture_wiki",
+          "architecture wiki",
+          "system architecture",
+          "architecture docs",
+          "architecture documentation"
+        ],
+        "user_profile": [
+          "user_profile",
+          "user profile",
+          "profile",
+          "user info",
+          "user details"
+        ],
+        "service_logs": [
+          "service_logs",
+          "service logs",
+          "logs",
+          "log data",
+          "application logs"
+        ],
+        "report_generator": [
+          "report_generator",
+          "report generator",
+          "generate report",
+          "report",
+          "custom report"
+        ]
       }
     },
     "time_period": {
@@ -40,7 +122,14 @@
   "data": [
     {
       "intent": "greeting",
-      "utterances": ["hello", "hi", "hey", "good morning", "good afternoon", "hi there"],
+      "utterances": [
+        "hello",
+        "hi",
+        "hey",
+        "good morning",
+        "good afternoon",
+        "hi there"
+      ],
       "answers": []
     },
     {
@@ -121,12 +210,24 @@
     },
     {
       "intent": "help",
-      "utterances": ["help", "what can you do", "how does this work", "instructions"],
+      "utterances": [
+        "help",
+        "what can you do",
+        "how does this work",
+        "instructions"
+      ],
       "answers": []
     },
     {
       "intent": "farewell",
-      "utterances": ["bye", "goodbye", "see you", "thanks bye", "that is all", "I am done"],
+      "utterances": [
+        "bye",
+        "goodbye",
+        "see you",
+        "thanks bye",
+        "that is all",
+        "I am done"
+      ],
       "answers": []
     }
   ]

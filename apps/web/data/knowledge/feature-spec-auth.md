@@ -33,6 +33,7 @@ This document specifies the redesigned authentication and authorization system f
 ### SSO Integration
 
 Supported identity providers:
+
 - **Okta** — via OpenID Connect
 - **Azure AD** — via SAML 2.0 and OpenID Connect
 - **Google Workspace** — via OpenID Connect
@@ -44,17 +45,18 @@ SSO flow uses authorization code grant with PKCE for security.
 
 ### Role Hierarchy
 
-| Role | Description | Permissions |
-|------|-------------|-------------|
-| super_admin | Full system access | All permissions |
-| org_admin | Organization management | manage_users, manage_roles, manage_settings, view_audit_log |
-| team_lead | Team management | manage_team, view_reports, execute_queries, manage_dashboards |
-| analyst | Data access | view_reports, execute_queries, export_data |
-| viewer | Read-only access | view_reports, view_dashboards |
+| Role        | Description             | Permissions                                                   |
+| ----------- | ----------------------- | ------------------------------------------------------------- |
+| super_admin | Full system access      | All permissions                                               |
+| org_admin   | Organization management | manage_users, manage_roles, manage_settings, view_audit_log   |
+| team_lead   | Team management         | manage_team, view_reports, execute_queries, manage_dashboards |
+| analyst     | Data access             | view_reports, execute_queries, export_data                    |
+| viewer      | Read-only access        | view_reports, view_dashboards                                 |
 
 ### Permission Checks
 
 Permissions are checked at three levels:
+
 1. **API Gateway** — validates JWT signature and expiry
 2. **Service Layer** — checks role-based permissions
 3. **Data Layer** — applies row-level security filters
@@ -69,6 +71,7 @@ Permissions are checked at three levels:
 ## Database Schema
 
 ### Users Table
+
 - id (UUID, PK)
 - email (VARCHAR, unique, indexed)
 - password_hash (VARCHAR, bcrypt)
@@ -78,6 +81,7 @@ Permissions are checked at three levels:
 - created_at, updated_at (TIMESTAMP)
 
 ### Sessions Table
+
 - id (UUID, PK)
 - user_id (UUID, FK → users)
 - refresh_token_hash (VARCHAR)
@@ -99,39 +103,43 @@ Permissions are checked at three levels:
 ## Migration Plan
 
 ### Phase 1 (Week 1-2): Infrastructure
+
 - Deploy JWT signing service
 - Set up JWKS endpoint
 - Configure Redis for token blacklist
 
 ### Phase 2 (Week 3-4): Core Auth
+
 - Implement login/logout with JWT
 - Add refresh token rotation
 - Deploy MFA enrollment flow
 
 ### Phase 3 (Week 5-6): SSO
+
 - Integrate Okta connector
 - Integrate Azure AD connector
 - Test SAML assertion parsing
 
 ### Phase 4 (Week 7-8): RBAC
+
 - Implement permission engine
 - Create admin UI for role management
 - Add row-level security to data queries
 
 ## API Endpoints
 
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| /api/v3/auth/login | POST | None | Authenticate with credentials |
-| /api/v3/auth/logout | POST | Bearer | Invalidate session |
-| /api/v3/auth/refresh | POST | Refresh | Rotate tokens |
-| /api/v3/auth/mfa/enroll | POST | Bearer | Start MFA enrollment |
-| /api/v3/auth/mfa/verify | POST | MFA Token | Verify MFA code |
-| /api/v3/auth/sso/init | GET | None | Start SSO flow |
-| /api/v3/auth/sso/callback | POST | None | SSO callback handler |
-| /api/v3/auth/password/reset | POST | None | Request password reset |
-| /api/v3/roles | GET/POST | Admin | Manage roles |
-| /api/v3/permissions | GET | Admin | List permissions |
+| Endpoint                    | Method   | Auth      | Description                   |
+| --------------------------- | -------- | --------- | ----------------------------- |
+| /api/v3/auth/login          | POST     | None      | Authenticate with credentials |
+| /api/v3/auth/logout         | POST     | Bearer    | Invalidate session            |
+| /api/v3/auth/refresh        | POST     | Refresh   | Rotate tokens                 |
+| /api/v3/auth/mfa/enroll     | POST     | Bearer    | Start MFA enrollment          |
+| /api/v3/auth/mfa/verify     | POST     | MFA Token | Verify MFA code               |
+| /api/v3/auth/sso/init       | GET      | None      | Start SSO flow                |
+| /api/v3/auth/sso/callback   | POST     | None      | SSO callback handler          |
+| /api/v3/auth/password/reset | POST     | None      | Request password reset        |
+| /api/v3/roles               | GET/POST | Admin     | Manage roles                  |
+| /api/v3/permissions         | GET      | Admin     | List permissions              |
 
 ## Testing Requirements
 

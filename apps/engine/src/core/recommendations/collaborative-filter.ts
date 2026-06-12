@@ -1,8 +1,8 @@
-import { promises as fs } from 'fs';
-import { dirname } from 'path';
-import { logger } from '@/lib/logger';
-import { paths } from '@/lib/env-config';
-import type { UserQueryInteraction } from './types';
+import { promises as fs } from "fs";
+import { dirname } from "path";
+import { logger } from "@/lib/logger";
+import { paths } from "@/lib/env-config";
+import type { UserQueryInteraction } from "./types";
 
 interface SimilarityEntry {
   name: string;
@@ -60,7 +60,10 @@ export class CollaborativeFilter {
     }
 
     this.loaded = true;
-    logger.info({ groupId: this.groupId, queries: queryNames.length }, 'Collaborative filter built');
+    logger.info(
+      { groupId: this.groupId, queries: queryNames.length },
+      "Collaborative filter built",
+    );
   }
 
   /** Get similar queries */
@@ -71,12 +74,15 @@ export class CollaborativeFilter {
   async save(): Promise<void> {
     const filePath = paths.data.collaborativeMatrix(this.groupId);
     await fs.mkdir(dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, JSON.stringify(this.matrix, null, 2), 'utf-8');
+    await fs.writeFile(filePath, JSON.stringify(this.matrix, null, 2), "utf-8");
   }
 
   async load(): Promise<boolean> {
     try {
-      const raw = await fs.readFile(paths.data.collaborativeMatrix(this.groupId), 'utf-8');
+      const raw = await fs.readFile(
+        paths.data.collaborativeMatrix(this.groupId),
+        "utf-8",
+      );
       this.matrix = JSON.parse(raw);
       this.loaded = true;
       return true;

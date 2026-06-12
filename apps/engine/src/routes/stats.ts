@@ -1,12 +1,12 @@
-import { Router, Request, Response } from 'express';
-import { promises as fs } from 'fs';
-import { join } from 'path';
-import { logger } from '@/lib/logger';
-import { DATA_DIR } from '@/lib/env-config';
+import { Router, Request, Response } from "express";
+import { promises as fs } from "fs";
+import { join } from "path";
+import { logger } from "@/lib/logger";
+import { DATA_DIR } from "@/lib/env-config";
 
 export const statsRouter = Router();
 
-const DB_JSON_PATH = join(DATA_DIR, 'db-stats.json');
+const DB_JSON_PATH = join(DATA_DIR, "db-stats.json");
 
 interface QueryStat {
   id: string;
@@ -20,7 +20,7 @@ interface QueryStat {
 
 async function readStats(): Promise<QueryStat[]> {
   try {
-    const raw = await fs.readFile(DB_JSON_PATH, 'utf-8');
+    const raw = await fs.readFile(DB_JSON_PATH, "utf-8");
     const data = JSON.parse(raw);
     return data.queryStats || [];
   } catch {
@@ -29,10 +29,14 @@ async function readStats(): Promise<QueryStat[]> {
 }
 
 async function writeStats(stats: QueryStat[]): Promise<void> {
-  await fs.writeFile(DB_JSON_PATH, JSON.stringify({ queryStats: stats }, null, 2), 'utf-8');
+  await fs.writeFile(
+    DB_JSON_PATH,
+    JSON.stringify({ queryStats: stats }, null, 2),
+    "utf-8",
+  );
 }
 
-statsRouter.get('/', async (req: Request, res: Response) => {
+statsRouter.get("/", async (req: Request, res: Response) => {
   try {
     const queryName = req.query.queryName as string | undefined;
     const since = req.query.since as string | undefined;
@@ -46,7 +50,10 @@ statsRouter.get('/', async (req: Request, res: Response) => {
       stats = stats.filter((s) => s.timestamp >= since);
     }
 
-    const byQuery: Record<string, { durations: number[]; successes: number; failures: number }> = {};
+    const byQuery: Record<
+      string,
+      { durations: number[]; successes: number; failures: number }
+    > = {};
     for (const s of stats) {
       if (!byQuery[s.queryName]) {
         byQuery[s.queryName] = { durations: [], successes: 0, failures: 0 };
@@ -65,8 +72,12 @@ statsRouter.get('/', async (req: Request, res: Response) => {
         totalExecutions: b.successes + b.failures,
         successCount: b.successes,
         failureCount: b.failures,
-        failureRate: len > 0 ? `${((b.failures / (b.successes + b.failures)) * 100).toFixed(1)}%` : '0%',
-        avgDurationMs: len > 0 ? Math.round(sorted.reduce((a, c) => a + c, 0) / len) : 0,
+        failureRate:
+          len > 0
+            ? `${((b.failures / (b.successes + b.failures)) * 100).toFixed(1)}%`
+            : "0%",
+        avgDurationMs:
+          len > 0 ? Math.round(sorted.reduce((a, c) => a + c, 0) / len) : 0,
         p50Ms: len > 0 ? sorted[Math.floor(len * 0.5)] : 0,
         p95Ms: len > 0 ? sorted[Math.floor(len * 0.95)] : 0,
       };
@@ -74,17 +85,23 @@ statsRouter.get('/', async (req: Request, res: Response) => {
 
     return res.json({ stats, aggregated, totalRecords: stats.length });
   } catch (error) {
-    logger.error({ error }, 'Failed to read stats');
+    logger.error({ error }, "Failed to read stats");
     return res.status(500).json({ stats: [], aggregated: [], totalRecords: 0 });
   }
 });
 
-statsRouter.post('/', async (req: Request, res: Response) => {
+statsRouter.post("/", async (req: Request, res: Response) => {
   try {
-    const { queryName, success, durationMs, filters, error: errorMsg } = req.body;
+    const {
+      queryName,
+      success,
+      durationMs,
+      filters,
+      error: errorMsg,
+    } = req.body;
 
     if (!queryName) {
-      return res.status(400).json({ error: 'queryName is required' });
+      return res.status(400).json({ error: "queryName is required" });
     }
 
     const stats = await readStats();
@@ -104,7 +121,7 @@ statsRouter.post('/', async (req: Request, res: Response) => {
 
     return res.status(201).json(stat);
   } catch (error) {
-    logger.error({ error }, 'Failed to record stat');
-    return res.status(500).json({ error: 'Failed to record stat' });
+    logger.error({ error }, "Failed to record stat");
+    return res.status(500).json({ error: "Failed to record stat" });
   }
 });

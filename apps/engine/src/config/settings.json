@@ -5,9 +5,5 @@
   "apiCacheTtlMinutes": 5,
   "apiBaseUrl": "",
   "mockApiUrl": "http://localhost:8080",
-  "enabledPlatforms": [
-    "web",
-    "widget",
-    "teams"
-  ]
+  "enabledPlatforms": ["web", "widget", "teams"]
 }

@@ -1,8 +1,8 @@
-import { promises as fs } from 'fs';
-import { dirname } from 'path';
-import { logger } from '@/lib/logger';
-import { paths } from '@/lib/env-config';
-import type { UserQueryInteraction, TimePattern } from './types';
+import { promises as fs } from "fs";
+import { dirname } from "path";
+import { logger } from "@/lib/logger";
+import { paths } from "@/lib/env-config";
+import type { UserQueryInteraction, TimePattern } from "./types";
 
 /**
  * Aggregates query usage patterns by time-of-day and day-of-week.
@@ -42,16 +42,29 @@ export class TimePatternAnalyzer {
     for (const pattern of this.patterns.values()) {
       const hourSum = pattern.hourDistribution.reduce((a, b) => a + b, 0);
       const daySum = pattern.dayDistribution.reduce((a, b) => a + b, 0);
-      if (hourSum > 0) pattern.hourDistribution = pattern.hourDistribution.map((v) => v / hourSum);
-      if (daySum > 0) pattern.dayDistribution = pattern.dayDistribution.map((v) => v / daySum);
+      if (hourSum > 0)
+        pattern.hourDistribution = pattern.hourDistribution.map(
+          (v) => v / hourSum,
+        );
+      if (daySum > 0)
+        pattern.dayDistribution = pattern.dayDistribution.map(
+          (v) => v / daySum,
+        );
     }
 
     this.loaded = true;
-    logger.info({ groupId: this.groupId, queries: this.patterns.size }, 'Time patterns built');
+    logger.info(
+      { groupId: this.groupId, queries: this.patterns.size },
+      "Time patterns built",
+    );
   }
 
   /** Get queries most relevant to the given time */
-  getTimeRelevant(hour: number, dayOfWeek: number, topK: number = 5): Array<{ name: string; score: number }> {
+  getTimeRelevant(
+    hour: number,
+    dayOfWeek: number,
+    topK: number = 5,
+  ): Array<{ name: string; score: number }> {
     const scored: Array<{ name: string; score: number }> = [];
 
     for (const pattern of this.patterns.values()) {
@@ -73,12 +86,15 @@ export class TimePatternAnalyzer {
     const filePath = paths.data.timePatterns(this.groupId);
     await fs.mkdir(dirname(filePath), { recursive: true });
     const data = Array.from(this.patterns.values());
-    await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
   }
 
   async load(): Promise<boolean> {
     try {
-      const raw = await fs.readFile(paths.data.timePatterns(this.groupId), 'utf-8');
+      const raw = await fs.readFile(
+        paths.data.timePatterns(this.groupId),
+        "utf-8",
+      );
       const data: TimePattern[] = JSON.parse(raw);
       this.patterns.clear();
       for (const p of data) this.patterns.set(p.queryName, p);

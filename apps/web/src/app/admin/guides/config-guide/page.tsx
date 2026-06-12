@@ -385,9 +385,8 @@ export default function ConfigGuidePage() {
               <strong>Role mapping</strong>: the value of{" "}
               <Code>samAccountName</Code> is looked up in{" "}
               <Code>apps/engine/src/config/users.json</Code> (field{" "}
-              <Code>userid</Code>).
-              Users not in the file default to <Code>viewer</Code>; admin grants
-              are explicit.
+              <Code>userid</Code>). Users not in the file default to{" "}
+              <Code>viewer</Code>; admin grants are explicit.
             </div>
             <div>
               <strong>Local dev shortcut</strong>: set{" "}
@@ -434,8 +433,8 @@ export default function ConfigGuidePage() {
               <span>
                 Run{" "}
                 <Code>docker compose -f docker-compose.no-mock.yml up -d</Code>.
-                Override host ports if needed via{" "}
-                <Code>UI_HOST_PORT</Code>, <Code>ENGINE_HOST_PORT</Code>, etc.
+                Override host ports if needed via <Code>UI_HOST_PORT</Code>,{" "}
+                <Code>ENGINE_HOST_PORT</Code>, etc.
               </span>
             </div>
           </div>
@@ -467,8 +466,7 @@ npm run start:prod     # Production start, real APIs (.env.prod)`}</pre>
           </p>
 
           <div className="text-xs text-gray-500 mb-2">
-            Config file:{" "}
-            <FileRef path="apps/engine/src/config/groups.json" />
+            Config file: <FileRef path="apps/engine/src/config/groups.json" />
           </div>
 
           <div className="bg-gray-50 rounded-lg p-4 mb-3">
@@ -561,8 +559,7 @@ npm run start:prod     # Production start, real APIs (.env.prod)`}</pre>
             Query definitions are file-based per group at{" "}
             <FileRef path="apps/engine/data/queries/<group>.json" /> &mdash;
             create and edit them entirely through the admin Queries UI (no file
-            editing needed).
-            The shape below is for reference only.
+            editing needed). The shape below is for reference only.
           </div>
 
           <div className="bg-gray-50 rounded-lg p-4 mb-3">
@@ -935,8 +932,7 @@ npm run start:prod     # Production start, real APIs (.env.prod)`}</pre>
           </p>
 
           <div className="text-xs text-gray-500 mb-2">
-            Config file:{" "}
-            <FileRef path="apps/engine/src/training/corpus.json" />
+            Config file: <FileRef path="apps/engine/src/training/corpus.json" />
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-3">
@@ -1505,7 +1501,8 @@ npm run start:prod     # Production start, real APIs (.env.prod)`}</pre>
                 </span>{" "}
                 — Every user message, detected intent, confidence score, and bot
                 response is recorded in a per-group JSONL file at{" "}
-                <FileRef path="apps/engine/data/learning/{'{groupId}'}.jsonl" />.
+                <FileRef path="apps/engine/data/learning/{'{groupId}'}.jsonl" />
+                .
               </div>
             </div>
             <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg text-xs text-gray-600">
