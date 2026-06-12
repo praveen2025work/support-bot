@@ -131,8 +131,15 @@ router.post("/:queryId/execute", async (req: Request, res: Response) => {
       pipeline.where = whereConditions.length > 0 ? whereConditions : undefined;
     }
 
-    if (query.maxRows && !pipeline.limit) {
-      pipeline.limit = query.maxRows;
+    // Prefer the engine-supplied per-request maxRows (body); fall back to the
+    // saved query limit. Only applies when the pipeline has no explicit limit.
+    const bodyMaxRows = req.body.maxRows;
+    const effectiveMaxRows =
+      typeof bodyMaxRows === "number" && bodyMaxRows > 0
+        ? bodyMaxRows
+        : query.maxRows;
+    if (effectiveMaxRows && !pipeline.limit) {
+      pipeline.limit = effectiveMaxRows;
     }
 
     const result = await connectionManager.executeQuery(

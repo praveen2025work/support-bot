@@ -56,6 +56,49 @@ export function validateProcedureCall(procedureName: string): {
   return { valid: true };
 }
 
+/**
+ * Inject `TOP (n)` into a SELECT so SQL Server stops producing rows early
+ * instead of shipping the entire recordset for Node to slice afterwards.
+ *
+ * SAFETY: only injects when the statement is an unambiguous top-level SELECT
+ * with no existing TOP/OFFSET. CTEs (WITH …), stored-proc calls (EXEC …) and
+ * anything else are left untouched so the caller falls back to the post-fetch
+ * `enforceRowLimit` safety net (no behavioural regression).
+ *
+ * Returns the (possibly) rewritten SQL and whether an injection happened.
+ */
+export function injectTopLimit(
+  sql: string,
+  limit: number,
+): { sql: string; injected: boolean } {
+  if (!Number.isFinite(limit) || limit <= 0) {
+    return { sql, injected: false };
+  }
+
+  const trimmed = sql.trim();
+
+  // Must be a single top-level SELECT (allow leading `SELECT DISTINCT`).
+  // Reject WITH/CTE and EXEC/stored-proc — only `SELECT` is safe to rewrite.
+  const selectMatch = /^select(\s+distinct)?\b/i.exec(trimmed);
+  if (!selectMatch) {
+    return { sql, injected: false };
+  }
+
+  // Bail if a TOP or OFFSET is already present — never override author intent.
+  if (/\bTOP\s*\(/i.test(trimmed) || /\bTOP\s+\d/i.test(trimmed)) {
+    return { sql, injected: false };
+  }
+  if (/\bOFFSET\b/i.test(trimmed)) {
+    return { sql, injected: false };
+  }
+
+  // Insert `TOP (n)` immediately after `SELECT` (or `SELECT DISTINCT`).
+  const insertAt = selectMatch[0].length;
+  const rewritten =
+    trimmed.slice(0, insertAt) + ` TOP (${limit})` + trimmed.slice(insertAt);
+  return { sql: rewritten, injected: true };
+}
+
 export function enforceRowLimit<T>(
   rows: T[],
   maxRows: number,

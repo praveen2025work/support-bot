@@ -20,6 +20,12 @@ declare module "oracledb" {
   }
 
   export interface Connection {
+    /**
+     * Maximum time (ms) a single round-trip database call may run before
+     * oracledb interrupts it. 0 (default) means no timeout. Used to release an
+     * abandoned request's connection promptly.
+     */
+    callTimeout?: number;
     execute<T = Record<string, unknown>>(
       sql: string,
       params?: Record<string, unknown> | unknown[],

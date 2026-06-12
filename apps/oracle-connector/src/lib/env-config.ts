@@ -12,6 +12,26 @@ export const CONNECTOR_API_KEY = process.env.CONNECTOR_API_KEY || "";
 export const LOG_LEVEL = process.env.LOG_LEVEL || "info";
 export const IS_DEV = process.env.NODE_ENV !== "production";
 
+// ── Connection-pool warmth ──────────────────────────────────────────
+// Keep a small number of connections alive on an idle pool so the first
+// query after a quiet period does not pay a full connect. Default 1 (warm);
+// set POOL_MIN/DB_POOL_MIN=0 to fully drain on idle (previous behaviour).
+export const POOL_MIN = (() => {
+  const raw = process.env.POOL_MIN ?? process.env.DB_POOL_MIN;
+  const parsed = raw != null ? parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 1;
+})();
+
+// ── Per-request execution bound ─────────────────────────────────────
+// Hard cap (ms) on a single query so an abandoned request releases its
+// pooled connection promptly after the engine aborts (~30s). Applied as the
+// oracledb connection callTimeout. Configurable via REQUEST_TIMEOUT_MS;
+// defaults to 30s to align with the engine.
+export const REQUEST_TIMEOUT_MS = (() => {
+  const parsed = parseInt(process.env.REQUEST_TIMEOUT_MS || "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 30000;
+})();
+
 export const paths = {
   connectors: {
     config: path.join(DATA_DIR, "connectors", "connectors.json"),

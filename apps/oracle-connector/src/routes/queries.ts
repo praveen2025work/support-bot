@@ -177,7 +177,7 @@ router.delete("/:queryId", async (req: Request, res: Response) => {
 router.post("/:queryId/execute", async (req: Request, res: Response) => {
   try {
     const queryId = req.params.queryId;
-    const { filters } = req.body || {};
+    const { filters, maxRows: bodyMaxRows } = req.body || {};
 
     // 1. Look up saved query
     const query = await queryStore.get(queryId);
@@ -334,12 +334,14 @@ router.post("/:queryId/execute", async (req: Request, res: Response) => {
     }
 
     // 5. Execute
+    // Prefer the engine-supplied per-request maxRows (body) so the row cap is
+    // pushed down to the DB; fall back to the saved query limit, then default.
+    const effectiveMaxRows =
+      typeof bodyMaxRows === "number" && bodyMaxRows > 0
+        ? bodyMaxRows
+        : query.maxRows || 10000;
     const startTime = Date.now();
-    const result = await connector.execute(
-      sql,
-      sqlParams,
-      query.maxRows || 10000,
-    );
+    const result = await connector.execute(sql, sqlParams, effectiveMaxRows);
     const executionTime = Date.now() - startTime;
 
     // 6. Return in the shape the engine expects: { data, rowCount, executionTime }

@@ -13,7 +13,12 @@ import type {
   SqlColumnInfo,
   SqlProcedureInfo,
 } from "./types";
-import { validateReadOnly, enforceRowLimit } from "./query-executor";
+import {
+  validateReadOnly,
+  enforceRowLimit,
+  injectTopLimit,
+} from "./query-executor";
+import { POOL_MIN, REQUEST_TIMEOUT_MS, TOP_PUSHDOWN } from "@/lib/env-config";
 
 // Lazy-load mssql to avoid crashing if not installed
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -54,7 +59,10 @@ export class MssqlConnector implements IDatabaseConnector {
       password: this.password,
       pool: {
         max: this.config.maxPoolSize || 10,
-        min: 0,
+        // Keep a warm connection on an idle pool (POOL_MIN, default 1) so the
+        // first query after a quiet period skips a full connect. Never exceed
+        // the configured max.
+        min: Math.min(POOL_MIN, this.config.maxPoolSize || 10),
         idleTimeoutMillis: 30000,
       },
       options: {
@@ -116,6 +124,10 @@ export class MssqlConnector implements IDatabaseConnector {
     const pool = await this.getPool();
     const request = pool.request();
 
+    // Bound a single request so an abandoned query (engine aborted at ~30s)
+    // releases its pooled connection promptly instead of holding it open.
+    request.timeout = REQUEST_TIMEOUT_MS;
+
     // Bind parameters safely
     if (params) {
       for (const [key, value] of Object.entries(params)) {
@@ -123,13 +135,24 @@ export class MssqlConnector implements IDatabaseConnector {
       }
     }
 
+    const limit = maxRows ?? this.config.maxRows ?? 10000;
+
+    // Push the row limit into the SELECT so the server stops early. Fetch one
+    // extra row (limit + 1) to preserve the truncated-detection trick used by
+    // enforceRowLimit. Unsafe/complex statements (CTE, EXEC, existing TOP) are
+    // left untouched and fall back to post-fetch slicing only.
+    let effectiveSql = sqlText;
+    if (TOP_PUSHDOWN) {
+      const { sql, injected } = injectTopLimit(sqlText, limit + 1);
+      if (injected) effectiveSql = sql;
+    }
+
     const start = Date.now();
-    const result = await request.query(sqlText);
+    const result = await request.query(effectiveSql);
     const executionMs = Date.now() - start;
 
     const rawRows = (result.recordset || []) as Record<string, unknown>[];
     const columns = rawRows.length > 0 ? Object.keys(rawRows[0]) : [];
-    const limit = maxRows ?? this.config.maxRows ?? 10000;
     const { rows, truncated, totalRowsBeforeTruncation } = enforceRowLimit(
       rawRows,
       limit,

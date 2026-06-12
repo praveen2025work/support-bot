@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import { join } from "path";
+import { PARSE_CACHE_MAX } from "@/lib/env-config";
 import type {
   FileConnectorConfig,
   FileConnectionStatus,
@@ -23,6 +24,28 @@ interface ParsedData {
 }
 
 import { existsSync } from "fs";
+
+// ── Parsed-file cache ───────────────────────────────────────────────
+// Avoid re-reading and re-parsing an unchanged file on every execute. Keyed
+// by resolved path + sheet, validated against the file's mtime + size on each
+// access; a mismatch (file moved/edited/resized) invalidates the entry. The
+// Map is bounded to PARSE_CACHE_MAX entries with LRU eviction (oldest first).
+interface ParseCacheEntry {
+  mtimeMs: number;
+  size: number;
+  data: ParsedData;
+}
+
+const parseCache = new Map<string, ParseCacheEntry>();
+
+function parseCacheKey(fullPath: string, sheetName?: string): string {
+  return `${fullPath}\u0000${sheetName ?? ""}`;
+}
+
+/** Clear the parsed-file cache. Exposed for tests and explicit invalidation. */
+export function clearParseCache(): void {
+  parseCache.clear();
+}
 
 const PROJECT_ROOT = process.env.PROJECT_ROOT || join(process.cwd(), "../..");
 const ENGINE_DATA_DIR = join(process.cwd(), "../engine");
@@ -101,8 +124,40 @@ export async function loadFileData(
   config: FileConnectorConfig,
 ): Promise<ParsedData> {
   const fullPath = resolveFilePath(config.filePath, config.fileBaseDir);
+
+  // Caching disabled — preserve the original read-and-parse-every-time path.
+  if (PARSE_CACHE_MAX <= 0) {
+    const content = await fs.readFile(fullPath);
+    return parseFile(content, config.sheetName);
+  }
+
+  const key = parseCacheKey(fullPath, config.sheetName);
+
+  // Stat is far cheaper than reading + parsing the whole file. Serve the
+  // cached parse when the file is unchanged (same mtime + size).
+  const stat = await fs.stat(fullPath);
+  const cached = parseCache.get(key);
+  if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
+    // Touch for LRU recency (re-insert moves the key to the newest position).
+    parseCache.delete(key);
+    parseCache.set(key, cached);
+    return cached.data;
+  }
+
+  // Miss or stale entry — read, parse, and cache fresh.
   const content = await fs.readFile(fullPath);
-  return parseFile(content, config.sheetName);
+  const data = parseFile(content, config.sheetName);
+
+  parseCache.set(key, { mtimeMs: stat.mtimeMs, size: stat.size, data });
+
+  // Bound the cache: evict the oldest entry (first key) past the limit.
+  while (parseCache.size > PARSE_CACHE_MAX) {
+    const oldest = parseCache.keys().next().value;
+    if (oldest === undefined) break;
+    parseCache.delete(oldest);
+  }
+
+  return data;
 }
 
 export async function testFile(

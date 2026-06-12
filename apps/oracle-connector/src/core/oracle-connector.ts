@@ -15,6 +15,7 @@ import type {
   SqlProcedureInfo,
 } from "./types";
 import { validateReadOnly, enforceRowLimit } from "./query-executor";
+import { POOL_MIN, REQUEST_TIMEOUT_MS } from "@/lib/env-config";
 
 // Lazy-load oracledb to avoid crashing if not installed
 let oracledb: typeof import("oracledb") | null = null;
@@ -48,12 +49,15 @@ export class OracleConnector implements IDatabaseConnector {
 
     const connectString = `${this.config.host}:${this.config.port || 1521}/${this.config.database}`;
 
+    const poolMax = this.config.maxPoolSize || 10;
     this.pool = await ora.default.createPool({
       user: this.config.username,
       password: this.password,
       connectString,
-      poolMin: 0,
-      poolMax: this.config.maxPoolSize || 10,
+      // Keep a warm connection on an idle pool (POOL_MIN, default 1) so the
+      // first query after a quiet period skips a full connect. Never exceed max.
+      poolMin: Math.min(POOL_MIN, poolMax),
+      poolMax,
       poolTimeout: 60,
     });
 
@@ -70,6 +74,9 @@ export class OracleConnector implements IDatabaseConnector {
     const pool = await this.getPool();
     if (!pool) throw new Error("Oracle connection pool not available");
     const connection = await pool.getConnection();
+    // Bound every round-trip so an abandoned request (engine aborted at ~30s)
+    // is interrupted and its pooled connection released promptly.
+    connection.callTimeout = REQUEST_TIMEOUT_MS;
     try {
       return await fn(connection);
     } finally {
