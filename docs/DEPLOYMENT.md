@@ -339,7 +339,13 @@ After deployment:
 ## IIS With No Managed Code
 
 Use IIS only as the corporate reverse proxy. The UI still runs as a Node.js
-process on `localhost:3001`; IIS handles TLS, Windows auth, and routing.
+process on `localhost:3001`; IIS handles TLS, Windows auth, and routing — it
+does **not** host the Node process.
+
+> **Shortcut:** `scripts/windows/deploy.ps1` automates the build, the
+> standalone asset copy (step below), and the NSSM install/restart for the UI
+> and engine. Run it from an elevated PowerShell at the repo root, or follow
+> the manual steps below.
 
 1. Install Node.js 20 LTS.
 2. Install IIS URL Rewrite 2.1 and ARR 3.0.
@@ -347,14 +353,30 @@ process on `localhost:3001`; IIS handles TLS, Windows auth, and routing.
 4. Create an IIS site pointing at a folder that contains this repo's
    `web.config`.
 5. Set the site application pool to **No Managed Code**.
-6. Run the UI and engine as Windows services with NSSM.
+6. Add an **HTTPS binding** with your TLS certificate, and enable **Windows
+   Authentication** on the site (disable Anonymous if SSO is required). IIS
+   terminates Negotiate/NTLM; the UI's `/api/userinfo` forwards the identity
+   headers (`X-Forwarded-User`, `X-IIS-User`, `X-Remote-User`, `Remote-User`,
+   `X-User-Principal-Name`) to your `USER_INFO_URL`.
+7. Run the UI and engine as Windows services with NSSM.
 
 Build once on the server (each app is self-contained — build per app):
 
 ```powershell
 npm ci --prefix apps/web
 npm ci --prefix apps/engine
-cd apps/web; npm run build      # Next.js UI -> apps/web/.next/standalone
+
+# UI: NEXT_PUBLIC_WIJMO_LICENSE_KEY is baked into the client bundle, so it
+# MUST be set before `next build`.
+cd apps/web
+$env:NEXT_PUBLIC_WIJMO_LICENSE_KEY = "replace-with-wijmo-license-key"
+npm run build                   # Next.js UI -> apps/web/.next/standalone
+
+# REQUIRED: the standalone output does NOT include .next/static or public/.
+# Copy them next to server.js or the UI loads with broken CSS/JS/assets.
+Copy-Item -Recurse -Force .next\static .next\standalone\.next\static
+Copy-Item -Recurse -Force public       .next\standalone\public
+
 cd ..\engine; npm run build     # engine -> apps/engine/dist
 ```
 
