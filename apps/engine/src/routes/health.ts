@@ -8,26 +8,33 @@ import {
 import { logger } from "@/lib/logger";
 import { DATA_DIR, INSTANCE_ID } from "@/lib/env-config";
 import { getAllHealth } from "@/core/sources/health-monitor";
+import { isDraining } from "@/lib/lifecycle";
 
 export const healthRouter = Router();
 
-// Liveness probe — lightweight, always returns ok if the process is running
-healthRouter.get("/health", (_req: Request, res: Response) => {
-  const memUsage = process.memoryUsage();
-  res.json({
-    status: "ok",
-    service: "chatbot-engine",
-    instanceId: INSTANCE_ID,
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: {
-      heapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024),
-      heapTotalMB: Math.round(memUsage.heapTotal / 1024 / 1024),
-      rssMB: Math.round(memUsage.rss / 1024 / 1024),
-    },
-    engines: getEngineCount(),
-  });
-});
+// Liveness probe — lightweight, always returns ok if the process is running.
+// Deliberately ignores the drain flag: a draining instance is still alive
+// and must not be restarted by an orchestrator, only taken out of rotation
+// (that's what /health/ready signals).
+healthRouter.get(
+  ["/health/live", "/health"],
+  (_req: Request, res: Response) => {
+    const memUsage = process.memoryUsage();
+    res.json({
+      status: "ok",
+      service: "chatbot-engine",
+      instanceId: INSTANCE_ID,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: {
+        heapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024),
+        heapTotalMB: Math.round(memUsage.heapTotal / 1024 / 1024),
+        rssMB: Math.round(memUsage.rss / 1024 / 1024),
+      },
+      engines: getEngineCount(),
+    });
+  },
+);
 
 // Readiness probe — verifies that critical subsystems are operational.
 //
@@ -43,6 +50,16 @@ healthRouter.get("/health", (_req: Request, res: Response) => {
 //              "this request failed", readiness is "stop sending me
 //              new requests."
 healthRouter.get("/health/ready", async (_req: Request, res: Response) => {
+  // During graceful-shutdown drain, report not-ready immediately so the
+  // load balancer stops routing new traffic before we close connections.
+  if (isDraining()) {
+    return res.status(503).json({
+      status: "draining",
+      instanceId: INSTANCE_ID,
+      checks: { nlp: false, dataDir: false, sources: false },
+    });
+  }
+
   const checks: Record<string, boolean> = {
     nlp: false,
     dataDir: false,

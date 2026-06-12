@@ -80,6 +80,7 @@ statsRouter.get("/", async (req: Request, res: Response) => {
           len > 0 ? Math.round(sorted.reduce((a, c) => a + c, 0) / len) : 0,
         p50Ms: len > 0 ? sorted[Math.floor(len * 0.5)] : 0,
         p95Ms: len > 0 ? sorted[Math.floor(len * 0.95)] : 0,
+        p99Ms: len > 0 ? sorted[Math.min(len - 1, Math.floor(len * 0.99))] : 0,
       };
     });
 

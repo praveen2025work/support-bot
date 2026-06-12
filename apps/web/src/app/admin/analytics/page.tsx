@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { RefreshCw, Activity, Timer, AlertOctagon, Layers } from "lucide-react";
+import {
+  RefreshCw,
+  Activity,
+  Timer,
+  AlertOctagon,
+  Layers,
+  Download,
+} from "lucide-react";
 import { csrfHeaders } from "@/lib/csrf";
 import { useSSE } from "@/hooks/useSSE";
 import {
@@ -28,6 +35,7 @@ interface AggregatedStat {
   avgDurationMs: number;
   p50Ms: number;
   p95Ms: number;
+  p99Ms: number;
 }
 
 interface MissedUtterance {
@@ -141,6 +149,47 @@ export default function AnalyticsPage() {
 
   const failPct = totalExecs > 0 ? (totalFails / totalExecs) * 100 : 0;
 
+  const exportCsv = useCallback(() => {
+    const csvCell = (v: string | number): string => {
+      const s = String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const header = [
+      "queryName",
+      "totalExecutions",
+      "successCount",
+      "failureCount",
+      "failureRate",
+      "avgDurationMs",
+      "p50Ms",
+      "p95Ms",
+      "p99Ms",
+    ];
+    const rows = sortedAgg.map((a) => [
+      a.queryName,
+      a.totalExecutions,
+      a.successCount,
+      a.failureCount,
+      a.failureRate,
+      a.avgDurationMs,
+      a.p50Ms,
+      a.p95Ms,
+      a.p99Ms,
+    ]);
+    const csv = [header, ...rows]
+      .map((r) => r.map(csvCell).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `analytics-${timeRange}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [sortedAgg, timeRange]);
+
   return (
     <div className="flex flex-col">
       <AdminPageHeader
@@ -174,6 +223,15 @@ export default function AnalyticsPage() {
             <button onClick={fetchStats} className="btn-ghost !py-1.5">
               <RefreshCw className="w-3.5 h-3.5" />
               Refresh
+            </button>
+            <button
+              onClick={exportCsv}
+              disabled={aggregated.length === 0}
+              className="btn-ghost !py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Export query performance as CSV"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Export CSV
             </button>
           </>
         }
@@ -261,6 +319,9 @@ export default function AnalyticsPage() {
                   <th className="text-right px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
                     p95 (ms)
                   </th>
+                  <th className="text-right px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    p99 (ms)
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -300,6 +361,9 @@ export default function AnalyticsPage() {
                     </td>
                     <td className="px-4 py-2 text-right text-gray-700">
                       {a.p95Ms}
+                    </td>
+                    <td className="px-4 py-2 text-right text-gray-700">
+                      {a.p99Ms}
                     </td>
                   </tr>
                 ))}

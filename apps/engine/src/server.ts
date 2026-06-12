@@ -20,6 +20,7 @@ import { metricsRouter } from "./routes/metrics";
 import { openapiRouter } from "./routes/openapi";
 import { registerGauge } from "./lib/metrics";
 import { getEngineCount } from "./lib/singleton";
+import { setDraining } from "./lib/lifecycle";
 import { chatRouter } from "./routes/chat";
 import { adminRouter } from "./routes/admin/index";
 import { viewsRouter } from "./routes/views";
@@ -233,8 +234,35 @@ const server = app.listen(PORT, () => {
 // ---------------------------------------------------------------------------
 // Graceful shutdown
 // ---------------------------------------------------------------------------
+// How long to keep serving in-flight traffic after flipping readiness to
+// 503, before we stop the server. Gives load balancers time to observe
+// /health/ready failing and drain this instance out of rotation.
+const SHUTDOWN_DRAIN_MS = Number(process.env.SHUTDOWN_DRAIN_MS) || 5_000;
+
+let shuttingDown = false;
+
 async function shutdown(signal: string) {
-  logger.info({ signal }, "Shutting down gracefully...");
+  // Idempotent — a second SIGTERM/SIGINT during drain must not restart it.
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  logger.info(
+    { signal, drainMs: SHUTDOWN_DRAIN_MS },
+    "Draining before shutdown — readiness now reports 503...",
+  );
+
+  // Backstop: force-exit if the graceful path stalls (covers drain + close).
+  setTimeout(() => {
+    logger.error("Forced shutdown after timeout");
+    process.exit(1);
+  }, SHUTDOWN_DRAIN_MS + 10_000).unref();
+
+  // Flip readiness to 503 and let the load balancer stop sending new
+  // requests before we tear anything down.
+  setDraining(true);
+  await new Promise((resolve) => setTimeout(resolve, SHUTDOWN_DRAIN_MS));
+
+  logger.info("Drain window elapsed — closing server");
   stopScheduleExecutor();
   stopHealthMonitor();
   // Stop accepting new connections and close existing ones
@@ -242,12 +270,6 @@ async function shutdown(signal: string) {
     logger.info("HTTP server closed");
     process.exit(0);
   });
-
-  // Force exit if the server hasn't closed within 10 seconds
-  setTimeout(() => {
-    logger.error("Forced shutdown after timeout");
-    process.exit(1);
-  }, 10_000).unref();
 }
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));
