@@ -19,6 +19,15 @@ export default tseslint.config(
       ],
       "@typescript-eslint/no-explicit-any": "warn",
       "no-console": "warn",
+      // React Compiler-era rules from eslint-plugin-react-hooks v7 (pulled in
+      // via eslint-config-next). They flag pre-existing, working patterns
+      // (fetch-on-mount effects, ref access in render) that lint clean on
+      // main. Keep them as warnings rather than block CI on a 63-site
+      // behavioral refactor; revisit if/when adopting the React Compiler.
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/purity": "warn",
+      "react-hooks/immutability": "warn",
     },
   },
 
