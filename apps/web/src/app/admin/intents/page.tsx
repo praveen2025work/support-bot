@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { csrfHeaders } from "@/lib/csrf";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { AdminPageHeader } from "../components/AdminPageHeader";
@@ -18,7 +19,7 @@ interface EntityData {
   };
 }
 
-export default function IntentBuilderPage() {
+function IntentBuilderInner() {
   const [intents, setIntents] = useState<IntentData[]>([]);
   const [entities, setEntities] = useState<EntityData>({});
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,12 @@ export default function IntentBuilderPage() {
   const [newOptionKey, setNewOptionKey] = useState("");
   const [newOptionSynonyms, setNewOptionSynonyms] = useState("");
 
+  // Deep-link prefill: /admin/intents?prefill=<utterance> opens the New Intent
+  // form pre-seeded with the utterance (round-trip from a failed chat match).
+  const searchParams = useSearchParams();
+  const prefill = searchParams.get("prefill");
+  const seededPrefillRef = useRef(false);
+
   const fetchData = async () => {
     try {
       const res = await fetch("/api/admin/intents");
@@ -62,6 +69,15 @@ export default function IntentBuilderPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (prefill && !seededPrefillRef.current) {
+      seededPrefillRef.current = true;
+      setActiveTab("intents");
+      setShowNewIntent(true);
+      setNewIntentUtterances(prefill);
+    }
+  }, [prefill]);
 
   // When selecting an intent, populate edit fields
   useEffect(() => {
@@ -574,5 +590,15 @@ export default function IntentBuilderPage() {
         onCancel={() => setDeleteIntentTarget(null)}
       />
     </div>
+  );
+}
+
+export default function IntentBuilderPage() {
+  return (
+    <Suspense
+      fallback={<p className="text-sm text-gray-500">Loading intents…</p>}
+    >
+      <IntentBuilderInner />
+    </Suspense>
   );
 }

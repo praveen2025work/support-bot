@@ -384,6 +384,7 @@ export function MessageBubble({
             <DisambiguationChips
               candidates={message.disambiguation.candidates}
               onSelect={(cand) => onDisambiguationSelect?.(cand)}
+              newQueryUtterance={message.originalQuery}
             />
           )}
         {message.richContent && message.richContent.data === null ? (
