@@ -65,7 +65,7 @@ npm run db:down    # Stop containers
 ### 1. Install Dependencies
 
 ```bash
-cd services/mssql-connector
+cd apps/mssql-connector
 npm install
 ```
 
@@ -362,7 +362,7 @@ Response:
 ## Data Files
 
 ```
-services/mssql-connector/data/
+apps/mssql-connector/data/
 ├── connectors/
 │   ├── connectors.json         # Connector configurations
 │   └── credentials.enc.json    # AES-256-GCM encrypted passwords
@@ -432,7 +432,7 @@ When results are truncated, the response includes `"truncated": true` and Chat s
 ### Build
 
 ```bash
-cd services/mssql-connector
+cd apps/mssql-connector
 npm run build
 # → dist/server.js (single file, ~25ms build)
 ```
@@ -449,11 +449,14 @@ See the [NSSM section in SETUP.md](./SETUP.md#windows-deployment-with-nssm) for 
 
 ### Docker
 
-Build and run as a Docker container:
+Build and run as a Docker container (the connector is self-contained — its Dockerfile lives in `apps/mssql-connector/`):
 
 ```bash
-docker build -t chatbot-mssql-connector -f services/mssql-connector/Dockerfile services/mssql-connector/
+docker build -t chatbot-mssql-connector apps/mssql-connector/
 docker run -p 4002:4002 -e SQL_CREDENTIAL_KEY=your-key chatbot-mssql-connector
+
+# Or via compose (host port overridable with MSSQL_HOST_PORT):
+docker compose -f docker-compose.no-mock.yml build mssql-connector
 ```
 
 ---

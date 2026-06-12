@@ -21,8 +21,9 @@ writing SQL.
 # 1. Clone + install
 git clone <repo-url> && cd Chatbot
 npm install
-npm install --prefix services/engine
-npm install --prefix services/mock-api
+npm install --prefix apps/web
+npm install --prefix apps/engine
+npm install --prefix apps/mock-api
 
 # 2. Boot everything (mock data + engine + UI)
 npm run dev:mock
@@ -122,26 +123,37 @@ npm run validate:demo
 # Quick validation (skips slow chat phases)
 npm run validate:demo:quick
 
-# Production build
-npm run build
+# Production build (all apps)
+npm run build:all
 
 # Engine unit tests
-cd services/engine && npm test
+cd apps/engine && npm test
+
+# UI tests
+cd apps/web && npm test
 ```
 
 ---
 
 ## Docker
 
-Five compose files for five scenarios:
+Compose files, one per scenario (each on an explicit `chatbot` network):
 
-| File                           | Scenario                                     |
-| ------------------------------ | -------------------------------------------- |
-| `docker-compose.yml`           | Demo / mock data — `docker compose up`       |
-| `docker-compose.dev.yml`       | Dev with real REST APIs — needs `.env.dev`   |
-| `docker-compose.uat.yml`       | UAT — prod mirror, real UAT APIs, `.env.uat` |
-| `docker-compose.prod.yml`      | Production — hardened, env-driven            |
-| `docker-compose.sample-db.yml` | Sample SQL DB for connector testing          |
+| File                            | Services                                | Data source / env                          |
+| ------------------------------- | --------------------------------------- | ------------------------------------------ |
+| `docker-compose.ui-engine.yml`  | UI + engine                             | Real tenant API — needs `.env.prod`        |
+| `docker-compose.no-mock.yml`    | UI + engine + 3 connectors              | Real tenant API + connectors — `.env.prod` |
+| `docker-compose.full.yml`       | UI + engine + mock-api + 3 connectors   | Mock/demo data — `.env.demo` (no secrets)  |
+| `docker-compose.sample-db.yml`  | Sample MSSQL/Oracle DBs                  | For exercising the SQL connectors          |
+
+```bash
+docker compose -f docker-compose.full.yml up -d --build      # everything, mock data
+docker compose -f docker-compose.no-mock.yml up -d --build   # real APIs + connectors
+docker compose -f docker-compose.ui-engine.yml up -d --build # just UI + engine
+```
+
+Host ports default to UI 3001 / engine 4001 / mock 8080 / connectors 4002–4004, and are
+overridable when taken: `ENGINE_HOST_PORT=4011 MOCK_HOST_PORT=8088 docker compose -f … up -d`.
 
 Full env-var reference, persistence layout, and post-deploy smoke
 recipe at **`/admin/guides/docker-setup`** in the running app, or
@@ -180,25 +192,33 @@ Next-up items (priority + owner + gate) tracked in
 
 ```
 .
-├── src/                          Next.js UI (App Router)
-│   ├── app/                      Pages + API proxies
-│   │   ├── api/                  Next.js → engine proxies
-│   │   ├── admin/                Admin surfaces (synonyms, learning, …)
-│   │   ├── share/[id]/           Shareable snapshot viewer
-│   │   └── ...
-│   ├── components/               React components
-│   ├── hooks/                    useChat, etc.
-│   └── lib/                      Client + proxy utilities
-├── services/
-│   ├── engine/                   Core NLP + query execution engine
+├── apps/                         Deployable apps (each self-contained)
+│   ├── web/                      Next.js UI (App Router)
 │   │   ├── src/
-│   │   │   ├── core/             NLP, response pipeline, cache, sources, schema, pii
-│   │   │   ├── routes/           Express routes (chat, admin, health, metrics)
-│   │   │   ├── lib/              error-envelope, rotating-jsonl, metrics, …
-│   │   │   └── server.ts
+│   │   │   ├── app/              Pages + API proxies
+│   │   │   │   ├── api/          Next.js → engine proxies
+│   │   │   │   ├── admin/        Admin surfaces (synonyms, learning, …)
+│   │   │   │   ├── share/[id]/   Shareable snapshot viewer
+│   │   │   │   └── ...
+│   │   │   ├── components/       React components
+│   │   │   ├── hooks/            useChat, etc.
+│   │   │   └── lib/              Client + proxy utilities
+│   │   ├── data/                 UI-side data
+│   │   ├── Dockerfile
+│   │   └── package.json
+│   ├── engine/                   Core NLP + query execution engine
+│   │   ├── src/                  NLP, routes, lib (vitest unit tests live here)
+│   │   ├── tests/                Jest integration tests
 │   │   ├── openapi.json          Hand-maintained API spec
-│   │   └── data/                 Runtime state (gitignored)
-│   └── mock-api/                 Sample data provider
+│   │   ├── data/                 Runtime state (gitignored)
+│   │   ├── Dockerfile
+│   │   └── package.json
+│   ├── mock-api/                 Sample data provider
+│   ├── mssql-connector/          SQL Server connector
+│   ├── oracle-connector/         Oracle connector
+│   └── csv-xlsx-connector/       CSV/XLSX connector
+├── packages/
+│   └── sql-connector/            Canonical shared SQL router (vendored via npm run sync:shared)
 ├── scripts/
 │   └── demo/validate.mjs         128-check validation harness
 ├── docs/
@@ -207,6 +227,7 @@ Next-up items (priority + owner + gate) tracked in
 │   ├── DEMO-VALIDATION.md        Latest harness report
 │   ├── NEXT-STEPS.md             Roadmap
 │   └── onboarding-guide.md       Tenant onboarding
+├── package.json                  Orchestration only (sync:shared, build:*, test, dev, svc:*, db:*)
 └── .github/workflows/ci.yml      CI gate (harness on every PR)
 ```
 

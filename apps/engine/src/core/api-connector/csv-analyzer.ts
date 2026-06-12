@@ -1,0 +1,1625 @@
+// Lazy-load XLSX (~700KB) — only needed when parsing CSV/Excel content
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _xlsx: any = null;
+function getXLSX() {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  if (!_xlsx) _xlsx = require("xlsx");
+  return _xlsx;
+}
+
+export interface CsvData {
+  headers: string[];
+  rows: Record<string, string | number>[];
+}
+
+export interface AggregationRequest {
+  operation: "sum" | "avg" | "min" | "max" | "count" | "distinct" | "top";
+  column: string;
+  limit?: number;
+}
+
+export interface AggregationResult {
+  operation: string;
+  column: string;
+  result: number | string;
+  topRows?: Record<string, string | number>[];
+  topHeaders?: string[];
+}
+
+export function parseCsv(
+  content: string | Buffer,
+  sheetName?: string,
+): CsvData {
+  const XLSX = getXLSX();
+  const readType = Buffer.isBuffer(content) ? "buffer" : "string";
+  const wb = XLSX.read(content, { type: readType, cellDates: true });
+  const targetSheet = sheetName ?? wb.SheetNames[0];
+  if (!targetSheet || !wb.Sheets[targetSheet]) return { headers: [], rows: [] };
+
+  const sheet = wb.Sheets[targetSheet];
+  // defval ensures empty cells get a consistent value instead of being omitted,
+  // which prevents column misalignment when rows have missing fields.
+  const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" }) as Record<
+    string,
+    string | number | Date
+  >[];
+  const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
+
+  // Convert Date objects back to ISO date strings so downstream code sees
+  // readable dates instead of Excel serial numbers or JS Date objects.
+  for (const row of rows) {
+    for (const key of headers) {
+      if (row[key] instanceof Date) {
+        const d = row[key] as Date;
+        // Preserve full datetime: "2026-03-15 14:30:00" instead of just date
+        row[key] = d.toISOString().replace("T", " ").replace("Z", "");
+      }
+    }
+  }
+
+  return { headers, rows: rows as Record<string, string | number>[] };
+}
+
+/** List all sheet names from an xlsx/xls file buffer. */
+export function listSheets(content: Buffer): string[] {
+  const XLSX = getXLSX();
+  const wb = XLSX.read(content, { type: "buffer" });
+  return wb.SheetNames as string[];
+}
+
+export function computeAggregation(
+  data: CsvData,
+  request: AggregationRequest,
+): AggregationResult {
+  const { operation, column, limit } = request;
+
+  if (operation === "count") {
+    return {
+      operation: "count",
+      column: column || "*",
+      result: data.rows.length,
+    };
+  }
+
+  // Count of distinct (unique) non-empty values — the meaningful metric for
+  // ID/identifier columns, where sum/avg/min/max are not.
+  if (operation === "distinct") {
+    const seen = new Set<string>();
+    for (const row of data.rows) {
+      const raw = row[column];
+      if (raw === undefined || raw === null || String(raw).trim() === "")
+        continue;
+      seen.add(String(raw).trim());
+    }
+    return { operation: "distinct", column: column || "*", result: seen.size };
+  }
+
+  if (operation === "top") {
+    const n = limit ?? 5;
+    const sorted = [...data.rows]
+      .sort((a, b) => {
+        const va =
+          typeof a[column] === "number"
+            ? a[column]
+            : parseFloat(String(a[column])) || 0;
+        const vb =
+          typeof b[column] === "number"
+            ? b[column]
+            : parseFloat(String(b[column])) || 0;
+        return (vb as number) - (va as number);
+      })
+      .slice(0, n);
+    // Build a human-readable summary using key identifying columns
+    const nameCol =
+      data.headers.find((h) => /name|title|label|id/i.test(h)) ||
+      data.headers[0];
+    const summary = sorted
+      .map(
+        (r, i) =>
+          `${i + 1}. ${r[nameCol] ?? ""} (${column}: ${r[column] ?? ""})`,
+      )
+      .join(", ");
+    return {
+      operation: `top ${n}`,
+      column,
+      result: summary,
+      topRows: sorted,
+      topHeaders: data.headers,
+    };
+  }
+
+  // Numeric operations: sum, avg, min, max
+  const values: number[] = [];
+  for (const row of data.rows) {
+    const raw = row[column];
+    const num = typeof raw === "number" ? raw : parseFloat(String(raw));
+    if (!isNaN(num)) values.push(num);
+  }
+
+  if (values.length === 0) {
+    return { operation, column, result: "No numeric data" };
+  }
+
+  let result: number;
+  switch (operation) {
+    case "sum":
+      result = values.reduce((a, b) => a + b, 0);
+      break;
+    case "avg":
+      result = values.reduce((a, b) => a + b, 0) / values.length;
+      break;
+    case "min":
+      result = Math.min(...values);
+      break;
+    case "max":
+      result = Math.max(...values);
+      break;
+    default:
+      result = 0;
+  }
+
+  return {
+    operation,
+    column,
+    result: operation === "avg" ? Math.round(result * 100) / 100 : result,
+  };
+}
+
+/**
+ * Parse natural language text to extract an aggregation request.
+ * Matches patterns like "average of revenue", "top 5 by sales", "sum costs".
+ */
+export function parseAggregationFromText(
+  text: string,
+  headers: string[],
+): AggregationRequest | null {
+  const lower = text.toLowerCase();
+
+  // Detect operation
+  let operation: AggregationRequest["operation"] | null = null;
+  let limit: number | undefined;
+
+  if (/\b(average|avg|mean)\b/.test(lower)) operation = "avg";
+  else if (/\b(sum|total)\b/.test(lower)) operation = "sum";
+  else if (/\b(min|minimum|lowest|smallest)\b/.test(lower)) operation = "min";
+  else if (/\b(max|maximum|highest|largest|biggest)\b/.test(lower))
+    operation = "max";
+  else if (/\b(count|how many)\b/.test(lower)) operation = "count";
+  else {
+    const topMatch = lower.match(/\btop\s+(\d+)\b/);
+    if (topMatch) {
+      operation = "top";
+      limit = parseInt(topMatch[1], 10);
+    }
+  }
+
+  if (!operation) return null;
+
+  // For count, column is optional
+  if (operation === "count") {
+    // Try to find a column for "count by X" pattern
+    const byMatch = lower.match(/\bcount\s+(?:by\s+)?(\w+)/);
+    const col = byMatch ? findMatchingHeader(byMatch[1], headers) : null;
+    return { operation: "count", column: col ?? "*", limit };
+  }
+
+  // Find the column reference — try matching against actual headers
+  const column = findColumnInText(lower, headers);
+  if (!column) return null;
+
+  return { operation, column, limit };
+}
+
+/**
+ * Natural-language synonyms for common column concepts. Maps a user term
+ * (left) to a regex that matches likely header tokens (right). Used as a
+ * fallback in findMatchingHeader so users can say "group by location"
+ * even when the actual column is "Region", "Geo", or "Country".
+ *
+ * Kept intentionally short and generic — per-group customization lives
+ * in the synonyms admin route (see apps/engine/src/routes/admin/synonyms.ts).
+ */
+const COLUMN_SYNONYMS: Record<string, RegExp> = {
+  // Geography
+  location: /\b(region|location|geo|country|city|territory|area|site)\b/i,
+  place: /\b(region|location|geo|country|city|territory|area|site)\b/i,
+  where: /\b(region|location|geo|country|city|territory|area|site)\b/i,
+  geography: /\b(region|location|geo|country|city|territory|area)\b/i,
+  region: /\b(region|location|geo|country|city|territory|area)\b/i,
+  // Time
+  time: /\b(date|time|created|timestamp|when|period|month|quarter|year|day|hour)\b/i,
+  when: /\b(date|time|created|timestamp|period|month|quarter|year|day)\b/i,
+  date: /\b(date|created|timestamp|day|day_of)\b/i,
+  // Money / metric
+  amount:
+    /\b(amount|total|sum|value|revenue|cost|price|spend|payment|salary)\b/i,
+  money: /\b(amount|total|revenue|cost|price|payment|salary)\b/i,
+  value: /\b(value|amount|total|sum|revenue)\b/i,
+  cost: /\b(cost|expense|spend|price)\b/i,
+  revenue: /\b(revenue|income|earnings|sales|amount)\b/i,
+  // People
+  who: /\b(user|employee|name|owner|assignee|created_by|author|person)\b/i,
+  person: /\b(user|employee|name|owner|assignee|created_by|author)\b/i,
+  user: /\b(user|employee|name|owner|assignee|created_by|author)\b/i,
+  employee: /\b(user|employee|name|owner|assignee)\b/i,
+  // Categorical
+  type: /\b(type|category|kind|class|classification|product)\b/i,
+  category: /\b(category|type|kind|class|classification|product)\b/i,
+  kind: /\b(kind|type|category|class)\b/i,
+  // Org
+  team: /\b(team|department|dept|group|division|business_?unit|bu|squad|org)\b/i,
+  department: /\b(department|dept|team|group|division|business_?unit|bu)\b/i,
+  division: /\b(division|department|business_?unit|group|team)\b/i,
+  org: /\b(org|organization|department|team|division|business_?unit)\b/i,
+  // Workflow
+  state: /\b(status|state|stage|phase|stage_?id|step)\b/i,
+  status: /\b(status|state|stage|phase|step)\b/i,
+  stage: /\b(stage|step|status|state|phase)\b/i,
+  // Identity
+  id: /\b(id|key|code|number|ref|reference)\b/i,
+  name: /\b(name|label|title|description)\b/i,
+};
+
+/**
+ * Headers that look like derived/aggregate columns: Avg_X, Max_X, Min_X,
+ * Sum_X, Count_X, Total_X, Median_X, P95_X, Delta_X, etc. These are
+ * usually NOT what a user means when they say a natural-language word
+ * like "location" or "time" — they want the underlying dimension.
+ */
+const DERIVED_COLUMN_PREFIX =
+  /^(avg|average|mean|max|maximum|min|minimum|sum|total|count|median|mode|stdev|stddev|variance|p\d+|percentile|delta|diff|change|pct|ratio)[_\s-]/i;
+
+/**
+ * Lowercase + strip diacritics + strip underscore/space so unicode
+ * variants of the same conceptual word collapse to the same key.
+ * "Région" and "Region" both normalize to "region"; "Book_Status"
+ * and "BookStatus" both normalize to "bookstatus".
+ */
+function normalizeForMatch(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[_\s]/g, "");
+}
+
+export function findMatchingHeader(
+  term: string,
+  headers: string[],
+): string | null {
+  const lowerTerm = normalizeForMatch(term);
+
+  // 1. Exact match (case-insensitive + diacritic-folded). Highest
+  //    priority: user typed the column name as-is, full stop.
+  //    Folding means "Région" matches "Region".
+  const foldedTerm = term
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+  for (const h of headers) {
+    if (
+      h
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .toLowerCase() === foldedTerm
+    )
+      return h;
+  }
+
+  // 2. Exact match ignoring underscores/spaces (e.g., "bookstatus" matches "Book_Status")
+  for (const h of headers) {
+    if (normalizeForMatch(h) === lowerTerm) return h;
+  }
+
+  // 3. Semantic synonym — natural-language word ("location", "when",
+  //    "amount") maps to a regex over likely header tokens. Tried BEFORE
+  //    the loose substring passes so "group by location" prefers a clean
+  //    dimension column (Region) over a derived column whose name happens
+  //    to contain "Location" (Avg_DelTimePCLocationTime).
+  //
+  //    Among synonym matches, prefer non-derived columns; only fall back
+  //    to a derived match if no primary column matches the synonym.
+  const synonymPattern = COLUMN_SYNONYMS[term.toLowerCase()];
+  if (synonymPattern) {
+    let derivedFallback: string | null = null;
+    for (const h of headers) {
+      if (!synonymPattern.test(h)) continue;
+      if (DERIVED_COLUMN_PREFIX.test(h)) {
+        derivedFallback ??= h;
+        continue;
+      }
+      return h;
+    }
+    if (derivedFallback) return derivedFallback;
+  }
+
+  // 4. Whole-word boundary match — header contains the term as a distinct word
+  //    e.g., "status" matches "Book Status" or "Book_Status" but NOT "StatusCode"
+  for (const h of headers) {
+    const hFolded = h
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase();
+    // Split by underscore, space, or camelCase boundaries
+    const hWords = hFolded.replace(/([a-z])([A-Z])/g, "$1 $2").split(/[_\s]+/);
+    if (hWords.includes(foldedTerm)) return h;
+  }
+
+  // 5. Term ends with header word or header word ends with term (suffix match)
+  //    e.g., "region" matches "Region" but avoids "RegionalCode"
+  for (const h of headers) {
+    const hNorm = normalizeForMatch(h);
+    if (hNorm === lowerTerm) return h;
+    // Only allow suffix/prefix match for longer terms (>=4 chars) to avoid false positives
+    if (lowerTerm.length >= 4 && hNorm.endsWith(lowerTerm)) return h;
+    if (lowerTerm.length >= 4 && lowerTerm.endsWith(hNorm) && hNorm.length >= 4)
+      return h;
+  }
+
+  // 6. Partial substring (last resort) — but require term to be substantial (>=4 chars)
+  if (lowerTerm.length >= 4) {
+    for (const h of headers) {
+      const hNorm = normalizeForMatch(h);
+      if (hNorm.includes(lowerTerm)) return h;
+    }
+  }
+
+  return null;
+}
+
+function findColumnInText(text: string, headers: string[]): string | null {
+  // Try longest headers first to handle multi-word column names
+  const sorted = [...headers].sort((a, b) => b.length - a.length);
+  for (const h of sorted) {
+    if (text.includes(h.toLowerCase())) return h;
+  }
+  // Try individual words in the text against headers
+  const words = text.split(/\s+/);
+  for (const word of words) {
+    const match = findMatchingHeader(word, headers);
+    if (match) return match;
+  }
+  return null;
+}
+
+// ── Group By ──────────────────────────────────────────────────────────
+
+export interface GroupByResult {
+  groupColumn: string;
+  /** When multi-column group-by is used, lists all group columns */
+  groupColumns?: string[];
+  groups: GroupRow[];
+  aggregatedColumns: { column: string; operation: string }[];
+}
+
+export interface GroupRow {
+  groupValue: string | number;
+  /** When multi-column group-by is used, holds the composite key parts */
+  groupValues?: Record<string, string | number>;
+  count: number;
+  aggregations: Record<string, number>;
+}
+
+/** Identify columns where >80% of values are numeric */
+/**
+ * Patterns that identify ID/key columns — numeric but not meaningful to sum/aggregate.
+ * These are excluded from numeric aggregation (group-by sums, chart value columns, etc.)
+ */
+// Matches: stageid, stage_id, substageid, workflowprocessid, user_key, account_no,
+// invoice_number, cheque_no, txn_num, customer_uuid, etc.
+const ID_COLUMN_PATTERN =
+  /(?:_|^)(id|key|code|index|seq|sequence|ref|reference|pk|fk|no|num|number|uuid|guid)$|id$|key$|number$|uuid$|guid$/i;
+// Matches: businessdate, business_date, created_at, timestamp, effective_date, etc.
+const DATE_COLUMN_PATTERN =
+  /(?:_|^)(date|time|timestamp|datetime|created|updated|modified|period|asof|effective)$|date$|time$/i;
+// Column names that denote a measure/metric — these are aggregatable even when
+// their values happen to look like unique integers, so value-based ID detection
+// must skip them.
+const MEASURE_NAME_PATTERN =
+  /(?:_|^)(count|total|sum|avg|average|amount|balance|revenue|sales|active|volume|rate|ratio|score|pct|percent|quantity|qty|profit|loss|cost|price|fee|salary|wage|income|expense|debit|credit|deposit|withdrawal|interest|tax|principal)/i;
+
+/** Column role configuration — explicit overrides for auto-detection */
+export interface ColumnConfig {
+  idColumns?: string[];
+  dateColumns?: string[];
+  labelColumns?: string[];
+  valueColumns?: string[];
+  ignoreColumns?: string[];
+}
+
+/**
+ * Check if a column is an ID/key column (numeric but not aggregatable).
+ * Uses columnConfig first (if provided), then name patterns and value analysis.
+ */
+function isIdentityColumn(
+  header: string,
+  rows: Record<string, string | number>[],
+  columnConfig?: ColumnConfig,
+): boolean {
+  // Explicit config takes priority
+  if (columnConfig) {
+    const lowerHeader = header.toLowerCase();
+    if (columnConfig.idColumns?.some((c) => c.toLowerCase() === lowerHeader))
+      return true;
+    if (columnConfig.dateColumns?.some((c) => c.toLowerCase() === lowerHeader))
+      return true;
+    if (
+      columnConfig.ignoreColumns?.some((c) => c.toLowerCase() === lowerHeader)
+    )
+      return true;
+    // If valueColumns is set and this column is in it, it's NOT an identity column
+    if (columnConfig.valueColumns?.some((c) => c.toLowerCase() === lowerHeader))
+      return false;
+  }
+
+  // Name-based detection
+  if (ID_COLUMN_PATTERN.test(header)) return true;
+  if (DATE_COLUMN_PATTERN.test(header)) return true;
+
+  // Value-based detection: if all values are unique integers, likely an ID
+  // But skip if the column name suggests it's a measure/metric
+  if (rows.length >= 3 && !MEASURE_NAME_PATTERN.test(header)) {
+    const values = rows
+      .map((r) => r[header])
+      .filter((v) => v !== undefined && v !== null && v !== "");
+    const uniqueRatio = new Set(values.map(String)).size / values.length;
+    const allIntegers = values.every((v) => {
+      const n = typeof v === "number" ? v : parseFloat(String(v));
+      return !isNaN(n) && Number.isInteger(n);
+    });
+    // If >95% unique and all integers, treat as ID column
+    if (allIntegers && uniqueRatio > 0.95 && values.length > 5) return true;
+  }
+
+  return false;
+}
+
+/**
+ * Check if a column is an *identifier* (unique id, system id, entity id, code,
+ * key) as opposed to a measure or a date.
+ *
+ * Unlike {@link isIdentityColumn}, this intentionally excludes date columns:
+ * min/max of a date is meaningful (earliest/latest), but sum/avg/min/max of an
+ * identifier is not. Callers use this to steer aggregation on such columns
+ * toward count / count-of-distinct instead of numeric reductions.
+ */
+export function isIdLikeColumn(
+  header: string,
+  rows: Record<string, string | number>[],
+  columnConfig?: ColumnConfig,
+): boolean {
+  const lowerHeader = header.toLowerCase();
+  if (columnConfig) {
+    if (columnConfig.idColumns?.some((c) => c.toLowerCase() === lowerHeader))
+      return true;
+    // An explicit value column or date column is, by definition, not an ID.
+    if (columnConfig.valueColumns?.some((c) => c.toLowerCase() === lowerHeader))
+      return false;
+    if (columnConfig.dateColumns?.some((c) => c.toLowerCase() === lowerHeader))
+      return false;
+  }
+
+  // A date column is not an identifier — its extremes carry meaning.
+  if (DATE_COLUMN_PATTERN.test(header)) return false;
+  // Name-based: ...id, ..._id, ...key, ...code, ...ref, etc.
+  if (ID_COLUMN_PATTERN.test(header)) return true;
+
+  // Value-based: mostly-unique integers whose name doesn't denote a measure.
+  if (rows.length > 5 && !MEASURE_NAME_PATTERN.test(header)) {
+    const values = rows
+      .map((r) => r[header])
+      .filter((v) => v !== undefined && v !== null && v !== "");
+    if (values.length > 5) {
+      const uniqueRatio = new Set(values.map(String)).size / values.length;
+      const allIntegers = values.every((v) => {
+        const n = typeof v === "number" ? v : parseFloat(String(v));
+        return !isNaN(n) && Number.isInteger(n);
+      });
+      if (allIntegers && uniqueRatio > 0.95) return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Check if a column contains date values (not just date-like column names).
+ * Detects: date strings ("2026-03-15", "03/15/2026", "15-Mar-2026"),
+ * Excel serial dates (numeric values in 1-100000 range with column name hint),
+ * and JS Date objects serialized as ISO strings.
+ */
+function isDateValueColumn(
+  header: string,
+  rows: Record<string, string | number>[],
+): boolean {
+  // Column name strongly suggests date — very likely dates even if values look numeric
+  if (DATE_COLUMN_PATTERN.test(header)) return true;
+
+  // Sample values for date string detection
+  const sample = rows.slice(0, 20);
+  let dateStringCount = 0;
+  for (const row of sample) {
+    const v = row[header];
+    if (v === undefined || v === null || v === "") continue;
+    const s = String(v).trim();
+    if (detectDateFormat(s)) {
+      dateStringCount++;
+    }
+  }
+  const nonEmpty = sample.filter(
+    (r) => r[header] !== undefined && r[header] !== null && r[header] !== "",
+  ).length;
+  if (nonEmpty > 0 && dateStringCount / nonEmpty > 0.5) return true;
+
+  return false;
+}
+
+export function getNumericColumns(
+  data: CsvData,
+  columnConfig?: ColumnConfig,
+): string[] {
+  // If explicit valueColumns provided, use those directly (validate they exist in headers)
+  if (columnConfig?.valueColumns && columnConfig.valueColumns.length > 0) {
+    const headerLower = data.headers.map((h) => h.toLowerCase());
+    return columnConfig.valueColumns
+      .filter((vc) => headerLower.includes(vc.toLowerCase()))
+      .map((vc) => {
+        const idx = headerLower.indexOf(vc.toLowerCase());
+        return data.headers[idx]; // return original case
+      });
+  }
+
+  return data.headers.filter((h) => {
+    if (data.rows.length === 0) return false;
+    // Skip ID, date, and ignored columns
+    if (isIdentityColumn(h, data.rows, columnConfig)) return false;
+    // Skip date columns (by name pattern or by detecting date values)
+    if (isDateValueColumn(h, data.rows)) return false;
+    let numCount = 0;
+    for (const row of data.rows) {
+      const v = row[h];
+      if (typeof v === "number") {
+        numCount++;
+      } else if (typeof v === "string") {
+        const trimmed = v.trim();
+        // Reject time-format ("10:00 BST") and date-text ("13-Mar-2026") strings
+        // that parseFloat would incorrectly parse as numbers.
+        // A true numeric string should not contain ':' or letters (except trailing %).
+        if (
+          trimmed !== "" &&
+          !isNaN(parseFloat(trimmed)) &&
+          !/[a-zA-Z:]/.test(trimmed.replace(/%$/, ""))
+        ) {
+          numCount++;
+        }
+      }
+    }
+    return numCount / data.rows.length > 0.8;
+  });
+}
+
+/**
+ * Group rows by one or more columns and sum all numeric columns per group.
+ * Supports single column: groupBy(data, "region")
+ * Supports multi-column: groupBy(data, "region") for single, or use groupByMultiple.
+ */
+export function groupBy(
+  data: CsvData,
+  groupColumn: string,
+  columnConfig?: ColumnConfig,
+): GroupByResult | null {
+  // Check if this is a multi-column request: "product and region", "product, region"
+  const multiCols = groupColumn
+    .split(/\s+and\s+|,\s*/i)
+    .map((c) => c.trim())
+    .filter(Boolean);
+  if (multiCols.length > 1) {
+    return groupByMultiple(data, multiCols, columnConfig);
+  }
+
+  const matchedCol = findMatchingHeader(groupColumn, data.headers);
+  if (!matchedCol) return null;
+
+  const numericCols = getNumericColumns(data, columnConfig).filter(
+    (c) => c !== matchedCol,
+  );
+  const buckets = new Map<
+    string | number,
+    { count: number; sums: Record<string, number> }
+  >();
+
+  for (const row of data.rows) {
+    const key = row[matchedCol] ?? "(empty)";
+    let bucket = buckets.get(key);
+    if (!bucket) {
+      bucket = { count: 0, sums: {} };
+      for (const nc of numericCols) bucket.sums[nc] = 0;
+      buckets.set(key, bucket);
+    }
+    bucket.count++;
+    for (const nc of numericCols) {
+      const v = row[nc];
+      const num = typeof v === "number" ? v : parseFloat(String(v));
+      if (!isNaN(num)) bucket.sums[nc] += num;
+    }
+  }
+
+  const groups: GroupRow[] = [];
+  buckets.forEach((bucket, groupValue) => {
+    const aggregations: Record<string, number> = {};
+    for (const [col, sum] of Object.entries(bucket.sums)) {
+      aggregations[col] = Math.round(sum * 100) / 100;
+    }
+    groups.push({ groupValue, count: bucket.count, aggregations });
+  });
+
+  groups.sort((a, b) =>
+    String(a.groupValue).localeCompare(String(b.groupValue)),
+  );
+
+  return {
+    groupColumn: matchedCol,
+    groups,
+    aggregatedColumns: numericCols.map((c) => ({
+      column: c,
+      operation: "sum",
+    })),
+  };
+}
+
+/**
+ * Group rows by multiple columns (composite key).
+ * e.g., "group by product and region" → each unique (product, region) pair is a group.
+ */
+export function groupByMultiple(
+  data: CsvData,
+  groupColumns: string[],
+  columnConfig?: ColumnConfig,
+): GroupByResult | null {
+  // Resolve each column name
+  const matchedCols: string[] = [];
+  for (const col of groupColumns) {
+    const matched = findMatchingHeader(col, data.headers);
+    if (!matched) return null; // Bail if any column not found
+    matchedCols.push(matched);
+  }
+
+  const groupColSet = new Set(matchedCols);
+  const numericCols = getNumericColumns(data, columnConfig).filter(
+    (c) => !groupColSet.has(c),
+  );
+
+  // Use a composite string key: "val1|||val2|||val3"
+  const SEPARATOR = "|||";
+  const buckets = new Map<
+    string,
+    {
+      values: Record<string, string | number>;
+      count: number;
+      sums: Record<string, number>;
+    }
+  >();
+
+  for (const row of data.rows) {
+    const keyParts = matchedCols.map((col) => String(row[col] ?? "(empty)"));
+    const compositeKey = keyParts.join(SEPARATOR);
+
+    let bucket = buckets.get(compositeKey);
+    if (!bucket) {
+      const values: Record<string, string | number> = {};
+      matchedCols.forEach((col) => {
+        values[col] = row[col] ?? "(empty)";
+      });
+      bucket = { values, count: 0, sums: {} };
+      for (const nc of numericCols) bucket.sums[nc] = 0;
+      buckets.set(compositeKey, bucket);
+    }
+    bucket.count++;
+    for (const nc of numericCols) {
+      const v = row[nc];
+      const num = typeof v === "number" ? v : parseFloat(String(v));
+      if (!isNaN(num)) bucket.sums[nc] += num;
+    }
+  }
+
+  const groups: GroupRow[] = [];
+  buckets.forEach((bucket) => {
+    const aggregations: Record<string, number> = {};
+    for (const [col, sum] of Object.entries(bucket.sums)) {
+      aggregations[col] = Math.round(sum * 100) / 100;
+    }
+    // Display label: "Product A | US"
+    const displayLabel = matchedCols
+      .map((col) => String(bucket.values[col]))
+      .join(" | ");
+    groups.push({
+      groupValue: displayLabel,
+      groupValues: bucket.values,
+      count: bucket.count,
+      aggregations,
+    });
+  });
+
+  groups.sort((a, b) =>
+    String(a.groupValue).localeCompare(String(b.groupValue)),
+  );
+
+  const displayColumnName = matchedCols.join(" + ");
+  return {
+    groupColumn: displayColumnName,
+    groupColumns: matchedCols,
+    groups,
+    aggregatedColumns: numericCols.map((c) => ({
+      column: c,
+      operation: "sum",
+    })),
+  };
+}
+
+// ── Sort ──────────────────────────────────────────────────────────────
+
+export interface SortRequest {
+  column: string;
+  direction: "asc" | "desc";
+}
+
+/**
+ * Sort CSV rows by a column.
+ */
+export function sortData(data: CsvData, request: SortRequest): CsvData {
+  const matchedCol = findMatchingHeader(request.column, data.headers);
+  if (!matchedCol) return data;
+
+  const multiplier = request.direction === "desc" ? -1 : 1;
+  const sorted = [...data.rows].sort((a, b) => {
+    const va = a[matchedCol];
+    const vb = b[matchedCol];
+    const na = typeof va === "number" ? va : parseFloat(String(va));
+    const nb = typeof vb === "number" ? vb : parseFloat(String(vb));
+    // Both numeric
+    if (!isNaN(na) && !isNaN(nb)) return (na - nb) * multiplier;
+    // String comparison
+    return String(va ?? "").localeCompare(String(vb ?? "")) * multiplier;
+  });
+
+  return { headers: data.headers, rows: sorted };
+}
+
+// ── Column Type Detection ────────────────────────────────────────────
+
+export interface DetectedColumnMeta {
+  column: string;
+  detectedType: "date" | "integer" | "decimal" | "id" | "string";
+  format?: string;
+}
+
+const MONTH_NAMES =
+  /^(jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|jun(e)?|jul(y)?|aug(ust)?|sep(tember)?|oct(ober)?|nov(ember)?|dec(ember)?)$/i;
+const _MONTH_ABBR = /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)$/i;
+
+interface DatePattern {
+  regex: RegExp;
+  format: string;
+}
+
+const DATE_PATTERNS: DatePattern[] = [
+  // ISO datetime: 2026-03-15T14:30:00
+  {
+    regex: /^\d{4}[-/]\d{2}[-/]\d{2}T\d{2}:\d{2}/,
+    format: "YYYY-MM-DDTHH:mm:ss",
+  },
+  // Datetime with space separator: 2026-03-15 14:30:00
+  {
+    regex: /^\d{4}[-/]\d{2}[-/]\d{2}\s+\d{2}:\d{2}/,
+    format: "YYYY-MM-DD HH:mm:ss",
+  },
+  // ISO date: 2026-03-15 or 2026/03/15
+  { regex: /^\d{4}[-/]\d{2}[-/]\d{2}$/, format: "YYYY-MM-DD" },
+  // US date: 03/15/2026 or 03-15-2026
+  { regex: /^\d{2}[-/]\d{2}[-/]\d{4}$/, format: "MM/DD/YYYY" },
+  // DD-Mon-YYYY or DD Mon YYYY: 15-Mar-2026, 15 Mar 2026
+  {
+    regex:
+      /^\d{1,2}[-\s](jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[-\s]\d{4}$/i,
+    format: "DD-Mon-YYYY",
+  },
+  // Mon YYYY or Mon-YYYY: Mar 2026, Mar-2026
+  {
+    regex:
+      /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[-\s]\d{4}$/i,
+    format: "Mon YYYY",
+  },
+  // YYYY-Mon or YYYY Mon: 2026-Mar, 2026 Mar
+  {
+    regex:
+      /^\d{4}[-\s](jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*$/i,
+    format: "YYYY-Mon",
+  },
+];
+
+function detectDateFormat(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  // Full or abbreviated month name alone
+  if (MONTH_NAMES.test(trimmed)) return "month_name";
+  for (const { regex, format } of DATE_PATTERNS) {
+    if (regex.test(trimmed)) return format;
+  }
+  return null;
+}
+
+/**
+ * Analyze actual data values to detect column types.
+ * Samples up to 20 rows; requires >80% match for a type classification.
+ * Explicit columnConfig overrides always win.
+ */
+export function detectColumnTypes(
+  headers: string[],
+  rows: Record<string, string | number>[],
+  columnConfig?: ColumnConfig,
+): DetectedColumnMeta[] {
+  const sampleRows = rows.slice(0, 20);
+  const result: DetectedColumnMeta[] = [];
+
+  for (const header of headers) {
+    const lowerHeader = header.toLowerCase();
+
+    // Explicit columnConfig overrides
+    if (
+      columnConfig?.dateColumns?.some((c) => c.toLowerCase() === lowerHeader)
+    ) {
+      result.push({ column: header, detectedType: "date" });
+      continue;
+    }
+    if (columnConfig?.idColumns?.some((c) => c.toLowerCase() === lowerHeader)) {
+      result.push({ column: header, detectedType: "id" });
+      continue;
+    }
+    if (
+      columnConfig?.ignoreColumns?.some((c) => c.toLowerCase() === lowerHeader)
+    ) {
+      result.push({ column: header, detectedType: "string" });
+      continue;
+    }
+    if (
+      columnConfig?.valueColumns?.some((c) => c.toLowerCase() === lowerHeader)
+    ) {
+      // Determine integer vs decimal for explicit value columns
+      const vals = sampleRows
+        .map((r) => r[header])
+        .filter((v) => v !== undefined && v !== null && v !== "");
+      const hasDecimal = vals.some((v) => {
+        const s = String(v);
+        return s.includes(".") && !isNaN(parseFloat(s));
+      });
+      result.push({
+        column: header,
+        detectedType: hasDecimal ? "decimal" : "integer",
+      });
+      continue;
+    }
+
+    // Value-based detection
+    const values = sampleRows
+      .map((r) => r[header])
+      .filter((v) => v !== undefined && v !== null && v !== "");
+
+    if (values.length === 0) {
+      result.push({ column: header, detectedType: "string" });
+      continue;
+    }
+
+    // Check for dates first (before numeric, since some date formats are numeric-looking)
+    let dateCount = 0;
+    let lastDateFormat: string | null = null;
+    for (const v of values) {
+      const fmt = detectDateFormat(String(v));
+      if (fmt) {
+        dateCount++;
+        lastDateFormat = fmt;
+      }
+    }
+    // Also check column name pattern as a boost
+    const nameIsDate = DATE_COLUMN_PATTERN.test(header);
+    if (dateCount / values.length > 0.8 || (nameIsDate && dateCount > 0)) {
+      result.push({
+        column: header,
+        detectedType: "date",
+        format: lastDateFormat ?? undefined,
+      });
+      continue;
+    }
+    // If name strongly suggests date but values are numeric (e.g. Excel serial dates),
+    // still classify as date
+    if (nameIsDate) {
+      result.push({
+        column: header,
+        detectedType: "date",
+        format: "excel_serial",
+      });
+      continue;
+    }
+
+    // Check if it's an ID column (name pattern + value uniqueness)
+    if (isIdentityColumn(header, rows, columnConfig)) {
+      result.push({ column: header, detectedType: "id" });
+      continue;
+    }
+
+    // Check for numeric (integer vs decimal)
+    let numericCount = 0;
+    let hasDecimal = false;
+    for (const v of values) {
+      const s = String(v);
+      const n = typeof v === "number" ? v : parseFloat(s);
+      if (!isNaN(n)) {
+        numericCount++;
+        if (s.includes(".")) hasDecimal = true;
+      }
+    }
+    if (numericCount / values.length > 0.8) {
+      result.push({
+        column: header,
+        detectedType: hasDecimal ? "decimal" : "integer",
+      });
+      continue;
+    }
+
+    // Default: string
+    result.push({ column: header, detectedType: "string" });
+  }
+
+  return result;
+}
+
+// ── Summary / Stats ──────────────────────────────────────────────────
+
+export interface SummaryResult {
+  rowCount: number;
+  columns: ColumnSummary[];
+}
+
+export interface ColumnSummary {
+  column: string;
+  type: "numeric" | "categorical" | "date";
+  numericSubtype?: "integer" | "decimal";
+  dateFormat?: string;
+  sum?: number;
+  avg?: number;
+  min?: number;
+  max?: number;
+  uniqueValues?: number;
+  topValues?: { value: string; count: number }[];
+}
+
+/**
+ * Compute summary statistics for all columns.
+ */
+export function computeSummary(data: CsvData): SummaryResult {
+  const numericCols = new Set(getNumericColumns(data));
+  const detectedTypes = detectColumnTypes(data.headers, data.rows);
+  const detectedMap = new Map(detectedTypes.map((d) => [d.column, d]));
+  const columns: ColumnSummary[] = [];
+
+  for (const header of data.headers) {
+    const detected = detectedMap.get(header);
+
+    if (detected?.detectedType === "date") {
+      const freq = new Map<string, number>();
+      for (const row of data.rows) {
+        const v = String(row[header] ?? "");
+        freq.set(v, (freq.get(v) ?? 0) + 1);
+      }
+      const topValues: { value: string; count: number }[] = [];
+      freq.forEach((count, value) => topValues.push({ value, count }));
+      topValues.sort((a, b) => b.count - a.count);
+      topValues.splice(5);
+      columns.push({
+        column: header,
+        type: "date",
+        dateFormat: detected.format,
+        uniqueValues: freq.size,
+        topValues,
+      });
+    } else if (numericCols.has(header)) {
+      const values: number[] = [];
+      for (const row of data.rows) {
+        const v = row[header];
+        const n = typeof v === "number" ? v : parseFloat(String(v));
+        if (!isNaN(n)) values.push(n);
+      }
+      const sum = values.reduce((a, b) => a + b, 0);
+      columns.push({
+        column: header,
+        type: "numeric",
+        numericSubtype:
+          detected?.detectedType === "decimal" ? "decimal" : "integer",
+        sum: Math.round(sum * 100) / 100,
+        avg:
+          values.length > 0 ? Math.round((sum / values.length) * 100) / 100 : 0,
+        min: values.length > 0 ? Math.min(...values) : 0,
+        max: values.length > 0 ? Math.max(...values) : 0,
+      });
+    } else {
+      const freq = new Map<string, number>();
+      for (const row of data.rows) {
+        const v = String(row[header] ?? "");
+        freq.set(v, (freq.get(v) ?? 0) + 1);
+      }
+      const topValues: { value: string; count: number }[] = [];
+      freq.forEach((count, value) => topValues.push({ value, count }));
+      topValues.sort((a, b) => b.count - a.count);
+      topValues.splice(5);
+      columns.push({
+        column: header,
+        type: "categorical",
+        uniqueValues: freq.size,
+        topValues,
+      });
+    }
+  }
+
+  return { rowCount: data.rows.length, columns };
+}
+
+// ── Text Parsers for Follow-Up Commands ─────────────────────────────
+
+/**
+ * Parse "group by <column>" (and natural variants) from text.
+ *
+ * Accepts the same trigger set as the GROUP_BY_PATTERN gate in
+ * apps/engine/src/core/response/constants.ts. The trigger
+ * captures everything up to a tail clause ("for X", "asc", "desc",
+ * etc.) or end of string as the candidate column phrase.
+ */
+export function parseGroupByFromText(
+  text: string,
+  headers: string[],
+): string | null {
+  // Try multi-word match first: "group by book status" → try "book status", then "book"
+  const match = text.match(
+    /\b(?:group(?:ed)?\s+by|break(?:\s+(?:it|this))?\s+down\s+by|breakdown\s+by|broken\s+(?:down\s+|out\s+)?by|split\s+by|segment(?:ed)?\s+by|categori[sz]e(?:d)?\s+by|bucket(?:ed)?\s+by|(?:show|view|see|display)(?:\s+me)?\s+by|for\s+each|per)\s+(.+?)(?:\s+(?:asc|desc|ascending|descending|for|where|with|in)\b|$)/i,
+  );
+  if (!match) return null;
+
+  const rawCol = match[1].trim();
+
+  // Check for multi-column request: "group by product and region" or "group by product, region"
+  const multiParts = rawCol
+    .split(/\s+and\s+|,\s*/i)
+    .map((c) => c.trim())
+    .filter(Boolean);
+  if (multiParts.length > 1) {
+    // Validate each column exists before returning multi-column string
+    const matched: string[] = [];
+    for (const part of multiParts) {
+      const m = findMatchingHeader(part, headers);
+      if (!m) return null; // If any column is invalid, fail
+      matched.push(m);
+    }
+    // Return as "col1 and col2" so groupBy() can split and delegate to groupByMultiple()
+    return matched.join(" and ");
+  }
+
+  // Try the full phrase first (handles multi-word column names)
+  const fullMatch = findMatchingHeader(rawCol, headers);
+  if (fullMatch) return fullMatch;
+
+  // Fall back to first word only
+  const firstWord = rawCol.split(/\s+/)[0];
+  return findMatchingHeader(firstWord, headers);
+}
+
+/**
+ * Parse "sort by <column> [asc|desc]" (and natural variants: "order by",
+ * "rank by", "arrange by") from text.
+ */
+export function parseSortFromText(
+  text: string,
+  headers: string[],
+): SortRequest | null {
+  // Support multi-word columns: "sort by book status desc"
+  const match = text.match(
+    /\b(?:sort|order|rank|arrange)(?:ed)?\s+by\s+(.+?)(?:\s+(asc|desc|ascending|descending)\s*$|\s*$)/i,
+  );
+  if (!match) return null;
+
+  const rawCol = match[1].trim();
+  const dir = match[2];
+
+  // Try the full phrase first
+  let col = findMatchingHeader(rawCol, headers);
+  if (!col) {
+    // Fall back to first word
+    col = findMatchingHeader(rawCol.split(/\s+/)[0], headers);
+  }
+  if (!col) return null;
+
+  const direction: "asc" | "desc" =
+    dir && /desc/i.test(dir)
+      ? "desc"
+      : dir && /asc/i.test(dir)
+        ? "asc"
+        : "desc";
+  return { column: col, direction };
+}
+
+// ── Computed Column Functions ──────────────────────────────────────────
+
+/** Parse a date string/number into a Date object (handles ISO, epoch, various formats) */
+export function parseAnyDate(raw: unknown): Date | null {
+  if (raw == null || raw === "") return null;
+  if (raw instanceof Date) return isNaN(raw.getTime()) ? null : raw;
+  const s = String(raw).trim();
+  // Try native Date parsing (handles ISO, "YYYY-MM-DD HH:mm:ss.SSS+00:00", etc.)
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d;
+  // Epoch ms
+  const n = Number(s);
+  if (!isNaN(n) && n > 1e12) return new Date(n);
+  // Excel serial (days since 1899-12-30)
+  if (!isNaN(n) && n > 0 && n < 100000) {
+    const epoch = (n - 25569) * 86400000;
+    const ed = new Date(epoch);
+    if (!isNaN(ed.getTime())) return ed;
+  }
+  return null;
+}
+
+export interface ComputedColumnResult {
+  rows: Record<string, string | number>[];
+  computedHeader: string;
+  unit?: string;
+}
+
+/**
+ * Compute date difference between two columns.
+ * Auto-selects unit (hours or days) based on median diff magnitude.
+ */
+export function computeDateDiff(
+  rows: Record<string, string | number>[],
+  colA: string,
+  colB: string,
+): ComputedColumnResult {
+  const diffs: number[] = [];
+  const newRows = rows.map((row) => {
+    const dateA = parseAnyDate(row[colA]);
+    const dateB = parseAnyDate(row[colB]);
+    const diffMs = dateA && dateB ? dateA.getTime() - dateB.getTime() : NaN;
+    diffs.push(diffMs);
+    return { ...row, __diff_ms: diffMs };
+  });
+
+  // Auto-select unit: median < 24h → hours, else days
+  const validDiffs = diffs.filter((d) => !isNaN(d)).map(Math.abs);
+  validDiffs.sort((a, b) => a - b);
+  const median =
+    validDiffs.length > 0
+      ? validDiffs[Math.floor(validDiffs.length / 2)]
+      : 86400000;
+  const useHours = median < 86400000; // < 24 hours
+  const unit = useHours ? "hours" : "days";
+  const divisor = useHours ? 3600000 : 86400000;
+  const computedHeader = `${colA} - ${colB} (${unit})`;
+
+  const result = newRows.map((row) => {
+    const { __diff_ms, ...rest } = row;
+    const val = isNaN(__diff_ms as number)
+      ? ""
+      : Math.round(((__diff_ms as number) / divisor) * 100) / 100;
+    return { ...rest, [computedHeader]: val } as Record<
+      string,
+      string | number
+    >;
+  });
+
+  return { rows: result, computedHeader, unit };
+}
+
+type ArithOp = "add" | "subtract" | "multiply" | "divide";
+
+const OP_SYMBOLS: Record<ArithOp, string> = {
+  add: "+",
+  subtract: "-",
+  multiply: "×",
+  divide: "÷",
+};
+
+/**
+ * Compute arithmetic operation between two numeric columns.
+ */
+export function computeArithmetic(
+  rows: Record<string, string | number>[],
+  colA: string,
+  colB: string,
+  op: ArithOp,
+): ComputedColumnResult {
+  const sym = OP_SYMBOLS[op] || op;
+  const computedHeader = `${colA} ${sym} ${colB}`;
+
+  const result = rows.map((row) => {
+    const a = Number(row[colA]);
+    const b = Number(row[colB]);
+    let val: number | string = "";
+    if (!isNaN(a) && !isNaN(b)) {
+      switch (op) {
+        case "add":
+          val = a + b;
+          break;
+        case "subtract":
+          val = a - b;
+          break;
+        case "multiply":
+          val = a * b;
+          break;
+        case "divide":
+          val = b !== 0 ? Math.round((a / b) * 10000) / 10000 : "DIV/0";
+          break;
+      }
+    }
+    return { ...row, [computedHeader]: val } as Record<string, string | number>;
+  });
+
+  return { rows: result, computedHeader };
+}
+
+type DatePeriod = "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+
+/** Get ISO week number */
+function getISOWeek(d: Date): number {
+  const tmp = new Date(d.getTime());
+  tmp.setHours(0, 0, 0, 0);
+  tmp.setDate(tmp.getDate() + 3 - ((tmp.getDay() + 6) % 7));
+  const week1 = new Date(tmp.getFullYear(), 0, 4);
+  return (
+    1 +
+    Math.round(
+      ((tmp.getTime() - week1.getTime()) / 86400000 -
+        3 +
+        ((week1.getDay() + 6) % 7)) /
+        7,
+    )
+  );
+}
+
+/**
+ * Bucket a date column into periods (daily/weekly/monthly/quarterly/yearly).
+ * Appends a new column with the bucket label.
+ */
+export function bucketDateColumn(
+  rows: Record<string, string | number>[],
+  dateCol: string,
+  period: DatePeriod,
+): ComputedColumnResult {
+  const computedHeader = `${dateCol} (${period})`;
+
+  const result = rows.map((row) => {
+    const d = parseAnyDate(row[dateCol]);
+    let label = "";
+    if (d) {
+      const y = d.getFullYear();
+      const m = d.getMonth() + 1;
+      switch (period) {
+        case "daily":
+          label = `${y}-${String(m).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          break;
+        case "weekly":
+          label = `${y}-W${String(getISOWeek(d)).padStart(2, "0")}`;
+          break;
+        case "monthly":
+          label = `${y}-${String(m).padStart(2, "0")}`;
+          break;
+        case "quarterly":
+          label = `${y}-Q${Math.ceil(m / 3)}`;
+          break;
+        case "yearly":
+          label = `${y}`;
+          break;
+      }
+    }
+    return { ...row, [computedHeader]: label } as Record<
+      string,
+      string | number
+    >;
+  });
+
+  return { rows: result, computedHeader };
+}
+
+export interface PeriodComparisonResult {
+  periods: Array<{
+    period: string;
+    value: number;
+    prevValue: number | null;
+    change: number | null;
+    changePct: number | null;
+  }>;
+  dateColumn: string;
+  valueColumn: string;
+  periodType: string;
+  aggregation: string;
+}
+
+/**
+ * Compute period-over-period comparison (MoM, QoQ, YoY).
+ */
+export function computePeriodOverPeriod(
+  rows: Record<string, string | number>[],
+  dateCol: string,
+  valueCol: string,
+  period: DatePeriod,
+  aggOp: "sum" | "avg" | "count" | "min" | "max" = "sum",
+): PeriodComparisonResult {
+  // Bucket rows
+  const buckets = new Map<string, number[]>();
+  for (const row of rows) {
+    const d = parseAnyDate(row[dateCol]);
+    if (!d) continue;
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    let label = "";
+    switch (period) {
+      case "daily":
+        label = `${y}-${String(m).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        break;
+      case "weekly":
+        label = `${y}-W${String(getISOWeek(d)).padStart(2, "0")}`;
+        break;
+      case "monthly":
+        label = `${y}-${String(m).padStart(2, "0")}`;
+        break;
+      case "quarterly":
+        label = `${y}-Q${Math.ceil(m / 3)}`;
+        break;
+      case "yearly":
+        label = `${y}`;
+        break;
+    }
+    const val = Number(row[valueCol]);
+    if (!isNaN(val)) {
+      if (!buckets.has(label)) buckets.set(label, []);
+      buckets.get(label)!.push(val);
+    }
+  }
+
+  // Aggregate per bucket
+  const agg = (vals: number[]): number => {
+    if (vals.length === 0) return 0;
+    switch (aggOp) {
+      case "sum":
+        return vals.reduce((a, b) => a + b, 0);
+      case "avg":
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+      case "count":
+        return vals.length;
+      case "min":
+        return Math.min(...vals);
+      case "max":
+        return Math.max(...vals);
+    }
+  };
+
+  const sortedKeys = Array.from(buckets.keys()).sort();
+  const periods = sortedKeys.map((key, i) => {
+    const value = Math.round(agg(buckets.get(key)!) * 100) / 100;
+    const prevValue =
+      i > 0
+        ? Math.round(agg(buckets.get(sortedKeys[i - 1])!) * 100) / 100
+        : null;
+    const change =
+      prevValue != null ? Math.round((value - prevValue) * 100) / 100 : null;
+    const changePct =
+      prevValue != null && prevValue !== 0
+        ? Math.round(((value - prevValue) / Math.abs(prevValue)) * 10000) / 100
+        : null;
+    return { period: key, value, prevValue, change, changePct };
+  });
+
+  return {
+    periods,
+    dateColumn: dateCol,
+    valueColumn: valueCol,
+    periodType: period,
+    aggregation: aggOp,
+  };
+}
+
+/**
+ * Execute a query pipeline against parsed CSV/XLSX data.
+ * Pipeline steps: SELECT → WHERE → GROUP BY → HAVING → ORDER BY → LIMIT
+ */
+export function executePipeline(
+  data: CsvData,
+  pipeline: {
+    select?: string[];
+    where?: Array<{
+      column: string;
+      operator: string;
+      value: string | number | string[];
+      logic?: "and" | "or";
+    }>;
+    groupBy?: {
+      columns: string[];
+      aggregations: Array<{ column: string; operation: string }>;
+    };
+    having?: Array<{
+      column: string;
+      operator: string;
+      value: string | number | string[];
+      logic?: "and" | "or";
+    }>;
+    orderBy?: Array<{ column: string; dir: "asc" | "desc" }>;
+    limit?: number;
+  },
+): {
+  headers: string[];
+  rows: Record<string, string | number>[];
+  totalSourceRows: number;
+} {
+  const totalSourceRows = data.rows.length;
+  let rows = [...data.rows];
+  let headers = pipeline.select?.length ? pipeline.select : [...data.headers];
+
+  // 1. SELECT — filter columns
+  if (pipeline.select?.length) {
+    rows = rows.map((r) => {
+      const out: Record<string, string | number> = {};
+      for (const col of pipeline.select!) {
+        if (col in r) out[col] = r[col];
+      }
+      return out;
+    });
+  }
+
+  // 2. WHERE — filter rows
+  if (pipeline.where?.length) {
+    rows = rows.filter((row) => evaluateConditions(row, pipeline.where!));
+  }
+
+  // 3. GROUP BY — group and aggregate
+  if (pipeline.groupBy) {
+    const { columns: groupCols, aggregations: aggs } = pipeline.groupBy;
+    const groups = new Map<string, Record<string, string | number>[]>();
+    for (const row of rows) {
+      const key = groupCols.map((c) => String(row[c] ?? "")).join("||");
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(row);
+    }
+
+    const aggHeaders = aggs.map(
+      (a) => `${a.operation.toUpperCase()}(${a.column})`,
+    );
+    headers = [...groupCols, ...aggHeaders, "count"];
+
+    rows = Array.from(groups.entries()).map(([, groupRows]) => {
+      const out: Record<string, string | number> = {};
+      for (const gc of groupCols) out[gc] = groupRows[0][gc];
+      for (const agg of aggs) {
+        const vals = groupRows
+          .map((r) => Number(r[agg.column]))
+          .filter((v) => !isNaN(v));
+        switch (agg.operation) {
+          case "sum":
+            out[`SUM(${agg.column})`] = vals.reduce((a, b) => a + b, 0);
+            break;
+          case "avg":
+            out[`AVG(${agg.column})`] = vals.length
+              ? +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2)
+              : 0;
+            break;
+          case "min":
+            out[`MIN(${agg.column})`] = vals.length ? Math.min(...vals) : 0;
+            break;
+          case "max":
+            out[`MAX(${agg.column})`] = vals.length ? Math.max(...vals) : 0;
+            break;
+          case "count":
+            out[`COUNT(${agg.column})`] = groupRows.length;
+            break;
+        }
+      }
+      out.count = groupRows.length;
+      return out;
+    });
+  }
+
+  // 4. HAVING — filter grouped results
+  if (pipeline.having?.length) {
+    rows = rows.filter((row) => evaluateConditions(row, pipeline.having!));
+  }
+
+  // 5. ORDER BY
+  if (pipeline.orderBy?.length) {
+    rows.sort((a, b) => {
+      for (const { column, dir } of pipeline.orderBy!) {
+        const va = a[column] ?? "";
+        const vb = b[column] ?? "";
+        const numA = Number(va);
+        const numB = Number(vb);
+        const cmp =
+          !isNaN(numA) && !isNaN(numB)
+            ? numA - numB
+            : String(va).localeCompare(String(vb));
+        if (cmp !== 0) return dir === "asc" ? cmp : -cmp;
+      }
+      return 0;
+    });
+  }
+
+  // 6. LIMIT
+  if (pipeline.limit && pipeline.limit > 0) {
+    rows = rows.slice(0, pipeline.limit);
+  }
+
+  return { headers, rows, totalSourceRows };
+}
+
+function evaluateConditions(
+  row: Record<string, string | number>,
+  conditions: Array<{
+    column: string;
+    operator: string;
+    value: string | number | string[];
+    logic?: "and" | "or";
+  }>,
+): boolean {
+  let result = true;
+  for (let i = 0; i < conditions.length; i++) {
+    const c = conditions[i];
+    const cellVal = row[c.column];
+    const matches = evaluateSingle(cellVal, c.operator, c.value);
+    if (i === 0) {
+      result = matches;
+    } else {
+      const logic = conditions[i - 1].logic ?? "and";
+      result = logic === "and" ? result && matches : result || matches;
+    }
+  }
+  return result;
+}
+
+function evaluateSingle(
+  cellVal: string | number | undefined,
+  operator: string,
+  value: string | number | string[],
+): boolean {
+  const s = String(cellVal ?? "").toLowerCase();
+  const v = Array.isArray(value) ? value : String(value).toLowerCase();
+  switch (operator) {
+    case "eq":
+      return s === v;
+    case "neq":
+      return s !== v;
+    case "contains":
+      return typeof v === "string" && s.includes(v);
+    case "starts_with":
+      return typeof v === "string" && s.startsWith(v);
+    case "ends_with":
+      return typeof v === "string" && s.endsWith(v);
+    case "gt":
+      return Number(cellVal) > Number(value);
+    case "lt":
+      return Number(cellVal) < Number(value);
+    case "gte":
+      return Number(cellVal) >= Number(value);
+    case "lte":
+      return Number(cellVal) <= Number(value);
+    case "between":
+      return (
+        Array.isArray(value) &&
+        Number(cellVal) >= Number(value[0]) &&
+        Number(cellVal) <= Number(value[1])
+      );
+    case "in":
+      return (
+        Array.isArray(value) &&
+        value.map((x) => String(x).toLowerCase()).includes(s)
+      );
+    case "is_null":
+      return cellVal == null || s === "";
+    case "is_not_null":
+      return cellVal != null && s !== "";
+    default:
+      return true;
+  }
+}

@@ -1,0 +1,40 @@
+name: CD · Windows build
+
+# Build-verify only: confirms every app builds on a Windows runner (the apps are
+# deployed on Windows Server / IIS). No artifact, no deploy.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cd-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Windows build · ${{ matrix.app }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Apps with a build step. mock-api has no build (plain node server.js).
+        app:
+          - web
+          - engine
+          - mssql-connector
+          - oracle-connector
+          - csv-xlsx-connector
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/${{ matrix.app }}/package-lock.json
+      - run: npm ci
+      - run: npm run build
