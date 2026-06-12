@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { ApiClient } from "./api-client";
 import { QueryResultSchema } from "./types";
+import { MAX_FETCH_ROWS } from "../constants";
 import { getGroupQueries } from "@/core/catalog/query-registry";
 import { fetchBamToken } from "./bam-auth";
 import { FILE_BASE_DIR } from "@/lib/env-config";
@@ -259,10 +260,16 @@ export class QueryService {
     // Build per-query auth headers based on authType
     const authHeaders = await this.resolveQueryAuth(query, incomingHeaders);
 
-    const body =
-      Object.keys(bodyFilters).length > 0 ? { filters: bodyFilters } : {};
-    const params =
-      Object.keys(paramFilters).length > 0 ? paramFilters : undefined;
+    // Row-limit pushdown: send an explicit maxRows alongside the filters so the
+    // connector can cap the result set server-side. The connector team reads
+    // req.body.maxRows (POST) / req.query.maxRows (GET). Default MAX_FETCH_ROWS
+    // mirrors the connector's existing default, so behaviour is unchanged.
+    const body: Record<string, unknown> = { maxRows: MAX_FETCH_ROWS };
+    if (Object.keys(bodyFilters).length > 0) body.filters = bodyFilters;
+    const params: Record<string, string> = {
+      ...paramFilters,
+      maxRows: String(MAX_FETCH_ROWS),
+    };
     const httpMethod = query.method ?? "POST";
 
     let raw: unknown;

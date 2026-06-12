@@ -1,10 +1,24 @@
 import { LRUCache } from "lru-cache";
+import { createHash } from "crypto";
 import { config } from "@/lib/config";
 import { logger } from "@/lib/logger";
 import { ApiConnectionError } from "@/lib/errors";
-import { API_CACHE_TTL_MS } from "../constants";
+import { API_CACHE_TTL_MS, QUERY_RESULT_CACHE_TTL_MS } from "../constants";
 import { timeoutSignal } from "@/lib/generate-id";
 import { CircuitBreaker, CircuitState } from "./circuit-breaker";
+
+/**
+ * Stable SHA-1 of a POST body for use in the cache key. Mirrors the hashing
+ * approach in core/cache/query-cache.ts (sha1, truncated). The body is already
+ * a canonical object built upstream (sorted filter map + maxRows), so a plain
+ * JSON.stringify is deterministic enough for cache-key purposes here.
+ */
+function hashBody(body: unknown): string {
+  return createHash("sha1")
+    .update(JSON.stringify(body) ?? "")
+    .digest("hex")
+    .slice(0, 12);
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -247,6 +261,27 @@ export class ApiClient {
       url = `${url}?${qs}`;
     }
 
+    // Cache POST responses. The default data method is POST, so without this
+    // the LRU (which only ever held GETs) was effectively dead. Key includes
+    // a hash of the body+params so different requests don't collide.
+    //
+    // SAFETY: skip caching when per-request auth headers are present. The
+    // relative-path group ApiClient only passes authHeaders for windows/bam
+    // queries, whose tokens are scoped to the calling user — caching those
+    // would bleed one user's auth-scoped data to another. none/bearer auth
+    // (the cacheable case) carry no authHeaders here; the global bearer token
+    // is added in buildHeaders() and is process-wide, not per-request.
+    // Absolute auth-scoped fetches go through fetchAbsolute(), which never
+    // touches this cache.
+    const cacheable = !authHeaders || Object.keys(authHeaders).length === 0;
+    const cacheKey = cacheable
+      ? `POST:${path}:${hashBody({ body, params })}`
+      : null;
+    if (cacheKey) {
+      const cached = this.cache.get(cacheKey);
+      if (cached) return cached as T;
+    }
+
     try {
       const response = await this.request(url, {
         method: "POST",
@@ -254,7 +289,15 @@ export class ApiClient {
         body: JSON.stringify(body),
       });
 
-      return (await response.json()) as T;
+      const data = (await response.json()) as T;
+      // Cache POST data reads with the SHORT result-cache TTL, not the 5-min
+      // API_CACHE_TTL_MS used for catalog-style GETs. Aligning with the upper
+      // query-result cache (60s) keeps the two layers from disagreeing about
+      // freshness once the upper entry expires.
+      if (cacheKey) {
+        this.cache.set(cacheKey, data, { ttl: QUERY_RESULT_CACHE_TTL_MS });
+      }
+      return data;
     } catch (error) {
       logger.error({ error, path, url }, "API POST request failed");
       throw error instanceof ApiConnectionError

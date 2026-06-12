@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import cors from "cors";
+import compression from "compression";
 import rateLimit from "express-rate-limit";
 import {
   errorHandler,
@@ -70,6 +71,31 @@ app.use(
 // Referrer-Policy, Permissions-Policy). CSP is opt-in via ENGINE_CSP
 // env — see lib/security-headers.ts for rationale.
 app.use(securityHeaders);
+// Response compression (gzip/brotli). Sits after security headers and before
+// the routes so JSON responses — especially the large (~2MB) chat result
+// payloads — are compressed on the wire. The default threshold (1KB) skips
+// tiny bodies. The Next proxy uses fetch, which transparently decodes
+// Content-Encoding, so no proxy-side change is needed.
+//
+// SSE EXCEPTION: the streaming /api/events route (text/event-stream) must NOT
+// be compressed — the gzip transform buffers writes and a never-ending SSE
+// stream would never flush, so the client would hang on the first event. The
+// filter skips event-stream responses and defers to compression's default for
+// everything else.
+app.use(
+  compression({
+    filter: (req, res) => {
+      const contentType = res.getHeader("Content-Type");
+      if (
+        typeof contentType === "string" &&
+        contentType.includes("text/event-stream")
+      ) {
+        return false;
+      }
+      return compression.filter(req, res);
+    },
+  }),
+);
 app.use(express.json({ limit: "10mb" }));
 app.use(tenantContextMiddleware);
 

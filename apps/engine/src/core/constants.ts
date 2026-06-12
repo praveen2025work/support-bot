@@ -65,6 +65,31 @@ export const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
 export const API_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 export const MAX_SESSIONS = 10_000;
 
+// Row-limit pushdown: the explicit per-request cap the engine sends to the
+// connector (POST body `maxRows` + GET `maxRows` query param) so it can bound
+// the result set server-side instead of streaming everything back. Default
+// 10000 mirrors today's effective connector default — DO NOT lower it: the
+// retained __fullRows set must keep enough rows for correct follow-up
+// group-by / aggregation. Override with MAX_FETCH_ROWS env at deploy time.
+export const MAX_FETCH_ROWS = parseInt(
+  process.env.MAX_FETCH_ROWS || "10000",
+  10,
+);
+
+// Upper bound on the full (untruncated) result snapshot the handler retains on
+// the conversation context as __fullRows for follow-up group-by / aggregation.
+// Huge datasets would otherwise pin memory across sessions. Defaults to
+// MAX_FETCH_ROWS so the retained snapshot covers everything the engine actually
+// fetched — capping it BELOW MAX_FETCH_ROWS would make follow-up aggregation
+// silently operate on a truncated subset for mid-sized results. If source rows
+// exceed the cap we retain the first FULLROWS_MAX and flag truncation so a
+// follow-up can't silently claim completeness. Override with FULLROWS_MAX env
+// (lower it only if memory pressure outweighs follow-up-aggregation accuracy).
+export const FULLROWS_MAX = parseInt(
+  process.env.FULLROWS_MAX || String(MAX_FETCH_ROWS),
+  10,
+);
+
 // Per-query result cache. Short TTL by default so repeated identical
 // requests inside a single session feel snappy without serving badly
 // stale data. UI shows a "cached" badge with the age so users can

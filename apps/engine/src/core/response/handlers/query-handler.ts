@@ -4,6 +4,7 @@ import type {
   QueryService,
   QueryExecuteOptions,
 } from "../../api-connector/query-service";
+import type { Query } from "../../api-connector/types";
 import type {
   ClassificationResult,
   BotResponse,
@@ -16,6 +17,7 @@ import {
   SUMMARY_PATTERN,
   TOP_BOTTOM_PATTERN,
 } from "../constants";
+import { FULLROWS_MAX } from "../../constants";
 import {
   detectColumnTypes,
   type DetectedColumnMeta,
@@ -82,6 +84,28 @@ function stripIgnoredColumnsFromCsv(
     return filtered;
   });
   return { ...csv, headers: visibleHeaders, rows: visibleRows };
+}
+
+/**
+ * Snapshot the full (pre-display-truncation) rows onto the context for
+ * follow-up group-by / aggregation, bounded to FULLROWS_MAX so a huge dataset
+ * can't pin memory across sessions. If the source exceeds the cap we keep the
+ * first FULLROWS_MAX rows and set __fullRowsTruncated so a follow-up can't
+ * silently claim completeness over a partial set.
+ */
+function snapshotFullRows(context: ConversationContext, rows: unknown[]): void {
+  const ctx = context as unknown as Record<string, unknown>;
+  if (rows.length > FULLROWS_MAX) {
+    ctx.__fullRows = rows.slice(0, FULLROWS_MAX);
+    ctx.__fullRowsTruncated = true;
+    logger.info(
+      { retained: FULLROWS_MAX, total: rows.length },
+      "Capped __fullRows snapshot — source exceeded FULLROWS_MAX",
+    );
+  } else {
+    ctx.__fullRows = [...rows];
+    ctx.__fullRowsTruncated = false;
+  }
 }
 
 /**
@@ -331,6 +355,19 @@ export async function handleQueryExecute(
   incomingHeaders?: Record<string, string>,
   groupId?: string,
 ): Promise<BotResponse> {
+  // Resolve the query registry ONCE per turn. handleQueryExecute previously
+  // re-read it 3-4 times (exact-name lookup, query-specific filters, the
+  // missing-query prompt, ref-url/chartConfig). Each read hits the file-driven
+  // registry; memoizing collapses them into a single resolve threaded through
+  // the handler. Behaviour is unchanged — same list, fewer reads.
+  let queriesCache: Query[] | undefined;
+  const getQueriesOnce = async (): Promise<Query[]> => {
+    if (!queriesCache) queriesCache = await queryService.getQueries();
+    return queriesCache;
+  };
+  const getQueryNamesOnce = async (): Promise<string[]> =>
+    (await getQueriesOnce()).map((q) => q.name);
+
   // If user text is a data operation (group/sort/summary/top), always try follow-up first
   if (context.lastQueryName && context.lastApiResult) {
     const userText = getLastUserText(context);
@@ -361,7 +398,7 @@ export async function handleQueryExecute(
   // may detect query.execute without emitting a query_name entity. Bind it
   // before the missing-query branch asks the user to choose again.
   try {
-    const allQueryNames = await queryService.getQueryNames();
+    const allQueryNames = await getQueryNamesOnce();
     const lowerText = userText.toLowerCase();
     const matches = allQueryNames
       .filter((name) => {
@@ -420,7 +457,7 @@ export async function handleQueryExecute(
       }
       // Also try query-specific filter keys from the last query definition
       try {
-        const allQueries = await queryService.getQueries();
+        const allQueries = await getQueriesOnce();
         const lastQueryDef = allQueries.find(
           (q) => q.name.toLowerCase() === context.lastQueryName!.toLowerCase(),
         );
@@ -456,7 +493,7 @@ export async function handleQueryExecute(
     }
 
     try {
-      const names = await queryService.getQueryNames();
+      const names = await getQueryNamesOnce();
       return {
         text: "Which query would you like me to run? Here are some available options:",
         suggestions: names.slice(0, 5).map((n) => `run ${n}`),
@@ -491,7 +528,7 @@ export async function handleQueryExecute(
   // Look up query-specific filter keys and try to extract their values from user text
   let querySpecificFilters: Record<string, string> = {};
   try {
-    const allQueries = await queryService.getQueries();
+    const allQueries = await getQueriesOnce();
     const queryDef = allQueries.find(
       (q) => q.name.toLowerCase() === queryNameEntity.value.toLowerCase(),
     );
@@ -532,7 +569,7 @@ export async function handleQueryExecute(
   // submission, prompt the user with a filter form before executing.
   if (!hasFilters && !explicitFilters) {
     try {
-      const allQueries = await queryService.getQueries();
+      const allQueries = await getQueriesOnce();
       const queryDef = allQueries.find(
         (q) => q.name.toLowerCase() === queryNameEntity.value.toLowerCase(),
       );
@@ -665,7 +702,7 @@ export async function handleQueryExecute(
     let chartConfig: Record<string, unknown> | undefined;
     let columnConfig: Record<string, unknown> | undefined;
     try {
-      const allQueries = await queryService.getQueries();
+      const allQueries = await getQueriesOnce();
       const queryDef = allQueries.find(
         (q) => q.name.toLowerCase() === queryNameEntity.value.toLowerCase(),
       );
@@ -778,22 +815,20 @@ export async function handleQueryExecute(
 
     // Preserve full data for follow-up operations (group-by, aggregation, etc.)
     // before truncating for chat display. Context holds a reference to the same
-    // object, so we must snapshot the full rows first.
+    // object, so we must snapshot the full rows first. The snapshot is bounded
+    // to FULLROWS_MAX (see snapshotFullRows) so an untruncated huge dataset
+    // doesn't pin memory across sessions.
     if (result.type === "api") {
       const apiData = result.apiResult as
         | { data?: Record<string, unknown>[] }
         | undefined;
       if (apiData?.data) {
-        (context as unknown as Record<string, unknown>).__fullRows = [
-          ...apiData.data,
-        ];
+        snapshotFullRows(context, apiData.data);
       }
     } else if (result.type === "csv") {
       const csv = result.csvResult as { rows?: unknown[] } | undefined;
       if (csv?.rows) {
-        (context as unknown as Record<string, unknown>).__fullRows = [
-          ...csv.rows,
-        ];
+        snapshotFullRows(context, csv.rows);
       }
     }
 

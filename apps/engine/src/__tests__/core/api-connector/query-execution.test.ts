@@ -356,7 +356,8 @@ describe("QueryService — query execution pipeline", () => {
       const init = exec![1] as RequestInit;
       expect(init.method).toBe("POST");
       const body = JSON.parse(init.body as string);
-      expect(body).toEqual({ filters: { region: "US" } });
+      // maxRows is pushed down alongside the filters (row-limit pushdown).
+      expect(body).toEqual({ filters: { region: "US" }, maxRows: 10000 });
     });
 
     it("binds 'query_param' filters into the URL query string", async () => {
@@ -380,6 +381,30 @@ describe("QueryService — query execution pipeline", () => {
       expect(exec).toBeDefined();
       const url = String(exec![0]);
       expect(url).toContain("?team=alpha");
+    });
+
+    it("pushes maxRows down as a query param on the GET path", async () => {
+      fetchMock
+        .mockResolvedValueOnce(
+          makeMockResponse({
+            jsonBody: { data: [], rowCount: 0, executionTime: 0 },
+          }),
+        )
+        .mockResolvedValue(makeMockResponse({ jsonBody: {} }));
+
+      const client = new ApiClient("http://test-host/api");
+      resetSharedBreaker(client, "http://test-host/api/");
+      const service = new QueryService(client);
+
+      // cached_query is a GET-method query with no filters.
+      await service.executeQuery("cached_query");
+
+      const exec = fetchMock.mock.calls.find(([url]) =>
+        String(url).includes("/cacheable"),
+      );
+      expect(exec).toBeDefined();
+      const url = String(exec![0]);
+      expect(url).toContain("maxRows=10000");
     });
 
     it("substitutes path-bound filters into the URL path (e.g. {userId})", async () => {
@@ -500,7 +525,7 @@ describe("QueryService — query execution pipeline", () => {
       );
       const init = exec![1] as RequestInit;
       const body = JSON.parse(init.body as string);
-      expect(body).toEqual({ filters: { currency: "USD" } });
+      expect(body).toEqual({ filters: { currency: "USD" }, maxRows: 10000 });
     });
 
     it("caller-supplied value overrides the binding default", async () => {
@@ -530,7 +555,7 @@ describe("QueryService — query execution pipeline", () => {
       expect(url).toContain("team=bravo");
       const init = exec![1] as RequestInit;
       const body = JSON.parse(init.body as string);
-      expect(body).toEqual({ filters: { currency: "EUR" } });
+      expect(body).toEqual({ filters: { currency: "EUR" }, maxRows: 10000 });
     });
 
     it("required filter missing with no default throws MissingRequiredFilterError", async () => {
@@ -971,7 +996,7 @@ describe("QueryService — query execution pipeline", () => {
       // Catalog is file-based; only the cacheable data endpoint hits the network.
       fetchMock.mockImplementation(async (url) => {
         const u = String(url);
-        if (u === "http://test-host/api/cacheable")
+        if (u.includes("http://test-host/api/cacheable"))
           return makeMockResponse({
             jsonBody: { data: [{ k: 1 }], rowCount: 1, executionTime: 0 },
           });
@@ -1003,10 +1028,104 @@ describe("QueryService — query execution pipeline", () => {
       expect(after).toBe(1);
     });
 
+    it("two identical POST requests result in one network call (POST cache)", async () => {
+      // sales_report is a POST-method query. The default data method is POST,
+      // so caching POST responses is what makes the LRU useful in practice.
+      fetchMock.mockImplementation(async (url) => {
+        const u = String(url);
+        if (u.includes("/sales/report"))
+          return makeMockResponse({
+            jsonBody: { data: [{ region: "US", amount: 9 }], rowCount: 1 },
+          });
+        return makeMockResponse({ jsonBody: {} });
+      });
+
+      const client = new ApiClient("http://test-host/api");
+      resetSharedBreaker(client, "http://test-host/api/");
+      const service = new QueryService(client);
+
+      const r1 = await service.executeQuery("sales_report", { region: "US" });
+      expect(r1.apiResult?.rowCount).toBe(1);
+      const before = fetchMock.mock.calls.filter(([url]) =>
+        String(url).includes("/sales/report"),
+      ).length;
+      expect(before).toBe(1);
+
+      // Identical filters → identical body+params → served from the LRU cache.
+      const r2 = await service.executeQuery("sales_report", { region: "US" });
+      expect(r2.apiResult?.rowCount).toBe(1);
+      const after = fetchMock.mock.calls.filter(([url]) =>
+        String(url).includes("/sales/report"),
+      ).length;
+      expect(after).toBe(1);
+    });
+
+    it("different POST bodies are cached independently (no collision)", async () => {
+      fetchMock.mockImplementation(async (url) => {
+        const u = String(url);
+        if (u.includes("/sales/report"))
+          return makeMockResponse({
+            jsonBody: { data: [{ region: "X", amount: 1 }], rowCount: 1 },
+          });
+        return makeMockResponse({ jsonBody: {} });
+      });
+
+      const client = new ApiClient("http://test-host/api");
+      resetSharedBreaker(client, "http://test-host/api/");
+      const service = new QueryService(client);
+
+      await service.executeQuery("sales_report", { region: "US" });
+      await service.executeQuery("sales_report", { region: "EU" });
+
+      // Two distinct bodies → two network calls (no false cache hit).
+      const hits = fetchMock.mock.calls.filter(([url]) =>
+        String(url).includes("/sales/report"),
+      ).length;
+      expect(hits).toBe(2);
+    });
+
+    it("auth-scoped (windows) POST responses are NOT cached", async () => {
+      // windows_query carries a per-request token (forwarded as Authorization).
+      // Caching it would bleed one user's auth-scoped data to another, so the
+      // POST cache must skip when per-request authHeaders are present.
+      fetchMock.mockImplementation(async (url) => {
+        const u = String(url);
+        if (u.includes("/windows/data"))
+          return makeMockResponse({
+            jsonBody: { data: [{ x: 1 }], rowCount: 1, executionTime: 0 },
+          });
+        return makeMockResponse({ jsonBody: {} });
+      });
+
+      const client = new ApiClient("http://test-host/api");
+      resetSharedBreaker(client, "http://test-host/api/");
+      const service = new QueryService(client);
+
+      const headers = { "x-bam-token": "USER-TOKEN-1" };
+      await service.executeQuery(
+        "windows_query",
+        undefined,
+        undefined,
+        headers,
+      );
+      await service.executeQuery(
+        "windows_query",
+        undefined,
+        undefined,
+        headers,
+      );
+
+      // Both executes must hit the network — no caching of auth-scoped data.
+      const hits = fetchMock.mock.calls.filter(([url]) =>
+        String(url).includes("/windows/data"),
+      ).length;
+      expect(hits).toBe(2);
+    });
+
     it("clearCache invalidates the cached entry", async () => {
       fetchMock.mockImplementation(async (url) => {
         const u = String(url);
-        if (u === "http://test-host/api/cacheable")
+        if (u.includes("http://test-host/api/cacheable"))
           return makeMockResponse({
             jsonBody: { data: [{ k: 1 }], rowCount: 1, executionTime: 0 },
           });
