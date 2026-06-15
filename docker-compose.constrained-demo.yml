@@ -1,0 +1,124 @@
+# ═══════════════════════════════════════════════════════════════════════
+# CONSTRAINED DEMO — UI + engine + mock-api capped to a ~1.5 vCPU / 4 GB
+# total budget (engine 0.75cpu/2g, ui 0.5cpu/1.5g, mock-api 0.25cpu/0.5g).
+# Mock/demo data (.env.demo), self-contained, no secrets, no connectors.
+#
+#   docker compose -p chatbot-constrained -f docker-compose.constrained-demo.yml up -d --build
+#   Ports: UI 3011, engine 4011, mock-api 8088 (alt ports so it can run
+#          alongside the default full stack on 3001/4001/8080).
+# ═══════════════════════════════════════════════════════════════════════
+
+services:
+  mock-api:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./apps/mock-api:/app
+    command: sh -c "npm ci --omit=dev 2>/dev/null; npm start"
+    ports:
+      - "${MOCK_HOST_PORT:-8088}:8080"
+    networks:
+      - chatbot
+    cpus: 0.25
+    mem_limit: 512m
+    memswap_limit: 512m
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://127.0.0.1:8080/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  engine:
+    build: ./apps/engine
+    ports:
+      - "${ENGINE_HOST_PORT:-4011}:4001"
+    env_file: .env.demo
+    environment:
+      - NODE_ENV=production
+      - ENGINE_PORT=4001
+      - API_BASE_URL=http://mock-api:8080/api
+      - UI_ORIGIN=http://localhost:${UI_HOST_PORT:-3011}
+      - CONFIG_DIR=/app/data/config
+      - TRAINING_DIR=/app/data/training
+      # Keep V8's heap under the 2 GB cap so a large fetch/parse GCs instead of OOMKilling.
+      - NODE_OPTIONS=--max-old-space-size=1536
+      # Tight per-user session cap on this constrained tier. Each retained
+      # session persists a ~10k-row __fullRows snapshot and the whole per-user
+      # file is rewritten per request, so a stable userId + churning sessionId
+      # (e.g. a stateless channel) could otherwise grow it without bound. A low
+      # cap keeps each file small (≈8 MB at 5) — verified to also lower latency
+      # under load vs the code default of 25. See scripts/cold-query-ceiling.mjs.
+      - MAX_SESSIONS_PER_USER=5
+    depends_on:
+      mock-api:
+        condition: service_healthy
+    volumes:
+      - cdemo-engine-data:/app/data
+    networks:
+      - chatbot
+    cpus: 0.75
+    mem_limit: 2g
+    memswap_limit: 2g
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://127.0.0.1:4001/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: ./apps/web
+      args:
+        NEXT_PUBLIC_WIJMO_LICENSE_KEY: ${NEXT_PUBLIC_WIJMO_LICENSE_KEY:-}
+    ports:
+      - "${UI_HOST_PORT:-3011}:3001"
+    env_file: .env.demo
+    environment:
+      - NODE_ENV=production
+      - HOSTNAME=0.0.0.0
+      - ENGINE_URL=http://engine:4001
+      - NODE_OPTIONS=--max-old-space-size=896
+    depends_on:
+      engine:
+        condition: service_healthy
+    networks:
+      - chatbot
+    cpus: 0.5
+    mem_limit: 1536m
+    memswap_limit: 1536m
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://127.0.0.1:3001/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+networks:
+  chatbot:
+    driver: bridge
+
+volumes:
+  cdemo-engine-data:

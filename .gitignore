@@ -77,3 +77,4 @@ apps/engine/data/data-explorer-views/
 .playwright-mcp/
 .superpowers/
 graphify-out/
+.gstack/

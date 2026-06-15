@@ -446,6 +446,45 @@ function handleLoanOrigination(req, res) {
 server.get('/api/lending/origination', handleLoanOrigination);
 server.post('/api/lending/origination', handleLoanOrigination);
 
+// === Perf-test endpoint: large synthetic transaction set ===
+// GET|POST /api/perf/transactions — returns `count` rows (default 50,000,
+// capped at 100,000). Deterministic generation so responses are comparable
+// across load-test runs. Unknown filters (e.g. a cache-busting nonce) are
+// accepted and ignored.
+const perfRowsCache = new Map();
+function generatePerfRows(count) {
+  if (perfRowsCache.has(count)) return perfRowsCache.get(count);
+  const regions = ['US', 'EU', 'APAC', 'LATAM'];
+  const products = ['Platform', 'API', 'Consulting', 'Support'];
+  const data = new Array(count);
+  for (let i = 0; i < count; i++) {
+    data[i] = {
+      txn_id: `TXN-${String(i + 1).padStart(7, '0')}`,
+      posting_date: `2026-${String((i % 12) + 1).padStart(2, '0')}-${String((i % 28) + 1).padStart(2, '0')}`,
+      region: regions[i % regions.length],
+      product: products[i % products.length],
+      account: `ACC-${1000 + (i % 500)}`,
+      amount: (((i * 7919) % 1000000) + 100) / 100,
+      currency: 'USD',
+      status: i % 17 === 0 ? 'pending' : 'settled',
+    };
+  }
+  perfRowsCache.set(count, data);
+  return data;
+}
+
+function handlePerfTransactions(req, res) {
+  const filters = { ...(req.body.filters || {}), ...req.query };
+  const requested = parseInt(filters.count, 10);
+  const count = Math.min(Number.isFinite(requested) && requested > 0 ? requested : 50000, 100000);
+  const started = Date.now();
+  const data = generatePerfRows(count);
+  console.log(`[Perf] ${req.method} /api/perf/transactions count=${count} genMs=${Date.now() - started}`);
+  res.json({ data, rowCount: data.length, executionTime: Date.now() - started });
+}
+server.get('/api/perf/transactions', handlePerfTransactions);
+server.post('/api/perf/transactions', handlePerfTransactions);
+
 // Mock query execution endpoint: POST /api/queries/:id/execute
 server.post('/api/queries/:id/execute', (req, res) => {
   const db = router.db;
