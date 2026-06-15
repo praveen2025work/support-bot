@@ -1,5 +1,5 @@
 import { promises as fs } from "fs";
-import { SESSION_TTL_MS } from "../constants";
+import { SESSION_TTL_MS, MAX_SESSIONS_PER_USER } from "../constants";
 import { logger } from "../../lib/logger";
 import { paths } from "../../lib/env-config";
 import { withFileLock } from "../../lib/file-lock";
@@ -122,8 +122,10 @@ export class SessionManager {
       context,
       lastAccessedAt: Date.now(),
     };
+    const evicted = this.enforceSessionCap(file);
     await this.writeUserFile(file);
     this.contextCache.set(key, { context, ts: Date.now() });
+    for (const k of evicted) this.contextCache.delete(k);
     return context;
   }
 
@@ -135,16 +137,19 @@ export class SessionManager {
     await this.ensureDir();
     const uid = userId || this.extractUserId(context.sessionId);
     const key = scopedKey(context.sessionId, groupId);
+    let evicted: string[] = [];
     await withFileLock(paths.data.sessionFile(uid), async () => {
       const file = await this.readUserFile(uid);
       file.sessions[key] = {
         context,
         lastAccessedAt: Date.now(),
       };
+      evicted = this.enforceSessionCap(file);
       await this.writeUserFileUnsafe(file);
     });
     // Keep the in-memory cache coherent with what's on disk.
     this.contextCache.set(key, { context, ts: Date.now() });
+    for (const k of evicted) this.contextCache.delete(k);
   }
 
   /** Remove a specific session (called on browser close). */
@@ -269,6 +274,38 @@ export class SessionManager {
       );
     }
     return removed;
+  }
+
+  // ── Session-cap enforcement ───────────────────────────────────────
+
+  /**
+   * LRU-evict the oldest sessions from a user file so it never exceeds
+   * MAX_SESSIONS_PER_USER. Each session persists a (potentially multi-MB)
+   * __fullRows snapshot and the whole file is rewritten on every save, so an
+   * unbounded session count (stable userId + churning sessionId) would grow
+   * the rewrite cost until it exhausts the heap. Mutates `file.sessions` in
+   * place and returns the evicted scoped keys so the caller can drop them from
+   * the in-memory context cache too.
+   */
+  private enforceSessionCap(file: UserSessionFile): string[] {
+    const keys = Object.keys(file.sessions);
+    if (keys.length <= MAX_SESSIONS_PER_USER) return [];
+    // Oldest first by last-accessed time; evict everything beyond the cap.
+    const oldestFirst = keys.sort(
+      (a, b) =>
+        file.sessions[a].lastAccessedAt - file.sessions[b].lastAccessedAt,
+    );
+    const evicted = oldestFirst.slice(0, keys.length - MAX_SESSIONS_PER_USER);
+    for (const k of evicted) delete file.sessions[k];
+    logger.debug(
+      {
+        userId: file.userId,
+        evicted: evicted.length,
+        cap: MAX_SESSIONS_PER_USER,
+      },
+      "Evicted oldest sessions to enforce per-user cap",
+    );
+    return evicted;
   }
 
   // ── File I/O helpers ──────────────────────────────────────────────

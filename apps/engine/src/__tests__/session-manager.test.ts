@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { SessionManager } from "../core/session/session-manager";
+import { MAX_SESSIONS_PER_USER } from "../core/constants";
 
 describe("SessionManager", () => {
   let manager: SessionManager;
@@ -63,5 +64,37 @@ describe("SessionManager", () => {
 
     const refetch = await manager.getContext("sess-1");
     expect(refetch.history).toHaveLength(2);
+  });
+
+  it("caps sessions per user with LRU eviction (oldest dropped)", async () => {
+    const userId = "bloat-user";
+    const N = MAX_SESSIONS_PER_USER + 5;
+    // Same userId, distinct sessionIds — the stable-userId + churning-sessionId
+    // pattern that would otherwise grow the per-user file without bound.
+    for (let i = 0; i < N; i++) {
+      const ctx = await manager.getContext(`s${i}`, userId, "default");
+      ctx.history.push({ role: "user", text: `m${i}` } as never);
+      await manager.saveContext(ctx, userId, "default");
+    }
+
+    // Only the cap's worth of most-recent sessions survive.
+    expect(await manager.size()).toBe(MAX_SESSIONS_PER_USER);
+
+    // The newest session is retained with its history intact...
+    const newest = await manager.getContext(`s${N - 1}`, userId, "default");
+    expect(newest.history).toHaveLength(1);
+  });
+
+  it("evicted oldest session is recreated empty on next access", async () => {
+    const userId = "bloat-user-2";
+    const N = MAX_SESSIONS_PER_USER + 3;
+    for (let i = 0; i < N; i++) {
+      const ctx = await manager.getContext(`s${i}`, userId, "default");
+      ctx.history.push({ role: "user", text: `m${i}` } as never);
+      await manager.saveContext(ctx, userId, "default");
+    }
+    // s0 was the oldest → evicted → re-accessing yields a fresh empty context.
+    const oldest = await manager.getContext("s0", userId, "default");
+    expect(oldest.history).toHaveLength(0);
   });
 });

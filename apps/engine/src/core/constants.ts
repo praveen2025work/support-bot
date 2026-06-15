@@ -65,6 +65,21 @@ export const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
 export const API_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 export const MAX_SESSIONS = 10_000;
 
+// Max sessions retained per user file. Each session persists its context
+// (including the ~10k-row __fullRows snapshot used for follow-up aggregation),
+// and the whole per-user file is parsed + rewritten on every saveContext. A
+// caller that reuses a stable userId while churning sessionIds (e.g. a
+// stateless channel minting a new sessionId per message) would otherwise grow
+// the file without bound — each request appending another multi-MB snapshot —
+// until the rewrite cost exhausts the heap. LRU-evicting the oldest sessions
+// beyond this cap keeps the file bounded. 25 is generous for human use (a few
+// tabs/conversations) while bounding the abuse case. Override with
+// MAX_SESSIONS_PER_USER.
+export const MAX_SESSIONS_PER_USER = parseInt(
+  process.env.MAX_SESSIONS_PER_USER || "25",
+  10,
+);
+
 // Row-limit pushdown: the explicit per-request cap the engine sends to the
 // connector (POST body `maxRows` + GET `maxRows` query param) so it can bound
 // the result set server-side instead of streaming everything back. Default
