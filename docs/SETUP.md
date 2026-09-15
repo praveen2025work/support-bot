@@ -1471,21 +1471,25 @@ uploads it as an artifact on every PR (see `.github/workflows/ci.yml`).
 These layer on top of the original `.env.example` variables and only
 need overriding for production-scale tuning.
 
-| Var                              | Default   | What                                                                                                               |
-| -------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------ |
-| `CHAT_REQUEST_TIMEOUT_MS`        | `30000`   | Wall-clock budget for one `/api/chat` call. Past this → 503 `DATA_SOURCE_UNAVAILABLE`.                             |
-| `QUERY_RESULT_CACHE_TTL_MS`      | `60000`   | Per-query result cache TTL. Identical request within window returns cached.                                        |
-| `QUERY_RESULT_CACHE_MAX_ENTRIES` | `500`     | LRU capacity for the per-query cache.                                                                              |
-| `ENGINE_IDLE_TTL_MS`             | `1800000` | Idle group eviction (30 min). `0` to disable. Set higher for many-group SaaS.                                      |
-| `ENGINE_SWEEP_INTERVAL_MS`       | `300000`  | How often the idle-eviction sweep runs.                                                                            |
-| `GROUP_SYNONYM_CACHE_MAX`        | `1000`    | Per-group synonym LRU.                                                                                             |
-| `ANOMALY_DETECTOR_CACHE_MAX`     | `1000`    | Per-group anomaly detector LRU.                                                                                    |
-| `RATE_LIMIT_CHAT`                | `1500`    | `/api/chat` per-IP per-minute. Past this → 429 `RATE_LIMITED` envelope.                                            |
-| `RATE_LIMIT_ADMIN`               | `200`     | `/api/admin/*` per-IP per-minute.                                                                                  |
-| `MAX_CONCURRENT_REQUESTS`        | `50`      | Concurrent chat-classification ceiling. Backpressure under burst.                                                  |
-| `SESSION_TTL_MS`                 | `1800000` | Stale session eviction (30 min).                                                                                   |
-| `PII_MASKING_DISABLED`           | unset     | Set `true` for break-glass investigations. Still audited.                                                          |
-| `ENGINE_CSP`                     | unset     | Set to a CSP string to enable Content-Security-Policy. Default off because the embedded widget loads cross-origin. |
+| Var                              | Default     | What                                                                                                                                                            |
+| -------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CHAT_REQUEST_TIMEOUT_MS`        | `30000`     | Wall-clock budget for one `/api/chat` call. Past this → 503 `DATA_SOURCE_UNAVAILABLE`.                                                                          |
+| `QUERY_RESULT_CACHE_TTL_MS`      | `60000`     | Per-query result cache TTL. Identical request within window returns cached.                                                                                     |
+| `QUERY_RESULT_CACHE_MAX_ENTRIES` | `500`       | LRU entry cap for the per-query result cache.                                                                                                                   |
+| `QUERY_RESULT_CACHE_MAX_BYTES`   | `134217728` | Byte ceiling (128 MiB) for the per-query result cache. Bounds memory regardless of entry count; a single result larger than this is served fresh, never cached. |
+| `API_CACHE_TTL_MS`               | `300000`    | Raw-HTTP (ApiClient) GET cache TTL.                                                                                                                             |
+| `API_CACHE_MAX_ENTRIES`          | `2000`      | LRU entry cap for the raw-HTTP response cache.                                                                                                                  |
+| `API_CACHE_MAX_BYTES`            | `134217728` | Byte ceiling (128 MiB) for the raw-HTTP response cache. Same memory guard as the result cache.                                                                  |
+| `SESSION_TTL_MS`                 | `1800000`   | Stale-session eviction window (30 min).                                                                                                                         |
+| `ENGINE_IDLE_TTL_MS`             | `1800000`   | Idle group eviction (30 min). `0` to disable. Set higher for many-group SaaS.                                                                                   |
+| `ENGINE_SWEEP_INTERVAL_MS`       | `300000`    | How often the idle-eviction sweep runs.                                                                                                                         |
+| `GROUP_SYNONYM_CACHE_MAX`        | `1000`      | Per-group synonym LRU.                                                                                                                                          |
+| `ANOMALY_DETECTOR_CACHE_MAX`     | `1000`      | Per-group anomaly detector LRU.                                                                                                                                 |
+| `RATE_LIMIT_CHAT`                | `1500`      | `/api/chat` per-IP per-minute. Past this → 429 `RATE_LIMITED` envelope.                                                                                         |
+| `RATE_LIMIT_ADMIN`               | `200`       | `/api/admin/*` per-IP per-minute.                                                                                                                               |
+| `MAX_CONCURRENT_REQUESTS`        | `50`        | Concurrent chat-classification ceiling. Backpressure under burst.                                                                                               |
+| `PII_MASKING_DISABLED`           | unset       | Set `true` for break-glass investigations. Still audited.                                                                                                       |
+| `ENGINE_CSP`                     | unset       | Set to a CSP string to enable Content-Security-Policy. Default off because the embedded widget loads cross-origin.                                              |
 
 ### Log correlation
 

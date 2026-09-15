@@ -3,7 +3,13 @@ import { createHash } from "crypto";
 import { config } from "@/lib/config";
 import { logger } from "@/lib/logger";
 import { ApiConnectionError } from "@/lib/errors";
-import { API_CACHE_TTL_MS, QUERY_RESULT_CACHE_TTL_MS } from "../constants";
+import {
+  API_CACHE_TTL_MS,
+  API_CACHE_MAX_ENTRIES,
+  API_CACHE_MAX_BYTES,
+  QUERY_RESULT_CACHE_TTL_MS,
+} from "../constants";
+import { estimateBytes } from "../cache/estimate-bytes";
 import { timeoutSignal } from "@/lib/generate-id";
 import { CircuitBreaker, CircuitState } from "./circuit-breaker";
 
@@ -108,9 +114,15 @@ export class ApiClient {
   constructor(baseUrl?: string, options?: ApiClientOptions) {
     this.baseUrl = (baseUrl || config.apiBaseUrl).replace(/\/?$/, "/");
 
-    // Tuned for 1500 req/min: 2000 entries covers ~2min of unique requests
+    // Tuned for 1500 req/min: 2000 entries covers ~2min of unique requests.
+    // The byte ceiling (maxSize) is the stability guard — without it, 2000
+    // cached entries of large upstream payloads (e.g. tens of thousands of
+    // rows each) can pin multiple GB. Oversized single responses are simply
+    // not cached (served fresh) instead of pinning the heap.
     this.cache = new LRUCache({
-      max: 2000,
+      max: API_CACHE_MAX_ENTRIES,
+      maxSize: API_CACHE_MAX_BYTES,
+      sizeCalculation: (value) => estimateBytes(value),
       ttl: API_CACHE_TTL_MS,
     });
 

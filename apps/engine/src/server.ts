@@ -21,6 +21,7 @@ import { metricsRouter } from "./routes/metrics";
 import { openapiRouter } from "./routes/openapi";
 import { registerGauge } from "./lib/metrics";
 import { getEngineCount } from "./lib/singleton";
+import { getQueryCacheStats } from "./core/cache/query-cache";
 import { setDraining } from "./lib/lifecycle";
 import {
   startCalibrationScheduler,
@@ -209,6 +210,11 @@ registerGauge(
   "sources_unreachable",
   () => getAllHealth().filter((s) => s.status === "unreachable").length,
 );
+// Result-cache footprint — lets operators see whether the query-result cache is
+// driving engine memory, and how close it is to its configured byte ceiling.
+registerGauge("query_cache_entries", () => getQueryCacheStats().entries);
+registerGauge("query_cache_bytes", () => getQueryCacheStats().sizeBytes);
+registerGauge("query_cache_max_bytes", () => getQueryCacheStats().maxBytes);
 
 // 404 + global error handler — both return the structured envelope
 // from lib/error-envelope.ts ({error, code, requestId, retryable}).
