@@ -27,7 +27,9 @@ import { createHash } from "crypto";
 import {
   QUERY_RESULT_CACHE_TTL_MS,
   QUERY_RESULT_CACHE_MAX_ENTRIES,
+  QUERY_RESULT_CACHE_MAX_BYTES,
 } from "../constants";
+import { estimateBytes } from "./estimate-bytes";
 
 export interface CachedQueryResult {
   /** Wall-clock when the result was fetched (ISO string) */
@@ -38,6 +40,12 @@ export interface CachedQueryResult {
 
 const cache = new LRUCache<string, CachedQueryResult>({
   max: QUERY_RESULT_CACHE_MAX_ENTRIES,
+  // Byte-size ceiling. Entry count alone doesn't bound memory when result sets
+  // range from a few hundred rows to tens of thousands; this caps the cache by
+  // approximate serialized bytes so a burst of large results can't pin the heap
+  // (the headline fix for the multi-GB balloon seen under heavy-data load).
+  maxSize: QUERY_RESULT_CACHE_MAX_BYTES,
+  sizeCalculation: (value) => estimateBytes(value),
   ttl: QUERY_RESULT_CACHE_TTL_MS,
   // Keep TTL-expired entries in the cache until LRU eviction kicks
   // them out. `get()` still won't return them (so live requests get
@@ -157,6 +165,28 @@ export function invalidateGroupQuery(
 
 export function clearAll(): void {
   cache.clear();
+}
+
+/**
+ * Live cache stats for observability (Prometheus gauges / health). `sizeBytes`
+ * is the approximate serialized footprint currently retained; `maxBytes` is the
+ * configured ceiling — watching `sizeBytes/maxBytes` tells operators whether the
+ * result cache is the thing driving engine memory under load.
+ */
+export interface QueryCacheStats {
+  entries: number;
+  maxEntries: number;
+  sizeBytes: number;
+  maxBytes: number;
+}
+
+export function getQueryCacheStats(): QueryCacheStats {
+  return {
+    entries: cache.size,
+    maxEntries: QUERY_RESULT_CACHE_MAX_ENTRIES,
+    sizeBytes: cache.calculatedSize ?? 0,
+    maxBytes: QUERY_RESULT_CACHE_MAX_BYTES,
+  };
 }
 
 /** Cache metadata for the wire: short, JSON-safe, UI-friendly. */

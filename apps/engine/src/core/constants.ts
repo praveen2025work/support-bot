@@ -46,6 +46,21 @@ export const INTENTS = {
   ANALYSIS_ROOT_CAUSE: "analysis.root_cause",
 } as const;
 
+// ---------------------------------------------------------------------------
+// Env-override helpers
+//
+// Operational knobs below read from process.env at module load so a deployment
+// can tune them without a code change. Each falls back to a safe default and
+// ignores non-numeric / non-positive input (a fat-fingered env var must never
+// silently disable a bound). See docs/SETUP.md "Tunable env vars".
+// ---------------------------------------------------------------------------
+function envInt(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined || raw === "") return fallback;
+  const parsed = parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
 // Lowered from 0.6 to 0.5 per a follow-up audit (2026-05-11): with the
 // corpus pared to only queries that have catalog records, many catalog
 // queries (active_users, infrastructure_costs, customer_churn, ...)
@@ -61,8 +76,10 @@ export const NLP_CONFIDENCE_THRESHOLD = 0.5;
 // Below this, the system says "I don't understand" instead of guessing.
 export const NLP_DISAMBIG_FLOOR = 0.4;
 export const FUZZY_CONFIDENCE_THRESHOLD = 0.5;
-export const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
-export const API_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+// Stale-session eviction window. Overridable with SESSION_TTL_MS.
+export const SESSION_TTL_MS = envInt("SESSION_TTL_MS", 30 * 60 * 1000); // 30 minutes
+// Raw-HTTP response cache TTL in ApiClient. Overridable with API_CACHE_TTL_MS.
+export const API_CACHE_TTL_MS = envInt("API_CACHE_TTL_MS", 5 * 60 * 1000); // 5 minutes
 export const MAX_SESSIONS = 10_000;
 
 // Max sessions retained per user file. Each session persists its context
@@ -108,9 +125,35 @@ export const FULLROWS_MAX = parseInt(
 // Per-query result cache. Short TTL by default so repeated identical
 // requests inside a single session feel snappy without serving badly
 // stale data. UI shows a "cached" badge with the age so users can
-// decide whether to refresh manually.
-export const QUERY_RESULT_CACHE_TTL_MS = 60 * 1000; // 60 seconds
-export const QUERY_RESULT_CACHE_MAX_ENTRIES = 500;
+// decide whether to refresh manually. All three knobs are env-tunable.
+export const QUERY_RESULT_CACHE_TTL_MS = envInt(
+  "QUERY_RESULT_CACHE_TTL_MS",
+  60 * 1000, // 60 seconds
+);
+export const QUERY_RESULT_CACHE_MAX_ENTRIES = envInt(
+  "QUERY_RESULT_CACHE_MAX_ENTRIES",
+  500,
+);
+// Byte-size ceiling for the post-processed result cache. Entry-count limits
+// alone don't bound memory: one cached entry can be 300 rows or 50k rows, so a
+// 500-entry cache of large result sets can pin multiple GB. This caps the cache
+// by approximate serialized bytes (see core/cache/estimate-bytes.ts); the LRU
+// evicts oldest entries to stay under it, and any single payload larger than
+// the ceiling is simply not cached (served fresh) rather than pinning the heap.
+// Override with QUERY_RESULT_CACHE_MAX_BYTES. Default 128 MiB.
+export const QUERY_RESULT_CACHE_MAX_BYTES = envInt(
+  "QUERY_RESULT_CACHE_MAX_BYTES",
+  128 * 1024 * 1024,
+);
+
+// Raw-HTTP response cache in ApiClient. Sized for 1500 req/min bursts. Both the
+// entry count and the byte ceiling are env-tunable; the byte ceiling is the
+// stability guard against many large upstream payloads accumulating.
+export const API_CACHE_MAX_ENTRIES = envInt("API_CACHE_MAX_ENTRIES", 2000);
+export const API_CACHE_MAX_BYTES = envInt(
+  "API_CACHE_MAX_BYTES",
+  128 * 1024 * 1024,
+);
 
 // Learning pipeline constants
 export const LEARNING_CONFIDENCE_THRESHOLD = 0.4;
