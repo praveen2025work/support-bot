@@ -23,6 +23,8 @@
     "lint:all": "cd apps/web && npm run lint && cd ../engine && npm run lint && cd ../mssql-connector && npm run lint && cd ../oracle-connector && npm run lint && cd ../csv-xlsx-connector && npm run lint",
     "lint:fix:all": "cd apps/web && npm run lint:fix && cd ../engine && npm run lint:fix && cd ../mssql-connector && npm run lint:fix && cd ../oracle-connector && npm run lint:fix && cd ../csv-xlsx-connector && npm run lint:fix",
     "validate:demo": "node scripts/demo/validate.mjs",
+    "extract:design-assets": "node scripts/extract-design-assets.mjs",
+    "test:design-assets": "node --test packages/design-assets/test/kit.test.mjs",
     "validate:demo:quick": "node scripts/demo/validate.mjs --quick",
     "dev": "dotenv -e .env.dev -- concurrently --restart-tries 3 --restart-after 2000 -n engine,ui -c blue,green \"cd apps/engine && npm run dev\" \"cd apps/web && npm run dev\"",
     "dev:mock": "dotenv -e .env.mock -- concurrently --restart-tries 3 --restart-after 2000 -n mock,engine,ui -c yellow,blue,green \"npm run svc:mock-api\" \"cd apps/engine && npm run dev\" \"cd apps/web && npm run dev\"",
