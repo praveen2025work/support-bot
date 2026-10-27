@@ -7,6 +7,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { readOfxEmbed } from "@/lib/ofx-embed";
 
 export type Theme = "light" | "dark";
 
@@ -18,7 +19,8 @@ const STORAGE_KEY = "chatbot-theme";
 
 interface ThemeContextValue {
   theme: Theme;
-  setTheme: (t: Theme) => void;
+  /** persist: false applies a theme for this page only (One Finance sets it when it frames the widget). */
+  setTheme: (t: Theme, opts?: { persist?: boolean }) => void;
   toggleTheme: () => void;
   isDark: boolean;
   availableThemes: readonly Theme[];
@@ -28,6 +30,9 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 function readStoredTheme(): Theme {
   try {
+    // Framed by One Finance: the console's theme wins over the stored preference.
+    const embed = readOfxEmbed(window.location.search);
+    if (embed) return embed.theme;
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored && AVAILABLE_THEMES.includes(stored as Theme))
       return stored as Theme;
@@ -64,8 +69,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     applyThemeClass(theme);
   }, [theme]);
 
-  const setTheme = useCallback((newTheme: Theme) => {
-    localStorage.setItem(STORAGE_KEY, newTheme);
+  const setTheme = useCallback((newTheme: Theme, opts?: { persist?: boolean }) => {
+    if (opts?.persist !== false) localStorage.setItem(STORAGE_KEY, newTheme);
     setThemeState(newTheme);
   }, []);
 

@@ -242,7 +242,7 @@ export function ChatWindow({
     <ErrorBoundary>
       <FileDropZone onFileDrop={uploadFile} disabled={isLoading}>
         <div className="flex flex-col h-full bg-[var(--bg-primary)]">
-          {platform === "widget" ? (
+          {platform === "widget" && !hideHeader ? (
             /* Single-row sticky header: bot icon, title, user info, status, minimize, close */
             <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-2 flex items-center gap-2 flex-shrink-0 shadow-sm">
               {/* Bot icon */}
@@ -306,7 +306,7 @@ export function ChatWindow({
                 <X size={12} stroke="white" />
               </button>
             </div>
-          ) : !hideHeader ? (
+          ) : platform !== "widget" && !hideHeader ? (
             /* Non-widget: sticky header with title, status, user info */
             <div className="sticky top-0 z-10 bg-[var(--bg-primary)] border-b border-[var(--border)] px-4 py-3 flex items-center gap-3 flex-shrink-0">
               <div className="flex-1">

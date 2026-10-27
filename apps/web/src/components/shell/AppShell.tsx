@@ -1,5 +1,6 @@
 "use client";
 import { type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { useUser } from "@/contexts/UserContext";
 import { Sidebar } from "./Sidebar";
 
@@ -9,6 +10,10 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const { isAdmin } = useUser();
+  const pathname = usePathname();
+
+  // The widget is framed by other apps (One Finance, embed snippets): no sidebar inside the frame.
+  if (pathname?.startsWith("/widget")) return <>{children}</>;
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--bg-canvas)]">
