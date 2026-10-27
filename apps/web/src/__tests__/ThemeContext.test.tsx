@@ -66,4 +66,29 @@ describe("ThemeContext", () => {
     expect(screen.getByTestId("isDark")).toHaveTextContent("false");
     expect(document.documentElement.classList.contains("dark")).toBe(false);
   });
+
+  it("paints with the STEPS look by default and remembers the classic MITR look", () => {
+    function SkinDisplay() {
+      const { skin, setSkin } = useTheme();
+      return (
+        <div>
+          <span data-testid="skin">{skin}</span>
+          <button onClick={() => setSkin("ofx")}>Classic</button>
+        </div>
+      );
+    }
+    render(
+      <ThemeProvider>
+        <SkinDisplay />
+      </ThemeProvider>,
+    );
+    const html = document.documentElement;
+    expect(screen.getByTestId("skin")).toHaveTextContent("steps");
+    expect(html.getAttribute("data-ofx-vars")).toBe("mitr");
+    expect(html.getAttribute("data-skin")).toBe("steps");
+    expect(html.getAttribute("data-theme")).toBe("light");
+    act(() => screen.getByText("Classic").click());
+    expect(html.getAttribute("data-skin")).toBe("ofx");
+    expect(localStorage.getItem("chatbot-skin")).toBe("ofx");
+  });
 });

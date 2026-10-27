@@ -1,0 +1,89 @@
+/* STEPS control scale for MITR AI under the steps skin (the default).
+   The numbers are tokens from styles/ofx/onefinux-tokens.css, the same ones One Finance and STEPS v3 use:
+   32px fields and buttons, 10px corners, 14px typed text, 12px/500 button text, 14px/500 labels, a hairline
+   shadow and a 1px accent focus ring. Unlayered and scoped to <html data-skin="steps"> on purpose: it sits above
+   Tailwind's utilities, so hand-rolled controls follow the scale without editing each one, and the classic MITR
+   look (data-skin="ofx") keeps its own shapes. */
+
+/* Solid surfaces, as in STEPS: no indigo glow behind the page or empty-state heroes. */
+html[data-ofx-vars="mitr"][data-skin="steps"] { --hero-glow: none; --page-glow: none; }
+
+/* MITR's button classes take STEPS Button: primary (filled), secondary → outline, ghost → ghost. Size sm. */
+html[data-ofx-vars="mitr"][data-skin="steps"] :is(.btn-primary, .btn-secondary, .btn-ghost) {
+  height: var(--ofx-ctl-h);
+  padding: 0 var(--ofx-ctl-px);
+  border-radius: var(--ofx-r-ctl);
+  font-family: var(--ofx-font);
+  font-size: var(--ofx-btn-fs);
+  font-weight: var(--ofx-btn-fw);
+  justify-content: center;
+  transform: none;
+}
+html[data-ofx-vars="mitr"][data-skin="steps"] .btn-primary { box-shadow: var(--ofx-ctl-sh); }
+html[data-ofx-vars="mitr"][data-skin="steps"] .btn-primary:hover {
+  background: color-mix(in srgb, var(--ofx-accent) 90%, var(--ofx-card));
+  box-shadow: var(--ofx-ctl-sh);
+}
+html[data-ofx-vars="mitr"][data-skin="steps"] .btn-secondary {
+  color: var(--ofx-ink);
+  background: var(--ofx-ctl-bg);
+  border: 1px solid var(--ofx-ctl-line);
+  box-shadow: var(--ofx-ctl-sh);
+}
+html[data-ofx-vars="mitr"][data-skin="steps"] .btn-ghost { color: var(--ofx-ink); border-color: transparent; }
+html[data-ofx-vars="mitr"][data-skin="steps"] :is(.btn-secondary, .btn-ghost):hover { background: var(--ofx-surface-2); color: var(--ofx-ink); }
+html[data-ofx-vars="mitr"][data-skin="steps"] .btn-secondary:hover { border-color: var(--ofx-ctl-line); }
+html[data-ofx-vars="mitr"][data-skin="steps"] .btn-ghost:hover { border-color: transparent; }
+html[data-ofx-vars="mitr"][data-skin="steps"] :is(.btn-primary, .btn-secondary, .btn-ghost):focus-visible { outline: none; box-shadow: var(--ofx-focus); }
+
+/* Text fields and selects (STEPS Input / SelectTrigger). Borderless fields inside a styled wrapper are left alone. */
+html[data-ofx-vars="mitr"][data-skin="steps"]
+  :is(input:not([type]), input[type="text"], input[type="search"], input[type="email"], input[type="number"],
+      input[type="password"], input[type="date"], input[type="datetime-local"], input[type="url"], input[type="tel"],
+      select, textarea):not(.bg-transparent):not(.border-0):not(.border-none):not([class*="wj-"]):not(.wj-control *) {
+  border-radius: var(--ofx-r-ctl);
+  border-color: var(--ofx-ctl-line);
+  /* !important only to beat globals.css's dark-mode `[class*="bg-white"]` back-compat rule, which is !important too. */
+  background-color: var(--ofx-ctl-bg) !important;
+  box-shadow: var(--ofx-ctl-sh);
+  color: var(--ofx-ink);
+  font-family: var(--ofx-font);
+  font-size: var(--ofx-ctl-fs);
+}
+html[data-ofx-vars="mitr"][data-skin="steps"] .ofx-select { background-color: var(--ofx-ctl-bg) !important; }
+html[data-ofx-vars="mitr"][data-skin="steps"]
+  :is(input:not([type]), input[type="text"], input[type="search"], input[type="email"], input[type="number"],
+      input[type="password"], input[type="date"], input[type="datetime-local"], input[type="url"], input[type="tel"], select):not(.bg-transparent):not(.border-0):not(.border-none):not([class*="wj-"]):not(.wj-control *) {
+  height: var(--ofx-ctl-h);
+  padding-block: 0;
+}
+html[data-ofx-vars="mitr"][data-skin="steps"] :is(input, select, textarea):not([class*="wj-"]):not(.wj-control *):focus-visible {
+  outline: none;
+  box-shadow: var(--ofx-focus);
+}
+html[data-ofx-vars="mitr"][data-skin="steps"] :is(input, textarea)::placeholder { color: var(--ofx-ink-3); }
+
+/* Labels (STEPS Label: text-sm font-medium). */
+html[data-ofx-vars="mitr"][data-skin="steps"] label:not([class*="wj-"]):not(.wj-control *) {
+  font-size: var(--ofx-label-fs);
+  font-weight: var(--ofx-label-fw);
+  color: var(--ofx-ink);
+}
+
+/* Primary buttons (filled with the brand colour) that carry text: STEPS Button size sm. Icon buttons keep their size. */
+html[data-ofx-vars="mitr"][data-skin="steps"] button[class~="bg-[var(--brand)]"]:not([class~="w-5"]):not([class~="w-6"]):not([class~="w-7"]):not([class~="w-8"]):not([class~="w-9"]):not([class~="w-10"]) {
+  min-height: var(--ofx-ctl-h);
+  padding-inline: var(--ofx-ctl-px);
+  border-radius: var(--ofx-r-ctl);
+  box-shadow: var(--ofx-ctl-sh);
+  font-family: var(--ofx-font);
+  font-size: var(--ofx-btn-fs);
+  font-weight: var(--ofx-btn-fw);
+}
+
+/* Wijmo grids inside MITR's wrapper: the shared STEPS grid lines (styles/ofx/onefinux-wijmo.css) over MITR's own. */
+html[data-ofx-vars="mitr"][data-skin="steps"] .mitr-wijmo-grid .wj-flexgrid { font-size: var(--ofx-grid-fs); }
+html[data-ofx-vars="mitr"][data-skin="steps"] .mitr-wijmo-grid .wj-cell:not(.wj-header) {
+  border-right: 1px solid color-mix(in srgb, var(--ofx-line) 30%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--ofx-line) 30%, transparent);
+}

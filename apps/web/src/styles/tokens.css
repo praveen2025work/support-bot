@@ -50,6 +50,11 @@
   --shadow-md: 0 8px 24px -8px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
   --shadow-lg: 0 16px 48px -16px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(15, 23, 42, 0.08);
   --shadow-glow: 0 0 0 1px rgba(99, 102, 241, 0.16), 0 8px 32px -8px rgba(99, 102, 241, 0.24);
+  /* Soft indigo glow behind empty-state heroes and the page; none under the STEPS look (solid surfaces). */
+  --hero-glow: radial-gradient(circle at 18% 10%, rgba(99, 102, 241, 0.17), transparent 55%),
+    radial-gradient(circle at 90% 95%, rgba(139, 92, 246, 0.13), transparent 58%);
+  --page-glow: radial-gradient(circle at 12% 8%, rgba(99, 102, 241, 0.06), transparent 55%),
+    radial-gradient(circle at 88% 92%, rgba(139, 92, 246, 0.05), transparent 60%);
 
   /* Radius — Stitch "Soft 0.25rem" baseline with elevated card radii */
   --radius-xs: 3px;

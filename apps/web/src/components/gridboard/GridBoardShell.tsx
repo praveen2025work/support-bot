@@ -500,7 +500,7 @@ export function GridBoardShell() {
         <button
           type="button"
           onClick={() => setDropdownOpen((o) => !o)}
-          className="flex items-center gap-2 text-[12.5px] font-medium border rounded-full px-3.5 py-1.5 text-left transition-all min-w-[200px] max-w-[300px]"
+          className="ofx-select flex items-center gap-2 text-[12.5px] font-medium border rounded-full px-3.5 py-1.5 text-left transition-all min-w-[200px] max-w-[300px]"
           style={{
             backgroundColor: "var(--bg-secondary)",
             borderColor: dropdownOpen ? "var(--brand)" : "var(--border)",
@@ -912,10 +912,7 @@ export function GridBoardShell() {
                 <div
                   aria-hidden="true"
                   className="absolute inset-0 opacity-70 pointer-events-none"
-                  style={{
-                    background:
-                      "radial-gradient(circle at 20% 0%, rgba(99,102,241,0.16), transparent 55%), radial-gradient(circle at 100% 100%, rgba(139,92,246,0.12), transparent 60%)",
-                  }}
+                  style={{ background: "var(--hero-glow)" }}
                 />
                 <div className="relative px-8 py-10 flex flex-col items-center text-center">
                   <div

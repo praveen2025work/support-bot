@@ -305,7 +305,7 @@ function SearchableSelectInput({
           type="button"
           onClick={() => setOpen(!open)}
           disabled={disabled}
-          className={`flex-1 text-left flex items-center justify-between ${inputCls} ${disabled ? "opacity-50" : ""}`}
+          className={`ofx-select flex-1 text-left flex items-center justify-between ${inputCls} ${disabled ? "opacity-50" : ""}`}
         >
           {value ? (
             <span className="truncate">{selectedLabel}</span>
@@ -455,7 +455,7 @@ function MultiSelectInput({
           type="button"
           onClick={() => setOpen(!open)}
           disabled={disabled}
-          className={`flex-1 text-left ${inputCls} ${disabled ? "opacity-50" : ""}`}
+          className={`ofx-select flex-1 text-left ${inputCls} ${disabled ? "opacity-50" : ""}`}
         >
           {selected.length === 0 ? (
             <span className="text-[var(--text-muted)]">All (no filter)</span>

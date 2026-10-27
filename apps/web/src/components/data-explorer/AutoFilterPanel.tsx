@@ -74,7 +74,7 @@ function SearchableDropdown({
           setOpen((o) => !o);
           setQuery("");
         }}
-        className={`flex items-center gap-1.5 text-[12px] border rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors min-w-[130px] max-w-[200px] ${
+        className={`ofx-select flex items-center gap-1.5 text-[12px] border rounded-[var(--radius-md)] px-3 py-2 text-left transition-colors min-w-[130px] max-w-[200px] ${
           hasValue
             ? "border-[var(--brand)] ring-1 ring-[var(--brand-subtle)]"
             : "border-[var(--border)]"

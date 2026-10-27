@@ -22,7 +22,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
-import { useTheme, type Theme } from "@/contexts/ThemeContext";
+import { useTheme, type Skin, type Theme } from "@/contexts/ThemeContext";
 
 interface NavItem {
   icon: ReactNode;
@@ -343,8 +343,13 @@ const THEME_OPTIONS: { value: Theme; label: string }[] = [
   { value: "dark", label: "Dark" },
 ];
 
+const SKIN_OPTIONS: { value: Skin; label: string }[] = [
+  { value: "steps", label: "STEPS look" },
+  { value: "ofx", label: "MITR classic" },
+];
+
 function ThemeToggleButton({ isExpanded }: { isExpanded: boolean }) {
-  const { theme, setTheme, isDark } = useTheme();
+  const { theme, setTheme, isDark, skin, setSkin } = useTheme();
   const [showPicker, setShowPicker] = useState(false);
   const mounted = useSyncExternalStore(
     () => () => {},
@@ -397,6 +402,23 @@ function ThemeToggleButton({ isExpanded }: { isExpanded: boolean }) {
               }}
               className={`w-full text-left px-3 py-1.5 text-[12px] transition-colors ${
                 theme === opt.value
+                  ? "text-[var(--brand)] bg-[var(--brand-subtle)]"
+                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+          <div className="my-1 border-t border-[var(--border)]" />
+          {SKIN_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => {
+                setSkin(opt.value);
+                setShowPicker(false);
+              }}
+              className={`w-full text-left px-3 py-1.5 text-[12px] transition-colors ${
+                skin === opt.value
                   ? "text-[var(--brand)] bg-[var(--brand-subtle)]"
                   : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
               }`}

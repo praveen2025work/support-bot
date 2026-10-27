@@ -953,10 +953,7 @@ function EmptyState({
         <div
           aria-hidden="true"
           className="absolute inset-0 opacity-80 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(circle at 18% 12%, rgba(99,102,241,0.18), transparent 55%), radial-gradient(circle at 84% 88%, rgba(139,92,246,0.14), transparent 55%)",
-          }}
+          style={{ background: "var(--hero-glow)" }}
         />
         <div className="relative px-10 py-12 flex flex-col items-center text-center">
           <span className="eyebrow !text-[var(--brand)] mb-3">

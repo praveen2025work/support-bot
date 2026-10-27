@@ -925,7 +925,7 @@ export function AgEditableDataGrid({
                   pagination={false}
                   height={Math.min(group.rows.length * 28 + 45, 300)}
                   domLayout="normal"
-                  headerHeight={32}
+                  headerHeight={33}
                 />
               </div>
             );

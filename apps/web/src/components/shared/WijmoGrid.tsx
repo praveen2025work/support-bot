@@ -205,8 +205,9 @@ export function WijmoGrid({
     return view;
   }, [rowData, pagination, paginationPageSize]);
 
-  const effectiveRowHeight = rowHeight ?? (compact ? 28 : 42);
-  const effectiveHeaderHeight = headerHeight ?? (compact ? 32 : 40);
+  // 33px rows and header: the STEPS v3 grid (styles/ofx/onefinux-wijmo.css), shared with One Finance.
+  const effectiveRowHeight = rowHeight ?? (compact ? 28 : 33);
+  const effectiveHeaderHeight = headerHeight ?? 33;
   const frozenColumns = mergedColumns.filter((c) => c.pinned === "left").length;
 
   const makeApi = useCallback(

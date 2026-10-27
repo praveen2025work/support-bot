@@ -1,0 +1,533 @@
+/* Copied from One Finance frontend/theme/onefinux-tokens.css by scripts/sync-ofx-theme.mjs. Do not edit here. */
+/**
+ * One Finance design standard — the one palette every accounting screen uses.
+ *
+ * Who loads it
+ *   - The One Finance console imports it; its own tokens (styles.css) are derived from these.
+ *   - Partner screens framed in One Finance link it and use --ofx-* only:
+ *       <link rel="stylesheet" href="https://<one-finance-host>/theme/onefinux-tokens.css">
+ *       <html data-skin="steps" data-theme="light|dark" data-ofx-embedded="1">  (from the iframe query)
+ *   - shadcn / Tailwind apps (STEPS) framed with data-ofx-embedded="1" also get the shadcn HSL variables
+ *     below, so their components paint with the same palette without a code change.
+ *   - The MITR chatbot (support-bot) framed with data-ofx-vars="mitr" gets its own variable names (MITR bridge).
+ *
+ * Skins
+ *   steps (default) — the STEPS look: shadcn tokens, Banking Blue primary, white cards, system type.
+ *   ofx             — the earlier MITR indigo look, kept as a selectable theme.
+ * Modes: data-theme="light" (default) | "dark".
+ *
+ * Solid surfaces only: no frosted glass, no backdrop-filter. Wijmo grids, pivots and charts take their
+ * skin from onefinux-wijmo.css, which reads these tokens.
+ */
+
+/* ---------------------------------------------------------------- STEPS light (default) */
+:root,
+html[data-skin="steps"] {
+  color-scheme: light;
+  --ofx-page: #f8fafc;
+  --ofx-surface-3: #f1f5f9;
+  --ofx-card: #ffffff;
+  --ofx-surface-2: #f1f5f9;
+  --ofx-line: #e2e8f0;
+  --ofx-line-2: #cbd5e1;
+  --ofx-ink: #020817;
+  --ofx-ink-2: #4f5d6f;
+  --ofx-ink-3: #5b6779;
+  --ofx-accent: #2563eb;
+  --ofx-accent-2: #1d4ed8;
+  --ofx-on-accent: #ffffff;
+  --ofx-ok: #047857;
+  --ofx-warn: #d97706;
+  --ofx-fail: #b91c1c;
+  --ofx-bo: #7c3aed;
+  --ofx-gold: #f59e0b;
+  --ofx-navy: #1e40af;
+  --ofx-rail: #ffffff;
+  --ofx-rail-line: #e2e8f0;
+  --ofx-rail-hover: #f1f5f9;
+  --ofx-rail-active: rgba(37, 99, 235, 0.10);
+  --ofx-rail-ink: #020817;
+  --ofx-rail-muted: #64748b;
+  --ofx-rail-on: #ffffff;
+  --ofx-nav-on: #3b82f6;
+  --ofx-brand-a: #2563eb;
+  --ofx-brand-b: #3b82f6;
+  --ofx-sh-1: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --ofx-sh-2: 0 12px 32px -12px rgba(15, 23, 42, 0.18), 0 4px 10px rgba(15, 23, 42, 0.06);
+  --ofx-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Inter", sans-serif;
+  --ofx-display: var(--ofx-font);
+  --ofx-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --ofx-r-ctl: 10px;
+  --ofx-r: 10px;
+  --ofx-r-lg: 12px;
+}
+
+/* ---------------------------------------------------------------- STEPS dark */
+html[data-skin="steps"][data-theme="dark"],
+html:not([data-skin])[data-theme="dark"] {
+  color-scheme: dark;
+  --ofx-page: #0b111e;
+  --ofx-surface-3: #0e1525;
+  --ofx-card: #10192d;
+  --ofx-surface-2: #1d2839;
+  --ofx-line: #2b3b55;
+  --ofx-line-2: #3a4d6b;
+  --ofx-ink: #f8fafc;
+  --ofx-ink-2: #94a3b8;
+  --ofx-ink-3: #64748b;
+  --ofx-accent: #3b83f6;
+  --ofx-accent-2: #60a5fa;
+  --ofx-ok: #34d399;
+  --ofx-warn: #fbbf24;
+  --ofx-fail: #f87171;
+  --ofx-bo: #a78bfa;
+  --ofx-gold: #fbbf24;
+  --ofx-navy: #93c5fd;
+  --ofx-rail: #10192d;
+  --ofx-rail-line: #2b3b55;
+  --ofx-rail-hover: #1d2839;
+  --ofx-rail-active: rgba(59, 131, 246, 0.16);
+  --ofx-rail-ink: #f8fafc;
+  --ofx-rail-muted: #94a3b8;
+  --ofx-nav-on: #3b83f6;
+  --ofx-sh-1: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --ofx-sh-2: 0 24px 64px -16px rgba(0, 0, 0, 0.7), 0 8px 18px rgba(0, 0, 0, 0.45);
+}
+
+/* ---------------------------------------------------------------- One Finance MITR (legacy skin) */
+html[data-skin="ofx"] {
+  color-scheme: dark;
+  --ofx-page: #090d1c;
+  --ofx-surface-3: #0b1020;
+  --ofx-card: #161d33;
+  --ofx-surface-2: #1d2540;
+  --ofx-line: #232b48;
+  --ofx-line-2: #2e3958;
+  --ofx-ink: #e6e8ee;
+  --ofx-ink-2: #c7cad6;
+  --ofx-ink-3: #7e85a3;
+  --ofx-accent: #818cf8;
+  --ofx-accent-2: #a5b4fc;
+  --ofx-on-accent: #ffffff;
+  --ofx-ok: #34d399;
+  --ofx-warn: #fbbf24;
+  --ofx-fail: #f87171;
+  --ofx-bo: #a78bfa;
+  --ofx-gold: #fbbf24;
+  --ofx-navy: #a5b4fc;
+  --ofx-rail: #090d1c;
+  --ofx-rail-line: #232b48;
+  --ofx-rail-hover: #131a2e;
+  --ofx-rail-active: rgba(129, 140, 248, 0.16);
+  --ofx-rail-ink: #e6e8ee;
+  --ofx-rail-muted: #7e85a3;
+  --ofx-rail-on: #ffffff;
+  --ofx-nav-on: #818cf8;
+  --ofx-brand-a: #6366f1;
+  --ofx-brand-b: #8b5cf6;
+  --ofx-sh-1: 0 12px 28px -8px rgba(0, 0, 0, 0.55), 0 4px 10px rgba(0, 0, 0, 0.4);
+  --ofx-sh-2: 0 24px 64px -16px rgba(0, 0, 0, 0.7), 0 8px 18px rgba(0, 0, 0, 0.45);
+  --ofx-font: "Inter", system-ui, -apple-system, Helvetica, Arial, sans-serif;
+  --ofx-display: "Sora", "Inter", system-ui, sans-serif;
+  --ofx-r-ctl: 8px;
+  --ofx-r: 10px;
+  --ofx-r-lg: 14px;
+}
+html[data-skin="ofx"][data-theme="light"] {
+  color-scheme: light;
+  --ofx-page: #f5f6fb;
+  --ofx-surface-3: #f8fafc;
+  --ofx-card: #ffffff;
+  --ofx-surface-2: #f1f5f9;
+  --ofx-line: #e2e8f0;
+  --ofx-line-2: #cbd5e1;
+  --ofx-ink: #0f172a;
+  --ofx-ink-2: #475569;
+  --ofx-ink-3: #5b6779;
+  --ofx-accent: #6366f1;
+  --ofx-accent-2: #4f46e5;
+  --ofx-ok: #047857;
+  --ofx-warn: #d97706;
+  --ofx-fail: #b91c1c;
+  --ofx-bo: #7c3aed;
+  --ofx-gold: #f59e0b;
+  --ofx-navy: #4338ca;
+  --ofx-rail: #ffffff;
+  --ofx-rail-line: #e2e8f0;
+  --ofx-rail-hover: #f1f5f9;
+  --ofx-rail-active: rgba(99, 102, 241, 0.12);
+  --ofx-rail-ink: #0f172a;
+  --ofx-rail-muted: #64748b;
+  --ofx-rail-on: #312e81;
+  --ofx-nav-on: #6366f1;
+  --ofx-sh-1: 0 8px 24px -8px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+  --ofx-sh-2: 0 16px 48px -16px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+/* ---------------------------------------------------------------- derived (every skin) */
+:root {
+  /* One control scale for every app (values from STEPS v3: Button size sm, Input, SelectTrigger, Label, Wijmo). */
+  --ofx-ctl-h: 32px;                                  /* buttons, inputs, selects, drop-downs */
+  --ofx-ctl-h-sm: 28px;                               /* toolbar icon buttons, chips */
+  --ofx-ctl-px: 12px;
+  --ofx-ctl-fs: 14px;                                 /* text typed or picked: inputs, selects */
+  --ofx-btn-fs: 12px;
+  --ofx-btn-fw: 500;
+  --ofx-label-fs: 14px;
+  --ofx-label-fw: 500;
+  --ofx-ctl-bg: var(--ofx-page);                      /* STEPS bg-background */
+  --ofx-ctl-line: var(--ofx-line);
+  --ofx-ctl-sh: 0 1px 2px 0 rgba(0, 0, 0, 0.05);      /* STEPS shadow-sm */
+  --ofx-focus: 0 0 0 1px var(--ofx-accent);           /* STEPS ring-1 ring-ring */
+  --ofx-grid-fs: 13px;
+  --ofx-grid-hd-fs: 12px;
+  --ofx-info: var(--ofx-accent-2);
+  --ofx-ok-bg: color-mix(in srgb, var(--ofx-ok) 12%, var(--ofx-card));
+  --ofx-ok-line: color-mix(in srgb, var(--ofx-ok) 40%, var(--ofx-line));
+  --ofx-warn-bg: color-mix(in srgb, var(--ofx-warn) 12%, var(--ofx-card));
+  --ofx-warn-line: color-mix(in srgb, var(--ofx-warn) 40%, var(--ofx-line));
+  --ofx-fail-bg: color-mix(in srgb, var(--ofx-fail) 12%, var(--ofx-card));
+  --ofx-fail-line: color-mix(in srgb, var(--ofx-fail) 40%, var(--ofx-line));
+  --ofx-info-bg: color-mix(in srgb, var(--ofx-accent) 12%, var(--ofx-card));
+  --ofx-info-line: color-mix(in srgb, var(--ofx-accent) 40%, var(--ofx-line));
+  --ofx-bo-bg: color-mix(in srgb, var(--ofx-bo) 12%, var(--ofx-card));
+  --ofx-bo-line: color-mix(in srgb, var(--ofx-bo) 40%, var(--ofx-line));
+  /* Names partner teams used before the STEPS standard. */
+  --ofx-cyan: var(--ofx-accent-2);
+  --ofx-cyan-600: var(--ofx-accent);
+  --ofx-navy-700: var(--ofx-surface-3);
+  --ofx-navy-800: var(--ofx-card);
+  --ofx-navy-900: var(--ofx-surface-2);
+  --ofx-ink-4: var(--ofx-ink-3);
+  --ofx-chart-1: var(--ofx-accent);
+  --ofx-chart-2: #10b981;
+  --ofx-chart-3: #f59e0b;
+  --ofx-chart-4: #ef4444;
+  --ofx-chart-5: #8b5cf6;
+  --ofx-chart-6: #0ea5e9;
+}
+
+/* ---------------------------------------------------------------- shadcn bridge (framed apps, e.g. STEPS)
+   HSL triplets in the shadcn convention: hsl(var(--primary)). Only when framed, so a standalone app keeps its
+   own theme switcher. Values for the steps skin are STEPS' own globals.css values. */
+html[data-ofx-embedded="1"],
+html[data-ofx-embedded="1"][data-skin="steps"] {
+  --background: 210 40% 98%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 221.2 83.2% 53.3%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 221.2 83.2% 53.3%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 221.2 83.2% 53.3%;
+  --radius: 0.75rem;
+}
+html[data-ofx-embedded="1"][data-theme="dark"],
+html[data-ofx-embedded="1"][data-skin="steps"][data-theme="dark"] {
+  --background: 222.2 47% 8%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 47% 12%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 47% 10%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 217 91.2% 59.8%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 217.2 32.6% 17%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 15%;
+  --muted-foreground: 215 20.2% 65%;
+  --accent: 217 91.2% 59.8%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 50%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 25%;
+  --input: 217.2 32.6% 16%;
+  --ring: 217 91.2% 59.8%;
+}
+html[data-ofx-embedded="1"][data-skin="ofx"] {
+  --background: 227.4 51.4% 7.3%;
+  --foreground: 225 19% 91.8%;
+  --card: 225.5 39.7% 14.3%;
+  --card-foreground: 225 19% 91.8%;
+  --popover: 225.5 39.7% 14.3%;
+  --popover-foreground: 225 19% 91.8%;
+  --primary: 234.5 89.5% 73.9%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 226.3 37.6% 18.2%;
+  --secondary-foreground: 225 19% 91.8%;
+  --muted: 226.3 37.6% 18.2%;
+  --muted-foreground: 228.6 16.7% 56.7%;
+  --accent: 234.5 89.5% 73.9%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 90.6% 70.8%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 227 34.6% 21%;
+  --input: 224.3 31.3% 26.3%;
+  --ring: 234.5 89.5% 73.9%;
+}
+html[data-ofx-embedded="1"][data-skin="ofx"][data-theme="light"] {
+  --background: 230 42.9% 97.3%;
+  --foreground: 222.2 47.4% 11.2%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 47.4% 11.2%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 47.4% 11.2%;
+  --primary: 238.7 83.5% 66.7%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.3 19.3% 34.5%;
+  --accent: 238.7 83.5% 66.7%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72.2% 50.6%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 212.7 26.8% 83.9%;
+  --ring: 238.7 83.5% 66.7%;
+}
+
+/* ---------------------------------------------------------------- MITR bridge (framed support-bot / MITR AI)
+   The chatbot paints with its own variable names (--brand, --bg-*, --text-*, --border as a colour). When it is
+   framed it sets <html data-ofx-vars="mitr" data-skin data-theme> from the iframe query and these names follow the
+   One Finance palette in every skin and mode. Not combined with data-ofx-embedded: --border and --accent mean
+   colours here, HSL triplets in the shadcn bridge. */
+html[data-ofx-vars="mitr"] {
+  --brand: var(--ofx-accent);
+  --brand-hover: var(--ofx-accent-2);
+  --brand-active: var(--ofx-accent-2);
+  --brand-text: var(--ofx-on-accent);
+  --brand-subtle: color-mix(in srgb, var(--ofx-accent) 10%, var(--ofx-card));
+  --brand-gradient: var(--ofx-accent);
+  --accent: var(--ofx-gold);
+  --accent-subtle: color-mix(in srgb, var(--ofx-gold) 14%, var(--ofx-card));
+  --bg-primary: var(--ofx-card);
+  --bg-secondary: var(--ofx-page);
+  --bg-tertiary: var(--ofx-surface-2);
+  --bg-elevated: var(--ofx-card);
+  --bg-canvas: var(--ofx-page);
+  --text-primary: var(--ofx-ink);
+  --text-secondary: var(--ofx-ink-2);
+  --text-muted: var(--ofx-ink-3);
+  --success: var(--ofx-ok);
+  --success-subtle: color-mix(in srgb, var(--ofx-ok) 10%, var(--ofx-card));
+  --danger: var(--ofx-fail);
+  --danger-subtle: color-mix(in srgb, var(--ofx-fail) 10%, var(--ofx-card));
+  --warning: var(--ofx-warn);
+  --warning-subtle: color-mix(in srgb, var(--ofx-warn) 12%, var(--ofx-card));
+  --border: var(--ofx-line);
+  --border-subtle: var(--ofx-surface-2);
+  --border-strong: var(--ofx-line-2);
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: var(--ofx-sh-1);
+  --shadow-md: var(--ofx-sh-1);
+  --shadow-lg: var(--ofx-sh-2);
+  --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--ofx-accent) 30%, transparent);
+  --radius-sm: var(--ofx-r-ctl);
+  --radius-md: var(--ofx-r);
+  --radius-lg: var(--ofx-r-lg);
+  --radius-xl: var(--ofx-r-lg);
+  --font-sans: var(--ofx-font);
+  --font-display: var(--ofx-display);
+  --font-mono: var(--ofx-mono);
+}
+/* Fixed Tailwind palette classes in the bot (text-gray-500, bg-indigo-600, …) take the STEPS palette under the steps
+   skin: greys become STEPS slate and the indigo / violet / purple brand hues become STEPS blue. Values are Tailwind's
+   own slate and blue, which STEPS uses. The ofx (indigo) skin keeps the bot's original hues. */
+html[data-ofx-vars="mitr"][data-skin="steps"] {
+  --color-gray-50: #f8fafc;
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #e2e8f0;
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1e293b;
+  --color-gray-900: #0f172a;
+  --color-gray-950: #020617;
+  --color-indigo-50: #eff6ff;
+  --color-indigo-100: #dbeafe;
+  --color-indigo-200: #bfdbfe;
+  --color-indigo-300: #93c5fd;
+  --color-indigo-400: #60a5fa;
+  --color-indigo-500: #3b82f6;
+  --color-indigo-600: #2563eb;
+  --color-indigo-700: #1d4ed8;
+  --color-indigo-800: #1e40af;
+  --color-indigo-900: #1e3a8a;
+  --color-indigo-950: #172554;
+  --color-violet-50: #eff6ff;
+  --color-violet-100: #dbeafe;
+  --color-violet-200: #bfdbfe;
+  --color-violet-300: #93c5fd;
+  --color-violet-400: #60a5fa;
+  --color-violet-500: #3b82f6;
+  --color-violet-600: #2563eb;
+  --color-violet-700: #1d4ed8;
+  --color-violet-800: #1e40af;
+  --color-violet-900: #1e3a8a;
+  --color-violet-950: #172554;
+  --color-purple-50: #eff6ff;
+  --color-purple-100: #dbeafe;
+  --color-purple-200: #bfdbfe;
+  --color-purple-300: #93c5fd;
+  --color-purple-400: #60a5fa;
+  --color-purple-500: #3b82f6;
+  --color-purple-600: #2563eb;
+  --color-purple-700: #1d4ed8;
+  --color-purple-800: #1e40af;
+  --color-purple-900: #1e3a8a;
+  --color-purple-950: #172554;
+}
+
+/* ---------------------------------------------------------------- partner components (plain CSS screens) */
+.ofx-app {
+  margin: 0;
+  background: var(--ofx-page);
+  color: var(--ofx-ink);
+  font-family: var(--ofx-font);
+  font-size: 13.5px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+.ofx-app[data-ofx-embedded="1"],
+html[data-ofx-embedded="1"] .ofx-app { background: transparent; }
+html[data-ofx-embedded="1"] .ofx-masthead,
+.ofx-app[data-ofx-embedded="1"] .ofx-masthead { display: none !important; }
+
+.ofx-card {
+  background: var(--ofx-card);
+  border: 1px solid var(--ofx-line);
+  border-radius: var(--ofx-r-lg);
+  box-shadow: var(--ofx-sh-1);
+  overflow: hidden;
+}
+.ofx-card-hd {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ofx-line);
+  font-weight: 600;
+  color: var(--ofx-ink);
+}
+.ofx-card-bd { padding: 16px; }
+
+.ofx-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: var(--ofx-ctl-h); padding: 0 var(--ofx-ctl-px);
+  background: var(--ofx-accent);
+  color: var(--ofx-on-accent);
+  border: 1px solid transparent;
+  border-radius: var(--ofx-r-ctl);
+  font: var(--ofx-btn-fw) var(--ofx-btn-fs)/1 var(--ofx-font);
+  box-shadow: var(--ofx-ctl-sh);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ofx-btn:hover { background: color-mix(in srgb, var(--ofx-accent) 90%, var(--ofx-card)); }
+.ofx-btn:focus-visible, .ofx-input:focus-visible, .ofx-select:focus-visible { outline: none; box-shadow: var(--ofx-focus); }
+.ofx-btn-2 {
+  background: var(--ofx-ctl-bg);
+  color: var(--ofx-ink);
+  border-color: var(--ofx-ctl-line);
+}
+.ofx-btn-2:hover, .ofx-btn-ghost:hover { background: var(--ofx-surface-2); color: var(--ofx-ink); }
+.ofx-btn-ghost { background: transparent; color: var(--ofx-ink); border-color: transparent; box-shadow: none; }
+.ofx-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Text fields and selects: STEPS Input / SelectTrigger. */
+.ofx-input, .ofx-select {
+  height: var(--ofx-ctl-h); padding: 0 var(--ofx-ctl-px);
+  background: var(--ofx-ctl-bg);
+  color: var(--ofx-ink);
+  border: 1px solid var(--ofx-ctl-line);
+  border-radius: var(--ofx-r-ctl);
+  box-shadow: var(--ofx-ctl-sh);
+  font: 400 var(--ofx-ctl-fs)/1.2 var(--ofx-font);
+}
+.ofx-input::placeholder { color: var(--ofx-ink-3); }
+.ofx-input:disabled, .ofx-select:disabled { opacity: 0.5; cursor: not-allowed; }
+/* STEPS Label: text-sm font-medium. */
+.ofx-label { display: block; font: var(--ofx-label-fw) var(--ofx-label-fs)/1 var(--ofx-font); color: var(--ofx-ink); }
+.ofx-field { display: flex; flex-direction: column; gap: 8px; }
+
+.ofx-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 22px; padding: 0 9px;
+  border: 1px solid var(--ofx-line-2);
+  border-radius: 999px;
+  background: var(--ofx-surface-2);
+  color: var(--ofx-ink-2);
+  font: 600 11px/1 var(--ofx-font);
+}
+.ofx-pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.ofx-pill-ok { color: var(--ofx-ok); background: var(--ofx-ok-bg); border-color: var(--ofx-ok-line); }
+.ofx-pill-warn { color: var(--ofx-warn); background: var(--ofx-warn-bg); border-color: var(--ofx-warn-line); }
+.ofx-pill-fail { color: var(--ofx-fail); background: var(--ofx-fail-bg); border-color: var(--ofx-fail-line); }
+.ofx-pill-info { color: var(--ofx-info); background: var(--ofx-info-bg); border-color: var(--ofx-info-line); }
+
+.ofx-tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--ofx-grid-fs); }
+.ofx-tbl thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: color-mix(in srgb, var(--ofx-surface-2) 50%, var(--ofx-card));
+  font: 600 var(--ofx-grid-hd-fs)/1 var(--ofx-font);
+  letter-spacing: 0.03em; text-transform: uppercase;
+  color: var(--ofx-ink); text-align: left;
+  padding: 8px 12px;
+  border-bottom: 2px solid var(--ofx-line);
+}
+.ofx-tbl tbody td { padding: 6px 12px; border-bottom: 1px solid color-mix(in srgb, var(--ofx-line) 30%, transparent); color: var(--ofx-ink); font-size: var(--ofx-grid-fs); }
+.ofx-tbl tbody tr:hover td { background: var(--ofx-surface-2); }
+.ofx-tbl .ofx-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.ofx-mono { font-family: var(--ofx-mono); font-size: 12px; }
+.ofx-muted { color: var(--ofx-ink-2); }
+.ofx-eyebrow { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ofx-ink-2); }
+
+/* ---------------------------------------------------------------- Chat (assistant and framed chatbots)
+   One look for every conversational surface: the console's built-in assistant uses these classes, and a chatbot
+   framed in the console links this file and uses them too, so a reply looks the same wherever it comes from.
+
+     <div class="ofx-chat">
+       <div class="ofx-chat-list">
+         <div class="ofx-chat-msg ofx-chat-user">…</div>
+         <div class="ofx-chat-msg ofx-chat-bot">… <div class="ofx-chat-note">…</div>
+           <div class="ofx-chat-actions"><button class="ofx-chat-action">Open R-2031</button></div></div>
+       </div>
+       <div class="ofx-chat-starters"><button class="ofx-chat-chip">What needs my attention?</button></div>
+       <form class="ofx-chat-compose"><input class="ofx-chat-input"><button class="ofx-btn">Send</button></form>
+     </div>                                                                                                      */
+.ofx-chat { display: flex; flex-direction: column; min-height: 0; height: 100%; background: var(--ofx-card);
+  color: var(--ofx-ink); font: 400 13px/1.5 var(--ofx-font); }
+.ofx-chat-list { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.ofx-chat-msg { max-width: 92%; padding: 8px 11px; border-radius: var(--ofx-r); white-space: pre-wrap; overflow-wrap: anywhere; }
+.ofx-chat-user { align-self: flex-end; background: var(--ofx-accent); color: var(--ofx-on-accent); }
+.ofx-chat-bot { align-self: flex-start; background: var(--ofx-surface-2); border: 1px solid var(--ofx-line); }
+.ofx-chat-bot.ofx-chat-error { border-color: var(--ofx-fail-line); color: var(--ofx-fail); }
+.ofx-chat-pending { color: var(--ofx-ink-2); }
+.ofx-chat-note { margin-top: 4px; font-size: 11.5px; color: var(--ofx-ink-2); }
+.ofx-chat-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+.ofx-chat-action, .ofx-chat-chip { display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 3px 10px;
+  border: 1px solid var(--ofx-line); border-radius: 999px; background: var(--ofx-card); color: var(--ofx-ink);
+  font: 500 12px/1.3 var(--ofx-font); text-align: left; cursor: pointer; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
+.ofx-chat-action:hover, .ofx-chat-chip:hover { border-color: var(--ofx-accent); }
+.ofx-chat-empty { display: flex; flex-direction: column; gap: 8px; color: var(--ofx-ink-2); font-size: 12.5px; }
+.ofx-chat-starters { display: flex; flex-direction: column; align-items: stretch; gap: 5px; }
+.ofx-chat-compose { display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--ofx-line); background: var(--ofx-card); }
+.ofx-chat-input { flex: 1; min-width: 0; height: var(--ofx-ctl-h); padding: 0 var(--ofx-ctl-px); border: 1px solid var(--ofx-ctl-line);
+  border-radius: var(--ofx-r-ctl); background: var(--ofx-ctl-bg); box-shadow: var(--ofx-ctl-sh); color: var(--ofx-ink);
+  font: 400 var(--ofx-ctl-fs) var(--ofx-font); }
+.ofx-chat-input:focus { outline: none; box-shadow: var(--ofx-focus); }
+.ofx-chat-foot { margin: 0; padding: 0 12px 8px; font-size: 11px; color: var(--ofx-ink-3); background: var(--ofx-card); }

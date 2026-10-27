@@ -8,6 +8,7 @@
   },
   "scripts": {
     "sync:shared": "node scripts/sync-shared.mjs",
+    "sync:ofx-theme": "node scripts/sync-ofx-theme.mjs",
     "build:all": "npm run build:web && npm run build:engine && npm run build:connectors",
     "build:dev": "npm run build:web && npm run build:engine && npm run build:connectors && node scripts/build/prepare-out.mjs",
     "build:web": "cd apps/web && npm run build",

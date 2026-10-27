@@ -491,10 +491,7 @@ export default function DataExplorerPage() {
               <div
                 aria-hidden="true"
                 className="absolute inset-0 opacity-80 pointer-events-none"
-                style={{
-                  background:
-                    "radial-gradient(circle at 15% 8%, rgba(99,102,241,0.18), transparent 55%), radial-gradient(circle at 92% 92%, rgba(139,92,246,0.14), transparent 55%)",
-                }}
+                style={{ background: "var(--hero-glow)" }}
               />
               <div className="relative px-10 py-10 flex flex-col items-start gap-3 max-w-3xl">
                 <div className="inline-flex items-center gap-1.5">
